@@ -1,6 +1,6 @@
 # Sprint 3 — Epic 3: AI-Powered Financial Statement Ingestion & Standardization (REVISED)
 
-> **Source of truth**: `docs/architecture.md`, `docs/databse-shema.md`, `docs/ticket-2-ai-extraction-pipeline.md`
+> **Source of truth**: `docs/architecture/architecture.md`, `docs/architecture/database-schema.md`, `docs/archive/ticket-2-ai-extraction-pipeline.md`
 > **Status**: Ready for implementation
 > **Date**: 2026-07-14
 

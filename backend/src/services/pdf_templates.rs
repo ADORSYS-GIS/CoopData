@@ -76,3 +76,93 @@ pub const PDF_FOOTER_HTML: &str = r#"<!DOCTYPE html>
   </div>
 </body>
 </html>"#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pdf_header_html_is_valid_html() {
+        assert!(PDF_HEADER_HTML.contains("<!DOCTYPE html>"));
+        assert!(PDF_HEADER_HTML.contains("</html>"));
+        assert!(PDF_HEADER_HTML.contains("<body"));
+        assert!(PDF_HEADER_HTML.contains("</body>"));
+    }
+
+    #[test]
+    fn pdf_header_html_contains_brand() {
+        assert!(PDF_HEADER_HTML.contains("CoopData"));
+        assert!(PDF_HEADER_HTML.contains("Financial &amp; Compliance Assessment Report"));
+    }
+
+    #[test]
+    fn pdf_header_html_uses_a4_page() {
+        assert!(PDF_HEADER_HTML.contains("A4"));
+    }
+
+    #[test]
+    fn pdf_header_html_has_gradient_bar() {
+        assert!(PDF_HEADER_HTML.contains("linear-gradient"));
+        assert!(PDF_HEADER_HTML.contains("#0f3b73"));
+    }
+
+    #[test]
+    fn pdf_footer_html_is_valid_html() {
+        assert!(PDF_FOOTER_HTML.contains("<!DOCTYPE html>"));
+        assert!(PDF_FOOTER_HTML.contains("</html>"));
+        assert!(PDF_FOOTER_HTML.contains("<body"));
+        assert!(PDF_FOOTER_HTML.contains("</body>"));
+    }
+
+    #[test]
+    fn pdf_footer_html_contains_brand() {
+        assert!(PDF_FOOTER_HTML.contains("COOP"));
+        assert!(PDF_FOOTER_HTML.contains("DATA"));
+        assert!(PDF_FOOTER_HTML.contains("Confidential"));
+    }
+
+    #[test]
+    fn pdf_footer_html_has_page_number_placeholders() {
+        assert!(PDF_FOOTER_HTML.contains("pageNumber"));
+        assert!(PDF_FOOTER_HTML.contains("totalPages"));
+    }
+
+    #[test]
+    fn pdf_footer_html_uses_a4_page() {
+        assert!(PDF_FOOTER_HTML.contains("A4"));
+    }
+
+    #[test]
+    fn pdf_footer_html_has_gradient_rule() {
+        assert!(PDF_FOOTER_HTML.contains("linear-gradient"));
+        assert!(PDF_FOOTER_HTML.contains("#64748b"));
+    }
+
+    #[test]
+    fn both_templates_use_same_font_family() {
+        assert!(PDF_HEADER_HTML.contains("Helvetica Neue"));
+        assert!(PDF_FOOTER_HTML.contains("Helvetica Neue"));
+    }
+
+    #[test]
+    fn both_templates_use_utf8_charset() {
+        assert!(PDF_HEADER_HTML.contains("utf-8"));
+        assert!(PDF_FOOTER_HTML.contains("utf-8"));
+    }
+
+    #[test]
+    fn header_and_footer_are_distinct() {
+        assert_ne!(PDF_HEADER_HTML, PDF_FOOTER_HTML);
+    }
+
+    #[test]
+    fn header_contains_no_footer_markers() {
+        assert!(!PDF_HEADER_HTML.contains("Confidential"));
+        assert!(!PDF_HEADER_HTML.contains("totalPages"));
+    }
+
+    #[test]
+    fn footer_contains_no_header_markers() {
+        assert!(!PDF_FOOTER_HTML.contains("Financial &amp; Compliance Assessment Report"));
+    }
+}

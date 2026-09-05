@@ -71,3 +71,27 @@ seed.sh
 
 # Vite PWA dev distribution
 frontend/dev-dist/
+
+# k6 test results (large JSON files)
+results/
+
+# Graphify-out
+graphify-out/
+
+# Terraform / Infrastructure (contains private keys + state — never commit)
+terraform-ec2/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+
+# Private keys & secrets (never commit)
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa
+id_ed25519
+

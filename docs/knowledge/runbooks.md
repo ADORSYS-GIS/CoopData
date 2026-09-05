@@ -8,11 +8,11 @@ Provide actionable, step-by-step instructions for common operational tasks and i
 
 ## Index
 
-<!-- TODO: Link to individual runbooks below -->
+<!-- TODO: Create individual runbook files and link them here -->
 
-- [Service X: High Error Rate](runbooks/service-x-high-error-rate.md)
-- [Database: High CPU/Connection Saturation](runbooks/database-cpu-saturation.md)
-- [Queue Backlog Growing](runbooks/queue-backlog.md)
+- [Service X: High Error Rate] — *TODO: create runbook*
+- [Database: High CPU/Connection Saturation] — *TODO: create runbook*
+- [Queue Backlog Growing] — *TODO: create runbook*
 
 ## Template
 

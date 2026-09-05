@@ -95,6 +95,26 @@ impl SubmissionRepository {
         .await
     }
 
+    pub async fn find_by_cooperative_and_period(
+        &self,
+        cooperative_id: Uuid,
+        reporting_year: i32,
+        period_type: crate::entities::enums::PeriodType,
+        period_value: &str,
+    ) -> AppResult<Option<submission::Model>> {
+        db_query("submission", "find_by_cooperative_and_period", async {
+            Entity::find()
+                .filter(Column::CooperativeId.eq(cooperative_id))
+                .filter(Column::ReportingYear.eq(reporting_year))
+                .filter(Column::PeriodType.eq(period_type))
+                .filter(Column::PeriodValue.eq(period_value))
+                .one(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
+    }
+
     pub async fn count_by_reporting_year(&self, reporting_year: i32) -> AppResult<i64> {
         db_query("submission", "count_by_reporting_year", async {
             use sea_orm::PaginatorTrait;
@@ -247,6 +267,25 @@ impl SubmissionRepository {
 
         let mut active: ActiveModel = existing.into();
         active.submission_method = Set(method);
+        active.updated_at = Set(chrono::Utc::now());
+        active.update(&self.db).await.map_err(Into::into)
+    }
+
+    pub async fn update_period(
+        &self,
+        id: Uuid,
+        period_type: crate::entities::enums::PeriodType,
+        period_value: String,
+    ) -> AppResult<submission::Model> {
+        let existing = Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(crate::error::AppError::from)?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+
+        let mut active: ActiveModel = existing.into();
+        active.period_type = Set(period_type);
+        active.period_value = Set(period_value);
         active.updated_at = Set(chrono::Utc::now());
         active.update(&self.db).await.map_err(Into::into)
     }

@@ -1,14 +1,21 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useUploadFinancialStatement } from "@/hooks/submissions/useUpload";
 import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
 import { useQueryClient } from "@tanstack/react-query";
 
 const ACCEPTED_MIMES = ["application/pdf", "image/png", "image/jpeg", "image/tiff"];
-
 const ACCEPTED_EXT = ".pdf,.png,.jpg,.jpeg,.tiff,.tif";
 
 export const UploadFinancialStatementWidget: React.FC<{
@@ -22,19 +29,19 @@ export const UploadFinancialStatementWidget: React.FC<{
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [alertError, setAlertError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [extractionFinished, setExtractionFinished] = useState(false);
 
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
-  const [dragOver, setDragOver] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [extractionFinished, setExtractionFinished] = useState(false);
 
   const upload = useUploadFinancialStatement(submissionId);
   const { data: job } = useExtractionJob(jobId);
-
   const isTerminal = job && ["succeeded", "failed", "partial"].includes(job.status);
 
   const handleFile = (f: File) => {
@@ -60,46 +67,108 @@ export const UploadFinancialStatementWidget: React.FC<{
   const handleSubmit = async () => {
     if (!file) return;
     try {
-      const result = await upload.mutateAsync({
-        file,
-        submissionId,
-      });
+      const result = await upload.mutateAsync({ file, submissionId });
       setJobId(result.extraction_job_id);
       toast.success(t("uploadFinancial.toastUploadAccepted"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("uploadFinancial.toastUploadFailed"));
+      const msg = e instanceof Error ? e.message : t("uploadFinancial.toastUploadFailed");
+      // Year mismatch errors need a prominent alert dialog, not a fleeting toast
+      const isYearMismatch =
+        msg.toLowerCase().includes("wrong financial statement year") ||
+        msg.toLowerCase().includes("please upload the financial statement for");
+      if (isYearMismatch) {
+        setAlertError(msg);
+      } else {
+        toast.error(msg);
+      }
     }
   };
 
-  // When extraction succeeds, invalidate and notify parent
   useEffect(() => {
-    if (isTerminal && job?.status === "succeeded" && !extractionFinished) {
-      setExtractionFinished(true);
-      void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
-      if (submissionId) {
-        void queryClient.invalidateQueries({
-          queryKey: ["cooperative-submissions", submissionId],
-        });
-      }
-      if (onExtractionComplete) {
-        onExtractionComplete();
-      } else if (!submissionId) {
-        navigate({ to: "/app/submissions/$id", params: { id: job.submission_id } });
+    if (isTerminal && !extractionFinished) {
+      if (job?.status === "succeeded") {
+        setExtractionFinished(true);
+        void queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
+        if (submissionId) {
+          void queryClient.invalidateQueries({
+            queryKey: ["cooperative-submissions", submissionId],
+          });
+        }
+        if (onExtractionComplete) {
+          onExtractionComplete();
+        } else if (!submissionId) {
+          navigate({ to: "/app/submissions/$id", params: { id: job.submission_id } });
+        }
+      } else if (job?.status === "failed") {
+        setExtractionFinished(true);
+        const errMsg = job.error_message || t("uploadFinancial.toastUploadFailed");
+        setAlertError(errMsg);
       }
     }
   }, [
     isTerminal,
     job?.status,
+    job?.error_message,
     extractionFinished,
     submissionId,
     queryClient,
     onExtractionComplete,
     navigate,
     job?.submission_id,
+    t,
   ]);
 
   return (
     <div className="space-y-4">
+      {/* ── Wrong-year alert dialog ── */}
+      {alertError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-surface border border-destructive/30 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center gap-3 px-6 py-5 border-b border-border bg-destructive/5">
+              <div className="flex items-center justify-center size-10 rounded-full bg-destructive/15 shrink-0">
+                <AlertTriangle className="size-5 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-foreground">
+                  {t("uploadFinancial.wrongYearTitle", "Wrong Financial Statement Year")}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t(
+                    "uploadFinancial.wrongYearSubtitle",
+                    "Upload rejected — year mismatch detected",
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-3">
+              <p className="text-sm text-foreground leading-relaxed">{alertError}</p>
+              <div className="flex items-start gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2.5">
+                <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                  {t(
+                    "uploadFinancial.wrongYearHint",
+                    "Please go back, locate the correct financial statement document for the required year, and upload it again.",
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-5 flex justify-end">
+              <button
+                onClick={() => setAlertError(null)}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                {t("uploadFinancial.wrongYearDismiss", "Got it, I'll upload the correct file")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Extraction progress */}
       {jobId && job && !isTerminal && (
         <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">

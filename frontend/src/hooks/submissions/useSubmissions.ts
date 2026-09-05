@@ -6,9 +6,19 @@ import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { runMutation } from "@/services/shared/syncQueueService";
 import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
 
-export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
-export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"];
-export type CreateApexSubmissionRequest = components["schemas"]["CreateApexSubmissionRequest"];
+export type SubmissionResponse = components["schemas"]["SubmissionResponse"] & {
+  period_type?: string;
+  period_value?: string;
+  start_month?: number;
+};
+export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"] & {
+  period_type?: string;
+  period_value?: string;
+};
+export type CreateApexSubmissionRequest = components["schemas"]["CreateApexSubmissionRequest"] & {
+  period_type?: string;
+  period_value?: string;
+};
 export type DelegateSubmissionRequest = components["schemas"]["DelegateSubmissionRequest"];
 export type ReclaimSubmissionRequest = components["schemas"]["ReclaimSubmissionRequest"];
 
@@ -182,6 +192,8 @@ export const useCreateSubmission = () => {
           "") as unknown as SubmissionResponse["submission_method"],
         current_tier: "cooperative" as unknown as SubmissionResponse["current_tier"],
         priority: body.priority ?? "Routine",
+        period_type: (body as { period_type?: string }).period_type ?? "",
+        period_value: String((body as { period_value?: number }).period_value ?? ""),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         sections: [],

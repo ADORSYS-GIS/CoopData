@@ -17,6 +17,7 @@ function extractErrorMessage(err: unknown): string {
 export interface UploadParams {
   file: File;
   submissionId: string;
+  section?: string;
 }
 
 function nfUploadUrl(role: string | null): string {
@@ -28,11 +29,16 @@ export const useNfUpload = () => {
   const queryClient = useQueryClient();
   const role = useUserRole();
   return useMutation({
-    mutationFn: async ({ file, submissionId }: UploadParams): Promise<NfUploadResponse> => {
+    mutationFn: async ({
+      file,
+      submissionId,
+      section,
+    }: UploadParams): Promise<NfUploadResponse> => {
       const token = await getAccessToken();
       const formData = new FormData();
       formData.append("file", file);
       formData.append("submission_id", submissionId);
+      if (section) formData.append("section", section);
 
       const url = nfUploadUrl(role);
       const res = await fetch(url, {

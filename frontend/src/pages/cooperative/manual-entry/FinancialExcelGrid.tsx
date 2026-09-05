@@ -321,9 +321,22 @@ const INCOME_STATEMENT_ROWS: GridRowConfig[] = [
   },
 ];
 
+interface FinancialExcelGridProps {
+  accountingYear: "calendar" | "fiscal";
+  currency: string;
+  periodType?: "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
+  periodValue?: string;
+  startMonth?: number; // 1 = Jan, 10 = Oct, 7 = Jul, etc.
+  financialData: Record<number, Record<number, number>>;
+  onChange: (code: number, monthNum: number, value: number) => void;
+}
+
 export function FinancialExcelGrid({
   accountingYear,
   currency,
+  periodType,
+  periodValue,
+  startMonth,
   financialData,
   onChange,
 }: FinancialExcelGridProps) {
@@ -331,38 +344,59 @@ export function FinancialExcelGrid({
   const [helpField, setHelpField] = useState<{ title: string; desc: string } | null>(null);
 
   const monthSequence: MonthCol[] = useMemo(() => {
-    if (accountingYear === "calendar") {
-      return [
-        { name: "Jan", nameKey: "jan", num: 1 },
-        { name: "Feb", nameKey: "feb", num: 2 },
-        { name: "Mar", nameKey: "mar", num: 3 },
-        { name: "Apr", nameKey: "apr", num: 4 },
-        { name: "May", nameKey: "may", num: 5 },
-        { name: "Jun", nameKey: "jun", num: 6 },
-        { name: "Jul", nameKey: "jul", num: 7 },
-        { name: "Aug", nameKey: "aug", num: 8 },
-        { name: "Sep", nameKey: "sep", num: 9 },
-        { name: "Oct", nameKey: "oct", num: 10 },
-        { name: "Nov", nameKey: "nov", num: 11 },
-        { name: "Dec", nameKey: "dec", num: 12 },
-      ];
-    } else {
-      return [
-        { name: "Jul", nameKey: "jul", num: 7 },
-        { name: "Aug", nameKey: "aug", num: 8 },
-        { name: "Sep", nameKey: "sep", num: 9 },
-        { name: "Oct", nameKey: "oct", num: 10 },
-        { name: "Nov", nameKey: "nov", num: 11 },
-        { name: "Dec", nameKey: "dec", num: 12 },
-        { name: "Jan", nameKey: "jan", num: 1 },
-        { name: "Feb", nameKey: "feb", num: 2 },
-        { name: "Mar", nameKey: "mar", num: 3 },
-        { name: "Apr", nameKey: "apr", num: 4 },
-        { name: "May", nameKey: "may", num: 5 },
-        { name: "Jun", nameKey: "jun", num: 6 },
-      ];
+    const allMonths: MonthCol[] = [
+      { name: "Jan", nameKey: "jan", num: 1 },
+      { name: "Feb", nameKey: "feb", num: 2 },
+      { name: "Mar", nameKey: "mar", num: 3 },
+      { name: "Apr", nameKey: "apr", num: 4 },
+      { name: "May", nameKey: "may", num: 5 },
+      { name: "Jun", nameKey: "jun", num: 6 },
+      { name: "Jul", nameKey: "jul", num: 7 },
+      { name: "Aug", nameKey: "aug", num: 8 },
+      { name: "Sep", nameKey: "sep", num: 9 },
+      { name: "Oct", nameKey: "oct", num: 10 },
+      { name: "Nov", nameKey: "nov", num: 11 },
+      { name: "Dec", nameKey: "dec", num: 12 },
+    ];
+
+    let start = 1;
+    if (typeof startMonth === "number" && startMonth >= 1 && startMonth <= 12) {
+      start = startMonth;
+    } else if (accountingYear === "fiscal") {
+      start = 7; // Default fiscal: July - June
     }
-  }, [accountingYear]);
+
+    const all: MonthCol[] = [];
+    for (let i = 0; i < 12; i++) {
+      const mNum = ((start - 1 + i) % 12) + 1;
+      const found = allMonths.find((m) => m.num === mNum);
+      if (found) all.push(found);
+    }
+
+    if (periodType === "YEARLY" || !periodType) {
+      return [{ name: "Annual Total", nameKey: "annual", num: 0 }];
+    }
+
+    if (periodType === "QUARTERLY") {
+      if (periodValue === "Q1") return all.slice(0, 3);
+      if (periodValue === "Q2") return all.slice(3, 6);
+      if (periodValue === "Q3") return all.slice(6, 9);
+      if (periodValue === "Q4") return all.slice(9, 12);
+      return all.slice(0, 3);
+    }
+    if (periodType === "SEMI_ANNUAL") {
+      if (periodValue === "H1") return all.slice(0, 6);
+      if (periodValue === "H2") return all.slice(6, 12);
+      return all.slice(0, 6);
+    }
+    if (periodType === "MONTHLY" && periodValue && periodValue !== "FULL_YEAR") {
+      const targetNum = Number(periodValue);
+      if (!isNaN(targetNum) && targetNum >= 1 && targetNum <= 12) {
+        return all.filter((m) => m.num === targetNum);
+      }
+    }
+    return all;
+  }, [accountingYear, periodType, periodValue, startMonth]);
 
   const rows = useMemo(() => [...BALANCE_SHEET_ROWS, ...INCOME_STATEMENT_ROWS], []);
 
@@ -383,7 +417,7 @@ export function FinancialExcelGrid({
                   key={m.num}
                   className="px-3 py-3 text-right w-28 border-r border-border/80 last:border-r-0"
                 >
-                  {t(`financialExcelGrid.months.${m.nameKey}`)}
+                  {t(`financialStatementEditor.months.${m.nameKey}`, m.name)}
                 </th>
               ))}
             </tr>

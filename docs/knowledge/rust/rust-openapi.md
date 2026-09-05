@@ -9,10 +9,12 @@
 
 ### Step 1: Add utoipa Annotations to Handler
 
-**File:** `src/api/handlers/assessment.rs`
+**File:** `src/api/handlers/submission.rs`
 
 ```rust
 use utoipa::ToSchema;
+use std::sync::Arc;
+use crate::auth::claims::Claims;
 
 /// Handler documentation format:
 /// 1. HTTP method and path
@@ -23,22 +25,20 @@ use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
-    path = "/assessments",
-    tag = "Assessment",
-    request_body = AssessmentCreateRequest,
+    path = "/api/v1/cooperative/submissions",
+    tag = "Cooperative",
+    request_body = CreateSubmissionRequest,
     responses(
-        (status = 201, description = "Assessment created successfully", body = Assessment),
-        (status = 400, description = "Validation error", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse)
-    ),
-    security(
-        ("bearer_auth" = [])
+        (status = 201, description = "Submission created", body = SubmissionResponse),
+        (status = 400, description = "Invalid input"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "Submission already exists for this year")
     )
 )]
-pub async fn create_assessment(
+pub async fn create_submission(
     State(state): State<AppState>,
-    Extension(_token): Extension<String>,
-    Json(request): Json<AssessmentCreateRequest>,
+    Extension(claims): Extension<Arc<Claims>>,  // Note: Claims, not String token
+    Json(request): Json<CreateSubmissionRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Handler implementation
 }
@@ -49,18 +49,18 @@ pub async fn create_assessment(
 ```rust
 #[utoipa::path(
     get,
-    path = "/assessments/{assessment_id}",
-    tag = "Assessment",
+    path = "/api/v1/cooperative/submissions/{id}",
+    tag = "Cooperative",
     params(
-        ("assessment_id" = Uuid, Path, description = "Assessment unique identifier")
+        ("id" = Uuid, Path, description = "Submission unique identifier")
     ),
     responses(
-        (status = 200, description = "Assessment found", body = Assessment),
-        (status = 404, description = "Assessment not found", body = ErrorResponse)
+        (status = 200, description = "Submission found", body = SubmissionResponse),
+        (status = 404, description = "Submission not found", body = ErrorResponse)
     )
 )]
-pub async fn get_assessment(
-    Path(assessment_id): Path<Uuid>,
+pub async fn get_submission(
+    Path(id): Path<Uuid>,
     State(state): State<AppState>,
 ) -> AppResult<impl IntoResponse> {
     // ...
@@ -71,29 +71,26 @@ pub async fn get_assessment(
 
 ```rust
 #[derive(Debug, Deserialize, IntoParams)]
-pub struct AssessmentFilters {
-    /// Filter by organization ID
-    pub organization_id: Option<String>,
-    /// Filter by status
-    pub status: Option<String>,/// Page number (default: 1)
-    #[serde(default = "default_page")]
-    pub page: u32,
+pub struct PaginationParams {
+    /// Page number (default: 1)
+    #[param(default = 1)]
+    pub page: Option<u32>,
     /// Items per page (default: 20, max: 100)
-    #[serde(default = "default_per_page")]
-    pub per_page: u32,
+    #[param(default = 20)]
+    pub per_page: Option<u32>,
 }
 
 #[utoipa::path(
     get,
-    path = "/assessments",
-    tag = "Assessment",
-    params(AssessmentFilters),
+    path = "/api/v1/organizations",
+    tag = "Organizations",
+    params(PaginationParams),
     responses(
-        (status = 200, description = "List of assessments", body = PaginatedResponse<Assessment>)
+        (status = 200, description = "List of organizations", body = PaginatedOrganizationResponse)
     )
 )]
-pub async fn list_assessments(
-    Query(filters): Query<AssessmentFilters>,
+pub async fn list_organizations(
+    Query(params): Query<PaginationParams>,
     State(state): State<AppState>,
 ) -> AppResult<impl IntoResponse> {
     // ...
@@ -102,34 +99,35 @@ pub async fn list_assessments(
 
 ### Step 4: Define Response Schemas
 
-**File:** `src/api/dto/assessment.rs`
+**File:** `src/api/dto/submission.rs`
 
 ```rust
 use utoipa::ToSchema;
 
-/// Assessment response schema
+/// Submission response schema
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AssessmentResponse {
+pub struct SubmissionResponse {
     /// Unique identifier
     pub id: Uuid,
-    /// Organization ID
-    pub organization_id: String,
-    /// Document title
-    #[schema(example = "Digital Maturity Assessment 2024")]
-    pub document_title: String,
+    /// Reference number
+    pub reference: Option<String>,
+    /// Cooperative ID
+    pub cooperative_id: Uuid,
+    /// Reporting year
+    pub reporting_year: i32,
     /// Current status
-    pub status: AssessmentStatus,
+    #[schema(example = "draft")]
+    pub status: String,
 }
 
-/// Error response schema
+/// Error response schema (defined in common.rs)
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ErrorResponse {
     /// Error type
     pub error: String,
     /// Human-readable message
-    pub message: String,
-    /// HTTP status code
-    pub code: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
 }
 ```
 

@@ -212,6 +212,8 @@ pub async fn get_nf_trend(
 #[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
 pub struct ConsolidatedNfStatsQueryParams {
     pub reporting_year: Option<i32>,
+    pub period_type: Option<String>,
+    pub period_value: Option<String>,
     pub federation_id: Option<String>,
     pub apex_id: Option<String>,
     pub cooperative_id: Option<String>,
@@ -290,7 +292,38 @@ pub async fn get_consolidated_nf_statistics(
     let year_filtered: Vec<_> = submissions
         .into_iter()
         .filter(|s| {
-            s.reporting_year == year
+            let matches_year = s.reporting_year == year;
+            let matches_pt = params
+                .period_type
+                .as_deref()
+                .map(|pt| {
+                    if pt.eq_ignore_ascii_case("all") {
+                        true
+                    } else {
+                        let pt_str = match s.period_type {
+                            crate::entities::enums::PeriodType::Yearly => "YEARLY",
+                            crate::entities::enums::PeriodType::Quarterly => "QUARTERLY",
+                            crate::entities::enums::PeriodType::Monthly => "MONTHLY",
+                            crate::entities::enums::PeriodType::SemiAnnual => "SEMI_ANNUAL",
+                        };
+                        pt_str.eq_ignore_ascii_case(pt)
+                    }
+                })
+                .unwrap_or(true);
+            let matches_pv = params
+                .period_value
+                .as_deref()
+                .map(|pv| {
+                    if pv.eq_ignore_ascii_case("all") {
+                        true
+                    } else {
+                        s.period_value.eq_ignore_ascii_case(pv)
+                    }
+                })
+                .unwrap_or(true);
+            matches_year
+                && matches_pt
+                && matches_pv
                 && s.status == crate::entities::enums::SubmissionStatus::Approved
         })
         .collect();

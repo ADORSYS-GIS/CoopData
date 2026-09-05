@@ -10,6 +10,8 @@ export interface ManualLineItemRequest {
 export interface ManualFinancialStatementRequest {
   accounting_year: "calendar" | "fiscal";
   currency: string;
+  period_type?: string;
+  period_value?: string;
   line_items: ManualLineItemRequest[];
 }
 

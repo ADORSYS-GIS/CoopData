@@ -282,6 +282,7 @@ pub async fn upload_financial_statement(
             job_id,
             submission_id,
             coop.id,
+            reporting_year,
             file_bytes,
             mime_type,
             coop_type,

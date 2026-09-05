@@ -1,6 +1,6 @@
 # Sprint 4 — Epic 4: Analytics, Benchmarking & Dashboards
 
-> **Source of truth**: `docs/architecture.md` §8 (KPI Materialization), §9 (Abnormality Flagging), `frontend/src/lib/kpi-calculations.ts`, `frontend/src/pages/shared/AnalyticsPage.tsx`
+> **Source of truth**: `docs/architecture/architecture.md` §8 (KPI Materialization), §9 (Abnormality Flagging), `frontend/src/lib/kpi-calculations.ts`, `frontend/src/pages/shared/AnalyticsPage.tsx`
 > **Status**: Ready for implementation
 > **Date**: 2026-07-14
 
@@ -60,7 +60,7 @@ For Sprint 5, we can add a nightly materialization job to `computed_kpis`. For n
 
 #### Context
 
-Given an `approved` or `submitted` submission with line items in `balance_sheet_line_items`, the backend needs to compute the ~25 financial KPIs (PAR30, ROA, ROE, Capital Adequacy, etc.) defined in `docs/architecture.md §8` and `kpi-calculations.ts`.
+Given an `approved` or `submitted` submission with line items in `balance_sheet_line_items`, the backend needs to compute the ~25 financial KPIs (PAR30, ROA, ROE, Capital Adequacy, etc.) defined in `docs/architecture/architecture.md §8` and `kpi-calculations.ts`.
 
 The computation logic mirrors `kpi-calculations.ts` — port it to Rust.
 
@@ -79,7 +79,7 @@ impl KpiEngine {
 }
 ```
 
-Account code mapping (from `financial-data.ts` and `docs/architecture.md`):
+Account code mapping (from `financial-data.ts` and `docs/architecture/architecture.md`):
 - `1101-1104` → liquid assets
 - `1201-1205` → gross loan portfolio
 - `1251-1252` → loan loss provisions
