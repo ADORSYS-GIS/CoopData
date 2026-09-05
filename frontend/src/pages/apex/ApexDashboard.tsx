@@ -1,7 +1,6 @@
 import {
   Building2,
   Users,
-  Loader2,
   AlertCircle,
   Network,
   ChevronRight,
@@ -16,6 +15,7 @@ import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { useApexStats } from "@/hooks/submissions/useSubmissions";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
+import { Spinner } from "@/components/ui/spinner";
 
 export const ApexDashboard: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
@@ -32,7 +32,7 @@ export const ApexDashboard: React.FC = () => {
     return (
       <AppShell title={t("apexDashboard.title")} subtitle={t("apexDashboard.subtitle")}>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <Spinner size="lg" className="text-muted-foreground" />
         </div>
       </AppShell>
     );
@@ -106,7 +106,7 @@ export const ApexDashboard: React.FC = () => {
                   key={c.id}
                   className="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/20 transition-colors"
                 >
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-success/20 bg-success/10 text-success">
                     <Building2 className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">

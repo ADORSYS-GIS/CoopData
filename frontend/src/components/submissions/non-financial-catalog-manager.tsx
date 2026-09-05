@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Edit2, HelpCircle, X } from "lucide-react";
+import { Plus, Trash2, Edit2, HelpCircle, X } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   type IndicatorCatalogResponse,
 } from "@/hooks/submissions/useNonFinancialIndicators";
 import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
+import { Spinner } from "@/components/ui/spinner";
 
 export const NonFinancialCatalogManager: React.FC = () => {
   const { t } = useTranslation();
@@ -175,7 +176,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground font-sans">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        <Spinner size="md" className="mr-2 h-5 w-5" />
         {t("submissions.catalogManager.loading")}
       </div>
     );
@@ -351,7 +352,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
               >
                 {createMutation.isPending || updateMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner size="md" className="mr-2 h-4 w-4" />
                     {t("submissions.catalogManager.btnSaving")}
                   </>
                 ) : (
@@ -380,7 +381,7 @@ export const NonFinancialCatalogManager: React.FC = () => {
                     {t(`submissions.catalogManager.dataTypes.${item.data_type}`, item.data_type)}
                   </span>
                   {item.coop_type && (
-                    <span className="text-[10px] font-medium bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded-full capitalize">
+                    <span className="text-[10px] font-medium bg-warning/10 text-warning px-1.5 py-0.5 rounded-full capitalize">
                       {t(`submissions.catalogManager.coopTypes.${item.coop_type}`, item.coop_type)}
                     </span>
                   )}

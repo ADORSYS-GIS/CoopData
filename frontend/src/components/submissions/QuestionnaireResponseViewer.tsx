@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import {
   ClipboardList,
   AlertCircle,
-  Loader2,
   CheckCircle2,
   Building2,
   Users,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { useQuestionnaire, useActiveTemplate } from "@/hooks/submissions/useQuestionnaire";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 interface QuestionnaireResponseViewerProps {
   submissionId: string;
@@ -52,7 +52,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
   if (isResponseLoading || isTemplateLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-2.5">
-        <Loader2 className="size-6 animate-spin text-primary opacity-60" />
+        <Spinner size="md" className="text-primary opacity-60" />
         <span className="text-xs text-muted-foreground font-medium">
           {t("questionnaireViewer.loading")}
         </span>
@@ -83,7 +83,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
               defaultValue: "Questionnaire not started yet",
             })}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {t("questionnaireViewer.notStartedHint", {
               defaultValue: "Click the button above to begin and choose a questionnaire type.",
             })}

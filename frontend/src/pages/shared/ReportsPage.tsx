@@ -1,27 +1,15 @@
 import {
   FileText,
   Download,
-  TrendingUp,
   ChevronRight,
-  BarChart3,
-  PieChart,
-  ShieldCheck,
-  Building2,
-  Network,
-  Landmark,
   Calendar,
-  Loader2,
-  ArrowUpRight,
   FileBarChart2,
-  Sparkles,
   CheckCircle2,
   Clock3,
   XCircle,
   AlertCircle,
-  FileSpreadsheet,
-  FileType,
-  ChevronDown,
   RefreshCw,
+  MoreVertical,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { type Role, useUserRole } from "@/lib/auth";
@@ -35,8 +23,15 @@ import {
   useMinistrySubmissions,
 } from "@/hooks/submissions/useSubmissions";
 import { getAccessToken } from "@/services/shared/authService";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -47,23 +42,23 @@ const STATUS_CONFIG: Record<
   approved: {
     label: "Approved",
     icon: CheckCircle2,
-    className:
-      "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+    className: "bg-success/10 text-success dark:text-success border border-success/30/20",
   },
   submitted: {
     label: "Submitted",
     icon: Clock3,
-    className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+    className: "bg-accent/100/10 text-accent dark:text-accent border border-accent/30/20",
   },
   pending: {
     label: "Pending",
     icon: AlertCircle,
-    className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+    className: "bg-warning/10 text-warning dark:text-warning border border-warning/30/20",
   },
   rejected: {
     label: "Rejected",
     icon: XCircle,
-    className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20",
+    className:
+      "bg-destructive/100/10 text-destructive dark:text-destructive border border-destructive/30/20",
   },
   draft: {
     label: "Draft",
@@ -86,7 +81,7 @@ function StatusBadge({ status }: { status: string }) {
   const Icon = config.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${config.className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${config.className}`}
     >
       <Icon className="size-3" />
       {label}
@@ -98,7 +93,7 @@ function StatusBadge({ status }: { status: string }) {
 
 type ExportFormat = "pdf";
 
-function ExportButton({
+function RowActions({
   submissionId,
   filename,
   onExport,
@@ -110,58 +105,44 @@ function ExportButton({
   isExporting: string | null;
 }) {
   const { t } = useOrganizationLabelsContext();
-  const isThis = isExporting === submissionId;
+  const isExportingThis = isExporting === submissionId;
+  const isRegeneratingThis = isExporting === submissionId + "-regen";
+  const busy = isExporting !== null;
 
   return (
-    <button
-      onClick={() => onExport(submissionId, "pdf", filename, false)}
-      disabled={isExporting !== null}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-xl border border-border bg-background px-3 py-1.5 hover:bg-accent hover:text-white hover:border-accent transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed press-feedback"
-    >
-      {isThis ? (
-        <>
-          <Loader2 className="size-3.5 animate-spin" /> {t("reports.exporting")}
-        </>
-      ) : (
-        <>
-          <Download className="size-3.5" /> {t("reports.exportPdf")}
-        </>
-      )}
-    </button>
-  );
-}
-
-function RegenerateButton({
-  submissionId,
-  filename,
-  onExport,
-  isExporting,
-}: {
-  submissionId: string;
-  filename: string;
-  onExport: (id: string, format: ExportFormat, name: string, regenerate?: boolean) => void;
-  isExporting: string | null;
-}) {
-  const { t } = useOrganizationLabelsContext();
-  const isThis = isExporting === submissionId + "-regen";
-
-  return (
-    <button
-      onClick={() => onExport(submissionId, "pdf", filename, true)}
-      disabled={isExporting !== null}
-      title={t("reportExport.regenerateTooltip")}
-      className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-xl border border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed press-feedback"
-    >
-      {isThis ? (
-        <>
-          <Loader2 className="size-3.5 animate-spin" /> {t("reportExport.regenerating")}
-        </>
-      ) : (
-        <>
-          <RefreshCw className="size-3.5" /> {t("reportExport.regenerateAndExport")}
-        </>
-      )}
-    </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          disabled={busy}
+          className="flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-accent hover:text-white hover:border-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={t("reports.rowActions")}
+        >
+          {isExportingThis || isRegeneratingThis ? (
+            <Spinner size="sm" />
+          ) : (
+            <MoreVertical className="size-4" />
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem
+          disabled={busy}
+          onClick={() => onExport(submissionId, "pdf", filename, false)}
+          className="cursor-pointer"
+        >
+          <Download className="size-4" />
+          {t("reports.exportPdf")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={busy}
+          onClick={() => onExport(submissionId, "pdf", filename, true)}
+          className="cursor-pointer"
+        >
+          <RefreshCw className="size-4" />
+          {t("reportExport.regenerateAndExport")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -263,7 +244,7 @@ export const ReportsPage: React.FC = () => {
     <AppShell title={titleByRole[role]} subtitle={subtitleByRole[role]}>
       <div className="relative min-h-[calc(100vh-10rem)]">
         {/* ── Page Background Watermark ── */}
-        <FileBarChart2 className="pointer-events-none fixed -bottom-24 -right-24 size-[500px] text-blue-500/5 rotate-12 z-0" />
+        <FileBarChart2 className="pointer-events-none fixed -bottom-24 -right-24 size-[500px] text-accent/5 rotate-12 z-0" />
 
         <div className="relative z-10 space-y-8">
           {/* ── Export panel ── */}
@@ -273,7 +254,7 @@ export const ReportsPage: React.FC = () => {
           <div className="rounded-2xl border border-border bg-surface overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <div>
-                <h2 className="font-heading font-bold text-foreground text-[15px]">
+                <h2 className="font-heading font-bold text-foreground text-sm">
                   {t("reports.recentDataSubmissions")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -291,7 +272,7 @@ export const ReportsPage: React.FC = () => {
 
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-                <Loader2 className="size-7 animate-spin text-accent" />
+                <Spinner size="lg" className="text-accent" />
                 <span className="text-sm">{t("reports.loadingSubmissions")}</span>
               </div>
             ) : recentSubmissions.length === 0 ? (
@@ -304,11 +285,11 @@ export const ReportsPage: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-6 py-2.5 bg-muted/40 border-b border-border text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-6 py-2.5 bg-muted/40 border-b border-border text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   <span>{t("reports.cooperativeYear")}</span>
                   <span className="text-center">{t("reports.statusHeader")}</span>
                   <span className="text-right">{t("reports.dateHeader")}</span>
-                  <span className="text-right">{t("reports.exportHeader")}</span>
+                  <span className="text-right">{t("reports.actionsHeader")}</span>
                 </div>
 
                 <ul className="divide-y divide-border">
@@ -361,14 +342,8 @@ export const ReportsPage: React.FC = () => {
                         </div>
 
                         {/* Export actions */}
-                        <div className="flex justify-end gap-2">
-                          <RegenerateButton
-                            submissionId={s.id}
-                            filename={`${baseName}.pdf`}
-                            onExport={handleExport}
-                            isExporting={isExporting}
-                          />
-                          <ExportButton
+                        <div className="flex justify-end">
+                          <RowActions
                             submissionId={s.id}
                             filename={`${baseName}.pdf`}
                             onExport={handleExport}
@@ -380,7 +355,7 @@ export const ReportsPage: React.FC = () => {
                   })}
                 </ul>
 
-                <div className="px-6 py-3 border-t border-border bg-muted/20 flex items-center gap-2 text-[11px] text-muted-foreground">
+                <div className="px-6 py-3 border-t border-border bg-muted/20 flex items-center gap-2 text-xs text-muted-foreground">
                   <ChevronRight className="size-3 shrink-0" />
                   {t("reports.showingMostRecent", { count: recentSubmissions.length })}
                 </div>

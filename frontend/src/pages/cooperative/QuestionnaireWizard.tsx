@@ -9,7 +9,6 @@ import {
   BarChart3,
   Save,
   AlertCircle,
-  Loader2,
   ClipboardList,
   Users,
   Building2,
@@ -22,6 +21,7 @@ import {
   useActiveTemplate,
 } from "@/hooks/submissions/useQuestionnaire";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 export interface TemplateField {
   key: string;
@@ -334,7 +334,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   if (isTemplateLoading || isResponseLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="size-8 animate-spin text-primary opacity-60" />
+        <Spinner size="lg" className="text-primary opacity-60" />
         <span className="text-xs text-muted-foreground font-medium">
           {t("questionnaire.loadingConfig")}
         </span>
@@ -407,13 +407,13 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
             </div>
             <div className="flex items-center gap-3">
               {saveSuccess && (
-                <span className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium animate-in fade-in duration-300">
+                <span className="flex items-center gap-1.5 text-xs text-success font-medium animate-in fade-in duration-300">
                   <CheckCircle2 className="size-4" /> {t("questionnaire.saved")}
                 </span>
               )}
               {saveMutation.isPending && (
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" /> {t("questionnaire.saving")}
+                  <Spinner size="sm" /> {t("questionnaire.saving")}
                 </span>
               )}
               {saveMutation.isError && (
@@ -468,14 +468,14 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                     isCurrent
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : isComplete
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        ? "bg-success/100/10 text-success dark:text-success"
                         : "bg-muted/50 text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   {isComplete ? (
                     <CheckCircle2 className="size-3" />
                   ) : (
-                    <span className="text-[13px] leading-none">{getEmoji(s.icon)}</span>
+                    <span className="text-sm leading-none">{getEmoji(s.icon)}</span>
                   )}
                   <span className="hidden sm:inline">{s.title}</span>
                   <span className="sm:hidden">{idx + 1}</span>
@@ -562,7 +562,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
             <button
               onClick={handleSubmitAll}
               disabled={saveMutation.isPending}
-              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm"
+              className="flex items-center gap-2 rounded-xl bg-success px-5 py-2.5 text-sm font-semibold text-white hover:bg-success transition-colors disabled:opacity-50 shadow-sm"
             >
               <CheckCircle2 className="size-4" />
               {t("questionnaire.complete")}

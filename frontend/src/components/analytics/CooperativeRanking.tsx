@@ -21,8 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { Spinner } from "@/components/ui/spinner";
 
 interface CooperativeRankingProps {
   reportingYear: number;
@@ -164,7 +165,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
   if (isOverviewLoading || isCompLoading) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+        <Spinner size="md" className="mr-2 h-5 w-5 text-primary" />
         {t("analytics.loadingRankings")}
       </div>
     );
@@ -173,12 +174,12 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
   return (
     <div className="space-y-6">
       {/* Excel Blue Banner with Slicers */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-800">
+      <div className="bg-gradient-to-r from-primary via-primary to-primary text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-primary">
         <div>
           <h2 className="text-xl font-bold tracking-tight">
             {t("analytics.coopSectorStatistics")}
           </h2>
-          <p className="text-xs text-blue-200/80 mt-1 font-medium">
+          <p className="text-xs text-primary-foreground/80 mt-1 font-medium">
             {t("analytics.bulletinSubtitle", { year: reportingYear })}
           </p>
         </div>
@@ -186,7 +187,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         {/* Slicers Section */}
         <div className="flex items-center gap-3">
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[120px]">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80 block mb-1">
               {t("analytics.date")}
             </span>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -205,7 +206,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
           </div>
 
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[200px]">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80 block mb-1">
               {t("analytics.account")}
             </span>
             <Select value={selectedMetric} onValueChange={setSelectedMetric}>
@@ -225,8 +226,8 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
       </div>
 
       {/* Info Explanation Card */}
-      <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 flex gap-3 text-xs leading-relaxed shadow-sm">
-        <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
+      <div className="bg-accent/5 border border-accent/10 text-accent rounded-xl p-4 flex gap-3 text-xs leading-relaxed shadow-sm">
+        <Info className="size-4 text-accent shrink-0 mt-0.5" />
         <div>
           <span className="font-bold block mb-1">{t("analytics.accountRankingMapping")}</span>
           {t("analytics.accountRankingMappingDesc")}
@@ -275,7 +276,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
               <div className="overflow-x-auto max-h-[480px]">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-border text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/20">
+                    <tr className="border-b border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/20">
                       <th className="py-2.5 px-3">{t("analytics.entity")}</th>
                       <th className="py-2.5 px-3 text-right">{t("analytics.valueSzUsd")}</th>
                       <th className="py-2.5 px-3 text-right">{t("analytics.sharePct")}</th>
@@ -297,7 +298,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                           <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
                             {formatValue(coop.value)}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-medium text-blue-600 bg-blue-50/30">
+                          <td className="py-2.5 px-3 text-right font-mono font-medium text-accent bg-accent/5">
                             {contribPct.toFixed(2)}%
                           </td>
                         </tr>
@@ -326,8 +327,8 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                   <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 65 }}>
                     <defs>
                       <linearGradient id="rankingBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#1e3a8a" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.4} />
+                        <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.4} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.1} />

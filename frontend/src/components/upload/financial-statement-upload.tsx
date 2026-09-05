@@ -5,7 +5,6 @@ import {
   Image,
   CheckCircle2,
   AlertTriangle,
-  Loader2,
   X,
   Eye,
   Edit3,
@@ -18,6 +17,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import type { BalanceSheet } from "@/lib/financial-data";
 import { createEmptyBalanceSheet } from "@/lib/financial-data";
+import { Spinner } from "@/components/ui/spinner";
 
 // ─────────────────────────────────────────────────────────────────────
 // TYPES
@@ -541,7 +541,7 @@ export function FinancialStatementUpload({
       <div className="space-y-6 py-8">
         <div className="flex flex-col items-center gap-4">
           <div className="size-16 rounded-2xl bg-primary/10 text-primary grid place-items-center animate-pulse">
-            <Loader2 className="size-8 animate-spin" />
+            <Spinner size="lg" />
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-foreground">

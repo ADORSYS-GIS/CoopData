@@ -115,7 +115,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
               yAxisId="left"
               dataKey="liquidity"
               name={t("analytics.savingsShort")}
-              fill="#3b82f6"
+              fill="var(--chart-1)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
             />
@@ -125,7 +125,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
               yAxisId="left"
               dataKey="loans"
               name={t("analytics.loansLabel")}
-              fill="#10b981"
+              fill="var(--chart-2)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
             />
@@ -135,7 +135,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
               yAxisId="left"
               dataKey="savings"
               name={t("analytics.depositsLabel")}
-              fill="#f59e0b"
+              fill="var(--chart-3)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
             />
@@ -146,7 +146,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
               type="monotone"
               dataKey="netVariation"
               name={t("analytics.netVariation")}
-              stroke="#8b5cf6"
+              stroke="var(--chart-4)"
               strokeWidth={3}
               dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
               activeDot={{ r: 6 }}

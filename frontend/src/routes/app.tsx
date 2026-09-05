@@ -1,6 +1,7 @@
 import { Navigate, Link, Outlet, createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 function AppLayout() {
   const { t } = useTranslation();
@@ -10,7 +11,7 @@ function AppLayout() {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+          <Spinner size="xl" className="text-accent" />
           <p className="text-sm text-muted-foreground">{t("appLayout.loading")}</p>
         </div>
       </div>

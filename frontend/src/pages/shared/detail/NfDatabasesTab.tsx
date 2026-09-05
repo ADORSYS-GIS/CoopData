@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Loader2, Trash2, CheckCircle2, Users, Database, PenLine } from "lucide-react";
+import { Trash2, CheckCircle2, Users, Database, PenLine } from "lucide-react";
 import { Card, StatusPill } from "@/components/app-shell";
 import { useMembers } from "@/hooks/non-financial/useMembers";
 import { useSavings } from "@/hooks/non-financial/useSavings";
@@ -17,6 +17,7 @@ import { NfUploadZone } from "@/components/non-financial/NfUploadZone";
 import { NfParseResults } from "@/components/non-financial/NfParseResults";
 import { toast } from "sonner";
 import type { NfUploadResponse } from "@/types/non-financial";
+import { Spinner } from "@/components/ui/spinner";
 
 interface NfDatabasesTabProps {
   submissionId: string;
@@ -72,11 +73,7 @@ const ClearNonFinancialButton: React.FC<{ submissionId: string }> = ({ submissio
         disabled={deleteNf.isPending}
         className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
       >
-        {deleteNf.isPending ? (
-          <Loader2 className="size-3.5 animate-spin" />
-        ) : (
-          <Trash2 className="size-3.5" />
-        )}
+        {deleteNf.isPending ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
         {t("submissions.detail.nfDatabases.btnClearDbs")}
       </button>
 
@@ -107,7 +104,7 @@ const ClearNonFinancialButton: React.FC<{ submissionId: string }> = ({ submissio
               className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteNf.isPending ? (
-                <Loader2 className="size-4 animate-spin mr-1" />
+                <Spinner size="sm" className="mr-1" />
               ) : (
                 <Trash2 className="size-4 mr-1" />
               )}
@@ -177,11 +174,7 @@ function NfTable({
               disabled={isUpdating}
               className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 border border-success/25 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/15 disabled:opacity-50 transition-colors cursor-pointer"
             >
-              {isUpdating ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : (
-                <CheckCircle2 className="size-3" />
-              )}
+              {isUpdating ? <Spinner size="sm" /> : <CheckCircle2 className="size-3" />}
               {t("submissions.detail.nfDatabases.btnMarkReady")}
             </button>
           )}
@@ -414,7 +407,7 @@ export function NfDatabasesTab({
 
       {isLoading && (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
-          <Loader2 className="size-5 animate-spin mr-2" />{" "}
+          <Spinner size="md" className="mr-2" />{" "}
           {t("submissions.detail.nfDatabases.loadingRecords")}
         </div>
       )}

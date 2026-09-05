@@ -8,7 +8,6 @@ import {
   Database,
   Upload,
   PenLine,
-  Loader2,
   Trash2,
   AlertCircle,
   Users,
@@ -28,6 +27,7 @@ import type { NfUploadResponse } from "@/types/non-financial";
 import type { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
 import type { ExtractionJobResponse } from "@/hooks/submissions/useExtractionJob";
 import type { QuestionnaireResponseData } from "@/hooks/submissions/useQuestionnaire";
+import { Spinner } from "@/components/ui/spinner";
 
 interface SubmissionContentTabsProps {
   submission: SubmissionResponse | null | undefined;
@@ -93,11 +93,7 @@ const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) 
         disabled={deleteFS.isPending}
         className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
       >
-        {deleteFS.isPending ? (
-          <Loader2 className="size-3.5 animate-spin" />
-        ) : (
-          <Trash2 className="size-3.5" />
-        )}
+        {deleteFS.isPending ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
         {t("submissions.detail.contentTabs.btnDeleteDoc")}
       </button>
 
@@ -128,7 +124,7 @@ const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) 
               className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteFS.isPending ? (
-                <Loader2 className="size-4 animate-spin mr-1" />
+                <Spinner size="sm" className="mr-1" />
               ) : (
                 <Trash2 className="size-4 mr-1" />
               )}
@@ -175,9 +171,7 @@ const ChangeMethodBanner: React.FC<{
                     : t("submissions.methodModal.questionnaireTitle"),
             })}
           </p>
-          <p className="text-[11px] text-muted-foreground">
-            {t("submissions.methodModal.changeHint")}
-          </p>
+          <p className="text-xs text-muted-foreground">{t("submissions.methodModal.changeHint")}</p>
         </div>
       </div>
       <button
@@ -260,7 +254,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                         search: { type: "financial" },
                       })
                     }
-                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-white hover:bg-success transition-colors shadow-sm cursor-pointer"
                   >
                     <ClipboardList className="size-3.5" />
                     {t("submissions.detail.contentTabs.btnEditAnswers")}
@@ -289,7 +283,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                         search: { type: "non_financial" },
                       })
                     }
-                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-white hover:bg-success transition-colors shadow-sm cursor-pointer"
                   >
                     <ClipboardList className="size-3.5" />
                     {t("submissions.detail.contentTabs.btnEditAnswers")}
@@ -345,7 +339,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
               >
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="relative mb-4">
-                    <div className="size-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                    <Spinner size="xl" className="text-primary" />
                     <FileText className="size-6 text-primary absolute inset-0 m-auto animate-pulse" />
                   </div>
                   <h3 className="text-base font-bold text-foreground">
@@ -390,7 +384,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                           search: { type: "financial" },
                         })
                       }
-                      className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+                      className="flex items-center gap-1.5 rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-white hover:bg-success transition-colors shadow-sm cursor-pointer"
                     >
                       <ClipboardList className="size-3.5" />
                       {t("submissions.detail.contentTabs.btnEditAnswers")}
@@ -541,7 +535,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                           search: { type: "non_financial" },
                         })
                       }
-                      className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer"
+                      className="flex items-center gap-1.5 rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-white hover:bg-success transition-colors shadow-sm cursor-pointer"
                     >
                       <ClipboardList className="size-3.5" />
                       {t("submissions.detail.contentTabs.btnEditAnswers")}

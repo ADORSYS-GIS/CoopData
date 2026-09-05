@@ -1,13 +1,6 @@
-import {
-  Loader2,
-  Globe,
-  CheckCircle2,
-  Layers,
-  Building2,
-  FileText,
-  type LucideIcon,
-} from "lucide-react";
+import { Globe, CheckCircle2, Layers, Building2, FileText, type LucideIcon } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ActiveStepPickerProps {
   activeStepKey: string;
@@ -73,7 +66,7 @@ export function ActiveStepPicker({
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingFederations")}
+            <Spinner size="sm" /> {t("stepPicker.loadingFederations")}
           </div>
         ) : federationList.length === 0 ? (
           <p className="text-xs text-muted-foreground bg-muted rounded-xl p-3">
@@ -115,7 +108,7 @@ export function ActiveStepPicker({
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingApexes")}
+            <Spinner size="sm" /> {t("stepPicker.loadingApexes")}
           </div>
         ) : apexList.length === 0 ? (
           <p className="text-xs text-muted-foreground bg-muted rounded-xl p-3">
@@ -157,7 +150,7 @@ export function ActiveStepPicker({
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingCooperatives")}
+            <Spinner size="sm" /> {t("stepPicker.loadingCooperatives")}
           </div>
         ) : cooperativeList.length === 0 ? (
           <p className="text-xs text-muted-foreground bg-muted rounded-xl p-3">
@@ -199,7 +192,7 @@ export function ActiveStepPicker({
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingSubmissions")}
+            <Spinner size="sm" /> {t("stepPicker.loadingSubmissions")}
           </div>
         ) : filteredSubmissions.length === 0 ? (
           <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-4 flex items-start gap-2">
@@ -224,7 +217,7 @@ export function ActiveStepPicker({
                     {sub.reporting_year} {t("stepPicker.financialReport")}
                   </p>
                   <p
-                    className={`text-[11px] mt-0.5 capitalize ${
+                    className={`text-xs mt-0.5 capitalize ${
                       selectedSubmissionId === sub.id ? "text-primary/70" : "text-muted-foreground"
                     }`}
                   >
@@ -261,7 +254,7 @@ export function ActiveStepPicker({
         </label>
         {isLoadingSubmissions ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <Loader2 className="size-3.5 animate-spin" /> {t("stepPicker.loadingYears")}
+            <Spinner size="sm" /> {t("stepPicker.loadingYears")}
           </div>
         ) : availableYears.length === 0 ? (
           <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-xl p-4 flex items-start gap-2">

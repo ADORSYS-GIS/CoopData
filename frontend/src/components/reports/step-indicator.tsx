@@ -9,7 +9,7 @@ interface StepDotProps {
 export function StepDot({ n, active, done }: StepDotProps) {
   return (
     <div
-      className={`size-6 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all ${
+      className={`size-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
         done
           ? "bg-primary border-primary text-primary-foreground"
           : active

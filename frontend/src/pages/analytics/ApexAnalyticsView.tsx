@@ -5,7 +5,7 @@
  * NF portfolio summary, and per-coop deep-dive if a coop is selected.
  */
 import { useMemo } from "react";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { ApexRadarChart } from "@/components/analytics/ApexRadarChart";
 import { CoopScatterPlot } from "@/components/analytics/CoopScatterPlot";
@@ -20,6 +20,7 @@ import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { Spinner } from "@/components/ui/spinner";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -56,7 +57,7 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
   if (overviewLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground p-8">
-        <Loader2 className="size-5 animate-spin" /> {t("apexAnalytics.loading")}
+        <Spinner size="md" /> {t("apexAnalytics.loading")}
       </div>
     );
   }

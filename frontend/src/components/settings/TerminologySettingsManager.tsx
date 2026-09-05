@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Shield, Network, Building, Users, Save, Loader2 } from "lucide-react";
+import { Shield, Network, Building, Users, Save } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
+import { Spinner } from "@/components/ui/spinner";
 import {
   useOrganizationLabels,
   useUpdateOrganizationLabel,
@@ -60,7 +61,7 @@ export const TerminologySettingsManager: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex h-48 items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-accent" />
+        <Spinner size="lg" className="text-accent" />
       </div>
     );
   }
@@ -241,11 +242,7 @@ export const TerminologySettingsManager: React.FC = () => {
                   size="sm"
                   className="w-full md:w-auto self-end md:self-auto flex items-center gap-1.5"
                 >
-                  {isMutating ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Save className="size-3.5" />
-                  )}
+                  {isMutating ? <Spinner size="sm" /> : <Save className="size-3.5" />}
                   {t("settings.terminology.saveBtn", { defaultValue: "Save changes" })}
                 </Button>
               </div>

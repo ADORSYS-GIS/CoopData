@@ -1,4 +1,4 @@
-import { Loader2, ShieldOff, Eye, EyeOff } from "lucide-react";
+import { ShieldOff, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useDisableMfa } from "@/hooks/auth/useSecuritySettings";
+import { Spinner } from "@/components/ui/spinner";
 
 interface DisableMfaDialogProps {
   open: boolean;
@@ -129,11 +130,7 @@ export const DisableMfaDialog: React.FC<DisableMfaDialogProps> = ({ open, onOpen
             disabled={disableMfa.isPending || !password || otp.length !== 6}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {disableMfa.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ShieldOff className="size-4" />
-            )}
+            {disableMfa.isPending ? <Spinner size="sm" /> : <ShieldOff className="size-4" />}
             {t("profile.mfaConfirmDisable", "Disable MFA")}
           </button>
         </DialogFooter>

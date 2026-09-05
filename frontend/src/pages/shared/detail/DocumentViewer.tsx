@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Loader2, AlertCircle, ZoomOut, ZoomIn, Maximize2, ExternalLink } from "lucide-react";
+import { AlertCircle, ZoomOut, ZoomIn, Maximize2, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getAccessToken } from "@/services/shared/authService";
+import { Spinner } from "@/components/ui/spinner";
 
 export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
   const { t } = useTranslation();
@@ -90,7 +91,7 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[420px] text-muted-foreground rounded-xl border border-border bg-muted/10 font-sans">
-        <Loader2 className="size-6 animate-spin mr-2" />
+        <Spinner size="md" className="mr-2" />
         <span className="text-sm">{t("submissions.detail.documentViewer.loading")}</span>
       </div>
     );

@@ -3,7 +3,6 @@ import {
   Upload,
   FileSpreadsheet,
   X,
-  Loader2,
   CheckCircle2,
   Layers,
   Users,
@@ -19,6 +18,7 @@ import { useNfUpload } from "@/hooks/non-financial/useNfUpload";
 import { toast } from "sonner";
 import type { NfUploadResponse } from "@/types/non-financial";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 interface NfUploadZoneProps {
   submissionId?: string;
@@ -242,7 +242,7 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
                     )}
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/40 text-[11px]">
+                  <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/40 text-xs">
                     <span className="text-muted-foreground truncate max-w-[140px]">
                       {sec.id === "" ? "Full workbook" : sec.sheetName}
                     </span>
@@ -252,7 +252,7 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
                         e.stopPropagation();
                         triggerFilePickerForSection(sec.id);
                       }}
-                      className="font-medium text-primary hover:underline flex items-center gap-1 text-[11px]"
+                      className="font-medium text-primary hover:underline flex items-center gap-1 text-xs"
                     >
                       {t("nf.uploadFile", "Upload")}
                       <Upload className="size-3" />
@@ -272,7 +272,7 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
             </span>
             <span className="text-muted-foreground font-normal">
               Target: <strong className="text-foreground">{t(activeMeta.titleKey)}</strong> (
-              <code className="font-mono text-[11px] text-primary">{activeMeta.code}</code>)
+              <code className="font-mono text-xs text-primary">{activeMeta.code}</code>)
             </span>
           </div>
 
@@ -309,7 +309,7 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
             <p className="text-xs text-muted-foreground mt-1">
               {file ? `${(file.size / 1024).toFixed(0)} KB` : t("nf.fileSizeHint")}
             </p>
-            <p className="text-[11px] text-muted-foreground/70 mt-2 font-mono">
+            <p className="text-xs text-muted-foreground/70 mt-2 font-mono">
               Expected sheet: {activeMeta.sheetName}
             </p>
           </div>
@@ -344,7 +344,7 @@ export function NfUploadZone({ submissionId = "", onUploadComplete }: NfUploadZo
         >
           {uploadMutation.isPending ? (
             <>
-              <Loader2 className="size-4 animate-spin" /> {t("nf.uploadingParsing")}
+              <Spinner size="sm" /> {t("nf.uploadingParsing")}
             </>
           ) : (
             <>

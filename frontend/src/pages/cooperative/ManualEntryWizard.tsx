@@ -5,7 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  Loader2,
   AlertCircle,
   TrendingUp,
   Users,
@@ -81,6 +80,7 @@ import { MembersStep } from "./manual-entry/MembersStep";
 import { SavingsStep } from "./manual-entry/SavingsStep";
 import { LoansStep } from "./manual-entry/LoansStep";
 import { DepositsStep } from "./manual-entry/DepositsStep";
+import { Spinner } from "@/components/ui/spinner";
 
 export function ManualEntryWizard() {
   const { t } = useTranslation();
@@ -1037,7 +1037,7 @@ export function ManualEntryWizard() {
         }
       >
         <div className="max-w-4xl mx-auto px-4 py-16 flex flex-col items-center justify-center space-y-4 font-sans">
-          <Loader2 className="size-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
           <p className="text-sm text-muted-foreground font-medium">
             {t("manualEntry.loadingData")}
           </p>
@@ -1254,11 +1254,7 @@ export function ManualEntryWizard() {
                   disabled={isDeletingFS}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/5 hover:bg-danger/10 px-4 py-2 text-sm font-semibold text-danger transition-colors cursor-pointer disabled:opacity-50 focus:outline-none"
                 >
-                  {isDeletingFS ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="size-3.5" />
-                  )}
+                  {isDeletingFS ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
                   {t("manualEntry.clearFinancialBtn")}
                 </button>
               )}
@@ -1312,11 +1308,7 @@ export function ManualEntryWizard() {
                 disabled={isDeletingNF}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/5 hover:bg-danger/10 px-4 py-2 text-sm font-semibold text-danger transition-colors cursor-pointer disabled:opacity-50 focus:outline-none"
               >
-                {isDeletingNF ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Trash2 className="size-3.5" />
-                )}
+                {isDeletingNF ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
                 {t("manualEntry.clearNonFinancialBtn")}
               </button>
             </div>
@@ -1493,11 +1485,7 @@ export function ManualEntryWizard() {
                   }
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm focus:outline-none"
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}
+                  {isSubmitting ? <Spinner size="sm" /> : <Send className="size-4" />}
                   {t("manualEntry.submitNonFinancialBtn")}
                 </button>
               </div>

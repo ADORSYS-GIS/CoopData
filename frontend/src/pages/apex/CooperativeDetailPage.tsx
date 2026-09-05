@@ -46,9 +46,7 @@ function InfoRow({
         <Icon className="size-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
         <p className="mt-0.5 text-sm font-medium text-foreground break-words">
           {value && value.trim() !== "" ? value : "—"}
         </p>
@@ -133,7 +131,7 @@ export const CooperativeDetailPage: React.FC = () => {
           className="lg:col-span-2"
         >
           <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-success/20 bg-success/10 text-success">
               <Building2 className="size-8" />
             </div>
             <div className="min-w-0">
@@ -219,7 +217,7 @@ export const CooperativeDetailPage: React.FC = () => {
                   className="flex items-center justify-between rounded-lg border border-border px-4 py-3 hover:bg-muted/40 transition-colors group"
                 >
                   <span className="flex items-center gap-2 text-sm font-medium">
-                    <Users className="size-4 text-violet-600" />
+                    <Users className="size-4 text-accent" />
                     {t("coopDetail.manageMembers")}
                   </span>
                   <ChevronRight className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
@@ -231,7 +229,7 @@ export const CooperativeDetailPage: React.FC = () => {
                 className="flex items-center justify-between rounded-lg border border-border px-4 py-3 hover:bg-muted/40 transition-colors group"
               >
                 <span className="flex items-center gap-2 text-sm font-medium">
-                  <Pencil className="size-4 text-amber-600" />
+                  <Pencil className="size-4 text-warning" />
                   {t("coopDetail.editProfile")}
                 </span>
                 <ChevronRight className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />

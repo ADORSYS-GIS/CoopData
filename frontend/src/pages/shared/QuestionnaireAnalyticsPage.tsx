@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell } from "@/components/app-shell";
+import { Spinner } from "@/components/ui/spinner";
 import { useQuestionnaireAnalytics } from "@/hooks/submissions/useQuestionnaire";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { Link } from "@tanstack/react-router";
@@ -128,7 +129,14 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
         }))
       : [];
 
-  const COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899", "#ef4444"];
+  const COLORS = [
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+    "var(--chart-5)",
+    "var(--chart-1)",
+  ];
 
   return (
     <AppShell
@@ -210,7 +218,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-32 text-muted-foreground">
-            <Layers className="size-6 animate-spin mr-2" /> {t("questionnaireAnalytics.loading")}
+            <Spinner size="md" className="mr-2" /> {t("questionnaireAnalytics.loading")}
           </div>
         ) : error ? (
           <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/5 text-destructive text-sm flex items-center gap-2">
@@ -224,9 +232,9 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
         ) : (
           <>
             {/* Scope Summary Banner */}
-            <div className="rounded-2xl border border-blue-500/10 bg-blue-500/5 p-4 flex items-center justify-between gap-4 text-xs">
-              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-                <AlertCircle className="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+            <div className="rounded-2xl border border-accent/30/10 bg-accent/100/5 p-4 flex items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-2 text-foreground">
+                <AlertCircle className="size-4 shrink-0 text-accent" />
                 <span
                   dangerouslySetInnerHTML={{
                     __html: t("questionnaireAnalytics.scopeMessage", {
@@ -243,7 +251,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Card 1: Reporting Rate */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
-                <div className="absolute right-3 top-3 p-2 bg-blue-500/10 text-blue-600 rounded-xl">
+                <div className="absolute right-3 top-3 p-2 bg-accent/100/10 text-accent rounded-xl">
                   <BarChart3 className="size-4" />
                 </div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -252,7 +260,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 <span className="text-2xl font-bold text-foreground mt-1">
                   {stats.total_reporting_cooperatives} / {cooperatives.length}
                 </span>
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">
+                <span className="text-[10px] text-foreground font-semibold">
                   {cooperatives.length > 0
                     ? t("questionnaireAnalytics.submissionRate", {
                         rate: Math.round(
@@ -265,7 +273,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
               {/* Card 2: Consolidated Membership */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
-                <div className="absolute right-3 top-3 p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
+                <div className="absolute right-3 top-3 p-2 bg-success/10 text-success rounded-xl">
                   <Users className="size-4" />
                 </div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -274,7 +282,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 <span className="text-2xl font-bold text-foreground mt-1">
                   {formatNumber(stats.total_registered_members)}
                 </span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                <span className="text-[10px] text-success dark:text-success font-semibold">
                   {t("questionnaireAnalytics.activeMembersPct", {
                     pct: activePercentage,
                     count: formatNumber(stats.total_active_members),
@@ -284,7 +292,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
               {/* Card 3: Total Share Capital */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
-                <div className="absolute right-3 top-3 p-2 bg-amber-500/10 text-amber-600 rounded-xl">
+                <div className="absolute right-3 top-3 p-2 bg-warning/10 text-warning rounded-xl">
                   <DollarSign className="size-4" />
                 </div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -300,7 +308,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
               {/* Card 4: Total Savings Value */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
-                <div className="absolute right-3 top-3 p-2 bg-indigo-500/10 text-indigo-600 rounded-xl">
+                <div className="absolute right-3 top-3 p-2 bg-accent/100/10 text-accent rounded-xl">
                   <DollarSign className="size-4" />
                 </div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -316,7 +324,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
               {/* Card 5: Outstanding Loans */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
-                <div className="absolute right-3 top-3 p-2 bg-rose-500/10 text-rose-600 rounded-xl">
+                <div className="absolute right-3 top-3 p-2 bg-destructive/100/10 text-destructive rounded-xl">
                   <TrendingDown className="size-4" />
                 </div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -332,14 +340,14 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
 
               {/* Card 6: Net Surplus / Income */}
               <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-1.5 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-muted/20">
-                <div className="absolute right-3 top-3 p-2 bg-violet-500/10 text-violet-600 rounded-xl">
+                <div className="absolute right-3 top-3 p-2 bg-accent/100/10 text-accent rounded-xl">
                   <TrendingUp className="size-4" />
                 </div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   {t("questionnaireAnalytics.netSurplusIncome")}
                 </span>
                 <span
-                  className={`text-2xl font-bold mt-1 ${stats.total_net_income >= 0 ? "text-emerald-600" : "text-destructive"}`}
+                  className={`text-2xl font-bold mt-1 ${stats.total_net_income >= 0 ? "text-success" : "text-destructive"}`}
                 >
                   {formatCurrency(stats.total_net_income)}
                 </span>
@@ -361,21 +369,21 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 {/* Gender split visual */}
                 <div className="flex flex-col gap-2 border-b border-border/60 pb-4">
                   <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-blue-600 dark:text-blue-400">
+                    <span className="text-foreground">
                       {t("questionnaireAnalytics.male", {
                         count: formatNumber(stats.total_members_male),
                         pct: malePercentage,
                       })}
                     </span>
-                    <span className="text-pink-600 dark:text-pink-400">
+                    <span className="text-foreground">
                       {t("questionnaireAnalytics.female", {
                         count: formatNumber(stats.total_members_female),
                         pct: femalePercentage,
                       })}
                     </span>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-pink-100 dark:bg-pink-900/30 overflow-hidden flex">
-                    <div className="bg-blue-500 h-full" style={{ width: `${malePercentage}%` }} />
+                  <div className="w-full h-3 rounded-full bg-accent/15 dark:bg-accent/30 overflow-hidden flex">
+                    <div className="bg-accent/100 h-full" style={{ width: `${malePercentage}%` }} />
                   </div>
                 </div>
 
@@ -389,22 +397,22 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                     {
                       label: t("questionnaireAnalytics.age18to25"),
                       value: stats.members_by_age?.age_18_25 ?? 0,
-                      color: "bg-emerald-500",
+                      color: "bg-success",
                     },
                     {
                       label: t("questionnaireAnalytics.age26to35"),
                       value: stats.members_by_age?.age_26_35 ?? 0,
-                      color: "bg-blue-500",
+                      color: "bg-accent/100",
                     },
                     {
                       label: t("questionnaireAnalytics.age36to60"),
                       value: stats.members_by_age?.age_36_60 ?? 0,
-                      color: "bg-indigo-500",
+                      color: "bg-accent/100",
                     },
                     {
                       label: t("questionnaireAnalytics.age61plus"),
                       value: stats.members_by_age?.age_61plus ?? 0,
-                      color: "bg-amber-500",
+                      color: "bg-warning",
                     },
                   ].map((group) => {
                     const totalAgeMembers =
@@ -570,7 +578,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                         <Bar
                           dataKey="value"
                           name={t("questionnaireAnalytics.cooperativesLegend")}
-                          fill="#8b5cf6"
+                          fill="var(--chart-4)"
                           radius={[4, 4, 0, 0]}
                         >
                           {sectorChartData.map((entry, index) => (
@@ -629,8 +637,8 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                           <span
                             className={`inline-flex px-2 py-0.5 rounded-full font-bold border ${
                               row.questionnaire_type === "financial"
-                                ? "bg-blue-500/10 border-blue-500/25 text-blue-600 dark:text-blue-400"
-                                : "bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400"
+                                ? "bg-accent/100/10 border-accent/30/25 text-accent dark:text-accent"
+                                : "bg-success/10 border-success/30/25 text-success dark:text-success"
                             }`}
                           >
                             {row.questionnaire_type === "financial"
@@ -646,7 +654,7 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                           {formatCurrency(row.total_share_capital)}
                         </td>
                         <td
-                          className={`px-5 py-3.5 text-right font-mono font-semibold ${row.net_income >= 0 ? "text-emerald-600" : "text-destructive"}`}
+                          className={`px-5 py-3.5 text-right font-mono font-semibold ${row.net_income >= 0 ? "text-success" : "text-destructive"}`}
                         >
                           {formatCurrency(row.net_income)}
                         </td>

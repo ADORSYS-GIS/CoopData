@@ -78,12 +78,12 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
           <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorOverviewSavings" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="colorOverviewLoans" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -135,7 +135,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               type="monotone"
               dataKey="liquidity"
               name={t("analytics.savingsLiquidFunds")}
-              stroke="#3b82f6"
+              stroke="var(--chart-1)"
               strokeWidth={2}
               strokeDasharray="4 4"
               fill="url(#colorOverviewSavings)"
@@ -147,7 +147,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               type="monotone"
               dataKey="loans"
               name={t("analytics.loansLabel")}
-              stroke="#10b981"
+              stroke="var(--chart-2)"
               strokeWidth={2}
               strokeDasharray="4 4"
               fill="url(#colorOverviewLoans)"
@@ -159,7 +159,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               type="monotone"
               dataKey="savings"
               name={t("analytics.depositsLabel")}
-              stroke="#f59e0b"
+              stroke="var(--chart-3)"
               strokeWidth={3}
               dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
               activeDot={{ r: 6 }}

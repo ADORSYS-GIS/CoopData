@@ -7,7 +7,6 @@ import {
   Info,
   Check,
   X,
-  Loader2,
   Sparkles,
   ArrowRight,
   Divide,
@@ -45,6 +44,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 interface VariableDef {
   name: string;
@@ -62,22 +62,14 @@ interface VariableDef {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  assets:
-    "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
-  liabilities:
-    "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
-  equity:
-    "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
-  income:
-    "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
-  expenses:
-    "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
-  governance:
-    "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400 dark:border-pink-800",
-  membership:
-    "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800",
-  other:
-    "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
+  assets: "bg-(--chart-1)/10 text-(--chart-1) border-(--chart-1)/20 hover:bg-(--chart-1)/20",
+  liabilities: "bg-(--chart-3)/10 text-(--chart-3) border-(--chart-3)/20 hover:bg-(--chart-3)/20",
+  equity: "bg-(--chart-2)/10 text-(--chart-2) border-(--chart-2)/20 hover:bg-(--chart-2)/20",
+  income: "bg-(--chart-4)/10 text-(--chart-4) border-(--chart-4)/20 hover:bg-(--chart-4)/20",
+  expenses: "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20",
+  governance: "bg-(--chart-4)/10 text-(--chart-4) border-(--chart-4)/20 hover:bg-(--chart-4)/20",
+  membership: "bg-(--chart-5)/10 text-(--chart-5) border-(--chart-5)/20 hover:bg-(--chart-5)/20",
+  other: "bg-muted text-muted-foreground border-border hover:bg-muted/70",
 };
 
 // Category colors map
@@ -546,11 +538,11 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
   };
 
   return (
-    <Card className="col-span-full border border-violet-100 bg-gradient-to-br from-violet-50/50 to-indigo-50/30">
+    <Card className="col-span-full border border-accent/10 bg-gradient-to-br from-accent/5 to-accent/5">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-xl font-bold flex items-center gap-2 text-violet-900">
-            <Sparkles className="h-5 w-5 text-violet-600" />
+          <CardTitle className="text-xl font-bold flex items-center gap-2 text-accent">
+            <Sparkles className="h-5 w-5 text-accent" />
             {t("customKpiBuilder.title")}
           </CardTitle>
           <CardDescription>{t("customKpiBuilder.description")}</CardDescription>
@@ -569,14 +561,14 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
           )}
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-violet-600 hover:bg-violet-700 shadow-sm">
+              <Button className="bg-accent hover:bg-accent shadow-sm">
                 <Plus className="mr-2 h-4 w-4" /> {t("customKpiBuilder.newKpiBtn")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[680px] max-h-[92vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5 text-violet-600" />
+                  <Calculator className="h-5 w-5 text-accent" />
                   {t("customKpiBuilder.createKpiTitle")}
                 </DialogTitle>
                 <DialogDescription>{t("customKpiBuilder.createKpiDesc")}</DialogDescription>
@@ -591,7 +583,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                     placeholder={t("customKpiBuilder.namePlaceholder")}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="border-violet-200 focus-visible:ring-violet-500"
+                    className="border-accent/20 focus-visible:ring-accent"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -696,7 +688,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                         key={op.symbol}
                         variant="outline"
                         size="sm"
-                        className="h-9 w-9 p-0 font-mono text-lg font-bold hover:bg-violet-50 hover:border-violet-300 transition-colors"
+                        className="h-9 w-9 p-0 font-mono text-lg font-bold hover:bg-accent/10 hover:border-accent/30 transition-colors"
                         onClick={() => insertOperator(op.symbol)}
                       >
                         {op.icon ? <op.icon className="h-4 w-4" /> : op.symbol}
@@ -722,7 +714,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                   <div className="relative">
                     <Textarea
                       id="formula"
-                      className="font-mono text-sm min-h-[60px] border-violet-200 focus-visible:ring-violet-500 pr-8"
+                      className="font-mono text-sm min-h-[60px] border-accent/20 focus-visible:ring-accent pr-8"
                       placeholder={t("customKpiBuilder.formulaPlaceholder")}
                       value={formula}
                       onChange={(e) => setFormula(e.target.value)}
@@ -733,9 +725,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                           className={`h-2 w-2 rounded-full ${
                             testResult
                               ? testResult.is_valid
-                                ? "bg-emerald-500"
-                                : "bg-red-500"
-                              : "bg-amber-400 animate-pulse"
+                                ? "bg-success"
+                                : "bg-destructive"
+                              : "bg-warning animate-pulse"
                           }`}
                         />
                       </div>
@@ -757,10 +749,10 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                     variant="secondary"
                     onClick={handleTest}
                     disabled={isEvaluating || !formula.trim()}
-                    className="border-violet-200 hover:bg-violet-50"
+                    className="border-accent/20 hover:bg-accent/10"
                   >
                     {isEvaluating ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Spinner size="md" className="mr-2 h-4 w-4" />
                     ) : (
                       <BarChart3 className="mr-2 h-4 w-4" />
                     )}
@@ -770,8 +762,8 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                     <div
                       className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full ${
                         testResult.is_valid
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-red-50 text-red-700"
+                          ? "bg-success/10 text-success"
+                          : "bg-destructive/10 text-destructive"
                       }`}
                     >
                       {testResult.is_valid ? (
@@ -796,10 +788,10 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                 <Button
                   onClick={handleCreate}
                   disabled={isCreating || !name.trim() || !formula.trim()}
-                  className="bg-violet-600 hover:bg-violet-700"
+                  className="bg-accent hover:bg-accent"
                 >
                   {isCreating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner size="md" className="mr-2 h-4 w-4" />
                   ) : (
                     <Sparkles className="mr-2 h-4 w-4" />
                   )}
@@ -813,16 +805,14 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Spinner size="md" className="h-8 w-8 text-muted-foreground" />
           </div>
         ) : kpis.length === 0 ? (
-          <div className="text-center p-10 border-2 border-dashed border-violet-200 rounded-xl bg-white/50">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-100 mb-4">
-              <Calculator className="h-8 w-8 text-violet-600" />
+          <div className="text-center p-10 border-2 border-dashed border-accent/20 rounded-xl bg-white/50">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent/10 mb-4">
+              <Calculator className="h-8 w-8 text-accent" />
             </div>
-            <p className="text-lg font-semibold text-violet-900">
-              {t("customKpiBuilder.emptyTitle")}
-            </p>
+            <p className="text-lg font-semibold text-accent">{t("customKpiBuilder.emptyTitle")}</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
               {t("customKpiBuilder.emptyDesc")}
             </p>
@@ -844,9 +834,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                     return (
                       <Card
                         key={kpi.id}
-                        className="relative overflow-hidden group border-violet-100 bg-white hover:shadow-md hover:border-violet-300 transition-all duration-200"
+                        className="relative overflow-hidden group border-accent/10 bg-white hover:shadow-md hover:border-accent/30 transition-all duration-200"
                       >
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-indigo-500" />
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent to-accent" />
                         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <Button
                             variant="ghost"
@@ -871,7 +861,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                         <CardContent className="pb-4">
                           {hasValue ? (
                             <div className="mb-2">
-                              <span className="text-2xl font-bold text-violet-700 tabular-nums">
+                              <span className="text-2xl font-bold text-accent tabular-nums">
                                 {value >= 1000
                                   ? value.toLocaleString(undefined, { maximumFractionDigits: 1 })
                                   : value.toFixed(2)}
@@ -894,12 +884,12 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
             )}
 
             {kpis.length > 0 && cooperatives && cooperatives.length > 0 && (
-              <Card className="mt-8 border border-violet-100 bg-white shadow-sm overflow-hidden">
-                <CardHeader className="pb-4 border-b border-muted bg-gradient-to-br from-violet-50/50 to-transparent">
+              <Card className="mt-8 border border-accent/10 bg-white shadow-sm overflow-hidden">
+                <CardHeader className="pb-4 border-b border-muted bg-gradient-to-br from-accent/5 to-transparent">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-lg font-bold text-violet-950 flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-violet-600 animate-pulse" />
+                      <CardTitle className="text-lg font-bold text-accent flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-accent animate-pulse" />
                         {t("customKpiBuilder.breakdownTitle")}
                       </CardTitle>
                       <CardDescription>{t("customKpiBuilder.breakdownDesc")}</CardDescription>
@@ -909,7 +899,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                         placeholder={t("customKpiBuilder.searchPlaceholder")}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border-violet-200 focus-visible:ring-violet-500 shadow-sm"
+                        className="border-accent/20 focus-visible:ring-accent shadow-sm"
                       />
                     </div>
                   </div>
@@ -927,9 +917,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                               {t("customKpiBuilder.cooperativeName")}
                               {sortField === "name" &&
                                 (sortDirection === "asc" ? (
-                                  <ChevronUp className="h-4 w-4 text-violet-600" />
+                                  <ChevronUp className="h-4 w-4 text-accent" />
                                 ) : (
-                                  <ChevronDown className="h-4 w-4 text-violet-600" />
+                                  <ChevronDown className="h-4 w-4 text-accent" />
                                 ))}
                             </div>
                           </th>
@@ -941,9 +931,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                               {t("customKpiBuilder.region")}
                               {sortField === "region" &&
                                 (sortDirection === "asc" ? (
-                                  <ChevronUp className="h-4 w-4 text-violet-600" />
+                                  <ChevronUp className="h-4 w-4 text-accent" />
                                 ) : (
-                                  <ChevronDown className="h-4 w-4 text-violet-600" />
+                                  <ChevronDown className="h-4 w-4 text-accent" />
                                 ))}
                             </div>
                           </th>
@@ -957,9 +947,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                                 {kpi.name.replace(/_/g, " ")}
                                 {sortField === kpi.name &&
                                   (sortDirection === "asc" ? (
-                                    <ChevronUp className="h-4 w-4 text-violet-600" />
+                                    <ChevronUp className="h-4 w-4 text-accent" />
                                   ) : (
-                                    <ChevronDown className="h-4 w-4 text-violet-600" />
+                                    <ChevronDown className="h-4 w-4 text-accent" />
                                   ))}
                               </div>
                             </th>
@@ -980,9 +970,9 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                           filteredAndSortedCooperatives.map((coop) => (
                             <tr
                               key={coop.cooperative_id}
-                              className="hover:bg-violet-50/20 dark:hover:bg-muted/20 transition-colors"
+                              className="hover:bg-accent/10/20 dark:hover:bg-muted/20 transition-colors"
                             >
-                              <td className="p-4 font-semibold text-violet-950">{coop.name}</td>
+                              <td className="p-4 font-semibold text-accent">{coop.name}</td>
                               <td className="p-4 text-muted-foreground">{coop.region || "—"}</td>
                               {kpis.map((kpi: CustomKpiItem) => {
                                 const val = coop.custom_kpis?.[kpi.name];
@@ -990,7 +980,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                                 return (
                                   <td
                                     key={kpi.id}
-                                    className="p-4 text-right font-mono font-bold text-violet-700"
+                                    className="p-4 text-right font-mono font-bold text-accent"
                                   >
                                     {hasVal ? (
                                       val >= 1000 ? (

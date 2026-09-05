@@ -39,12 +39,12 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
 }) => {
   const { t } = useTranslation();
   return (
-    <Card className="border border-blue-100 bg-white shadow-md overflow-hidden rounded-2xl">
-      <CardHeader className="pb-4 border-b border-blue-50 bg-gradient-to-br from-blue-50/20 to-transparent">
+    <Card className="border border-accent/10 bg-white shadow-md overflow-hidden rounded-2xl">
+      <CardHeader className="pb-4 border-b border-accent/10 bg-gradient-to-br from-accent/5 to-transparent">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-lg font-bold text-blue-950 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
+            <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-accent" />
               {t("analytics.coopRankingBreakdown")}
             </CardTitle>
             <CardDescription className="text-xs">{t("analytics.coopRankingDesc")}</CardDescription>
@@ -54,7 +54,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
               placeholder={t("analytics.searchCoopOrRegion")}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="border-blue-200 focus-visible:ring-blue-500 shadow-sm rounded-xl"
+              className="border-accent/20 focus-visible:ring-accent shadow-sm rounded-xl"
             />
           </div>
         </div>
@@ -62,11 +62,11 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
       <CardContent className="pt-0 px-0">
         <div className="overflow-x-auto max-h-[500px]">
           <table className="w-full text-sm text-left border-collapse">
-            <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-sm border-b border-blue-50 text-xs font-bold uppercase tracking-wider text-blue-800 z-10">
+            <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-sm border-b border-accent/10 text-xs font-bold uppercase tracking-wider text-muted-foreground z-10">
               <tr>
                 <th
                   onClick={() => onSort("name")}
-                  className="p-4 cursor-pointer hover:bg-blue-50/80 hover:text-blue-950 transition-colors select-none whitespace-nowrap min-w-[240px]"
+                  className="p-4 cursor-pointer hover:bg-accent/10/80 hover:text-accent transition-colors select-none whitespace-nowrap min-w-[240px]"
                 >
                   <div className="flex items-center gap-1.5">
                     {t("analytics.coopName")}
@@ -80,7 +80,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                 </th>
                 <th
                   onClick={() => onSort("region")}
-                  className="p-4 cursor-pointer hover:bg-blue-50/80 hover:text-blue-950 transition-colors select-none whitespace-nowrap"
+                  className="p-4 cursor-pointer hover:bg-accent/10/80 hover:text-accent transition-colors select-none whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1.5">
                     {t("analytics.region")}
@@ -96,7 +96,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                   <th
                     key={kpi.id}
                     onClick={() => onSort(kpi.name)}
-                    className="p-4 cursor-pointer hover:bg-blue-50/80 hover:text-blue-950 transition-colors text-right select-none whitespace-nowrap min-w-[150px]"
+                    className="p-4 cursor-pointer hover:bg-accent/10/80 hover:text-accent transition-colors text-right select-none whitespace-nowrap min-w-[150px]"
                   >
                     <div className="flex items-center justify-end gap-1.5">
                       {kpi.name.replace(/_/g, " ")}
@@ -123,8 +123,8 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                 </tr>
               ) : (
                 filteredCooperatives.map((coop) => (
-                  <tr key={coop.cooperative_id} className="hover:bg-blue-50/10 transition-colors">
-                    <td className="p-4 font-bold text-blue-950">{coop.name}</td>
+                  <tr key={coop.cooperative_id} className="hover:bg-accent/10/10 transition-colors">
+                    <td className="p-4 font-bold text-foreground">{coop.name}</td>
                     <td className="p-4 text-muted-foreground text-xs">{coop.region || "—"}</td>
                     {kpis.map((kpi) => {
                       const val = coop.custom_kpis?.[kpi.name];
@@ -132,7 +132,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                       return (
                         <td
                           key={kpi.id}
-                          className="p-4 text-right font-mono font-bold text-blue-700"
+                          className="p-4 text-right font-mono font-bold text-foreground"
                         >
                           {hasVal ? (
                             val >= 1000 ? (

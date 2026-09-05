@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Calculator, Sparkles, Layers, Hash, Loader2, Calendar, Trash2 } from "lucide-react";
+import { Plus, Calculator, Sparkles, Layers, Hash, Calendar, Trash2 } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
@@ -24,6 +24,7 @@ import { CustomKpiCard } from "@/components/analytics/custom-kpi/CustomKpiCard";
 import { CustomKpiDetailsSheet } from "@/components/analytics/custom-kpi/CustomKpiDetailsSheet";
 import { CustomKpiFormDialog } from "@/components/analytics/custom-kpi/CustomKpiFormDialog";
 import { CustomKpiBreakdownTable } from "@/components/analytics/custom-kpi/CustomKpiBreakdownTable";
+import { Spinner } from "@/components/ui/spinner";
 
 interface VariableDef {
   name: string;
@@ -581,21 +582,21 @@ export function CustomKpisPage() {
     <AppShell title={t("customKpis.title")} subtitle={t("customKpis.subtitle")}>
       <div className="space-y-8 max-w-7xl mx-auto">
         {/* Header Block */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 rounded-xl p-4 md:p-5 text-white shadow-lg relative overflow-hidden border border-blue-800">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-primary via-primary to-primary rounded-xl p-4 md:p-5 text-white shadow-lg relative overflow-hidden border border-accent/20">
           <div className="absolute top-0 right-0 -mt-8 -mr-8 size-48 rounded-full bg-white/5 blur-xl pointer-events-none" />
           <div className="space-y-1.5">
-            <h2 className="text-xl md:text-2xl font-extrabold flex items-center gap-2">
-              <Calculator className="h-6 w-6 text-blue-200" />
+            <h2 className="text-xl md:text-2xl font-extrabold flex items-center gap-2 text-white">
+              <Calculator className="h-6 w-6 text-white" />
               {t("customKpis.headerTitle")}
             </h2>
-            <p className="text-blue-100 text-xs md:text-sm max-w-xl font-light leading-relaxed">
+            <p className="text-white/80 text-xs md:text-sm max-w-xl font-light leading-relaxed">
               {t("customKpis.headerSubtitle")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {/* Year Selector */}
             <div className="flex items-center gap-2 bg-white/10 rounded-lg px-2.5 py-1 border border-white/20">
-              <Calendar className="h-3.5 w-3.5 text-blue-200" />
+              <Calendar className="h-3.5 w-3.5 text-accent" />
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
@@ -613,41 +614,41 @@ export function CustomKpisPage() {
                 setEditingKpi(null);
                 setIsFormOpen(true);
               }}
-              className="bg-white hover:bg-blue-50 text-blue-950 font-semibold shadow-sm rounded-lg cursor-pointer text-xs md:text-sm py-1.5 h-auto"
+              className="bg-white hover:bg-accent/10 text-primary font-semibold shadow-sm rounded-lg cursor-pointer text-xs md:text-sm py-1.5 h-auto"
             >
-              <Plus className="mr-1.5 h-4 w-4 text-blue-600" /> {t("customKpis.newKpiBtn")}
+              <Plus className="mr-1.5 h-4 w-4 text-primary" /> {t("customKpis.newKpiBtn")}
             </Button>
           </div>
         </div>
 
         {/* Stats Summary Panel */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border border-blue-900/20 bg-white hover:shadow-md transition-shadow">
+          <Card className="border border-accent/20/20 bg-white hover:shadow-md transition-shadow">
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-3 bg-blue-100 text-blue-700 rounded-xl">
+              <div className="p-3 bg-accent/10 text-accent rounded-xl">
                 <Calculator className="h-6 w-6" />
               </div>
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {t("customKpis.statsDefined")}
                 </p>
-                <h4 className="text-2xl font-bold text-blue-900 mt-1">
+                <h4 className="text-2xl font-bold text-foreground mt-1">
                   {isKpiLoading ? "..." : t("customKpis.statsKpis", { count: kpis.length })}
                 </h4>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-blue-900/20 bg-white hover:shadow-md transition-shadow">
+          <Card className="border border-accent/20/20 bg-white hover:shadow-md transition-shadow">
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+              <div className="p-3 bg-success/10 text-success rounded-xl">
                 <Layers className="h-6 w-6" />
               </div>
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {t("customKpis.statsEvaluated")}
                 </p>
-                <h4 className="text-2xl font-bold text-blue-900 mt-1">
+                <h4 className="text-2xl font-bold text-foreground mt-1">
                   {isOverviewLoading
                     ? "..."
                     : t("customKpis.statsCoops", { count: cooperatives.length })}
@@ -656,16 +657,16 @@ export function CustomKpisPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-blue-900/20 bg-white hover:shadow-md transition-shadow">
+          <Card className="border border-accent/20/20 bg-white hover:shadow-md transition-shadow">
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-3 bg-amber-100 text-amber-700 rounded-xl">
+              <div className="p-3 bg-warning/10 text-warning-foreground rounded-xl">
                 <Hash className="h-6 w-6" />
               </div>
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {t("customKpis.statsVariables")}
                 </p>
-                <h4 className="text-2xl font-bold text-blue-900 mt-1">
+                <h4 className="text-2xl font-bold text-foreground mt-1">
                   {t("customKpis.statsIndicators", { count: allVariables.length })}
                 </h4>
               </div>
@@ -675,20 +676,20 @@ export function CustomKpisPage() {
 
         {/* KPI Cards Grid */}
         <div>
-          <h3 className="text-lg font-bold text-blue-950 mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-blue-500 animate-pulse" />
+          <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent animate-pulse" />
             {t("customKpis.activeMetrics")}
           </h3>
           {isKpiLoading ? (
-            <div className="flex justify-center p-12 bg-white rounded-2xl border border-blue-50">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <div className="flex justify-center p-12 bg-white rounded-2xl border border-accent/10">
+              <Spinner size="md" className="h-8 w-8 text-accent" />
             </div>
           ) : kpis.length === 0 ? (
-            <div className="text-center p-12 border-2 border-dashed border-blue-100 rounded-2xl bg-white">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 mb-4">
-                <Calculator className="h-8 w-8 text-blue-500" />
+            <div className="text-center p-12 border-2 border-dashed border-accent/10 rounded-2xl bg-white">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent/10 mb-4">
+                <Calculator className="h-8 w-8 text-accent" />
               </div>
-              <p className="text-lg font-bold text-blue-950">{t("customKpis.noKpisFound")}</p>
+              <p className="text-lg font-bold text-foreground">{t("customKpis.noKpisFound")}</p>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
                 {t("customKpis.noKpisDesc")}
               </p>
@@ -697,7 +698,7 @@ export function CustomKpisPage() {
                   setEditingKpi(null);
                   setIsFormOpen(true);
                 }}
-                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl cursor-pointer"
+                className="mt-4 bg-accent hover:bg-accent text-white rounded-xl cursor-pointer"
               >
                 <Plus className="mr-2 h-4 w-4" /> {t("customKpis.createFirstBtn")}
               </Button>
@@ -764,11 +765,11 @@ export function CustomKpisPage() {
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!kpiToDelete} onOpenChange={(open) => !open && setKpiToDelete(null)}>
-          <AlertDialogContent className="rounded-2xl border border-red-100 shadow-xl max-w-md">
+          <AlertDialogContent className="rounded-2xl border border-destructive/10 shadow-xl max-w-md">
             <AlertDialogHeader>
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-red-100 rounded-xl">
-                  <Trash2 className="h-5 w-5 text-red-600" />
+                <div className="p-2.5 bg-destructive/10 rounded-xl">
+                  <Trash2 className="h-5 w-5 text-destructive" />
                 </div>
                 <AlertDialogTitle className="text-lg font-bold text-slate-900">
                   {t("customKpis.deleteTitle")}
@@ -776,7 +777,7 @@ export function CustomKpisPage() {
               </div>
               <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
                 {t("customKpis.deleteConfirmDesc", { name: kpiToDelete?.name })}
-                <span className="mt-2 block font-medium text-red-600">
+                <span className="mt-2 block font-medium text-destructive">
                   {t("customKpis.deleteConfirmWarning")}
                 </span>
               </AlertDialogDescription>
@@ -787,7 +788,7 @@ export function CustomKpisPage() {
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={performDelete}
-                className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm"
+                className="rounded-xl bg-destructive hover:bg-destructive text-white font-semibold shadow-sm"
               >
                 {t("customKpis.deleteBtn")}
               </AlertDialogAction>

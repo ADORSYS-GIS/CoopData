@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { ComplianceRadialGauges } from "@/components/analytics/ComplianceRadialGauges";
 import { CoopTrendAreaChart } from "@/components/analytics/CoopTrendAreaChart";
@@ -25,6 +25,7 @@ import type { AnalyticsFilterValues } from "./analyticsTypes";
 import type { components } from "@/openapi-client/api";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { KpiScorecard } from "@/components/analytics/KpiScorecard";
+import { Spinner } from "@/components/ui/spinner";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -298,7 +299,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
     <div className="space-y-6">
       {kpisLoading ? (
         <div className="flex items-center gap-2 text-muted-foreground text-sm p-4">
-          <Loader2 className="size-4 animate-spin" /> {t("cooperativeAnalytics.loadingKpis")}
+          <Spinner size="sm" /> {t("cooperativeAnalytics.loadingKpis")}
         </div>
       ) : null}
 
@@ -520,13 +521,13 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       )}
 
       {!hasApprovedSubmission && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-4 flex items-start gap-3">
-          <ShieldCheck className="size-4 text-amber-600 mt-0.5 shrink-0" />
+        <div className="rounded-xl border border-warning/20 bg-warning/10 dark:bg-warning/20 dark:border-warning/30 p-4 flex items-start gap-3">
+          <ShieldCheck className="size-4 text-warning mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
+            <p className="text-sm font-bold text-warning-foreground dark:text-warning">
               {t("cooperativeAnalytics.pendingApprovalTitle")}
             </p>
-            <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
+            <p className="text-xs text-warning dark:text-warning mt-0.5">
               {t("cooperativeAnalytics.pendingApprovalDesc")}
             </p>
           </div>

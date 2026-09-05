@@ -63,7 +63,7 @@ export const ReportBenchmarkComparison: React.FC<ReportDataProps> = ({
               </td>
               <td className="px-2 py-1 text-center">
                 <span
-                  className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                     kpi.status === "green"
                       ? "bg-green-100 text-green-800"
                       : kpi.status === "amber"

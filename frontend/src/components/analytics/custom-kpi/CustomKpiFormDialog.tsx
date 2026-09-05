@@ -8,7 +8,6 @@ import {
   Info,
   Check,
   X,
-  Loader2,
   Sparkles,
   PlusIcon,
   Minus,
@@ -33,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
+import { Spinner } from "@/components/ui/spinner";
 
 interface VariableDef {
   name: string;
@@ -63,20 +63,13 @@ interface CustomKpiFormDialogProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  assets:
-    "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
-  liabilities:
-    "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
-  equity:
-    "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
-  income:
-    "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
-  expenses:
-    "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
-  governance:
-    "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400 dark:border-pink-800",
-  membership:
-    "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-400 dark:border-cyan-800",
+  assets: "bg-(--chart-1)/10 text-(--chart-1) border-(--chart-1)/20 hover:bg-(--chart-1)/20",
+  liabilities: "bg-(--chart-3)/10 text-(--chart-3) border-(--chart-3)/20 hover:bg-(--chart-3)/20",
+  equity: "bg-(--chart-2)/10 text-(--chart-2) border-(--chart-2)/20 hover:bg-(--chart-2)/20",
+  income: "bg-(--chart-4)/10 text-(--chart-4) border-(--chart-4)/20 hover:bg-(--chart-4)/20",
+  expenses: "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20",
+  governance: "bg-(--chart-4)/10 text-(--chart-4) border-(--chart-4)/20 hover:bg-(--chart-4)/20",
+  membership: "bg-(--chart-5)/10 text-(--chart-5) border-(--chart-5)/20 hover:bg-(--chart-5)/20",
   other:
     "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800",
 };
@@ -229,8 +222,8 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[680px] max-h-[92vh] overflow-y-auto z-50">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-blue-950 font-bold">
-            <Calculator className="h-5 w-5 text-blue-600" />
+          <DialogTitle className="flex items-center gap-2 text-foreground font-bold">
+            <Calculator className="h-5 w-5 text-accent" />
             {editingKpiId ? t("analytics.editKpiFormula") : t("analytics.createKpiFormula")}
           </DialogTitle>
           <DialogDescription>{t("analytics.kpiFormulaDesc")}</DialogDescription>
@@ -278,7 +271,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
               </TabsList>
               {CATEGORIES.map((cat) => (
                 <TabsContent key={cat} value={cat} className="mt-2 outline-none">
-                  <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-2 border border-blue-100 rounded-xl bg-slate-50/50">
+                  <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-2 border border-accent/10 rounded-xl bg-slate-50/50">
                     {allVariables
                       .filter((v) => v.category === cat)
                       .map((v) => (
@@ -322,7 +315,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
                   key={op.symbol}
                   variant="outline"
                   size="sm"
-                  className="h-9 w-9 p-0 font-mono text-base font-bold hover:bg-blue-50 hover:border-blue-300 transition-all rounded-lg"
+                  className="h-9 w-9 p-0 font-mono text-base font-bold hover:bg-accent/10 hover:border-accent/30 transition-all rounded-lg"
                   onClick={() => insertOperator(op.symbol)}
                 >
                   {op.icon ? <op.icon className="h-3.5 w-3.5" /> : op.symbol}
@@ -339,7 +332,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 text-xs text-muted-foreground hover:bg-blue-50 rounded-lg"
+                className="h-6 text-xs text-muted-foreground hover:bg-accent/10 rounded-lg"
                 onClick={() => setFormula("")}
               >
                 {t("analytics.clear")}
@@ -348,7 +341,7 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
             <div className="relative">
               <Textarea
                 id="dialog-formula-editor"
-                className="font-mono text-sm min-h-[60px] border-blue-200 focus-visible:ring-blue-500 pr-8 rounded-xl"
+                className="font-mono text-sm min-h-[60px] border-accent/20 focus-visible:ring-accent pr-8 rounded-xl"
                 placeholder={t("analytics.formulaPlaceholder")}
                 value={formula}
                 onChange={(e) => setFormula(e.target.value)}
@@ -359,9 +352,9 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
                     className={`h-2.5 w-2.5 rounded-full ${
                       testResult
                         ? testResult.is_valid
-                          ? "bg-emerald-500"
-                          : "bg-red-500"
-                        : "bg-amber-400 animate-pulse"
+                          ? "bg-success"
+                          : "bg-destructive"
+                        : "bg-warning animate-pulse"
                     }`}
                   />
                 </div>
@@ -369,12 +362,12 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
             </div>
             {formulaPreview && formulaPreview !== formula && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-slate-50 border border-slate-100 rounded-xl p-2.5 overflow-x-auto max-w-full">
-                <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-blue-500" />
+                <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-accent" />
                 <span className="font-mono whitespace-nowrap">{formulaPreview}</span>
               </div>
             )}
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-              <Info className="h-3.5 w-3.5 text-blue-500" /> {t("analytics.mathOperatorsHint")}
+              <Info className="h-3.5 w-3.5 text-accent" /> {t("analytics.mathOperatorsHint")}
             </p>
           </div>
 
@@ -383,10 +376,10 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
               variant="secondary"
               onClick={handleTest}
               disabled={isEvaluating || !formula.trim()}
-              className="border-blue-200 hover:bg-blue-50 rounded-xl"
+              className="border-accent/20 hover:bg-accent/10 rounded-xl"
             >
               {isEvaluating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Spinner size="md" className="mr-2 h-4 w-4" />
               ) : (
                 <BarChart3 className="mr-2 h-4 w-4" />
               )}
@@ -396,18 +389,18 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
               <div
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border ${
                   testResult.is_valid
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                    : "bg-red-50 text-red-700 border-red-100"
+                    ? "bg-success/10 text-success border-success/20"
+                    : "bg-destructive/10 text-destructive border-destructive/10"
                 }`}
               >
                 {testResult.is_valid ? (
                   <>
-                    <Check className="h-4 w-4 text-emerald-600" />
+                    <Check className="h-4 w-4 text-success" />
                     {t("analytics.validTestResult", { value: testResult.value.toFixed(2) })}
                   </>
                 ) : (
                   <>
-                    <X className="h-4 w-4 text-red-600" />
+                    <X className="h-4 w-4 text-destructive" />
                     {testResult.error || t("analytics.syntaxError")}
                   </>
                 )}
@@ -423,10 +416,10 @@ export const CustomKpiFormDialog: React.FC<CustomKpiFormDialogProps> = ({
           <Button
             onClick={handleSaveClick}
             disabled={isSaving || !name.trim() || !formula.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold"
+            className="bg-accent hover:bg-accent text-white rounded-xl font-semibold"
           >
             {isSaving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Spinner size="md" className="mr-2 h-4 w-4" />
             ) : (
               <Sparkles className="mr-2 h-4 w-4" />
             )}

@@ -268,7 +268,7 @@ const OptionRow: React.FC<{
           className="flex-1 rounded-lg border border-border bg-background px-2 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
         />
         {primaryLang !== CANONICAL_LANG && (
-          <span className="text-[9px] font-bold uppercase text-primary/80 shrink-0">
+          <span className="text-[10px] font-bold uppercase text-primary/80 shrink-0">
             {primaryLang}
           </span>
         )}

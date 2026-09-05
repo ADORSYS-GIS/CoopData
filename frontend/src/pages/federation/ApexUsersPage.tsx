@@ -1,7 +1,6 @@
 import {
   ArrowLeft,
   Mail,
-  Loader2,
   Network,
   Plus,
   UserMinus,
@@ -28,6 +27,7 @@ import type { components } from "@/openapi-client/api";
 import { Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 type MemberResponse = components["schemas"]["MemberResponse"];
 
@@ -42,11 +42,11 @@ const Avatar = ({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg"
       .slice(0, 2)
       .toUpperCase() || "??";
   const colors = [
-    "from-sky-500 to-blue-600",
-    "from-violet-500 to-purple-600",
-    "from-emerald-500 to-teal-600",
-    "from-amber-500 to-orange-600",
-    "from-rose-500 to-pink-600",
+    "from-(--chart-1) to-(--chart-1)",
+    "from-(--chart-4) to-(--chart-4)",
+    "from-(--chart-2) to-(--chart-2)",
+    "from-(--chart-3) to-(--chart-3)",
+    "from-(--chart-4) to-(--chart-4)",
   ];
   const color = colors[name.charCodeAt(0) % colors.length];
   const sz =
@@ -88,7 +88,7 @@ export const ApexUsersPage: React.FC = () => {
     return (
       <AppShell title={t("apexUsersPage.title")} subtitle={t("apexUsersPage.loading")}>
         <div className="flex min-h-[50dvh] items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <Spinner size="lg" className="text-muted-foreground" />
         </div>
       </AppShell>
     );
@@ -191,30 +191,27 @@ export const ApexUsersPage: React.FC = () => {
   };
 
   return (
-    <AppShell
-      title={apex?.name ?? t("apexUsersPage.title")}
-      subtitle={t("apexUsersPage.subtitle")}
-      actions={
+    <AppShell title={apex?.name ?? t("apexUsersPage.title")} subtitle={t("apexUsersPage.subtitle")}>
+      {/* Back link + invite */}
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <Link
+          to="/app/users"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="size-3.5" /> {t("apexUsersPage.backLink")}
+        </Link>
         <button
           onClick={() => setShowInvite(true)}
           className="press-feedback inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-[var(--shadow-elev-2)]"
         >
           <Plus className="size-4" /> {t("apexUsersPage.inviteBtn")}
         </button>
-      }
-    >
-      {/* Back link */}
-      <Link
-        to="/app/users"
-        className="mb-5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="size-3.5" /> {t("apexUsersPage.backLink")}
-      </Link>
+      </div>
 
       {/* Apex header card */}
       <div className="mb-5 rounded-2xl border border-border bg-gradient-to-br from-surface to-muted/20 p-5 shadow-[var(--shadow-elev-1)]">
         <div className="flex items-center gap-4">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500/15 to-blue-600/10 border border-sky-200/60 text-sky-600">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-(--chart-1)/15 to-(--chart-1)/10 border border-accent/20/60 text-accent">
             <Network className="size-7" />
           </div>
           <div className="min-w-0 flex-1">
@@ -230,7 +227,7 @@ export const ApexUsersPage: React.FC = () => {
               <Shield className="size-3.5" />
               {t("apexUsersPage.apexOfficerRole")}
             </span>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t("apexUsersPage.memberCount", { count: members.length })}
             </span>
           </div>
@@ -317,11 +314,7 @@ export const ApexUsersPage: React.FC = () => {
               disabled={addMember.isPending}
               className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-xs font-semibold text-white hover:bg-accent/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {addMember.isPending ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Mail className="size-3.5" />
-              )}
+              {addMember.isPending ? <Spinner size="sm" /> : <Mail className="size-3.5" />}
               {t("apexUsersPage.sendInvitation")}
             </button>
           </div>
@@ -346,7 +339,7 @@ export const ApexUsersPage: React.FC = () => {
 
         {membersLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            <Spinner size="md" className="text-muted-foreground" />
           </div>
         ) : members.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -376,23 +369,23 @@ export const ApexUsersPage: React.FC = () => {
                   <Avatar name={name} />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-sm text-foreground truncate">{name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {m.email ?? "—"}
                     </p>
                   </div>
                   {m.status === "PENDING" && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 border border-warning/20 px-2 py-0.5 text-[10px] font-bold text-warning-foreground">
                       <Clock className="size-3" />
                       {t("apexUsersPage.statusPending")}
                     </span>
                   )}
                   {m.status === "ACTIVE" && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-success/10 border border-success/20 px-2 py-0.5 text-[10px] font-bold text-success">
                       <CheckCircle2 className="size-3" />
                       {t("apexUsersPage.statusActive")}
                     </span>
                   )}
-                  <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-sky-50 border border-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-700">
+                  <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-accent/10 border border-accent/20 px-2 py-0.5 text-[10px] font-bold text-accent">
                     <Shield className="size-3" />
                     {t("apexUsersPage.apexOfficer")}
                   </span>
@@ -402,7 +395,7 @@ export const ApexUsersPage: React.FC = () => {
                     <button
                       onClick={() => handleEdit(m)}
                       title={t("apexUsersPage.tooltipEdit")}
-                      className="press-feedback flex size-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-300 transition-colors"
+                      className="press-feedback flex size-8 items-center justify-center rounded-lg border border-warning/20 bg-warning/10 text-warning hover:bg-warning/10 hover:border-warning/30 transition-colors"
                     >
                       <Pencil className="size-3.5" />
                     </button>
@@ -411,10 +404,10 @@ export const ApexUsersPage: React.FC = () => {
                       onClick={() => handleResend(m)}
                       disabled={resendVerification.isPending}
                       title={t("apexUsersPage.tooltipResend")}
-                      className="press-feedback flex size-8 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-600 hover:bg-sky-100 hover:border-sky-300 transition-colors disabled:opacity-40"
+                      className="press-feedback flex size-8 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 text-accent hover:bg-accent/15 hover:border-accent/30 transition-colors disabled:opacity-40"
                     >
                       {resendVerification.isPending ? (
-                        <Loader2 className="size-3.5 animate-spin" />
+                        <Spinner size="sm" />
                       ) : (
                         <RotateCcw className="size-3.5" />
                       )}
@@ -423,7 +416,7 @@ export const ApexUsersPage: React.FC = () => {
                     <button
                       onClick={() => setConfirmRemove(m)}
                       title={t("apexUsersPage.tooltipRemove")}
-                      className="press-feedback flex size-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors"
+                      className="press-feedback flex size-8 items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/10 hover:border-destructive/30 transition-colors"
                     >
                       <UserMinus className="size-3.5" />
                     </button>
@@ -444,7 +437,7 @@ export const ApexUsersPage: React.FC = () => {
           />
           <div className="relative w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] z-10 animate-panel">
             <div className="flex items-center gap-3 mb-5">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-warning/10 text-warning">
                 <Pencil className="size-4" />
               </div>
               <div>
@@ -498,7 +491,7 @@ export const ApexUsersPage: React.FC = () => {
                 disabled={updateMember.isPending}
                 className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {updateMember.isPending && <Loader2 className="size-3.5 animate-spin" />}
+                {updateMember.isPending && <Spinner size="sm" />}
                 <CheckCircle2 className="size-3.5" />
                 {t("apexUsersPage.saveChanges")}
               </button>
@@ -516,7 +509,7 @@ export const ApexUsersPage: React.FC = () => {
           />
           <div className="relative w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-elev-3)] z-10 animate-panel">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-red-100 text-red-600">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
                 <AlertCircle className="size-4" />
               </div>
               <h3 className="font-heading text-base font-bold text-foreground">
@@ -538,7 +531,7 @@ export const ApexUsersPage: React.FC = () => {
                 disabled={removeMember.isPending}
                 className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {removeMember.isPending && <Loader2 className="size-3.5 animate-spin" />}
+                {removeMember.isPending && <Spinner size="sm" />}
                 <UserMinus className="size-3.5" />
                 {t("apexUsersPage.removeBtn")}
               </button>

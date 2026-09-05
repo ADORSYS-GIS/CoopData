@@ -12,7 +12,6 @@ import {
   FileText,
   ChevronRight,
   ChevronLeft,
-  Loader2,
   AlertCircle,
   Plus,
   X,
@@ -418,11 +417,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
             disabled={createSubmission.isPending}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
-            {createSubmission.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Plus className="size-4" />
-            )}
+            {createSubmission.isPending ? <Spinner size="sm" /> : <Plus className="size-4" />}
             {t("submissions.createSubmission")}
           </button>
         </div>
@@ -509,8 +504,7 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
             </label>
             {coopsLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                <Loader2 className="size-3.5 animate-spin" />{" "}
-                {replaceOrgTerms("Loading cooperatives...")}
+                <Spinner size="sm" /> {replaceOrgTerms("Loading cooperatives...")}
               </div>
             ) : cooperatives.length === 0 ? (
               <p className="text-xs text-muted-foreground py-2">
@@ -562,11 +556,7 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
             disabled={createApexSubmission.isPending || !selectedCoopId}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
-            {createApexSubmission.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Plus className="size-4" />
-            )}
+            {createApexSubmission.isPending ? <Spinner size="sm" /> : <Plus className="size-4" />}
             {t("submissions.createSubmission")}
           </button>
         </div>
@@ -603,12 +593,12 @@ function OrgCard({
         <ChevronRight className="size-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-150 mt-1.5" />
       </div>
       <p className="text-sm font-bold text-foreground mb-0.5 leading-snug line-clamp-2">{name}</p>
-      <p className="text-[11px] text-muted-foreground mb-4">
+      <p className="text-xs text-muted-foreground mb-4">
         {count === 1
           ? t("submissions.orgSubmissionsCount", { count })
           : t("submissions.orgSubmissionsCount_plural", { count })}
       </p>
-      <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-[11px] font-semibold border-t border-border/60 pt-3">
+      <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 text-xs font-semibold border-t border-border/60 pt-3">
         {reviewCount > 0 && (
           <span className="inline-flex items-center gap-1.5 text-warning-foreground">
             <span className="size-1.5 rounded-full bg-warning animate-pulse" />
@@ -635,6 +625,7 @@ function OrgCard({
 import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmationDialog";
 import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { useAuth } from "@/context/AuthContext";
+import { Spinner } from "@/components/ui/spinner";
 
 function SubmissionTable({
   submissions,
@@ -740,7 +731,7 @@ function SubmissionTable({
                   colSpan={showCoopColumn ? 8 : 7}
                   className="py-16 text-center text-muted-foreground"
                 >
-                  <Loader2 className="size-6 mx-auto mb-3 animate-spin text-accent/50" />
+                  <Spinner size="md" className="mx-auto mb-3 text-accent/50" />
                   <p className="text-xs font-medium">{t("submissions.loading")}</p>
                 </td>
               </tr>
@@ -779,7 +770,7 @@ function SubmissionTable({
                 >
                   <td className="px-5 py-4">
                     <div className="flex flex-col gap-1">
-                      <span className="font-mono text-[12px] font-semibold text-foreground/70">
+                      <span className="font-mono text-xs font-semibold text-foreground/70">
                         {s.reference ?? s.id.slice(0, 8).toUpperCase()}
                       </span>
                       {s.created_by_role === "apex" && s.created_by_name && (
@@ -1049,18 +1040,18 @@ export const SubmissionsPage: React.FC = () => {
       <AppShell
         title={titleByRole[role] ?? t("submissions.title.fallback")}
         subtitle={subtitleByRole[role] ?? t("submissions.subtitle.fallback")}
-        actions={
-          isCooperative || isApex ? (
-            <button
-              onClick={() => setShowNewModal(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-            >
-              <Plus className="size-4" /> {t("submissions.newSubmission")}
-            </button>
-          ) : undefined
-        }
       >
         <div className="space-y-8">
+          {(isCooperative || isApex) && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowNewModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                <Plus className="size-4" /> {t("submissions.newSubmission")}
+              </button>
+            </div>
+          )}
           {isMinistry && selectedFederationId === null ? (
             <>
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -1112,7 +1103,7 @@ export const SubmissionsPage: React.FC = () => {
               >
                 {isLoading ? (
                   <div className="py-12 text-center text-muted-foreground">
-                    <Loader2 className="size-6 mx-auto mb-2 animate-spin text-muted-foreground/50" />
+                    <Spinner size="md" className="mx-auto mb-2 text-muted-foreground/50" />
                     <p className="text-xs">{t("submissions.loadingFederations")}</p>
                   </div>
                 ) : isError ? (
@@ -1319,7 +1310,7 @@ export const SubmissionsPage: React.FC = () => {
               >
                 {isLoading ? (
                   <div className="py-12 text-center text-muted-foreground">
-                    <Loader2 className="size-6 mx-auto mb-2 animate-spin text-muted-foreground/50" />
+                    <Spinner size="md" className="mx-auto mb-2 text-muted-foreground/50" />
                     <p className="text-xs">{t("submissions.loadingApexes")}</p>
                   </div>
                 ) : isError ? (
@@ -1471,7 +1462,7 @@ export const SubmissionsPage: React.FC = () => {
               >
                 {isLoading ? (
                   <div className="py-12 text-center text-muted-foreground">
-                    <Loader2 className="size-6 mx-auto mb-2 animate-spin text-muted-foreground/50" />
+                    <Spinner size="md" className="mx-auto mb-2 text-muted-foreground/50" />
                     <p className="text-xs">{t("submissions.loadingCooperatives")}</p>
                   </div>
                 ) : isError ? (
