@@ -1,19 +1,12 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import {
-  Upload,
-  FileText,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  X,
-  AlertTriangle,
-} from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertCircle, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useUploadFinancialStatement } from "@/hooks/submissions/useUpload";
 import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
 import { useQueryClient } from "@tanstack/react-query";
+import { Spinner } from "@/components/ui/spinner";
 
 const ACCEPTED_MIMES = ["application/pdf", "image/png", "image/jpeg", "image/tiff"];
 const ACCEPTED_EXT = ".pdf,.png,.jpg,.jpeg,.tiff,.tif";
@@ -145,9 +138,9 @@ export const UploadFinancialStatementWidget: React.FC<{
             {/* Body */}
             <div className="px-6 py-5 space-y-3">
               <p className="text-sm text-foreground leading-relaxed">{alertError}</p>
-              <div className="flex items-start gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2.5">
-                <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+              <div className="flex items-start gap-2 rounded-xl bg-warning/10 border border-warning/30/20 px-3 py-2.5">
+                <AlertCircle className="size-4 text-warning shrink-0 mt-0.5" />
+                <p className="text-xs text-warning-foreground dark:text-warning leading-relaxed">
                   {t(
                     "uploadFinancial.wrongYearHint",
                     "Please go back, locate the correct financial statement document for the required year, and upload it again.",
@@ -172,7 +165,7 @@ export const UploadFinancialStatementWidget: React.FC<{
       {/* Extraction progress */}
       {jobId && job && !isTerminal && (
         <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
-          <Loader2 className="size-4 animate-spin text-accent shrink-0" />
+          <Spinner size="sm" className="text-accent shrink-0" />
           <div>
             <p className="text-sm font-semibold">
               {t("uploadFinancial.extractionRunning")}
@@ -205,7 +198,7 @@ export const UploadFinancialStatementWidget: React.FC<{
       {!jobId && (
         <>
           {!navigator.onLine && (
-            <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-amber-500 mb-4">
+            <div className="flex items-center gap-3 rounded-xl border border-warning/30/20 bg-warning/5 px-4 py-3 text-warning mb-4">
               <AlertCircle className="size-4 shrink-0" />
               <p className="text-sm font-medium">
                 {t(
@@ -307,11 +300,7 @@ export const UploadFinancialStatementWidget: React.FC<{
               }
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
-              {upload.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Upload className="size-4" />
-              )}
+              {upload.isPending ? <Spinner size="sm" /> : <Upload className="size-4" />}
               {upload.isPending
                 ? t("uploadFinancial.uploading")
                 : t("uploadFinancial.uploadAndExtract")}

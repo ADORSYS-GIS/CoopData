@@ -100,13 +100,16 @@ function createColumns(
         const status = row.original.status;
         if (status === "ACTIVE") {
           return (
-            <Badge variant="default" className="bg-emerald-100 text-emerald-700 border-emerald-200">
+            <Badge variant="default" className="bg-success/10 text-success border-success/20">
               {t("memberList.statusActive")}
             </Badge>
           );
         }
         return (
-          <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200">
+          <Badge
+            variant="secondary"
+            className="bg-warning/10 text-warning-foreground border-warning/20"
+          >
             {t("memberList.statusPending")}
           </Badge>
         );

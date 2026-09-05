@@ -63,7 +63,7 @@ export function SelectionSummary({
           <button
             type="button"
             onClick={onClearFed}
-            className="text-primary hover:underline font-semibold text-[11px] shrink-0"
+            className="text-primary hover:underline font-semibold text-xs shrink-0"
           >
             {t("selectionSummary.change")}
           </button>
@@ -81,7 +81,7 @@ export function SelectionSummary({
           <button
             type="button"
             onClick={onClearApex}
-            className="text-primary hover:underline font-semibold text-[11px] shrink-0"
+            className="text-primary hover:underline font-semibold text-xs shrink-0"
           >
             {t("selectionSummary.change")}
           </button>
@@ -100,7 +100,7 @@ export function SelectionSummary({
           <button
             type="button"
             onClick={onClearCoop}
-            className="text-primary hover:underline font-semibold text-[11px] shrink-0"
+            className="text-primary hover:underline font-semibold text-xs shrink-0"
           >
             {t("selectionSummary.change")}
           </button>
@@ -120,7 +120,7 @@ export function SelectionSummary({
           <button
             type="button"
             onClick={onClearSubmission}
-            className="text-primary hover:underline font-semibold text-[11px] shrink-0"
+            className="text-primary hover:underline font-semibold text-xs shrink-0"
           >
             {t("selectionSummary.change")}
           </button>
@@ -139,7 +139,7 @@ export function SelectionSummary({
           <button
             type="button"
             onClick={onClearYear}
-            className="text-primary hover:underline font-semibold text-[11px] shrink-0"
+            className="text-primary hover:underline font-semibold text-xs shrink-0"
           >
             {t("selectionSummary.change")}
           </button>

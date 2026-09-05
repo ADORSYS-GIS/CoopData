@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ArrowLeft, Save, AlertCircle, FolderPlus, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 import {
   useQuestionnaireTemplate,
   useUpdateQuestionnaireTemplate,
@@ -600,7 +601,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
-        <AlertCircle className="size-5 animate-spin mr-2" /> {t("templateEditor.loading")}
+        <Spinner size="md" className="mr-2" /> {t("templateEditor.loading")}
       </div>
     );
   }
@@ -672,7 +673,7 @@ export const QuestionnaireTemplateEditor: React.FC<QuestionnaireTemplateEditorPr
         <div
           className={`flex items-center gap-2.5 p-4 rounded-xl border text-sm font-medium ${
             saveMessage.type === "success"
-              ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
+              ? "border-success/30/20 bg-success/100/5 text-success dark:text-success"
               : "border-destructive/20 bg-destructive/5 text-destructive"
           }`}
         >

@@ -3,7 +3,6 @@ import {
   Building2,
   Users,
   Layers,
-  Loader2,
   AlertCircle,
   CheckCircle2,
   Tag,
@@ -19,6 +18,7 @@ import {
 } from "@/hooks/cooperatives/useCooperatives";
 import { useCooperativeStats } from "@/hooks/submissions/useSubmissions";
 import { useAuth } from "@/context/AuthContext";
+import { Spinner } from "@/components/ui/spinner";
 
 type CoopProfile = { id: string; name?: string; description?: string };
 type MemberItem = { id: string; first_name?: string; last_name?: string; email?: string };
@@ -50,7 +50,7 @@ export const CooperativeDashboard: React.FC = () => {
         subtitle={t("cooperativeDashboard.subtitle")}
       >
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <Spinner size="lg" className="text-muted-foreground" />
         </div>
       </AppShell>
     );
@@ -156,7 +156,7 @@ export const CooperativeDashboard: React.FC = () => {
                 {dimensions.map((dim) => (
                   <span
                     key={dim}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success"
                   >
                     <CheckCircle2 className="size-3" />
                     {dim}
@@ -203,7 +203,7 @@ export const CooperativeDashboard: React.FC = () => {
                           {m.email ?? "—"}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-success/10 border border-success/20 px-2 py-0.5 text-[10px] font-bold text-success">
                             <Tag className="size-3" />
                             {t("cooperativeDashboard.roleCooperative")}
                           </span>

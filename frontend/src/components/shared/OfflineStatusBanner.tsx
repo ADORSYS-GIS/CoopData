@@ -28,12 +28,12 @@ export function OfflineStatusBanner() {
       <span className="relative flex size-2" aria-hidden="true">
         <span
           className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${
-            isOnline ? "animate-ping bg-emerald-500" : "bg-amber-500"
+            isOnline ? "animate-ping bg-success/100" : "bg-warning"
           }`}
         />
         <span
           className={`relative inline-flex size-2 rounded-full ${
-            isOnline ? "bg-emerald-500" : "bg-amber-500"
+            isOnline ? "bg-success/100" : "bg-warning"
           }`}
         />
       </span>

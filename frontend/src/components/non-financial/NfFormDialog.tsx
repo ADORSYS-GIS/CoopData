@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import {} from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Form,
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 export interface FieldConfig {
   name: string;
@@ -130,7 +131,7 @@ export function NfFormDialog({
                 {t("common.cancel")}
               </Button>
               <Button type="submit" size="sm" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="size-3.5 animate-spin mr-1" />}
+                {form.formState.isSubmitting && <Spinner size="sm" className="mr-1" />}
                 {t("common.save")}
               </Button>
             </div>

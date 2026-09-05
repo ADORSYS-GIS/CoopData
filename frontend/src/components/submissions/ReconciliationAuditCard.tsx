@@ -1,12 +1,13 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ShieldCheck, AlertTriangle, CheckCircle2, Info, Loader2, ArrowRight } from "lucide-react";
+import { ShieldCheck, AlertTriangle, CheckCircle2, Info, ArrowRight } from "lucide-react";
 import { Card, StatusPill } from "@/components/app-shell";
 import { useMembers } from "@/hooks/non-financial/useMembers";
 import { useSavings } from "@/hooks/non-financial/useSavings";
 import { useLoans } from "@/hooks/non-financial/useLoans";
 import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useLineItems } from "@/hooks/submissions/useFinancialStatement";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ReconciliationAuditCardProps {
   submissionId: string;
@@ -238,7 +239,7 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
     >
       {isLoading ? (
         <div className="flex items-center justify-center py-10 text-muted-foreground text-xs">
-          <Loader2 className="size-4 animate-spin mr-2" />
+          <Spinner size="sm" className="mr-2" />
           {t(
             "reconciliation.loading",
             "Auditing sub-ledger balances against financial statement...",
@@ -284,7 +285,7 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
                           )}
                   </span>
                 </h4>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {varianceCount > 0
                     ? t(
                         "reconciliation.alertVarianceDesc",
@@ -347,7 +348,7 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
                         {row.subLedgerName} ({row.count} {t("records", "records")})
                       </div>
                     </td>
-                    <td className="px-3.5 py-2.5 text-center font-mono text-[11px] text-muted-foreground">
+                    <td className="px-3.5 py-2.5 text-center font-mono text-xs text-muted-foreground">
                       {row.coaCode}
                     </td>
                     <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-foreground">

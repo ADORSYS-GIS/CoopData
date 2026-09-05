@@ -76,7 +76,7 @@ export const ConsolidatedCoopDetailSheet: React.FC<ConsolidatedCoopDetailSheetPr
           {t("printReports.coopDetail.cooperativeDetail")}
         </h2>
 
-        <table className="w-full text-left text-[9px] mb-8 border-collapse border border-slate-300">
+        <table className="w-full text-left text-[10px] mb-8 border-collapse border border-slate-300">
           <thead>
             <tr className="bg-slate-900 text-white leading-tight">
               <th className="p-2 border border-slate-700">{t("printReports.coopDetail.coop")}</th>

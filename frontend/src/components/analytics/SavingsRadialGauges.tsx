@@ -62,7 +62,7 @@ export function SavingsRadialGauges({ data }: SavingsRadialGaugesProps) {
           </div>
           <div className="text-center mt-2">
             <p className="text-sm font-bold text-foreground">{g.title}</p>
-            <p className="text-[11px] text-muted-foreground">{g.desc}</p>
+            <p className="text-xs text-muted-foreground">{g.desc}</p>
           </div>
         </div>
       ))}

@@ -34,7 +34,7 @@ function statusDot(
     case "green":
       return { bg: "#22c55e", label: t("analytics.healthy") };
     case "amber":
-      return { bg: "#f59e0b", label: t("analytics.watch") };
+      return { bg: "var(--chart-3)", label: t("analytics.watch") };
     case "red":
       return { bg: "#ef4444", label: t("analytics.risk") };
     default:
@@ -57,7 +57,7 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
 
   const legendItems = [
     { color: "#22c55e", label: t("analytics.healthy") },
-    { color: "#f59e0b", label: t("analytics.watch") },
+    { color: "var(--chart-3)", label: t("analytics.watch") },
     { color: "#ef4444", label: t("analytics.risk") },
     { color: "#94a3b8", label: t("analytics.noData") },
   ];
@@ -66,10 +66,7 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
     <div className="overflow-x-auto">
       <div className="flex items-center gap-4 mb-3 flex-wrap">
         {legendItems.map((l) => (
-          <span
-            key={l.label}
-            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
-          >
+          <span key={l.label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="size-2.5 rounded-full shrink-0" style={{ background: l.color }} />
             {l.label}
           </span>
@@ -131,7 +128,7 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
       </table>
 
       {cooperatives.length > maxRows && (
-        <p className="text-[11px] text-muted-foreground mt-3 text-center">
+        <p className="text-xs text-muted-foreground mt-3 text-center">
           {t("analytics.showingOf", { shown: maxRows, total: cooperatives.length })}
         </p>
       )}

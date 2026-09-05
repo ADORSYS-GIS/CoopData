@@ -8,8 +8,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, Shield, Fingerprint, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, Shield, Fingerprint, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 export interface DeletePreviewData {
   apexes: number;
@@ -148,7 +149,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
 
               {previewLoading ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin" />
+                  <Spinner size="sm" />
                   {t("deleteDialog.calculatingImpact")}
                 </div>
               ) : previewData ? (
@@ -288,7 +289,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
                 disabled={!password.trim() || verifying}
               >
                 {verifying ? (
-                  <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                  <Spinner size="sm" className="mr-1.5" />
                 ) : (
                   <Shield className="size-3.5 mr-1.5" />
                 )}
@@ -300,7 +301,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
 
         {step === "deleting" && (
           <div className="px-6 pb-6 pt-4 flex flex-col items-center justify-center py-8 space-y-3">
-            <Loader2 className="size-8 animate-spin text-destructive" />
+            <Spinner size="lg" className="text-destructive" />
             <p className="text-sm font-medium text-foreground">
               {t("deleteDialog.deleting", { entity: entityName })}
             </p>

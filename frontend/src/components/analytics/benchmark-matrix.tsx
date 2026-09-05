@@ -109,7 +109,7 @@ export function BenchmarkMatrix({
           >
             {labels.comparisonAll}
             <span
-              className={`text-[9px] px-1 rounded ${
+              className={`text-[10px] px-1 rounded ${
                 activeGroupFilter === null
                   ? "bg-white/20 text-white"
                   : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
@@ -136,7 +136,7 @@ export function BenchmarkMatrix({
                 <Icon className="size-3" />
                 <span>{group.label}</span>
                 <span
-                  className={`text-[9px] px-1 rounded ${
+                  className={`text-[10px] px-1 rounded ${
                     isActive
                       ? "bg-white/20 text-white"
                       : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
@@ -232,8 +232,8 @@ export function BenchmarkMatrix({
                             diff === 0
                               ? "text-slate-450 dark:text-slate-500"
                               : isBetter
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-rose-600 dark:text-rose-400"
+                                ? "text-success dark:text-success"
+                                : "text-destructive dark:text-destructive"
                           }`}
                         >
                           {diff > 0 ? "+" : ""}
@@ -241,7 +241,7 @@ export function BenchmarkMatrix({
                             ? `${diff.toFixed(2)}%`
                             : formatValue(diff, metric.unit)}
                           {targetVal > 0 && (
-                            <span className="text-[9px] ml-1 opacity-70 font-normal">
+                            <span className="text-[10px] ml-1 opacity-70 font-normal">
                               ({diff > 0 ? "+" : ""}
                               {percentDiff.toFixed(1)}%)
                             </span>
@@ -249,10 +249,10 @@ export function BenchmarkMatrix({
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                               isBetter
-                                ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30"
-                                : "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30"
+                                ? "bg-success/10 dark:bg-success/20 text-success dark:text-success border border-success/20 dark:border-success/30/30"
+                                : "bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive border border-destructive/20 dark:border-destructive/30/30"
                             }`}
                           >
                             {isBetter ? (

@@ -5,7 +5,6 @@ import {
   FileText,
   Calendar,
   Hash,
-  Loader2,
   AlertCircle,
   BarChart3,
   Database,
@@ -74,6 +73,7 @@ import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import type { TFunction } from "i18next";
+import { Spinner } from "@/components/ui/spinner";
 import {
   SubmissionMethodModal,
   type SubmissionMethod,
@@ -539,7 +539,7 @@ export const SubmissionDetailPage: React.FC = () => {
 
       {isLoading && (
         <div className="flex items-center justify-center py-24 text-muted-foreground">
-          <Loader2 className="size-6 animate-spin mr-2" /> {t("submissions.detail.loading")}
+          <Spinner size="md" className="mr-2" /> {t("submissions.detail.loading")}
         </div>
       )}
 
@@ -590,14 +590,14 @@ export const SubmissionDetailPage: React.FC = () => {
                       {statusLabel(submission.status, t as any)}
                     </StatusPill>
                     {submission.created_by_role === "apex" && submission.created_by_name && (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary/80 bg-primary/5 border border-primary/10 rounded-lg px-2 py-1">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary/80 bg-primary/5 border border-primary/10 rounded-lg px-2 py-1">
                         <span className="size-1.5 rounded-full bg-primary" />
                         {replaceOrgTerms(`Created by ${submission.created_by_name} (Apex)`)}
                       </span>
                     )}
                     {submission.edited_by_name && submission.status === "draft" && (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground bg-muted/50 border border-border/60 rounded-lg px-2 py-1">
-                        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 border border-border/60 rounded-lg px-2 py-1">
+                        <span className="size-1.5 rounded-full bg-warning animate-pulse" />
                         Editing: {submission.edited_by_name}
                       </span>
                     )}
@@ -634,7 +634,7 @@ export const SubmissionDetailPage: React.FC = () => {
                   }
                 >
                   {deleteMutation.isPending ? (
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <Spinner size="sm" />
                   ) : (
                     <Trash2 className="size-3.5" />
                   )}
@@ -645,7 +645,7 @@ export const SubmissionDetailPage: React.FC = () => {
               </div>
 
               {/* Metadata strip */}
-              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border/40 pt-4 text-[12px] text-muted-foreground">
+              <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border/40 pt-4 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="size-3.5 text-muted-foreground/60" />
                   <span>
@@ -686,7 +686,7 @@ export const SubmissionDetailPage: React.FC = () => {
             <div className="relative overflow-hidden rounded-xl border border-accent/30 bg-accent/5 shimmer-bg">
               <div className="relative flex items-start gap-4 px-5 py-4">
                 <div className="mt-0.5 shrink-0 flex size-10 items-center justify-center rounded-xl bg-accent/15 ring-1 ring-accent/25">
-                  <Loader2 className="size-5 animate-spin text-accent" />
+                  <Spinner size="md" className="text-accent" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-foreground">
@@ -728,10 +728,10 @@ export const SubmissionDetailPage: React.FC = () => {
                       )}
                     </div>
                     <div>
-                      <h3 className="font-heading text-[14px] font-semibold text-foreground">
+                      <h3 className="font-heading text-sm font-semibold text-foreground">
                         {t("submissions.detail.readinessCenter")}
                       </h3>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {t("submissions.detail.readinessDesc", {
                           readyLabel: t("submissions.detail.readyLabel"),
                         })}
@@ -821,7 +821,7 @@ export const SubmissionDetailPage: React.FC = () => {
                         {/* Label + description */}
                         <div className="flex-1">
                           <h4
-                            className={`text-[12px] font-bold leading-snug ${
+                            className={`text-xs font-bold leading-snug ${
                               isReady
                                 ? "text-success"
                                 : isInProgress
@@ -831,7 +831,7 @@ export const SubmissionDetailPage: React.FC = () => {
                           >
                             {m.label}
                           </h4>
-                          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                             {m.description}
                           </p>
                         </div>
@@ -870,7 +870,7 @@ export const SubmissionDetailPage: React.FC = () => {
                                 const el = document.getElementById("detail-tabs-list");
                                 if (el) el.scrollIntoView({ behavior: "smooth" });
                               }}
-                              className="text-[11px] font-semibold text-success hover:underline transition-colors"
+                              className="text-xs font-semibold text-success hover:underline transition-colors"
                             >
                               {t("submissions.detail.sections.financial.readyAction").split(" ")[0]}{" "}
                               →
@@ -903,7 +903,7 @@ export const SubmissionDetailPage: React.FC = () => {
                                   className="inline-flex items-center gap-1 rounded-lg bg-success text-white px-2 py-0.5 text-[10px] font-bold hover:bg-success/90 transition-colors shadow-sm disabled:opacity-50"
                                 >
                                   {isUpdatingThis ? (
-                                    <Loader2 className="size-2.5 animate-spin" />
+                                    <Spinner size="sm" />
                                   ) : (
                                     <CheckCircle2 className="size-2.5" />
                                   )}
@@ -916,7 +916,7 @@ export const SubmissionDetailPage: React.FC = () => {
                                   const el = document.getElementById("detail-tabs-list");
                                   if (el) el.scrollIntoView({ behavior: "smooth" });
                                 }}
-                                className="text-[11px] font-semibold text-primary hover:underline transition-colors shrink-0"
+                                className="text-xs font-semibold text-primary hover:underline transition-colors shrink-0"
                               >
                                 {isInProgress
                                   ? (m.progressAction ?? m.pendingAction)
@@ -982,7 +982,7 @@ export const SubmissionDetailPage: React.FC = () => {
                       }
                     >
                       {deleteMutation.isPending ? (
-                        <Loader2 className="size-3.5 animate-spin" />
+                        <Spinner size="sm" />
                       ) : (
                         <Trash2 className="size-3.5" />
                       )}
@@ -1001,7 +1001,7 @@ export const SubmissionDetailPage: React.FC = () => {
                       }`}
                     >
                       {submitMutation.isPending ? (
-                        <Loader2 className="size-4 animate-spin" />
+                        <Spinner size="sm" />
                       ) : (
                         <Send className="size-4" />
                       )}
@@ -1060,16 +1060,12 @@ export const SubmissionDetailPage: React.FC = () => {
                     disabled={apexReturn.isPending}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {apexReturn.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <PenLine className="size-4" />
-                    )}{" "}
+                    {apexReturn.isPending ? <Spinner size="sm" /> : <PenLine className="size-4" />}{" "}
                     Fix Myself
                   </button>
                   <button
                     onClick={() => setShowDelegateModal(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm font-semibold text-amber-600 hover:bg-amber-500/10 transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-warning/30/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning hover:bg-warning/10 transition-colors"
                   >
                     <Users className="size-4" /> Delegate to Cooperative
                   </button>
@@ -1109,7 +1105,7 @@ export const SubmissionDetailPage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setShowDelegateModal(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm font-semibold text-amber-600 hover:bg-amber-500/10 transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-warning/30/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning hover:bg-warning/10 transition-colors"
                   >
                     <Users className="size-4" /> Delegate to Cooperative
                   </button>
@@ -1164,10 +1160,10 @@ export const SubmissionDetailPage: React.FC = () => {
                       }
                     }}
                     disabled={delegateSubmission.isPending}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-warning px-4 py-2.5 text-sm font-semibold text-white hover:bg-warning disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
                     {delegateSubmission.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <Spinner size="sm" />
                     ) : (
                       <Users className="size-4" />
                     )}
@@ -1227,7 +1223,7 @@ export const SubmissionDetailPage: React.FC = () => {
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
                     {reclaimSubmission.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <Spinner size="sm" />
                     ) : (
                       <PenLine className="size-4" />
                     )}
@@ -1466,11 +1462,7 @@ function ReviewActionPanel({
           disabled={isPending}
           className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-2.5 text-sm font-semibold text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
         >
-          {isPending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <CheckCircle2 className="size-4" />
-          )}
+          {isPending ? <Spinner size="sm" /> : <CheckCircle2 className="size-4" />}
           {approveLabel}
         </button>
         {onReturn && (
@@ -1480,11 +1472,7 @@ function ReviewActionPanel({
             title={!hasComment ? t("submissions.detail.reviewTitleReturn") : undefined}
             className="inline-flex items-center gap-2 rounded-xl border border-warning/40 px-5 py-2.5 text-sm font-semibold text-warning-foreground hover:bg-warning/8 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ArrowLeft className="size-4" />
-            )}
+            {isPending ? <Spinner size="sm" /> : <ArrowLeft className="size-4" />}
             {returnLabel}
           </button>
         )}
@@ -1495,16 +1483,12 @@ function ReviewActionPanel({
             title={!hasComment ? t("submissions.detail.reviewTitleReject") : undefined}
             className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-5 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <XCircle className="size-4" />
-            )}
+            {isPending ? <Spinner size="sm" /> : <XCircle className="size-4" />}
             {rejectLabel}
           </button>
         )}
         {(onReturn || onReject) && !hasComment && (
-          <p className="text-[11px] text-muted-foreground ml-1">
+          <p className="text-xs text-muted-foreground ml-1">
             {t("submissions.detail.reviewCommentRequired")}
           </p>
         )}

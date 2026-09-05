@@ -43,6 +43,7 @@ import { UnauthorizedPage } from "@/components/UnauthorizedPage";
 import { Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./shared/LanguageSwitcher";
+import { Spinner } from "@/components/ui/spinner";
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: string };
 
@@ -179,49 +180,59 @@ function Sidebar({
         isCollapsed ? "w-16" : "w-64"
       } ${mobile ? "h-dvh" : "sticky top-0 h-dvh overflow-hidden"}`}
     >
-      {/* Logo */}
-      <div
-        className={`flex items-center gap-3 px-5 py-6 border-b border-sidebar-border ${isCollapsed ? "justify-center px-0" : ""}`}
-      >
-        <Link to="/" className="flex items-center gap-3">
-          <img
-            src="/coopdatalogo.png"
-            alt={t("common.logoAlt")}
-            className={`shrink-0 rounded-lg object-contain ${isCollapsed ? "size-11" : "size-20 py-1"}`}
-          />
-        </Link>
-        {/* Collapse toggle — desktop only */}
-        {!mobile && onToggleCollapse && (
+      {/* Logo — hidden when collapsed so only the icon rail remains */}
+      {!isCollapsed && (
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-sidebar-border">
+          <Link to="/" className="flex items-center gap-3">
+            <img
+              src="/coopdatalogo.png"
+              alt={t("common.logoAlt")}
+              className="shrink-0 rounded-lg object-contain h-8 w-auto"
+            />
+          </Link>
+          {/* Collapse toggle — desktop only */}
+          {!mobile && onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="ml-auto flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors shrink-0"
+              aria-label={t("common.collapseSidebar")}
+              title={t("common.collapseSidebar")}
+            >
+              <PanelLeftClose className="size-4" />
+            </button>
+          )}
+          {mobile && onClose && (
+            <button
+              onClick={onClose}
+              className="ml-auto flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              aria-label={t("common.closeMenu")}
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Collapse toggle — visible only when collapsed (desktop) */}
+      {isCollapsed && !mobile && onToggleCollapse && (
+        <div className="flex items-center justify-center border-b border-sidebar-border py-4">
           <button
             onClick={onToggleCollapse}
-            className={`flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors shrink-0 ${isCollapsed ? "" : "ml-auto"}`}
-            aria-label={isCollapsed ? t("common.expandSidebar") : t("common.collapseSidebar")}
-            title={isCollapsed ? t("common.expandSidebar") : t("common.collapseSidebar")}
+            className="flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+            aria-label={t("common.expandSidebar")}
+            title={t("common.expandSidebar")}
           >
-            {isCollapsed ? (
-              <PanelLeftOpen className="size-4" />
-            ) : (
-              <PanelLeftClose className="size-4" />
-            )}
+            <PanelLeftOpen className="size-4" />
           </button>
-        )}
-        {mobile && onClose && (
-          <button
-            onClick={onClose}
-            className="ml-auto flex size-7 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            aria-label={t("common.closeMenu")}
-          >
-            <X className="size-4" />
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Navigation */}
-      <nav className={`flex-1 overflow-y-auto py-4 space-y-5 ${isCollapsed ? "px-2" : "px-3"}`}>
+      <nav className={`flex-1 overflow-y-auto py-3 space-y-5 ${isCollapsed ? "px-2" : "px-3"}`}>
         {filteredGroups.map((group) => (
           <div key={group.id}>
             {!isCollapsed && (
-              <p className="mb-1.5 px-3 text-[9px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/60">
+              <p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/60">
                 {getGroupLabel(group)}
               </p>
             )}
@@ -234,13 +245,16 @@ function Sidebar({
                   <li key={item.to}>
                     <Link
                       to={item.to}
-                      onClick={() => {
+                      onClick={(e) => {
+                        // Keep the sidebar in its current collapsed/expanded state;
+                        // only close the mobile drawer.
+                        e.stopPropagation();
                         onClose?.();
                       }}
                       title={isCollapsed ? translatedLabel : undefined}
                       className={[
-                        "group flex items-center rounded-lg text-[13px] font-medium transition-all duration-150",
-                        isCollapsed ? "justify-center py-3" : "gap-3 px-3 py-2.5",
+                        "group flex items-center rounded-lg text-sm font-medium transition-all duration-150",
+                        isCollapsed ? "justify-center py-2.5" : "gap-3 px-3 py-2",
                         active
                           ? "bg-accent/15 text-accent shadow-sm ring-1 ring-inset ring-accent/20"
                           : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -277,11 +291,9 @@ function Sidebar({
       </nav>
 
       {/* User profile footer */}
-      <div
-        className={`border-t border-sidebar-border py-3 space-y-2 ${isCollapsed ? "px-2" : "px-3"}`}
-      >
+      <div className={`border-t border-sidebar-border py-2 ${isCollapsed ? "px-2" : "px-3"}`}>
         <div
-          className={`flex items-center rounded-lg bg-sidebar-accent/50 ${isCollapsed ? "justify-center py-2" : "gap-3 px-3 py-2.5"}`}
+          className={`flex items-center rounded-lg bg-sidebar-accent/50 ${isCollapsed ? "justify-center py-2" : "gap-3 px-3 py-2"}`}
         >
           <Link
             to="/app/profile"
@@ -289,15 +301,15 @@ function Sidebar({
             title={isCollapsed ? t("nav.profile") : undefined}
             className={`flex items-center min-w-0 flex-1 hover:opacity-80 transition-opacity ${isCollapsed ? "justify-center" : "gap-3"}`}
           >
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white ring-2 ring-accent/30">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white ring-2 ring-accent/30">
               {user?.initials ?? "??"}
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-semibold truncate text-sidebar-foreground">
+                <p className="text-sm font-semibold truncate text-sidebar-foreground">
                   {user?.name ?? t("common.unknown")}
                 </p>
-                <p className="text-[11px] text-sidebar-foreground/75 truncate">
+                <p className="text-xs text-sidebar-foreground/75 truncate">
                   {t(`roles.${currentRole.id}`)}
                 </p>
                 {userContextLabel}
@@ -311,22 +323,10 @@ function Sidebar({
               className="rounded-md p-1.5 hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title={t("common.logout")}
             >
-              {isLoggingOut ? (
-                <span className="size-3.5 block rounded-full border-2 border-current border-t-transparent animate-spin" />
-              ) : (
-                <LogOut className="size-3.5" />
-              )}
+              {isLoggingOut ? <Spinner size="sm" /> : <LogOut className="size-3.5" />}
             </button>
           )}
         </div>
-        {!isCollapsed && (
-          <div className="flex items-center gap-2 px-3 py-1.5">
-            <span className="size-1.5 rounded-full bg-success animate-pulse shrink-0" />
-            <span className="text-[11px] text-sidebar-foreground/70 font-medium">
-              {t("common.allSystemsOperational")}
-            </span>
-          </div>
-        )}
       </div>
     </aside>
   );
@@ -389,11 +389,11 @@ function Topbar({
             />
           </Link>
           <div className="min-w-0">
-            <h1 className="font-heading text-[15px] font-semibold tracking-tight text-foreground truncate">
+            <h1 className="font-heading text-sm font-semibold tracking-tight text-foreground truncate">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-[11px] text-muted-foreground truncate leading-tight">{subtitle}</p>
+              <p className="text-xs text-muted-foreground truncate leading-tight">{subtitle}</p>
             )}
           </div>
         </div>
@@ -460,7 +460,7 @@ export function AppShell({
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+          <Spinner size="xl" className="text-accent" />
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         </div>
       </div>
@@ -500,7 +500,7 @@ export function StatusPill({
   } as const;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${map[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${map[tone]}`}
     >
       <span className="size-1.5 rounded-full bg-current opacity-70" />
       {children}
@@ -542,7 +542,7 @@ export function Card({
         <header className="flex items-center justify-between gap-4 border-b border-border px-5 py-3.5">
           <div className="min-w-0 flex-1">
             {title && (
-              <h3 className="font-heading text-[14px] font-semibold text-foreground flex items-center gap-1.5 truncate">
+              <h3 className="font-heading text-sm font-semibold text-foreground flex items-center gap-1.5 truncate">
                 {title}
                 {info && (
                   <Popover>
@@ -564,7 +564,7 @@ export function Card({
               </h3>
             )}
             {subtitle && (
-              <p className="text-[11px] text-muted-foreground truncate mt-0.5">{subtitle}</p>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
             )}
           </div>
           {action && <div className="shrink-0">{action}</div>}
@@ -622,22 +622,9 @@ export function StatCard({
               ? "text-accent"
               : "text-primary";
 
-  const toneBorderCls =
-    tone === "success"
-      ? "border-l-4 border-l-success"
-      : tone === "warning"
-        ? "border-l-4 border-l-warning"
-        : tone === "danger"
-          ? "border-l-4 border-l-destructive"
-          : tone === "info"
-            ? "border-l-4 border-l-info"
-            : tone === "accent"
-              ? "border-l-4 border-l-accent"
-              : "border-l-4 border-l-primary";
-
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border border-border bg-surface p-5 hover-lift shadow-[var(--shadow-elev-1)] ${toneBorderCls}`}
+      className={`relative overflow-hidden rounded-xl border border-border bg-surface p-5 hover-lift shadow-[var(--shadow-elev-1)]`}
     >
       {/* Ghost watermark icon */}
       <Icon
@@ -647,7 +634,7 @@ export function StatCard({
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground leading-tight truncate">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground leading-tight truncate">
             {label}
           </p>
           {info && (

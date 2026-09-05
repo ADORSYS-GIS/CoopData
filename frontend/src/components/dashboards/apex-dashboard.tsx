@@ -1,35 +1,24 @@
-import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
+import { AppShell, Card, StatCard, StatusPill } from "@/components/app-shell";
 import { Link } from "@tanstack/react-router";
-import {
-  Building2,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Filter,
-  TrendingUp,
-  BarChart3,
-  Download,
-} from "lucide-react";
+import { Building2, Clock, CheckCircle2, XCircle, ArrowRight, Inbox } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
-import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/AuthContext";
 import { useApexStats, useApexSubmissions } from "@/hooks/submissions/useSubmissions";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import {
+  SubmissionTrendChart,
+  StatusBreakdownDonut,
+} from "@/components/dashboards/dashboard-charts";
 
 // ─────────────────────────────────────────────────────────────────────
-// APEX DASHBOARD
-// Creates cooperatives + users under them
-// Reviews submissions from cooperatives (approve/reject/request changes)
-// If approved, submission goes to Federation
-// Has dashboard, analytics, consolidated/individual reports
+// APEX DASHBOARD — clean overview + review queue
+// Creates cooperatives + users under them, reviews submissions
 // ─────────────────────────────────────────────────────────────────────
 export function ApexDashboard() {
   const { t } = useOrganizationLabelsContext();
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "verified" | "rejected">(
-    "all",
-  );
+  const { user } = useAuth();
 
   const { data: stats, isLoading: statsLoading } = useApexStats();
   const { data: realSubmissions = [], isLoading: subsLoading } = useApexSubmissions();
@@ -40,57 +29,63 @@ export function ApexDashboard() {
   const rejectedCount = stats?.rejected_submissions ?? 0;
   const totalCoops = stats?.total_cooperatives ?? realCooperatives.length;
 
-  const filteredSubmissions = realSubmissions.filter((s) => {
-    if (filterStatus === "all") return true;
-    if (filterStatus === "pending") return ["submitted", "in_review"].includes(s.status);
-    if (filterStatus === "verified") return s.status === "approved";
-    if (filterStatus === "rejected") return ["rejected", "returned"].includes(s.status);
-    return true;
-  });
-
-  const statusTone = (status: string): "success" | "warning" | "danger" | "info" | "neutral" => {
-    if (status === "approved") return "success";
-    if (["submitted", "in_review"].includes(status)) return "warning";
-    if (["rejected", "returned"].includes(status)) return "danger";
-    return "neutral";
+  const statusVariant: Record<
+    string,
+    "default" | "success" | "warning" | "destructive" | "secondary"
+  > = {
+    approved: "success",
+    submitted: "warning",
+    in_review: "warning",
+    rejected: "destructive",
+    returned: "destructive",
+    draft: "secondary",
   };
 
-  const statusLabel = (status: string): string => {
-    const labels: Record<string, string> = {
-      draft: t("dashboard.status.draft"),
-      submitted: t("dashboard.status.submitted"),
-      in_review: t("dashboard.status.inReview"),
-      approved: t("dashboard.status.approved"),
-      rejected: t("dashboard.status.rejected"),
-      returned: t("dashboard.status.changesRequested"),
-    };
-    return labels[status] ?? status;
+  const statusLabel: Record<string, string> = {
+    draft: t("dashboard.status.draft"),
+    submitted: t("dashboard.status.submitted"),
+    in_review: t("dashboard.status.inReview"),
+    approved: t("dashboard.status.approved"),
+    rejected: t("dashboard.status.rejected"),
+    returned: t("dashboard.status.changesRequested"),
   };
+
+  const recentSubmissions = realSubmissions.slice(0, 6);
+
+  const draftCount = Math.max(
+    realSubmissions.length - verifiedCount - pendingCount - rejectedCount,
+    0,
+  );
+
+  const pendingSubmissions = realSubmissions
+    .filter((s) => ["submitted", "in_review"].includes(s.status))
+    .sort(
+      (a, b) =>
+        new Date(b.submitted_at ?? b.created_at ?? 0).getTime() -
+        new Date(a.submitted_at ?? a.created_at ?? 0).getTime(),
+    )
+    .slice(0, 6);
 
   return (
-    <AppShell
-      title={t("dashboard.apex.title")}
-      subtitle={t("dashboard.apex.subtitle")}
-      actions={
-        <div className="hidden sm:flex items-center gap-2">
+    <AppShell title={t("dashboard.apex.title")} subtitle={t("dashboard.apex.subtitle")}>
+      <div className="space-y-6">
+        {/* Welcome */}
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+              {t("dashboard.apex.welcome", { name: user?.firstName || user?.name || "" })}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-0.5">{t("dashboard.apex.welcomeSub")}</p>
+          </div>
           <Link
             to="/app/analytics"
-            className="press-feedback inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline sm:mt-0"
           >
-            <BarChart3 className="size-4 text-accent" />
             {t("dashboard.apex.viewAllStats")}
+            <ArrowRight className="size-3.5" />
           </Link>
-          <button
-            onClick={() => toast.success(t("dashboard.apex.exportingReport"))}
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted"
-          >
-            <Download className="size-4" />
-            {t("dashboard.apex.exportReport")}
-          </button>
         </div>
-      }
-    >
-      <div className="space-y-6">
+
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statsLoading ? (
@@ -106,154 +101,221 @@ export function ApexDashboard() {
           ) : (
             <>
               <StatCard
+                icon={Building2}
                 label={t("dashboard.apex.coopsUnderApex")}
                 value={totalCoops.toString()}
                 subtitle={t("dashboard.apex.activeInZones")}
-                icon={Building2}
                 tone="accent"
               />
               <StatCard
+                icon={Clock}
                 label={t("dashboard.apex.pendingReview")}
                 value={pendingCount.toString()}
                 subtitle={t("dashboard.apex.awaitingAction")}
-                icon={Clock}
                 tone="warning"
               />
               <StatCard
+                icon={CheckCircle2}
                 label={t("dashboard.apex.approvedForwarded")}
                 value={verifiedCount.toString()}
                 subtitle={t("dashboard.apex.sentToFederation")}
-                icon={CheckCircle2}
                 tone="success"
               />
               <StatCard
+                icon={XCircle}
                 label={t("dashboard.apex.rejectedChanges")}
                 value={rejectedCount.toString()}
                 subtitle={t("dashboard.apex.requiresIntervention")}
-                icon={XCircle}
                 tone="danger"
               />
             </>
           )}
         </div>
 
-        {/* Submission Review Queue */}
-        <Card
-          title={t("dashboard.apex.reviewQueue")}
-          subtitle={t("dashboard.apex.reviewQueueSub")}
-          action={
-            <div className="flex items-center gap-2">
-              <Filter className="size-3.5 text-muted-foreground" />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as typeof filterStatus)}
-                className="rounded-lg border border-border bg-background px-2 py-1 text-xs outline-none focus:border-ring"
-              >
-                <option value="all">{t("dashboard.apex.allStatus")}</option>
-                <option value="pending">{t("dashboard.apex.pendingReviewOption")}</option>
-                <option value="verified">{t("dashboard.apex.approvedOption")}</option>
-                <option value="rejected">{t("dashboard.apex.rejectedChangesOption")}</option>
-              </select>
-            </div>
-          }
-        >
-          {subsLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="p-4 rounded-xl border border-border bg-background flex flex-col md:flex-row md:items-center justify-between gap-4"
-                >
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-3 w-16" />
-                      <Skeleton className="h-4 w-10 rounded-full" />
-                      <Skeleton className="h-4 w-14 rounded-full" />
-                    </div>
-                    <Skeleton className="h-4 w-40" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  <Skeleton className="h-8 w-20 rounded-lg" />
+        {/* Overview + Status breakdown */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card
+            className="lg:col-span-2"
+            title={t("dashboard.apex.overviewTitle")}
+            subtitle={t("dashboard.apex.overviewSub")}
+          >
+            {subsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-[220px] w-full rounded-lg" />
+                <div className="flex justify-between">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-16" />
                 </div>
-              ))}
-            </div>
-          ) : filteredSubmissions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-              <CheckCircle2 className="size-10 mb-3 text-success" />
-              <p className="text-sm font-semibold">{t("dashboard.apex.noMatchFilter")}</p>
-              <p className="text-xs mt-1">{t("dashboard.apex.noMatchFilterSub")}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredSubmissions.slice(0, 8).map((sub) => (
-                <Link
-                  key={sub.id}
-                  to="/app/submissions/$id"
-                  params={{ id: sub.id }}
-                  className="p-4 rounded-xl border border-border bg-background flex flex-col md:flex-row md:items-center justify-between gap-4 card-edge hover-lift hover:border-primary/30 transition-all block"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {sub.reference ?? sub.id.slice(0, 8).toUpperCase()}
-                      </span>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent">
-                        {sub.reporting_year}
-                      </span>
-                      <StatusPill tone={statusTone(sub.status)}>
-                        {statusLabel(sub.status)}
-                      </StatusPill>
-                    </div>
-                    <h4 className="text-sm font-bold truncate text-foreground">
-                      {sub.cooperative_name ?? "—"}
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      {sub.submitted_at || (sub.status !== "draft" && sub.created_at)
-                        ? new Date(sub.submitted_at || sub.created_at).toLocaleDateString()
-                        : t("dashboard.apex.notSubmitted")}
-                    </p>
-                  </div>
+              </div>
+            ) : (
+              <SubmissionTrendChart
+                data={realSubmissions}
+                emptyTitle={t("dashboard.apex.noTrendData")}
+                emptySub={t("dashboard.apex.noTrendDataSub")}
+                seriesLabel={t("dashboard.apex.submissions")}
+              />
+            )}
+          </Card>
 
-                  {sub.status === "submitted" && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-success text-white hover:bg-success/90 transition-all inline-flex items-center gap-1">
-                        <CheckCircle2 className="size-3.5" /> {t("dashboard.apex.reviewBtn")}
+          <Card
+            title={t("dashboard.apex.statusBreakdown")}
+            subtitle={t("dashboard.apex.statusBreakdownSub")}
+          >
+            {statsLoading ? (
+              <div className="flex h-[240px] items-center justify-center">
+                <Skeleton className="size-40 rounded-full" />
+              </div>
+            ) : (
+              <StatusBreakdownDonut
+                approved={verifiedCount}
+                pending={pendingCount}
+                rejected={rejectedCount}
+                draft={draftCount}
+                totalLabel={t("dashboard.apex.submissions")}
+                emptyLabel={t("dashboard.apex.noMatchFilter")}
+              />
+            )}
+          </Card>
+        </div>
+
+        {/* Recent submissions + Pending review queue */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card
+            className="lg:col-span-2"
+            title={t("dashboard.apex.reviewQueue")}
+            subtitle={t("dashboard.apex.reviewQueueSub")}
+            action={
+              <Link
+                to="/app/submissions"
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                {t("dashboard.apex.viewAllStats")}
+              </Link>
+            }
+          >
+            <div className="-mx-5 -mb-5">
+              {subsLoading ? (
+                <div className="space-y-3 p-5">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-2.5 w-20" />
+                      </div>
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : recentSubmissions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                  <Inbox className="size-8 mb-3 opacity-30" />
+                  <p className="text-sm font-semibold">{t("dashboard.apex.noMatchFilter")}</p>
+                  <p className="text-xs mt-1">{t("dashboard.apex.noMatchFilterSub")}</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {recentSubmissions.map((sub) => {
+                    const filedAt = sub.submitted_at ?? sub.created_at;
+                    return (
+                      <li key={sub.id}>
+                        <Link
+                          to={`/app/submissions/${sub.id}`}
+                          className="group flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground truncate group-hover:text-accent transition-colors">
+                              {sub.cooperative_name ?? t("dashboard.apex.unknownCooperative")}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {sub.reporting_year}
+                              {filedAt && (
+                                <span className="ml-2">
+                                  {new Date(filedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <Badge variant={statusVariant[sub.status] ?? "default"}>
+                            {statusLabel[sub.status] ?? sub.status}
+                          </Badge>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </Card>
+
+          <Card
+            title={t("dashboard.apex.pendingQueue")}
+            subtitle={t("dashboard.apex.pendingQueueSub")}
+            action={
+              <Link
+                to="/app/submissions"
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                {t("dashboard.apex.viewAllStats")}
+              </Link>
+            }
+          >
+            <div className="-mx-5 -mb-5">
+              {subsLoading ? (
+                <div className="space-y-3 p-5">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Skeleton className="size-8 rounded-lg" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-2.5 w-20" />
                       </div>
                     </div>
-                  )}
-
-                  {sub.status === "in_review" && (
-                    <div className="flex items-center gap-1.5 text-xs text-success font-semibold">
-                      <TrendingUp className="size-3.5" />{" "}
-                      {t("dashboard.apex.forwardedToFederation")}
-                    </div>
-                  )}
-
-                  {sub.status === "approved" && (
-                    <div className="flex items-center gap-1.5 text-xs text-success font-semibold">
-                      <CheckCircle2 className="size-3.5" /> {t("dashboard.apex.approvedLabel")}
-                    </div>
-                  )}
-
-                  {sub.status === "rejected" && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold">
-                      <AlertTriangle className="size-3.5" /> {t("dashboard.apex.rejectedLabel")}
-                    </div>
-                  )}
-
-                  {sub.status === "returned" && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold">
-                      <AlertTriangle className="size-3.5" />{" "}
-                      {t("dashboard.apex.changesRequestedLabel")}
-                    </div>
-                  )}
-                </Link>
-              ))}
+                  ))}
+                </div>
+              ) : pendingSubmissions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                  <Clock className="size-8 mb-3 opacity-30" />
+                  <p className="text-sm font-semibold">{t("dashboard.apex.noPending")}</p>
+                  <p className="text-xs mt-1">{t("dashboard.apex.noPendingSub")}</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {pendingSubmissions.map((sub) => {
+                    const filedAt = sub.submitted_at ?? sub.created_at;
+                    return (
+                      <li key={sub.id}>
+                        <Link
+                          to={`/app/submissions/${sub.id}`}
+                          className="group flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning-foreground">
+                            <Clock className="size-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground truncate group-hover:text-accent transition-colors">
+                              {sub.cooperative_name ?? t("dashboard.apex.unknownCooperative")}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {sub.reporting_year}
+                              {filedAt && (
+                                <span className="ml-2">
+                                  {new Date(filedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <Badge variant="warning">{statusLabel[sub.status] ?? sub.status}</Badge>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
-          )}
-        </Card>
+          </Card>
+        </div>
 
-        {/* Cooperatives Under Management */}
+        {/* Cooperatives under management */}
         <Card
           title={t("dashboard.apex.coopsUnderMgt")}
           subtitle={t("dashboard.apex.coopsUnderMgtSub")}
@@ -286,9 +348,7 @@ export function ApexDashboard() {
                       </td>
                       <td className="px-5 py-3 text-muted-foreground">{coop.region ?? "—"}</td>
                       <td className="px-5 py-3">
-                        <span className="text-xs font-semibold text-success">
-                          {t("dashboard.apex.statusActive")}
-                        </span>
+                        <StatusPill tone="success">{t("dashboard.apex.statusActive")}</StatusPill>
                       </td>
                     </tr>
                   ))
@@ -304,56 +364,6 @@ export function ApexDashboard() {
             </table>
           </div>
         </Card>
-
-        {/* ── Summary Stats (real data) ── */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <Card
-            title={t("dashboard.apex.approvalRate")}
-            subtitle={t("dashboard.apex.approvalRateSub")}
-          >
-            <div className="flex items-center gap-4 pt-2">
-              <div className="text-4xl font-bold text-success num">
-                {realSubmissions.length > 0
-                  ? `${((verifiedCount / realSubmissions.length) * 100).toFixed(0)}%`
-                  : "—"}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                <p>
-                  {verifiedCount} {t("dashboard.apex.submissionsApprovedSub")}
-                </p>
-                <p className="mt-1">
-                  {pendingCount} {t("dashboard.apex.stillPendingReviewSub")}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card
-            title={t("dashboard.apex.submissionsCardTitle")}
-            subtitle={t("dashboard.apex.submissionsCardSub")}
-          >
-            <div className="flex items-center gap-4 pt-2">
-              <div className="text-4xl font-bold text-accent num">{realSubmissions.length}</div>
-              <div className="text-xs text-muted-foreground">
-                <p>{t("dashboard.apex.totalSubmissionsProcessed")}</p>
-                <p className="mt-1">
-                  {rejectedCount} {t("dashboard.apex.rejectedOrReturnedSub")}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card
-            title={t("dashboard.apex.cooperativesCardTitle")}
-            subtitle={t("dashboard.apex.cooperativesCardSub")}
-          >
-            <div className="flex items-center gap-4 pt-2">
-              <div className="text-4xl font-bold num">{totalCoops}</div>
-              <div className="text-xs text-muted-foreground">
-                <p>{t("dashboard.apex.registeredCooperatives")}</p>
-                <p className="mt-1">{t("dashboard.apex.analyticsAvailable")}</p>
-              </div>
-            </div>
-          </Card>
-        </div>
       </div>
     </AppShell>
   );

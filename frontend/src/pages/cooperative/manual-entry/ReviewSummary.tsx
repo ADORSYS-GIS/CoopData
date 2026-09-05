@@ -1,7 +1,8 @@
-import { CheckCircle2, AlertCircle, BarChart3, Send, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, BarChart3, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
 import { fmt } from "./helpers";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ReviewSummaryProps {
   financialData: Record<number, Record<number, number>>;
@@ -139,7 +140,7 @@ export function ReviewSummary({
         disabled={isSubmitting}
         className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm animate-pulse-subtle"
       >
-        {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+        {isSubmitting ? <Spinner size="sm" /> : <Send className="size-4" />}
         {t("reviewSummary.submitBtn")}
       </button>
     </div>

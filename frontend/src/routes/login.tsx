@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 function AuthLoginHandler() {
   const { t } = useTranslation();
@@ -45,7 +46,7 @@ function AuthLoginHandler() {
   if (isOffline && !isAuthenticated) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-background p-6 text-center">
-        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-warning/10 text-warning">
           <WifiOff className="size-8" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight">You are currently offline</h1>
@@ -71,7 +72,7 @@ function AuthLoginHandler() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
-        <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+        <Spinner size="xl" className="text-accent" />
         <p className="text-sm text-muted-foreground">{t("auth.redirecting")}</p>
       </div>
     </div>
