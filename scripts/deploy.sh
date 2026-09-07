@@ -97,6 +97,17 @@ for svc in "${SERVICES_TO_DEPLOY[@]}"; do
 done
 ok "Images pulled"
 
+# ── Apply pending database migrations ────────────────────────────────────────
+# The docker-entrypoint-initdb.d mount only runs on a fresh data volume, so
+# migrations must be applied explicitly against an existing DB before the new
+# backend (which may depend on the new schema) is rolled out.
+step "Applying pending database migrations..."
+if [[ -x "${PROJECT_DIR}/scripts/migrate-db.sh" ]]; then
+    "${PROJECT_DIR}/scripts/migrate-db.sh"
+else
+    warn "scripts/migrate-db.sh not found — skipping migrations."
+fi
+
 # ── Ensure internal reverse proxy is running ────────────────────────────────
 $COMPOSE_CMD -f "$COMPOSE_FILE" up -d --no-deps nginx-proxy 2>/dev/null || true
 

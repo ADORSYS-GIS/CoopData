@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       target_tag:
+        # NOTE: This is an INTENTIONAL emergency-only escape hatch that lets an
+        # operator deploy an arbitrary tag/SHA to production, bypassing the normal
+        # release flow. It requires manual dispatch + PROD_SSH_KEY access. Do not
+        # wire it into any automated trigger.
         description: 'Specific release tag or commit SHA to deploy (e.g. v1.1.0 or latest)'
         required: false
         default: 'latest'
@@ -112,7 +116,7 @@ jobs:
           format: sarif
           output: trivy-frontend-results.sarif
           severity: CRITICAL,HIGH
-          exit-code: "0"
+          exit-code: "1"
           ignore-unfixed: true
           trivyignores: .trivyignore
 
@@ -123,7 +127,7 @@ jobs:
           format: sarif
           output: trivy-backend-results.sarif
           severity: CRITICAL,HIGH
-          exit-code: "0"
+          exit-code: "1"
           ignore-unfixed: true
           trivyignores: .trivyignore
 
@@ -249,11 +253,17 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
-            BRANCH_NAME="${{ github.ref_name }}"
+            REF_NAME="${{ github.ref_name }}"
             git reset --hard HEAD || true
             git fetch --all --tags
-            git checkout "$BRANCH_NAME" || git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
-            git reset --hard "origin/$BRANCH_NAME"
+            # On release/tag events REF_NAME is a tag (e.g. v1.1.0), which lives under
+            # refs/tags/, not refs/heads/ — so "origin/<tag>" is never a valid ref.
+            if git rev-parse --verify "refs/tags/${REF_NAME}" >/dev/null 2>&1; then
+                git checkout "refs/tags/${REF_NAME}"
+            else
+                git checkout "$REF_NAME" || git checkout -B "$REF_NAME" "origin/$REF_NAME"
+                git reset --hard "origin/$REF_NAME"
+            fi
             TARGET_TAG="${{ github.event.inputs.target_tag || 'latest' }}"
             if [ -f "./scripts/deploy.sh" ]; then
                 chmod +x ./scripts/deploy.sh
@@ -304,42 +314,49 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
-  deploy-demo:
-    name: Deploy to Demo Environment
-    runs-on: ubuntu-latest
-    needs: publish
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/demo-'))
-    steps:
-      - name: Deploy to Demo Server via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER || 'ubuntu' }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          script: |
-            set -e
-            cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
-            BRANCH_NAME="${{ github.ref_name }}"
-            git reset --hard HEAD || true
-            git fetch --all --tags
-            git checkout "$BRANCH_NAME" || git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
-            git reset --hard "origin/$BRANCH_NAME"
-            if [ -f "./scripts/deploy-demo.sh" ]; then
-                chmod +x ./scripts/deploy-demo.sh
-                ./scripts/deploy-demo.sh "$BRANCH_NAME"
-            else
-                docker compose -p coopdata-demo -f docker-compose.demo.yaml up -d
-            fi
-
-      - name: Notify Discord — Demo Deployment FAILED
-        if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: failure
-          title: "❌ CoopData Demo Deployment FAILED"
-          description: |
-            **Branch:** `${{ github.ref_name }}`
-            **Triggered by:** ${{ github.actor }}
-          color: 0xe74c3c
-          username: CoopData CI
+  # ─────────────────────────────────────────────────────────────────────────────
+  # deploy-demo: Deploy to Demo Environment
+  # DISABLED — automated demo deployment is intentionally commented out.
+  # Re-enable by uncommenting this job when the demo environment is ready.
+  # ─────────────────────────────────────────────────────────────────────────────
+  # deploy-demo:
+  #   name: Deploy to Demo Environment
+  #   runs-on: ubuntu-latest
+  #   needs: publish
+  #   if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/demo-'))
+  #   steps:
+  #     - name: Deploy to Demo Server via SSH
+  #       uses: appleboy/ssh-action@v1.0.3
+  #       with:
+  #         host: ${{ secrets.PROD_HOST }}
+  #         username: ${{ secrets.PROD_USER || 'ubuntu' }}
+  #         key: ${{ secrets.PROD_SSH_KEY }}
+  #         script: |
+  #           set -e
+  #           cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
+  #           BRANCH_NAME="${{ github.ref_name }}"
+  #           git reset --hard HEAD || true
+  #           git fetch --all --tags
+  #           git checkout "$BRANCH_NAME" || git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+  #           git reset --hard "origin/$BRANCH_NAME"
+  #           if [ -f "./scripts/deploy-demo.sh" ]; then
+  #               chmod +x ./scripts/deploy-demo.sh
+  #               # Only a 'develop' image tag is published for develop/demo-* branches,
+  #               # so always deploy the 'develop' tag rather than the branch name.
+  #               ./scripts/deploy-demo.sh "develop"
+  #           else
+  #               docker compose -p coopdata-demo -f docker-compose.demo.yaml up -d
+  #           fi
+  #
+  #     - name: Notify Discord — Demo Deployment FAILED
+  #       if: failure()
+  #       uses: sarisia/actions-status-discord@v1
+  #       with:
+  #         webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+  #         status: failure
+  #         title: "❌ CoopData Demo Deployment FAILED"
+  #         description: |
+  #           **Branch:** `${{ github.ref_name }}`
+  #           **Triggered by:** ${{ github.actor }}
+  #         color: 0xe74c3c
+  #         username: CoopData CI

@@ -23,7 +23,7 @@ variable "root_volume_size" {
 }
 
 variable "allowed_ssh_cidr" {
-  description = "CIDR block allowed to SSH into the EC2 instance (Default: 0.0.0.0/0)"
+  description = "CIDR block allowed to SSH into the EC2 instance. WARNING: 0.0.0.0/0 exposes SSH to the entire internet — restrict to your office/VPN or GitHub runner egress CIDRs for production."
   type        = string
   default     = "0.0.0.0/0"
 }

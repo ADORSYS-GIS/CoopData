@@ -216,6 +216,18 @@ else
     ok "All available artifacts downloaded from offsite S3"
 fi
 
+# ── Validate required artifacts BEFORE touching any live data ────────────────
+# Never issue a DROP DATABASE unless the App DB dump is present and non-empty.
+# A silently-failed download would otherwise leave the system broken.
+if [[ ! -s "$APP_DUMP_FILE" ]]; then
+    error "App DB backup artifact is missing or empty (${APP_DUMP_FILE}) — aborting before any DROP DATABASE."
+fi
+for f in "$KC_DUMP_FILE" "$KC_CFG_FILE" "$MINIO_DUMP_FILE"; do
+    if [[ -f "$f" && ! -s "$f" ]]; then
+        warn "Artifact ${f} is empty (0 bytes) — it will be skipped during restore."
+    fi
+done
+
 # ═════════════════════════════════════════════════════════════════════════════
 # 2. RESTORE POSTGRES DBs
 # ═════════════════════════════════════════════════════════════════════════════

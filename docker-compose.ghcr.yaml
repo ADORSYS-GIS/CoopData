@@ -289,7 +289,7 @@ services:
       minio:
         condition: service_healthy
       gotenberg:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/health"]
       interval: 15s
@@ -359,7 +359,7 @@ services:
       frontend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/v1/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -446,8 +446,9 @@ services:
       - .env
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      # WARNING: Operators MUST override GRAFANA_ADMIN_PASSWORD in .env for production deployment!
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      # GRAFANA_ADMIN_PASSWORD is REQUIRED — the container refuses to start without it,
+      # preventing a known-credential (admin/admin) Grafana instance in production.
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/

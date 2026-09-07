@@ -153,6 +153,10 @@ fi
 # 3. BACKUP: MinIO S3 Object Storage (Uploaded Files)
 # ═════════════════════════════════════════════════════════════════════════════
 info "[3/4] Archiving MinIO Object Storage Data..."
+# NOTE: This is a live tar of the MinIO /data volume and is NOT crash-consistent —
+# objects being written during the archive may be captured partially. For stronger
+# guarantees use MinIO's `mc mirror` to a scratch dir (or `mc mirror --watch --heal`)
+# before archiving. See docs/design.md DR section for the documented trade-off.
 MINIO_DUMP_FILE="${TMP_DIR}/minio_data_${DATE}.tar.gz"
 
 VOL_NAME=""
