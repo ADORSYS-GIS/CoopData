@@ -237,6 +237,17 @@ else
     ok "All core services are healthy"
 fi
 
+# ── Apply pending database migrations ─────────────────────────────────────
+# The docker-entrypoint-initdb.d mount only runs on a fresh data volume, so
+# apply pending migrations explicitly against the existing DB once Postgres
+# is healthy. Safe to run repeatedly (tracked in schema_migrations).
+if [[ -x "${SCRIPT_DIR}/scripts/migrate-db.sh" ]]; then
+    info "Applying pending database migrations..."
+    "${SCRIPT_DIR}/scripts/migrate-db.sh"
+else
+    warn "scripts/migrate-db.sh not found — skipping migrations."
+fi
+
 # ── Keycloak Provisioning ─────────────────────────────────────────────────
 info "Verifying Keycloak provisioning..."
 PROVISION_WAIT=90

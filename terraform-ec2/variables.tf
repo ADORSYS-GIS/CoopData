@@ -1,0 +1,40 @@
+variable "aws_region" {
+  description = "AWS region for deployment"
+  type        = string
+  default     = "eu-central-1"
+}
+
+variable "environment" {
+  description = "Environment name (e.g. prod, demo, dev)"
+  type        = string
+  default     = "prod"
+}
+
+variable "instance_type" {
+  description = "EC2 instance type (Recommended: t3.xlarge for production, t3.large for demo)"
+  type        = string
+  default     = "t3.xlarge"
+}
+
+variable "root_volume_size" {
+  description = "Size of the root EBS volume in GB"
+  type        = number
+  default     = 50
+}
+
+variable "allowed_ssh_cidr" {
+  description = "CIDR block allowed to SSH into the EC2 instance. WARNING: 0.0.0.0/0 exposes SSH to the entire internet — restrict to your office/VPN or GitHub runner egress CIDRs for production."
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "repo_url" {
+  description = "CoopData Git repository URL to clone on startup"
+  type        = string
+  default     = "https://github.com/ADORSYS-GIS/CoopData.git"
+}
+
+variable "ssh_public_key" {
+  description = "Public SSH key (ed25519/RSA) to authorize for EC2 SSH access. Generate the private key OUTSIDE Terraform with ssh-keygen and pass only the public key here — the private key must never enter Terraform state."
+  type        = string
+}
