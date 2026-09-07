@@ -8,7 +8,7 @@
 ## Project Status
 
 - **Current Phase**: Phase 23: Security, Reliability, and Testing Lifecycle Hardening
-- **Overall Progress**: 92% (IAM + Data) + 5% (Security Hardening - T1 Complete)
+- **Overall Progress**: 92% (IAM + Data) + 10% (Security Hardening - T1+T2 Complete)
 
 ---
 
@@ -521,11 +521,11 @@
   - [x] DTOs: `validator` crate macros on all Rust DTO structs
   - [x] Verification: `cargo clippy` + `npm run lint` zero security warnings
 
-- [ ] **T2: Auth & Authorization (Double-Gatekeeper Pattern)**
-  - [ ] Backend: All endpoints require JWT validation via middleware
-  - [ ] Backend: Role guard enforcement per route group
-  - [ ] Frontend: ProtectedRoute checks auth + roles
-  - [ ] Verification: Integration tests for unauthorized access → 401/403
+- [x] **T2: Auth & Authorization (Double-Gatekeeper Pattern)**
+  - [x] Backend: All endpoints require JWT validation via middleware
+  - [x] Backend: Role guard enforcement per route group
+  - [x] Frontend: ProtectedRoute checks auth + roles
+  - [x] Verification: Integration tests for unauthorized access → 401/403
 
 - [ ] **T3: Session Management & Token Expiry**
   - [ ] Keycloak: Access Token 5min, Refresh Token 30min idle

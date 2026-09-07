@@ -24,16 +24,25 @@ pub async fn auth_layer(
         .headers()
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
-        .ok_or_else(|| AppError::Unauthorized("Missing authorization header".into()))?;
+        .ok_or_else(|| {
+            tracing::warn!("Auth failure: missing authorization header");
+            AppError::Unauthorized("Missing authorization header".into())
+        })?;
 
     let token = auth_header
         .strip_prefix("Bearer ")
-        .ok_or_else(|| AppError::Unauthorized("Invalid authorization header format".into()))?;
+        .ok_or_else(|| {
+            tracing::warn!("Auth failure: invalid authorization header format");
+            AppError::Unauthorized("Invalid authorization header format".into())
+        })?;
 
     let claims = state
         .jwt_validator
         .validate(token)
-        .map_err(|e| AppError::Unauthorized(format!("Invalid token: {}", e)))?;
+        .map_err(|e| {
+            tracing::warn!(error = %e, "Auth failure: invalid or expired token");
+            AppError::Unauthorized("Invalid or expired token".into())
+        })?;
 
     request.extensions_mut().insert(Arc::new(claims));
 

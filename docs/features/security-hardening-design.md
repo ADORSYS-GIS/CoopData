@@ -2,7 +2,7 @@
 
 > **Epic:** [Issue #107](https://github.com/ADORSYS-GIS/CoopData/issues/107)
 > **Epic ID:** EPIC-SEC-RELIABILITY-01
-> **Status:** In Progress (T1 Complete)
+> **Status:** In Progress (T1+T2 Complete)
 > **Priority:** High
 > **Parent Initiative:** System Hardening & Compliance
 > **Last Updated:** September 7, 2026
@@ -70,7 +70,7 @@ flowchart TD
 | # | Ticket | Scope | Dependencies | Status |
 |---|--------|-------|--------------|--------|
 | T1 | Input Sanitization & Injection Prevention | Backend + Frontend DTOs | None | ✅ Complete |
-| T2 | Auth & Authorization (Double-Gatekeeper) | Backend middleware + Frontend guards | T1 | Pending |
+| T2 | Auth & Authorization (Double-Gatekeeper) | Backend middleware + Frontend guards | T1 | ✅ Complete |
 | T3 | Session Management & Token Expiry | Frontend AuthContext + Keycloak config | T2 |
 | T4 | Password Complexity Rules | Keycloak realm config | None |
 | T5 | Secrets Management | Pre-commit hooks + Config | None |
