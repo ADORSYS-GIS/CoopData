@@ -480,7 +480,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
     setFormula((prev) => {
       const trimmed = prev.trimEnd();
       const needsSpace = trimmed.length > 0 && op !== "(";
-      return (needsSpace ? trimmed + " " : trimmed) + op + (op === ")" ? " " : " ");
+      return (needsSpace ? trimmed + " " : trimmed) + op + (op === ")" ? "" : " ");
     });
   };
 
@@ -970,7 +970,7 @@ export function CustomKpiBuilder({ customKpiValues, cooperatives }: Props) {
                           filteredAndSortedCooperatives.map((coop) => (
                             <tr
                               key={coop.cooperative_id}
-                              className="hover:bg-accent/10/20 dark:hover:bg-muted/20 transition-colors"
+                              className="hover:bg-accent/10 dark:hover:bg-muted/20 transition-colors"
                             >
                               <td className="p-4 font-semibold text-accent">{coop.name}</td>
                               <td className="p-4 text-muted-foreground">{coop.region || "—"}</td>

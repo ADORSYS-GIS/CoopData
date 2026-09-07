@@ -23,9 +23,9 @@ interface DormancyLeaderboardProps {
 }
 
 function dormancyColor(pct: number): string {
-  if (pct > 20) return "#ef4444";
-  if (pct > 10) return "var(--chart-3)";
-  return "#22c55e";
+  if (pct > 20) return "var(--destructive)";
+  if (pct > 10) return "var(--warning)";
+  return "var(--success)";
 }
 
 export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardProps) {

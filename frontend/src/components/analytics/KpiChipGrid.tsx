@@ -114,7 +114,7 @@ export function KpiChipGrid({ cooperatives, kpiKeys, maxRows = 15 }: KpiChipGrid
                   <td key={k} className="text-center py-2 px-2">
                     <span
                       className="inline-flex size-5 rounded-full items-center justify-center mx-auto cursor-default"
-                      style={{ background: `${dot.bg}22` }}
+                      style={{ background: `color-mix(in srgb, ${dot.bg} 13%, transparent)` }}
                       title={kpi ? `${kpi.formatted} — ${dot.label}` : t("analytics.noData")}
                     >
                       <span className="size-2.5 rounded-full" style={{ background: dot.bg }} />

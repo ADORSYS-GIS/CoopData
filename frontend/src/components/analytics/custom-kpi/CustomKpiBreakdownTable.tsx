@@ -66,7 +66,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
               <tr>
                 <th
                   onClick={() => onSort("name")}
-                  className="p-4 cursor-pointer hover:bg-accent/10/80 hover:text-accent transition-colors select-none whitespace-nowrap min-w-[240px]"
+                  className="p-4 cursor-pointer hover:bg-accent/10 hover:text-accent transition-colors select-none whitespace-nowrap min-w-[240px]"
                 >
                   <div className="flex items-center gap-1.5">
                     {t("analytics.coopName")}
@@ -80,7 +80,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                 </th>
                 <th
                   onClick={() => onSort("region")}
-                  className="p-4 cursor-pointer hover:bg-accent/10/80 hover:text-accent transition-colors select-none whitespace-nowrap"
+                  className="p-4 cursor-pointer hover:bg-accent/10 hover:text-accent transition-colors select-none whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1.5">
                     {t("analytics.region")}
@@ -96,7 +96,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                   <th
                     key={kpi.id}
                     onClick={() => onSort(kpi.name)}
-                    className="p-4 cursor-pointer hover:bg-accent/10/80 hover:text-accent transition-colors text-right select-none whitespace-nowrap min-w-[150px]"
+                    className="p-4 cursor-pointer hover:bg-accent/10 hover:text-accent transition-colors text-right select-none whitespace-nowrap min-w-[150px]"
                   >
                     <div className="flex items-center justify-end gap-1.5">
                       {kpi.name.replace(/_/g, " ")}
@@ -123,7 +123,7 @@ export const CustomKpiBreakdownTable: React.FC<CustomKpiBreakdownTableProps> = (
                 </tr>
               ) : (
                 filteredCooperatives.map((coop) => (
-                  <tr key={coop.cooperative_id} className="hover:bg-accent/10/10 transition-colors">
+                  <tr key={coop.cooperative_id} className="hover:bg-accent/10 transition-colors">
                     <td className="p-4 font-bold text-foreground">{coop.name}</td>
                     <td className="p-4 text-muted-foreground text-xs">{coop.region || "—"}</td>
                     {kpis.map((kpi) => {

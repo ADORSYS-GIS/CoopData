@@ -193,7 +193,7 @@ export const CustomKpiDetailsSheet: React.FC<CustomKpiDetailsSheetProps> = ({
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     {t("analytics.mathematicalFormula")}
                   </Label>
-                  <Card className="border border-accent/10 bg-accent/10/20 p-4">
+                  <Card className="border border-accent/10 bg-accent/20 p-4">
                     <CardContent className="p-0">{renderFormulaTokens(kpi.formula)}</CardContent>
                   </Card>
                 </div>

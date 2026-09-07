@@ -251,8 +251,8 @@ export function BenchmarkMatrix({
                           <span
                             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                               isBetter
-                                ? "bg-success/10 dark:bg-success/20 text-success dark:text-success border border-success/20 dark:border-success/30/30"
-                                : "bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive border border-destructive/20 dark:border-destructive/30/30"
+                                ? "bg-success/10 dark:bg-success/20 text-success dark:text-success border border-success/20 dark:border-success/30"
+                                : "bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive border border-destructive/20 dark:border-destructive/30"
                             }`}
                           >
                             {isBetter ? (
