@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Native gitleaks pre-commit hook (installed by scripts/install-git-hooks.sh).
+# Runs gitleaks on staged files and blocks the commit if a secret is found.
+
+set -uo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "pre-commit: gitleaks not found. Install it (https://github.com/gitleaks/gitleaks) or run:"
+    echo "  brew install gitleaks   # macOS"
+    echo "  go install github.com/gitleaks/gitleaks/v8@latest"
+    echo "Skipping secret scan for this commit."
+    exit 0
+fi
+
+if git diff --cached --quiet; then
+    exit 0
+fi
+
+echo "pre-commit: scanning staged files for secrets with gitleaks..."
+if ! gitleaks protect --staged --verbose --no-banner; then
+    echo "pre-commit: SECRET DETECTED — commit blocked."
+    echo "Remove the secret, or if it is a false positive, add it to .gitleaks.toml allowlist."
+    exit 1
+fi
+exit 0

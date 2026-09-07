@@ -1,0 +1,16 @@
+# Pre-commit hooks for CoopData
+#
+# Install with:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Then run against all files once:
+#   pre-commit run --all-files
+#
+# The gitleaks hook blocks commits that contain secrets / credentials.
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
