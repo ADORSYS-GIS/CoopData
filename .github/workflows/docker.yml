@@ -243,6 +243,13 @@ jobs:
     name: Zero-Downtime Deploy to Production
     runs-on: ubuntu-latest
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    # Manual (workflow_dispatch) deploys require approval: they run in the
+    # 'production-manual' environment, which MUST have required reviewers
+    # configured (Settings -> Environments). Release/tag deploys use 'production'
+    # and remain automatic. Configure reviewers on 'production-manual' to enforce
+    # the gate; without them the environment has no effect.
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && 'production-manual' || 'production' }}
     steps:
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3

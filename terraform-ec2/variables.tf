@@ -33,3 +33,8 @@ variable "repo_url" {
   type        = string
   default     = "https://github.com/ADORSYS-GIS/CoopData.git"
 }
+
+variable "ssh_public_key" {
+  description = "Public SSH key (ed25519/RSA) to authorize for EC2 SSH access. Generate the private key OUTSIDE Terraform with ssh-keygen and pass only the public key here — the private key must never enter Terraform state."
+  type        = string
+}
