@@ -130,6 +130,18 @@
                             </div>
                         </#if>
 
+                        <div class="password-policy" style="margin-top: 0.25rem; padding: 0.875rem 1rem; background: var(--muted); border: 1px solid var(--border); border-radius: var(--radius);">
+                            <p style="margin: 0 0 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--foreground);">${msg("passwordPolicyTitle")}</p>
+                            <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8125rem; color: var(--foreground); line-height: 1.7;">
+                                <li>${msg("passwordPolicyMinLength")}</li>
+                                <li>${msg("passwordPolicyUpper")}</li>
+                                <li>${msg("passwordPolicyLower")}</li>
+                                <li>${msg("passwordPolicyDigit")}</li>
+                                <li>${msg("passwordPolicySpecial")}</li>
+                                <li>${msg("passwordPolicyNotUsername")}</li>
+                            </ul>
+                        </div>
+
                         <div class="form-actions">
                             <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
                             <button tabindex="6" class="btn-primary" name="submit" id="kc-submit" type="submit">
