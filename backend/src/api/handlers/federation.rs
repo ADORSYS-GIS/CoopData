@@ -41,9 +41,22 @@ pub async fn create_federation(
     Json(body): Json<CreateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
+    // Additional whitespace validation (length validator checks raw length, not trimmed)
+    if body.name.trim().is_empty() {
+        return Err(AppError::BadRequest(
+            "Name cannot be empty or whitespace-only".into(),
+        ));
+    }
+    for domain in &body.domains {
+        if domain.name.trim().is_empty() {
+            return Err(AppError::BadRequest(
+                "Domain cannot be empty or whitespace-only".into(),
+            ));
+        }
+    }
 
     // Keycloak uses the org name as an alias — spaces and special chars are not allowed.
     // We store the display name in attributes and use a slugified version as the name.
@@ -223,9 +236,8 @@ pub async fn update_federation(
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     // Fetch current org so we can preserve existing attributes (created_at, display_name, etc.)
     let current = state
@@ -509,9 +521,8 @@ pub async fn invite_user_to_federation(
     Json(body): Json<CreateInvitationRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     let email = body.email.trim().to_lowercase();
 
@@ -852,9 +863,8 @@ pub async fn update_federation_profile(
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
 

@@ -42,9 +42,8 @@ pub async fn create_apex(
     Json(body): Json<CreateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
@@ -243,9 +242,8 @@ pub async fn update_apex(
     Json(body): Json<UpdateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(

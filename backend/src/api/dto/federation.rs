@@ -8,6 +8,7 @@ pub struct CreateFederationRequest {
     pub name: String,
     /// At least one domain is required by Keycloak (e.g. "myfederation.org")
     #[validate(length(min = 1, message = "At least one domain is required"))]
+    #[validate(nested)]
     pub domains: Vec<DomainRequest>,
     #[serde(default)]
     #[validate(length(max = 1000, message = "Description must be under 1000 characters"))]
@@ -33,7 +34,9 @@ pub struct UpdateFederationRequest {
     pub description: Option<String>,
     #[validate(email(message = "Invalid email format"))]
     pub contact_email: Option<String>,
+    #[validate(nested)]
     pub domains: Option<Vec<DomainRequest>>,
+    #[serde(default)]
     pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
 }
 

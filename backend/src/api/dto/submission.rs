@@ -106,7 +106,11 @@ pub trait SubmissionPeriodRequest {
 #[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct CreateSubmissionRequest {
     pub id: Option<Uuid>,
-    #[validate(range(min = 2000, max = 2100, message = "Reporting year must be between 2000 and 2100"))]
+    #[validate(range(
+        min = 2000,
+        max = 2100,
+        message = "Reporting year must be between 2000 and 2100"
+    ))]
     pub reporting_year: i32,
     #[serde(default)]
     #[validate(length(max = 20, message = "Period type must be under 20 characters"))]
@@ -176,7 +180,11 @@ pub struct UpdateSectionStatusRequest {
 #[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct UpdateSubmissionMethodRequest {
     /// One of "upload", "manual", "questionnaire"
-    #[validate(length(min = 1, max = 50, message = "Submission method must be 1-50 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 50,
+        message = "Submission method must be 1-50 characters"
+    ))]
     pub submission_method: String,
 }
 

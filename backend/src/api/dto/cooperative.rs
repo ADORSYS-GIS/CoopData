@@ -11,9 +11,17 @@ pub struct CreateCooperativeRequest {
     #[serde(default)]
     #[validate(length(max = 1000, message = "Description must be under 1000 characters"))]
     pub description: Option<String>,
-    #[validate(length(min = 1, max = 100, message = "Institution type must be 1-100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Institution type must be 1-100 characters"
+    ))]
     pub institution_type: String,
-    #[validate(length(min = 1, max = 50, message = "Registration number must be 1-50 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 50,
+        message = "Registration number must be 1-50 characters"
+    ))]
     pub reg_no: String,
     #[serde(default)]
     #[validate(length(max = 20, message = "TIN must be under 20 characters"))]
@@ -25,7 +33,11 @@ pub struct CreateCooperativeRequest {
     pub georeference: Option<String>,
     #[validate(length(min = 1, max = 100, message = "Region must be 1-100 characters"))]
     pub region: String,
-    #[validate(length(min = 1, max = 100, message = "Geographic classification must be 1-100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Geographic classification must be 1-100 characters"
+    ))]
     pub geographic_classif: String,
     #[serde(default)]
     #[validate(length(max = 30, message = "Phone must be under 30 characters"))]
@@ -98,9 +110,17 @@ impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
 pub struct CreateCooperativeProfileRequest {
     #[validate(length(min = 1, max = 200, message = "Name must be 1-200 characters"))]
     pub name: String,
-    #[validate(length(min = 1, max = 100, message = "Institution type must be 1-100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Institution type must be 1-100 characters"
+    ))]
     pub institution_type: String,
-    #[validate(length(min = 1, max = 50, message = "Registration number must be 1-50 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 50,
+        message = "Registration number must be 1-50 characters"
+    ))]
     pub reg_no: String,
     #[serde(default)]
     #[validate(length(max = 20, message = "TIN must be under 20 characters"))]
@@ -112,7 +132,11 @@ pub struct CreateCooperativeProfileRequest {
     pub georeference: Option<String>,
     #[validate(length(min = 1, max = 100, message = "Region must be 1-100 characters"))]
     pub region: String,
-    #[validate(length(min = 1, max = 100, message = "Geographic classification must be 1-100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Geographic classification must be 1-100 characters"
+    ))]
     pub geographic_classif: String,
     #[serde(default)]
     #[validate(length(max = 30, message = "Phone must be under 30 characters"))]
@@ -154,10 +178,18 @@ pub struct UpdateCooperativeProfileRequest {
     #[validate(length(min = 1, max = 200, message = "Name must be 1-200 characters"))]
     pub name: Option<String>,
     #[serde(default)]
-    #[validate(length(min = 1, max = 100, message = "Institution type must be 1-100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Institution type must be 1-100 characters"
+    ))]
     pub institution_type: Option<String>,
     #[serde(default)]
-    #[validate(length(min = 1, max = 50, message = "Registration number must be 1-50 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 50,
+        message = "Registration number must be 1-50 characters"
+    ))]
     pub reg_no: Option<String>,
     #[serde(default)]
     #[validate(length(max = 20, message = "TIN must be under 20 characters"))]
@@ -171,7 +203,11 @@ pub struct UpdateCooperativeProfileRequest {
     #[validate(length(min = 1, max = 100, message = "Region must be 1-100 characters"))]
     pub region: Option<String>,
     #[serde(default)]
-    #[validate(length(min = 1, max = 100, message = "Geographic classification must be 1-100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Geographic classification must be 1-100 characters"
+    ))]
     pub geographic_classif: Option<String>,
     #[serde(default)]
     #[validate(length(max = 30, message = "Phone must be under 30 characters"))]

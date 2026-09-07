@@ -29,20 +29,15 @@ pub async fn auth_layer(
             AppError::Unauthorized("Missing authorization header".into())
         })?;
 
-    let token = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or_else(|| {
-            tracing::warn!("Auth failure: invalid authorization header format");
-            AppError::Unauthorized("Invalid authorization header format".into())
-        })?;
+    let token = auth_header.strip_prefix("Bearer ").ok_or_else(|| {
+        tracing::warn!("Auth failure: invalid authorization header format");
+        AppError::Unauthorized("Invalid authorization header format".into())
+    })?;
 
-    let claims = state
-        .jwt_validator
-        .validate(token)
-        .map_err(|e| {
-            tracing::warn!(error = %e, "Auth failure: invalid or expired token");
-            AppError::Unauthorized("Invalid or expired token".into())
-        })?;
+    let claims = state.jwt_validator.validate(token).map_err(|e| {
+        tracing::warn!(error = %e, "Auth failure: invalid or expired token");
+        AppError::Unauthorized("Invalid or expired token".into())
+    })?;
 
     request.extensions_mut().insert(Arc::new(claims));
 

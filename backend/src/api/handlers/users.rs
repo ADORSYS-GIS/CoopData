@@ -114,9 +114,8 @@ pub async fn create_user(
     Json(body): Json<CreateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     validate_role(&body.role)?;
 
@@ -540,9 +539,8 @@ pub async fn update_user(
     Json(body): Json<UpdateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     if let Some(ref role) = &body.role {
         validate_role(role)?;
@@ -617,9 +615,8 @@ pub async fn assign_role_to_user(
     Json(body): Json<AssignRoleRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     validate_role(&body.role)?;
 

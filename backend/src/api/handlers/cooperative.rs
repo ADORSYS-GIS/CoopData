@@ -110,9 +110,8 @@ pub async fn create_cooperative(
     Json(body): Json<CreateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     // Validate enum fields
     if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
@@ -472,9 +471,8 @@ pub async fn update_cooperative(
     Json(body): Json<UpdateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     if body.name.is_none() && body.description.is_none() {
         return Err(AppError::BadRequest(
@@ -1252,9 +1250,8 @@ pub async fn create_cooperative_profile(
     Json(body): Json<CreateCooperativeProfileRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     // Validate enum fields
     if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
@@ -1439,9 +1436,8 @@ pub async fn update_cooperative_profile(
     Json(body): Json<UpdateCooperativeProfileRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     let existing = state
         .cooperative_repo

@@ -93,9 +93,8 @@ pub async fn create_organization(
     Json(body): Json<CreateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     let repo = OrganizationRepository::new(state.db.clone());
     let now = chrono::Utc::now();
@@ -163,9 +162,8 @@ pub async fn update_organization(
     Json(body): Json<UpdateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
     // Validate input using validator crate
-    body.validate().map_err(|e| {
-        AppError::BadRequest(format!("Validation error: {}", e))
-    })?;
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     let repo = OrganizationRepository::new(state.db.clone());
     let org = repo.update(id, body).await?;
