@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Building2, Loader2, Save } from "lucide-react";
+import { Building2, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -35,6 +35,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Card } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 
 const COOP_TYPES = [
   "sacco",
@@ -492,7 +493,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
           <div className="flex justify-end gap-2 pt-4">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Spinner size="md" className="h-4 w-4 mr-2" />
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}

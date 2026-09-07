@@ -1,18 +1,12 @@
 import React, { useState } from "react";
-import {
-  ClipboardList,
-  Edit,
-  Loader2,
-  AlertCircle,
-  Building2,
-  FileSpreadsheet,
-} from "lucide-react";
+import { ClipboardList, Edit, AlertCircle, Building2, FileSpreadsheet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   useQuestionnaireTemplates,
   type QuestionnaireTemplate,
 } from "@/hooks/admin/useQuestionnaireTemplates";
 import { QuestionnaireTemplateEditor } from "./QuestionnaireTemplateEditor";
+import { Spinner } from "@/components/ui/spinner";
 
 export const QuestionnaireTemplatesPage: React.FC = () => {
   const { t } = useTranslation();
@@ -45,7 +39,7 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="size-6 animate-spin mr-2" /> {t("questionnaireTemplates.loading")}
+          <Spinner size="md" className="mr-2" /> {t("questionnaireTemplates.loading")}
         </div>
       ) : error ? (
         <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/5 text-destructive text-sm flex items-center gap-2.5">
@@ -82,8 +76,8 @@ export const QuestionnaireTemplatesPage: React.FC = () => {
                     <span
                       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold border ${
                         tItem.questionnaire_type === "financial"
-                          ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
-                          : "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                          ? "bg-accent/10 border-accent/30/20 text-accent dark:text-accent"
+                          : "bg-success/100/10 border-success/30/20 text-success dark:text-success"
                       }`}
                     >
                       {tItem.questionnaire_type === "financial"

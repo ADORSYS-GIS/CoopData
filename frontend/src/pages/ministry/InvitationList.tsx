@@ -417,45 +417,6 @@ export const InvitationList: React.FC = () => {
   return (
     <AppShell title={t("invitationList.title")} subtitle={t("invitationList.subtitle")}>
       <div className="space-y-6">
-        {/* Federation Selector */}
-        <Card
-          title={t("invitationList.selectFederationTitle")}
-          subtitle={t("invitationList.selectFederationSubtitle")}
-        >
-          <div className="flex items-center gap-4">
-            {federationsLoading ? (
-              <Skeleton className="h-10 w-full max-w-md" />
-            ) : (
-              <Select value={selectedFederationId} onValueChange={setSelectedFederationId}>
-                <SelectTrigger className="w-full max-w-md">
-                  <SelectValue placeholder={t("invitationList.selectFederationPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(federations as Federation[]).length === 0 ? (
-                    <div className="px-4 py-3 text-sm text-muted-foreground">
-                      {t("invitationList.noFederationsFound")}
-                    </div>
-                  ) : (
-                    (federations as Federation[]).map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            )}
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              disabled={!selectedFederationId}
-              className="flex items-center gap-2 shrink-0"
-            >
-              <Plus className="size-4" />
-              {t("invitationList.newInvitationBtn")}
-            </Button>
-          </div>
-        </Card>
-
         {/* Stats — only show when a federation is selected */}
         {selectedFederationId && (
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -496,6 +457,45 @@ export const InvitationList: React.FC = () => {
             />
           </div>
         )}
+
+        {/* Federation Selector */}
+        <Card
+          title={t("invitationList.selectFederationTitle")}
+          subtitle={t("invitationList.selectFederationSubtitle")}
+        >
+          <div className="flex items-center gap-4">
+            {federationsLoading ? (
+              <Skeleton className="h-10 w-full max-w-md" />
+            ) : (
+              <Select value={selectedFederationId} onValueChange={setSelectedFederationId}>
+                <SelectTrigger className="w-full max-w-md">
+                  <SelectValue placeholder={t("invitationList.selectFederationPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(federations as Federation[]).length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      {t("invitationList.noFederationsFound")}
+                    </div>
+                  ) : (
+                    (federations as Federation[]).map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              disabled={!selectedFederationId}
+              className="flex items-center gap-2 shrink-0"
+            >
+              <Plus className="size-4" />
+              {t("invitationList.newInvitationBtn")}
+            </Button>
+          </div>
+        </Card>
 
         {/* Invitations Table */}
         <Card

@@ -185,7 +185,7 @@ function HeroPanel() {
     <div className="overflow-hidden rounded-2xl border border-border bg-surface card-edge shadow-[var(--shadow-elev-2)]">
       <div className="flex items-center justify-between border-b border-border px-5 py-4 bg-muted/20">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
             {t("landing.heroPanel.liveOverview")}
           </p>
           <p className="mt-0.5 text-xs font-semibold text-foreground">
@@ -224,7 +224,7 @@ function HeroPanel() {
         />
       </div>
       <div className="px-5 pb-5">
-        <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
           {t("landing.heroPanel.membershipGrowth")}
         </p>
         <div className="flex h-24 items-end gap-1.5 pt-4">
@@ -260,12 +260,14 @@ function MiniKpi({
       : "text-warning-foreground bg-warning/10 ring-warning/20";
   return (
     <div className="rounded-xl border border-border p-3.5 bg-surface hover:shadow-sm transition-shadow">
-      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
       <p className="mt-1 font-heading text-lg font-bold tracking-tight text-foreground num">
         {value}
       </p>
       <p
-        className={`mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold ring-1 ${toneCls}`}
+        className={`mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${toneCls}`}
       >
         {delta}
       </p>

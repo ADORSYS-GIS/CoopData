@@ -43,13 +43,13 @@ export const ReportCoverPage: React.FC<ReportDataProps> = ({
 
       <div className="border-t border-slate-700/60 pt-8 grid grid-cols-3 gap-6 text-xs text-slate-400">
         <div>
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+          <p className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-1">
             {t("printReports.reportingYear")}
           </p>
           <p className="text-sm font-bold text-white">{submission.reporting_year}</p>
         </div>
         <div>
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+          <p className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-1">
             {t("printReports.submissionCode")}
           </p>
           <p className="text-sm font-mono text-white">
@@ -57,7 +57,7 @@ export const ReportCoverPage: React.FC<ReportDataProps> = ({
           </p>
         </div>
         <div>
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+          <p className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-1">
             {t("printReports.generatedDate")}
           </p>
           <p className="text-sm font-bold text-white">

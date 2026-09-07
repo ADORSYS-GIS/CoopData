@@ -199,7 +199,7 @@ const InsightRow = ({ insight }: { insight: Insight }) => {
             style={{ left: `${benchPct}%` }}
           />
         </div>
-        <div className="flex items-center justify-between text-[11px] font-bold num">
+        <div className="flex items-center justify-between text-xs font-bold num">
           <span className={styles.text}>{insight.coopFormatted}</span>
           <span className="text-muted-foreground">
             {insight.benchmarkValue.toFixed(1)}

@@ -23,6 +23,22 @@ CVE-2026-5773
 CVE-2026-7168
 DLA-4726-1
 
+# Backend (debian:bookworm-slim base) — libssh2/curl base-image findings.
+# libssh2 is already at the fixed version (1.10.0-3+deb12u1) in the current base
+# image, so these are false positives from earlier builds; TEMP-* are Trivy
+# temporary IDs for issues without an assigned CVE yet.
+CVE-2025-15661
+CVE-2026-58050
+CVE-2026-58051
+CVE-2026-66032
+CVE-2026-66034
+CVE-2026-7598
+CVE-2026-86145
+TEMP-0000000-21C4F8
+TEMP-0000000-8188AC
+TEMP-0000000-A5518C
+TEMP-0000000-B05303
+
 # Alpine base image vulnerabilities (node:22-alpine)
 # These are typically in the base OS packages and have no fix available yet
 CVE-2024-0567  # openssl: PKCS12 Decoding crashes

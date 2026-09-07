@@ -42,7 +42,7 @@ export function MetricsGridCards({ metrics, columns = 4 }: MetricsGridCardsProps
           className="relative rounded-xl border border-border bg-surface p-4 shadow-sm hover:shadow-md transition-shadow"
         >
           <div className="flex items-start justify-between mb-2">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {metric.label}
             </p>
             <Popover>

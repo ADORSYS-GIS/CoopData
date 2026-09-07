@@ -99,7 +99,7 @@ export const LocalizedField: React.FC<LocalizedFieldProps> = ({
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
           >
             <Languages className="size-3.5" />
             {t("localizedField.toggle", { defaultValue: "Translate" })}
@@ -133,7 +133,7 @@ export const LocalizedField: React.FC<LocalizedFieldProps> = ({
           </span>
           {otherLangs.map((lang) => (
             <div key={lang} className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase w-7 text-muted-foreground shrink-0">
+              <span className="text-xs font-bold uppercase w-7 text-muted-foreground shrink-0">
                 {lang}
               </span>
               {multiline ? (

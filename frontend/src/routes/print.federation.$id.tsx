@@ -3,6 +3,7 @@ import { FederationReportPrint } from "@/pages/shared/print/FederationReportPrin
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useFederation } from "@/hooks/federations/useFederations";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 import { useFederationNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/federation/$id")({
@@ -43,7 +44,7 @@ function PrintComponent() {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
-          <div className="size-10 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600" />
+          <Spinner size="xl" className="text-accent" />
           <p className="mt-4 text-sm font-semibold">{t("printReports.generatingFederation")}</p>
         </div>
       </div>

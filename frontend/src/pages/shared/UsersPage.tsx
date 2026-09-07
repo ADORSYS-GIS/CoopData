@@ -1,10 +1,12 @@
-import { Users, Network, Building2, Loader2, AlertCircle, ArrowRight } from "lucide-react";
+import { Users, Network, Building2, AlertCircle, ArrowRight } from "lucide-react";
 import { AppShell, StatCard } from "@/components/app-shell";
 import { useApexes } from "@/hooks/apexes/useApexes";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
 import { useUserRole } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 import { Link } from "@tanstack/react-router";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { Spinner } from "@/components/ui/spinner";
 
 // ─── Federation / Ministry view: list apexes → drill into apex members ───────
 
@@ -64,7 +66,7 @@ function ApexList() {
               className="group relative flex flex-col rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] transition-all duration-200 hover:shadow-[var(--shadow-elev-2)] hover:border-accent/30 hover:-translate-y-0.5"
             >
               <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 border border-sky-200 text-sky-600">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 text-accent">
                   <Network className="size-5" />
                 </div>
                 <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent border border-accent/20">
@@ -72,15 +74,20 @@ function ApexList() {
                 </span>
               </div>
               <div className="flex-1 mb-4">
-                <h4 className="font-heading text-[15px] font-bold text-foreground truncate">
+                <h4 className="font-heading text-sm font-bold text-foreground truncate">
                   {a.name}
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
                   {a.description ?? t("users.noDescription")}
                 </p>
+                {a.path && (
+                  <p className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                    {a.path}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2 pt-3 border-t border-border/60">
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 border border-success/20 px-2.5 py-1 text-xs font-semibold text-success">
                   <Building2 className="size-3" />{" "}
                   {t("users.cooperativesCount", { count: a.sub_groups?.length ?? 0 })}
                 </span>
@@ -147,7 +154,7 @@ function CooperativeList() {
               className="group relative flex flex-col rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-elev-1)] transition-all duration-200 hover:shadow-[var(--shadow-elev-2)] hover:border-accent/30 hover:-translate-y-0.5"
             >
               <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-success/10 border border-success/20 text-success">
                   <Building2 className="size-5" />
                 </div>
                 <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent border border-accent/20">
@@ -155,7 +162,7 @@ function CooperativeList() {
                 </span>
               </div>
               <div className="flex-1 mb-4">
-                <h4 className="font-heading text-[15px] font-bold text-foreground truncate">
+                <h4 className="font-heading text-sm font-bold text-foreground truncate">
                   {c.name}
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
@@ -163,7 +170,7 @@ function CooperativeList() {
                 </p>
               </div>
               <div className="flex items-center gap-2 pt-3 border-t border-border/60">
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-accent/10 border border-accent/20 px-2.5 py-1 text-xs font-semibold text-accent">
                   <Users className="size-3" /> {t("users.members")}
                 </span>
               </div>
@@ -181,7 +188,7 @@ function CooperativeList() {
 function CenteredSpinner() {
   return (
     <div className="flex min-h-[40dvh] items-center justify-center">
-      <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <Spinner size="md" className="text-muted-foreground" />
     </div>
   );
 }
@@ -237,13 +244,22 @@ function EmptyState({
 
 export const UsersPage: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
+  const { user } = useAuth();
   const role = useUserRole();
 
   if (!role) return null;
 
   return (
     <AppShell title={t("users.title")} subtitle={t(`users.subtitle.${role}`)}>
-      <div className="space-y-2">{role === "apex" ? <CooperativeList /> : <ApexList />}</div>
+      <div className="space-y-6">
+        <div>
+          <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground">
+            {t("users.welcome", { name: user?.firstName || user?.name || "" })}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">{t("users.welcomeSub")}</p>
+        </div>
+        {role === "apex" ? <CooperativeList /> : <ApexList />}
+      </div>
     </AppShell>
   );
 };

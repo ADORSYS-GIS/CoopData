@@ -22,20 +22,20 @@ function buildMetricGroups(t: (key: string) => string): Record<string, Benchmark
     membership: {
       label: t("basicBenchmarking.groups.membership"),
       icon: Users,
-      colorClass: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30",
-      comboboxIconClass: "text-emerald-400",
+      colorClass: "text-success bg-success/10 dark:bg-success/30",
+      comboboxIconClass: "text-success",
     },
     balances: {
       label: t("basicBenchmarking.groups.balances"),
       icon: Coins,
-      colorClass: "text-blue-500 bg-blue-50 dark:bg-blue-950/30",
-      comboboxIconClass: "text-blue-400",
+      colorClass: "text-accent bg-accent/10 dark:bg-primary/30",
+      comboboxIconClass: "text-accent",
     },
     income: {
       label: t("basicBenchmarking.groups.income"),
       icon: BarChart3,
-      colorClass: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30",
-      comboboxIconClass: "text-indigo-400",
+      colorClass: "text-accent bg-accent/10 dark:bg-accent/30",
+      comboboxIconClass: "text-accent",
     },
   };
 }

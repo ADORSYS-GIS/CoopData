@@ -1,14 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Loader2,
-  Upload,
-  PenLine,
-  ClipboardList,
-  AlertTriangle,
-  ArrowRight,
-  RotateCcw,
-} from "lucide-react";
+import { Upload, PenLine, ClipboardList, AlertTriangle, ArrowRight, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +12,7 @@ import { useUpdateSubmissionMethod } from "@/hooks/submissions/useSubmissions";
 import { apiClient } from "@/openapi-client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { Spinner } from "@/components/ui/spinner";
 
 export type SubmissionMethod = "upload" | "manual" | "questionnaire";
 
@@ -89,13 +82,13 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
     },
     {
       value: "questionnaire",
-      icon: <ClipboardList className="size-6 text-emerald-600 dark:text-emerald-400" />,
+      icon: <ClipboardList className="size-6 text-success dark:text-success" />,
       title: t("submissions.methodModal.questionnaireTitle", "Questionnaire"),
       desc: t("submissions.methodModal.questionnaireDesc", "Fill guided regulatory questionnaires"),
       note: t("submissions.methodModal.questionnaireNote", "Custom questionnaire field structure"),
       confirm: t("submissions.methodModal.confirmQuestionnaire", "Select Questionnaire"),
       accent:
-        "border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40 hover:bg-emerald-500/10",
+        "border-success/30/20 bg-success/100/5 hover:border-success/30/40 hover:bg-success/100/10",
     },
   ];
 
@@ -232,11 +225,7 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
                 disabled={isResetting}
                 className="inline-flex items-center gap-2 rounded-xl bg-destructive px-5 py-2 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
-                {isResetting ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <RotateCcw className="size-3.5" />
-                )}
+                {isResetting ? <Spinner size="sm" /> : <RotateCcw className="size-3.5" />}
                 {t(
                   "submissions.methodModal.btnResetAndSwitch",
                   "Clear Existing Data & Switch Method",
@@ -307,13 +296,13 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
                         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                           {opt.desc}
                         </p>
-                        <p className="text-[11px] text-muted-foreground/70 mt-2 leading-relaxed">
+                        <p className="text-xs text-muted-foreground/70 mt-2 leading-relaxed">
                           {opt.note}
                         </p>
                       </div>
                       <span className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary/90 text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:bg-primary transition-colors shadow-sm">
                         {updateMethod.isPending || isResetting ? (
-                          <Loader2 className="size-4 animate-spin" />
+                          <Spinner size="sm" />
                         ) : (
                           <ArrowRight className="size-4" />
                         )}

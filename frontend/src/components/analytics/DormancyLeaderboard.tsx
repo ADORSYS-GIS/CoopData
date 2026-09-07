@@ -23,9 +23,9 @@ interface DormancyLeaderboardProps {
 }
 
 function dormancyColor(pct: number): string {
-  if (pct > 20) return "#ef4444";
-  if (pct > 10) return "#f59e0b";
-  return "#22c55e";
+  if (pct > 20) return "var(--destructive)";
+  if (pct > 10) return "var(--warning)";
+  return "var(--success)";
 }
 
 export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardProps) {
@@ -52,15 +52,15 @@ export function DormancyLeaderboard({ data, maxRows = 12 }: DormancyLeaderboardP
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-4 flex-wrap text-[11px] text-muted-foreground">
+      <div className="flex items-center gap-4 mb-4 flex-wrap text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-emerald-500" /> {t("analytics.legendHealthy")}
+          <span className="size-2.5 rounded-full bg-success/100" /> {t("analytics.legendHealthy")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-amber-500" /> {t("analytics.legendWatch")}
+          <span className="size-2.5 rounded-full bg-warning" /> {t("analytics.legendWatch")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-full bg-red-500" /> {t("analytics.legendCritical")}
+          <span className="size-2.5 rounded-full bg-destructive" /> {t("analytics.legendCritical")}
         </span>
       </div>
       <div style={{ height: chartHeight }}>

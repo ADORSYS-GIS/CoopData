@@ -259,7 +259,7 @@ export function RegionsHeatGrid() {
               })}
             </div>
             {/* Legend inside each region box */}
-            <div className="mt-2.5 flex items-center justify-between text-[9px] text-muted-foreground">
+            <div className="mt-2.5 flex items-center justify-between text-[10px] text-muted-foreground">
               <span>{t("charts.lowDensity")}</span>
               <div className="flex gap-0.5">
                 {[10, 30, 50, 70, 90].map((p) => (
@@ -274,7 +274,7 @@ export function RegionsHeatGrid() {
               </div>
               <span>{t("charts.highDensity")}</span>
             </div>
-            <dl className="mt-4 grid grid-cols-3 gap-2 text-[11px] border-t border-border pt-3">
+            <dl className="mt-4 grid grid-cols-3 gap-2 text-xs border-t border-border pt-3">
               <div>
                 <dt className="text-muted-foreground">{t("charts.coops")}</dt>
                 <dd className="font-semibold num">{r.coops.toLocaleString()}</dd>
@@ -319,7 +319,7 @@ export function ActivityFeedList({ activities }: { activities: typeof INITIAL_AC
             <p className="truncate text-sm font-semibold">{a.title}</p>
             <p className="truncate text-xs text-muted-foreground">{a.detail}</p>
           </div>
-          <span className="shrink-0 text-[11px] text-muted-foreground">{a.time}</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{a.time}</span>
         </li>
       ))}
       <li className="pt-3">

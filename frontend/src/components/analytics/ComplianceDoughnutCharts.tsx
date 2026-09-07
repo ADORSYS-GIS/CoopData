@@ -38,7 +38,7 @@ export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutCh
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-6 flex-wrap justify-center text-[11px] text-muted-foreground">
+      <div className="flex items-center gap-4 mb-6 flex-wrap justify-center text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-full bg-success" /> {t("analytics.legendHealthy")}
         </span>

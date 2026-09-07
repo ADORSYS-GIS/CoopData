@@ -21,9 +21,9 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
   const nonBinary = t("analytics.nonBinaryUndisclosed");
 
   const chartData = [
-    { name: women, value: data.female_pct || 0, color: "#0284c7" },
-    { name: men, value: data.male_pct || 0, color: "#16a34a" },
-    { name: nonBinary, value: data.other_pct || 0, color: "#ea580c" },
+    { name: women, value: data.female_pct || 0, color: "var(--chart-1)" },
+    { name: men, value: data.male_pct || 0, color: "var(--chart-2)" },
+    { name: nonBinary, value: data.other_pct || 0, color: "var(--chart-3)" },
   ].filter((item) => item.value > 0);
 
   // Fallback if no members are populated in the database
@@ -31,9 +31,9 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
     chartData.length > 0
       ? chartData
       : [
-          { name: women, value: 50.0, color: "#0284c7" },
-          { name: men, value: 40.0, color: "#16a34a" },
-          { name: nonBinary, value: 10.0, color: "#ea580c" },
+          { name: women, value: 50.0, color: "var(--chart-1)" },
+          { name: men, value: 40.0, color: "var(--chart-2)" },
+          { name: nonBinary, value: 10.0, color: "var(--chart-3)" },
         ];
 
   const isFallback = chartData.length === 0;
@@ -75,7 +75,7 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
           <span className="text-2xl font-extrabold text-slate-900 dark:text-white">
             {primaryPct.toFixed(1)}%
           </span>
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             {t("analytics.genderWomen")}
           </span>
         </div>

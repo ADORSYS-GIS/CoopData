@@ -1,6 +1,7 @@
 import React from "react";
-import { AlertCircle, X, Loader2 } from "lucide-react";
+import { AlertCircle, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 export interface DeleteSubmissionModalProps {
   submission: { id: string; reference?: string | null };
@@ -63,11 +64,7 @@ export const DeleteSubmissionModal: React.FC<DeleteSubmissionModalProps> = ({
             disabled={isPending}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
-            {isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              t("submissions.delete", "Delete")
-            )}
+            {isPending ? <Spinner size="sm" /> : t("submissions.delete", "Delete")}
           </button>
         </div>
       </div>

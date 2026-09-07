@@ -4,7 +4,6 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   AlertTriangle,
-  Loader2,
   X,
   Eye,
   Edit3,
@@ -22,6 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 // ─────────────────────────────────────────────────────────────────────
 // TYPES
@@ -573,7 +573,7 @@ function DatabaseUploader({
           {/* Extracting Step */}
           {step === "extracting" && (
             <div className="py-6 flex flex-col items-center gap-4">
-              <Loader2 className="size-8 text-primary animate-spin" />
+              <Spinner size="lg" className="text-primary" />
               <div className="text-center">
                 <p className="text-sm font-bold text-foreground">
                   {t("excelDatabaseUpload.extractingName", {
@@ -829,11 +829,7 @@ export function ExcelDatabaseUpload({
               disabled={isSubmitting}
               className="press-feedback inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <ArrowRight className="size-4" />
-              )}
+              {isSubmitting ? <Spinner size="sm" /> : <ArrowRight className="size-4" />}
               {isSubmitting
                 ? t("excelDatabaseUpload.submitting")
                 : t("excelDatabaseUpload.submitToApex")}

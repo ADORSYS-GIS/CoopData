@@ -3,6 +3,7 @@ import { ConsolidatedReportPrint } from "@/pages/shared/print/ConsolidatedReport
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useApex } from "@/hooks/apexes/useApexes";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 import { useApexNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/apex/$id")({
@@ -43,7 +44,7 @@ function PrintComponent() {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
-          <div className="size-10 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600" />
+          <Spinner size="xl" className="text-accent" />
           <p className="mt-4 text-sm font-semibold">{t("printReports.generatingApex")}</p>
         </div>
       </div>

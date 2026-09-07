@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   AlertCircle,
-  Loader2,
   Send,
   RefreshCw,
   Edit3,
@@ -54,6 +53,7 @@ import { useChartOfAccountsLeafs } from "@/hooks/submissions/useFinancialStateme
 // We keep a module-level fallback map seeded from the static constants for
 // the account_name display column (used even before the hook resolves).
 import { ACCOUNT_CODES } from "@/lib/financial-data";
+import { Spinner } from "@/components/ui/spinner";
 
 const STATIC_COA_OPTIONS: { code: number; name: string; category: string }[] = Object.entries(
   ACCOUNT_CODES,
@@ -129,7 +129,7 @@ function FlagRow({
         <button
           onClick={() => setOpen((o) => !o)}
           title={t("financialStatementEditor.flagRow.howToFixTitle")}
-          className={`shrink-0 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors ${
+          className={`shrink-0 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-colors ${
             open
               ? "bg-muted text-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -144,7 +144,7 @@ function FlagRow({
       {open && (
         <div className="border-t border-border/60 mx-4 mb-3 pt-3 space-y-2">
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
               {t("financialStatementEditor.flagRow.whatThisMeans")}
             </p>
             <p className="text-xs text-foreground">
@@ -152,7 +152,7 @@ function FlagRow({
             </p>
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
               {t("financialStatementEditor.flagRow.howToFixIt")}
             </p>
             <p className="text-xs text-foreground">
@@ -219,11 +219,7 @@ function ValidationPanel({
             disabled={isRevalidating || isReadOnly}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
           >
-            {isRevalidating ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <RefreshCw className="size-3" />
-            )}
+            {isRevalidating ? <Spinner size="sm" /> : <RefreshCw className="size-3" />}
             {t("financialStatementEditor.validationPanel.revalidate")}
           </button>
           <button
@@ -572,11 +568,7 @@ export const FinancialStatementEditor: React.FC<{
                 disabled={validate.isPending || isReadOnly}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                {validate.isPending ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-3.5" />
-                )}
+                {validate.isPending ? <Spinner size="sm" /> : <RefreshCw className="size-3.5" />}
                 {t("financialStatementEditor.validationPanel.revalidate", "Re-validate Extraction")}
               </button>
             </div>
@@ -586,7 +578,7 @@ export const FinancialStatementEditor: React.FC<{
 
       {validate.isPending && (
         <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
-          <Loader2 className="size-4 animate-spin text-accent shrink-0" />
+          <Spinner size="sm" className="text-accent shrink-0" />
           <div>
             <p className="text-sm font-semibold">
               {t("financialStatementEditor.aiProgress.title")}
@@ -627,11 +619,7 @@ export const FinancialStatementEditor: React.FC<{
                   disabled={validate.isPending || isReadOnly}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 disabled:opacity-60 transition-colors"
                 >
-                  {validate.isPending ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-3.5" />
-                  )}
+                  {validate.isPending ? <Spinner size="sm" /> : <RefreshCw className="size-3.5" />}
                   {t("financialStatementEditor.validationPanel.revalidate")}
                 </button>
 
@@ -657,11 +645,7 @@ export const FinancialStatementEditor: React.FC<{
                     disabled={deleteFs.isPending}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/25 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 transition-colors cursor-pointer"
                   >
-                    {deleteFs.isPending ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-3.5" />
-                    )}
+                    {deleteFs.isPending ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
                     {t("financialStatementEditor.matrix.deleteStatement")}
                   </button>
                 )}
@@ -691,7 +675,7 @@ export const FinancialStatementEditor: React.FC<{
                     }
                   >
                     {updateSection.isPending ? (
-                      <Loader2 className="size-3.5 animate-spin" />
+                      <Spinner size="sm" />
                     ) : (
                       <CheckCircle2 className="size-3.5" />
                     )}
@@ -712,7 +696,7 @@ export const FinancialStatementEditor: React.FC<{
       >
         {itemsLoading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin mr-2" />
+            <Spinner size="md" className="mr-2" />
             {t("financialStatementEditor.matrix.loading")}
           </div>
         ) : items.length === 0 ? (
@@ -910,7 +894,7 @@ export const FinancialStatementEditor: React.FC<{
                                 </button>
                               )
                             ) : (
-                              <span className="text-muted-foreground/40 text-[11px]">—</span>
+                              <span className="text-muted-foreground/40 text-xs">—</span>
                             )}
                           </td>
                         );

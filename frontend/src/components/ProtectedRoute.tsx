@@ -4,6 +4,7 @@ import type { Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 import { UnauthorizedPage } from "@/components/UnauthorizedPage";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -19,7 +20,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="size-10 animate-spin rounded-full border-4 border-muted border-t-accent" />
+          <Spinner size="xl" className="text-accent" />
           <p className="text-sm text-muted-foreground">{t("common.verifyingCredentials")}</p>
         </div>
       </div>

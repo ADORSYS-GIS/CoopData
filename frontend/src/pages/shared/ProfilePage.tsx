@@ -1,4 +1,4 @@
-import { Shield, KeyRound, Mail, Locate, Eye, EyeOff, Loader2, Smartphone } from "lucide-react";
+import { Shield, KeyRound, Mail, Locate, Eye, EyeOff, Smartphone } from "lucide-react";
 import { AppShell, Card, StatusPill } from "@/components/app-shell";
 import { useAuth, ROLES, useUserRole } from "@/lib/auth";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { MfaSetupDialog } from "@/components/shared/MfaSetupDialog";
 import { ReEnableMfaDialog } from "@/components/shared/ReEnableMfaDialog";
 import { DisableMfaDialog } from "@/components/shared/DisableMfaDialog";
 import { ResetMfaDialog } from "@/components/shared/ResetMfaDialog";
+import { Spinner } from "@/components/ui/spinner";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -111,11 +112,7 @@ function ChangePasswordCard() {
             disabled={loading}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <KeyRound className="size-4" />
-            )}
+            {loading ? <Spinner size="sm" /> : <KeyRound className="size-4" />}
             {t("profile.updatePassword")}
           </button>
         </div>
@@ -372,7 +369,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
                 {securityLoading && (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Loader2 className="size-3 animate-spin" />
+                    <Spinner size="sm" />
                     {t("profile.loadingSecurity")}
                   </p>
                 )}

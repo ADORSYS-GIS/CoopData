@@ -1,5 +1,4 @@
 import { AppShell, Card, StatCard } from "@/components/app-shell";
-import { Link } from "@tanstack/react-router";
 import {
   ResponsiveContainer,
   BarChart,
@@ -93,17 +92,6 @@ export function CooperativeDashboard() {
     <AppShell
       title={profile?.name ?? t("dashboard.coop.title")}
       subtitle={`${profile?.name ?? t("dashboard.coop.title")} · ${t("dashboard.coop.subtitleSuffix")}`}
-      actions={
-        <div className="flex items-center gap-2">
-          <Link
-            to="/app/analytics"
-            className="press-feedback hidden items-center gap-2 rounded-lg border border-border bg-surface px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors sm:inline-flex"
-          >
-            <BarChart3 className="size-4 text-accent" />
-            {t("dashboard.apex.viewAllStats")}
-          </Link>
-        </div>
-      }
     >
       <div className="space-y-6">
         {/* ── KPI Stats Row ── */}

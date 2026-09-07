@@ -57,7 +57,7 @@ export function GenderStatusDoughnuts({ data }: GenderStatusDoughnutsProps) {
       </div>
       <ul className="space-y-1 mt-2 w-full max-w-[160px]">
         {pieData.map((d) => (
-          <li key={d.name} className="flex items-center justify-between text-[11px]">
+          <li key={d.name} className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <span className="size-2 rounded-sm shrink-0" style={{ background: d.fill }} />
               {d.name}
