@@ -8,6 +8,7 @@ use axum::{
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::api::dto::apex::{ApexResponse, CreateApexRequest, UpdateApexRequest};
 use crate::api::dto::common::SuccessResponse;
@@ -40,15 +41,14 @@ pub async fn create_apex(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate().map_err(|e| {
+        AppError::BadRequest(format!("Validation error: {}", e))
+    })?;
+
     if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),
-        ));
-    }
-
-    if body.name.trim().is_empty() {
-        return Err(crate::error::AppError::BadRequest(
-            "Apex name is required".into(),
         ));
     }
 
@@ -242,6 +242,11 @@ pub async fn update_apex(
     Path(id): Path<String>,
     Json(body): Json<UpdateApexRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate().map_err(|e| {
+        AppError::BadRequest(format!("Validation error: {}", e))
+    })?;
+
     if !claims.is_federation() && !claims.is_service_account() {
         return Err(crate::error::AppError::Forbidden(
             "Access denied. Federation role required".into(),

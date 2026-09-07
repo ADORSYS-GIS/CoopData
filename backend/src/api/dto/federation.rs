@@ -1,28 +1,37 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct CreateFederationRequest {
+    #[validate(length(min = 1, max = 200, message = "Name must be 1-200 characters"))]
     pub name: String,
     /// At least one domain is required by Keycloak (e.g. "myfederation.org")
+    #[validate(length(min = 1, message = "At least one domain is required"))]
     pub domains: Vec<DomainRequest>,
     #[serde(default)]
+    #[validate(length(max = 1000, message = "Description must be under 1000 characters"))]
     pub description: Option<String>,
     #[serde(default)]
+    #[validate(email(message = "Invalid email format"))]
     pub contact_email: Option<String>,
     #[serde(default)]
     pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct DomainRequest {
+    #[validate(length(min = 1, max = 253, message = "Domain must be 1-253 characters"))]
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct UpdateFederationRequest {
+    #[validate(length(min = 1, max = 200, message = "Name must be 1-200 characters"))]
     pub name: Option<String>,
+    #[validate(length(max = 1000, message = "Description must be under 1000 characters"))]
     pub description: Option<String>,
+    #[validate(email(message = "Invalid email format"))]
     pub contact_email: Option<String>,
     pub domains: Option<Vec<DomainRequest>>,
     pub attributes: Option<std::collections::HashMap<String, Vec<String>>>,

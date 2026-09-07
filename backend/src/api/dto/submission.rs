@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::entities::enums::PeriodType;
 use crate::entities::submission::Model as SubmissionModel;
@@ -102,17 +103,22 @@ pub trait SubmissionPeriodRequest {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct CreateSubmissionRequest {
     pub id: Option<Uuid>,
+    #[validate(range(min = 2000, max = 2100, message = "Reporting year must be between 2000 and 2100"))]
     pub reporting_year: i32,
     #[serde(default)]
+    #[validate(length(max = 20, message = "Period type must be under 20 characters"))]
     pub period_type: Option<String>,
     #[serde(default)]
+    #[validate(length(max = 20, message = "Period value must be under 20 characters"))]
     pub period_value: Option<String>,
     #[serde(default = "default_priority")]
+    #[validate(length(max = 50, message = "Priority must be under 50 characters"))]
     pub priority: String,
     #[serde(default = "default_submission_method")]
+    #[validate(length(max = 50, message = "Submission method must be under 50 characters"))]
     pub submission_method: String,
 }
 
@@ -161,14 +167,16 @@ impl From<SectionModel> for SubmissionSectionResponse {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct UpdateSectionStatusRequest {
+    #[validate(length(min = 1, max = 50, message = "Status must be 1-50 characters"))]
     pub status: String,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct UpdateSubmissionMethodRequest {
     /// One of "upload", "manual", "questionnaire"
+    #[validate(length(min = 1, max = 50, message = "Submission method must be 1-50 characters"))]
     pub submission_method: String,
 }
 

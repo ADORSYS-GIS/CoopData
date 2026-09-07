@@ -8,6 +8,7 @@ use axum::{
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::api::dto::apex::ApexResponse;
 use crate::api::dto::common::SuccessResponse;
@@ -108,14 +109,12 @@ pub async fn create_cooperative(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if body.name.trim().is_empty() {
-        return Err(AppError::BadRequest("Cooperative name is required".into()));
-    }
-    if body.reg_no.trim().is_empty() {
-        return Err(AppError::BadRequest(
-            "Registration number is required".into(),
-        ));
-    }
+    // Validate input using validator crate
+    body.validate().map_err(|e| {
+        AppError::BadRequest(format!("Validation error: {}", e))
+    })?;
+
+    // Validate enum fields
     if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
         return Err(AppError::BadRequest(format!(
             "Invalid institution_type '{}'. Must be one of: {:?}",
@@ -472,6 +471,11 @@ pub async fn update_cooperative(
     Path(id): Path<String>,
     Json(body): Json<UpdateCooperativeRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate().map_err(|e| {
+        AppError::BadRequest(format!("Validation error: {}", e))
+    })?;
+
     if body.name.is_none() && body.description.is_none() {
         return Err(AppError::BadRequest(
             "Provide at least one field to update (name or description)".into(),
@@ -1247,14 +1251,12 @@ pub async fn create_cooperative_profile(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateCooperativeProfileRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if body.name.trim().is_empty() {
-        return Err(AppError::BadRequest("Cooperative name is required".into()));
-    }
-    if body.reg_no.trim().is_empty() {
-        return Err(AppError::BadRequest(
-            "Registration number (reg_no) is required".into(),
-        ));
-    }
+    // Validate input using validator crate
+    body.validate().map_err(|e| {
+        AppError::BadRequest(format!("Validation error: {}", e))
+    })?;
+
+    // Validate enum fields
     if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
         return Err(AppError::BadRequest(format!(
             "Invalid institution_type. Must be one of: {}",
@@ -1436,6 +1438,11 @@ pub async fn update_cooperative_profile(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateCooperativeProfileRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate().map_err(|e| {
+        AppError::BadRequest(format!("Validation error: {}", e))
+    })?;
+
     let existing = state
         .cooperative_repo
         .find_by_id(id)

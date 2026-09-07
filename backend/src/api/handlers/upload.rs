@@ -57,6 +57,16 @@ pub async fn upload_financial_statement(
         match name.as_str() {
             "file" => {
                 original_name = field.file_name().unwrap_or("upload").to_string();
+                // Sanitize file_name: remove path separators and null bytes to prevent path traversal
+                original_name = original_name
+                    .replace(['/', '\\', '\0'], "_")
+                    .chars()
+                    .filter(|c| !c.is_control())
+                    .collect();
+                // Ensure filename is not empty after sanitization
+                if original_name.is_empty() {
+                    original_name = "upload".to_string();
+                }
                 mime_type = field
                     .content_type()
                     .unwrap_or("application/octet-stream")
