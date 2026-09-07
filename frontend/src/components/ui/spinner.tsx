@@ -29,7 +29,7 @@ export function Spinner({ size = "md", label = "Loading", className, ...props }:
     >
       <span className="absolute inset-0 rounded-full border-2 border-current opacity-15" />
       <span
-        className="absolute inset-0 animate-spin rounded-full"
+        className="absolute inset-0 animate-spin motion-reduce:animate-none rounded-full"
         style={{
           background:
             "conic-gradient(from 0deg, transparent 0deg, currentColor 100deg, transparent 200deg)",

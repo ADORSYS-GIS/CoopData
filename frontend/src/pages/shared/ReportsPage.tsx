@@ -42,23 +42,23 @@ const STATUS_CONFIG: Record<
   approved: {
     label: "Approved",
     icon: CheckCircle2,
-    className: "bg-success/10 text-success dark:text-success border border-success/30/20",
+    className: "bg-success/10 text-success dark:text-success border border-success/30",
   },
   submitted: {
     label: "Submitted",
     icon: Clock3,
-    className: "bg-accent/100/10 text-accent dark:text-accent border border-accent/30/20",
+    className: "bg-accent/10 text-accent dark:text-accent border border-accent/30",
   },
   pending: {
     label: "Pending",
     icon: AlertCircle,
-    className: "bg-warning/10 text-warning dark:text-warning border border-warning/30/20",
+    className: "bg-warning/10 text-warning dark:text-warning border border-warning/30",
   },
   rejected: {
     label: "Rejected",
     icon: XCircle,
     className:
-      "bg-destructive/100/10 text-destructive dark:text-destructive border border-destructive/30/20",
+      "bg-destructive/10 text-destructive dark:text-destructive border border-destructive/30",
   },
   draft: {
     label: "Draft",

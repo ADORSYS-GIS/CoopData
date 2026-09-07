@@ -301,7 +301,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
 
         {step === "deleting" && (
           <div className="px-6 pb-6 pt-4 flex flex-col items-center justify-center py-8 space-y-3">
-            <Spinner size="lg" className="text-destructive" />
+            <Spinner size="lg" className="text-destructive" data-testid="loader" />
             <p className="text-sm font-medium text-foreground">
               {t("deleteDialog.deleting", { entity: entityName })}
             </p>
