@@ -165,19 +165,26 @@ async fn test_empty_bearer_token_returns_401() {
 }
 
 // =============================================================================
-// 403 Tests — Wrong role access
+// 403 Tests — Wrong role access (Future Work)
 // =============================================================================
 //
-// Note: 403 tests require a valid JWT with a specific role.
-// These tests document the expected behavior but require integration
-// with a real Keycloak instance or mock JWT generator.
+// These tests are intentionally left as documentation (#[ignore]) because
+// RBAC testing requires mock JWT tokens with specific roles.
 //
-// Example 403 test (requires valid JWT with "cooperative" role):
+// To implement 403 tests, you need:
+// 1. A mock JWT generator that creates tokens with specific roles
+// 2. OR integration with a test Keycloak instance
+// 3. OR a test helper that bypasses JWT validation for specific test tokens
+//
+// See Issue #107 - T2 follow-up for tracking:
+// https://github.com/ADORSYS-GIS/CoopData/issues/107
+//
+// Example test structure (when infrastructure is available):
 // ```ignore
 // #[tokio::test]
 // async fn test_cooperative_cannot_access_ministry_routes() {
 //     let app = app().await;
-//     let cooperative_token = create_test_token("cooperative");
+//     let cooperative_token = create_test_token_with_role("cooperative");
 //
 //     let response = app
 //         .oneshot(
@@ -194,6 +201,13 @@ async fn test_empty_bearer_token_returns_401() {
 //     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 // }
 // ```
+//
+// Role hierarchy for testing:
+// - ministry: can access /api/v1/ministry/*
+// - federation: can access /api/v1/federation/*
+// - apex: can access /api/v1/apex/*
+// - cooperative: can access /api/v1/cooperative/*
+// - cross-role: federation cannot access apex routes, apex cannot access ministry routes, etc.
 
 #[tokio::test]
 async fn test_openapi_spec_accessible_without_auth() {
