@@ -153,7 +153,8 @@ pub fn cooperative_routes() -> Router<AppState> {
         )
         .route(
             "/submissions/{submission_id}/files/{file_id}",
-            get(serve_uploaded_file).delete(crate::api::handlers::upload::delete_single_uploaded_file),
+            get(serve_uploaded_file)
+                .delete(crate::api::handlers::upload::delete_single_uploaded_file),
         )
         .route(
             "/submissions/{id}/sections/{section}",

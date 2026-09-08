@@ -15,13 +15,13 @@ import { Spinner } from "@/components/ui/spinner";
 
 type DocumentType = "pdf" | "image" | "word" | "excel" | "other";
 
-export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
+export const DocumentViewer: React.FC<{ src: string; title?: string }> = ({ src, title }) => {
   const { t } = useTranslation();
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [fileType, setFileType] = useState<DocumentType>("other");
-  const [fileName, setFileName] = useState<string>("");
+  const [fileName, setFileName] = useState<string>(title || "");
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -56,8 +56,12 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
           }
         }
         if (!extractedName) {
-          const urlParts = src.split("?")[0].split("/");
-          extractedName = urlParts[urlParts.length - 1] || "document";
+          if (title) {
+            extractedName = title;
+          } else {
+            const urlParts = src.split("?")[0].split("/");
+            extractedName = urlParts[urlParts.length - 1] || "document";
+          }
         }
         setFileName(extractedName);
 
@@ -299,7 +303,10 @@ export const DocumentViewer: React.FC<{ src: string }> = ({ src }) => {
               )}
             </div>
 
-            <h3 className="text-base font-semibold text-foreground truncate max-w-xs mb-1" title={fileName}>
+            <h3
+              className="text-base font-semibold text-foreground truncate max-w-xs mb-1"
+              title={fileName}
+            >
               {fileName || t("submissions.detail.documentViewer.iframeTitle")}
             </h3>
 

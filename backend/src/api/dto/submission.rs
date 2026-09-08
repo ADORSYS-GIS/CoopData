@@ -120,7 +120,11 @@ pub struct CreateSubmissionRequest {
     pub period_value: Option<String>,
     /// Month (1-12) in which the fiscal year / Q1 begins. Defaults to 1 (January).
     #[serde(default = "default_fiscal_start_month")]
-    #[validate(range(min = 1, max = 12, message = "fiscal_start_month must be between 1 and 12"))]
+    #[validate(range(
+        min = 1,
+        max = 12,
+        message = "fiscal_start_month must be between 1 and 12"
+    ))]
     pub fiscal_start_month: i32,
     #[serde(default = "default_priority")]
     #[validate(length(max = 50, message = "Priority must be under 50 characters"))]
@@ -415,7 +419,11 @@ pub struct CreateApexSubmissionRequest {
     pub period_value: Option<String>,
     /// Month (1-12) in which the fiscal year / Q1 begins. Defaults to 1 (January).
     #[serde(default = "default_fiscal_start_month")]
-    #[validate(range(min = 1, max = 12, message = "fiscal_start_month must be between 1 and 12"))]
+    #[validate(range(
+        min = 1,
+        max = 12,
+        message = "fiscal_start_month must be between 1 and 12"
+    ))]
     pub fiscal_start_month: i32,
     #[serde(default = "default_priority")]
     pub priority: String,

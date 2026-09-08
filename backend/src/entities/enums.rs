@@ -710,9 +710,7 @@ impl FdStatus {
         match s.trim().to_lowercase().replace(['_', '-'], " ").as_str() {
             "active" | "open" => Some(Self::Active),
             "matured" | "mature" | "maturity" => Some(Self::Matured),
-            "withdrawn" | "withdrew" | "closed" | "cancelled" | "canceled" => {
-                Some(Self::Withdrawn)
-            }
+            "withdrawn" | "withdrew" | "closed" | "cancelled" | "canceled" => Some(Self::Withdrawn),
             "rolledover" | "rolled over" | "renewed" | "rollover" => Some(Self::RolledOver),
             _ => None,
         }

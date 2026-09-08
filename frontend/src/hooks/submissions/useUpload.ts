@@ -30,7 +30,6 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
       for (const file of files) {
         form.append("file", file);
       }
-      form.append("reporting_year", String(reportingYear));
       form.append("accounting_year", accountingYear);
       form.append("currency", currency);
       const resolvedId = sid ?? submissionId;
@@ -45,10 +44,13 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(
-          (err as Record<string, string>)["message"] ?? `Upload failed: ${res.status}`,
-        );
+        const err = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const message =
+          (err.message as string) ||
+          (err.detail as string) ||
+          (err.error as string) ||
+          `Upload failed (${res.status})`;
+        throw new Error(message);
       }
       return res.json() as Promise<UploadResponse>;
     },
@@ -104,8 +106,13 @@ export const useDeleteSingleFile = (submissionId?: string) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as Record<string, string>)["message"] ?? "Failed to delete file");
+        const err = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const message =
+          (err.message as string) ||
+          (err.detail as string) ||
+          (err.error as string) ||
+          `Failed to delete file (${res.status})`;
+        throw new Error(message);
       }
     },
     onSuccess: (_data, vars) => {
@@ -117,4 +124,3 @@ export const useDeleteSingleFile = (submissionId?: string) => {
     },
   });
 };
-

@@ -56,10 +56,13 @@ function fileIcon(f: File) {
   return "file";
 }
 
+export const CONFIDENCE_HIGH_THRESHOLD = 0.8;
+export const CONFIDENCE_MEDIUM_THRESHOLD = 0.6;
+
 function confidenceLabel(conf: number | null | undefined): "high" | "medium" | "low" {
   if (conf == null) return "low";
-  if (conf >= 0.8) return "high";
-  if (conf >= 0.6) return "medium";
+  if (conf >= CONFIDENCE_HIGH_THRESHOLD) return "high";
+  if (conf >= CONFIDENCE_MEDIUM_THRESHOLD) return "medium";
   return "low";
 }
 
@@ -148,18 +151,19 @@ export function FinancialStatementUpload({
         accepted.push(f);
       }
       if (accepted.length === 0) return;
+      const getFileKey = (f: File) => `${f.name}_${f.size}_${f.lastModified}`;
       setFiles((prev) => {
-        const seen = new Set(prev.map((p) => p.name + p.size));
+        const seen = new Set(prev.map(getFileKey));
         const merged = [...prev];
         for (const f of accepted) {
-          if (!seen.has(f.name + f.size)) merged.push(f);
+          if (!seen.has(getFileKey(f))) merged.push(f);
         }
         return merged;
       });
       const newUrls: Record<string, string> = {};
       for (const f of accepted) {
         if (f.type.startsWith("image/")) {
-          newUrls[f.name + f.size] = URL.createObjectURL(f);
+          newUrls[getFileKey(f)] = URL.createObjectURL(f);
         }
       }
       setPreviewUrls((prev) => ({ ...prev, ...newUrls }));
@@ -272,7 +276,7 @@ export function FinancialStatementUpload({
               </p>
               <div className="w-full max-w-sm space-y-2 text-left">
                 {files.map((f) => {
-                  const key = f.name + f.size;
+                  const key = `${f.name}_${f.size}_${f.lastModified}`;
                   const icon = fileIcon(f);
                   return (
                     <div

@@ -250,10 +250,21 @@ const HEADER_ALIASES: &[(&str, &[&str])] = &[
     ("account_code", &["savings_account_id"]),
     ("loan_code", &["loan_id"]),
     ("deposit_code", &["fixed_deposit_id"]),
-    ("type", &["account_type", "deposit_type", "loan_product_type"]),
+    (
+        "type",
+        &["account_type", "deposit_type", "loan_product_type"],
+    ),
     ("open_date", &["account_opening_date", "start_date"]),
     ("opening_date", &["account_opening_date", "start_date"]),
-    ("status", &["account_status", "loan_status", "status", "operational_status"]),
+    (
+        "status",
+        &[
+            "account_status",
+            "loan_status",
+            "status",
+            "operational_status",
+        ],
+    ),
     ("frequency", &["contribution_frequency"]),
     ("last_contrib_date", &["last_contribution_date"]),
     ("last_contribution_date", &["last_contribution_date"]),
@@ -741,7 +752,7 @@ async fn build_column_map(
         let typo_match = col_map.iter().find_map(|(actual, &idx)| {
             let a = actual.replace('_', "");
             let e = expected.replace('_', "");
-            if levenshtein(&a, &e) <= 2 && !a.is_empty() && !e.is_empty() {
+            if a.len() >= 4 && e.len() >= 4 && levenshtein(&a, &e) <= 1 {
                 Some((idx, actual.clone()))
             } else {
                 None
@@ -877,20 +888,19 @@ async fn parse_members_sheet(
         None => return,
     };
 
-    let map =
-        match build_column_map(
-            header_row,
-            MEMBERS_HEADERS,
-            MEMBERS_REQUIRED,
-            SHEET_MEMBERS,
-            result,
-            mapper,
-        )
-        .await
-        {
-            Some(m) => m,
-            None => return,
-        };
+    let map = match build_column_map(
+        header_row,
+        MEMBERS_HEADERS,
+        MEMBERS_REQUIRED,
+        SHEET_MEMBERS,
+        result,
+        mapper,
+    )
+    .await
+    {
+        Some(m) => m,
+        None => return,
+    };
 
     let mut row_index = 0usize;
     for row in rows {
@@ -1051,20 +1061,19 @@ async fn parse_savings_sheet(
         None => return,
     };
 
-    let map =
-        match build_column_map(
-            header_row,
-            SAVINGS_HEADERS,
-            SAVINGS_REQUIRED,
-            SHEET_SAVINGS,
-            result,
-            mapper,
-        )
-        .await
-        {
-            Some(m) => m,
-            None => return,
-        };
+    let map = match build_column_map(
+        header_row,
+        SAVINGS_HEADERS,
+        SAVINGS_REQUIRED,
+        SHEET_SAVINGS,
+        result,
+        mapper,
+    )
+    .await
+    {
+        Some(m) => m,
+        None => return,
+    };
 
     let mut row_index = 0usize;
     for row in rows {
@@ -2016,10 +2025,7 @@ mod tests {
             ("LOANS.xlsx", Some(NfSection::Loans)),
             ("MEMBERSHIP.xlsx", Some(NfSection::Members)),
             ("FIXED DEPOSIT.xlsx", Some(NfSection::FixedDeposits)),
-            (
-                "COOPDATA DATA BASES AUGUST 2026.xlsx",
-                None,
-            ),
+            ("COOPDATA DATA BASES AUGUST 2026.xlsx", None),
         ];
 
         for (name, section) in cases {

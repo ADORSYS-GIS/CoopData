@@ -16,6 +16,9 @@ use crate::services::abnormality_detector::AbnormalityDetector;
 use crate::services::ai_extraction::FinancialStatementExtractor;
 use sea_orm::Set;
 
+/// Minimum AI extraction confidence score required to avoid automated flagging.
+pub const AI_CONFIDENCE_FLAG_THRESHOLD: f64 = 0.6;
+
 /// A single uploaded file to be fed into the extraction pipeline.
 #[derive(Debug, Clone)]
 pub struct ExtractionFileInput {
@@ -345,7 +348,9 @@ pub async fn run_pipeline_inner(
             month: Set(item.month),
             value: Set(Some(value)),
             ai_confidence: Set(Some(confidence)),
-            ai_flagged: Set(item.confidence < 0.6 || item.account_code.is_none()),
+            ai_flagged: Set(
+                item.confidence < AI_CONFIDENCE_FLAG_THRESHOLD || item.account_code.is_none()
+            ),
             manually_edited: Set(false),
             raw_label: Set(Some(item.raw_label.clone())),
             created_at: Set(chrono::Utc::now()),

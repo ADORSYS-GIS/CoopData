@@ -136,7 +136,7 @@ pub fn apex_routes() -> Router<AppState> {
         )
         .route(
             "/submissions/{submission_id}/files/{file_id}",
-            get(crate::api::handlers::upload::serve_uploaded_file)
+            get(serve_uploaded_file)
                 .delete(crate::api::handlers::upload::delete_single_uploaded_file),
         )
         // KPI computation for a specific submission (used in deep-dive analytics)

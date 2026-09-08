@@ -170,40 +170,74 @@ pub async fn upload_financial_statement(
     let fs_id = Uuid::new_v4();
     let job_id = Uuid::new_v4();
 
-    // submission_id is now required — uploads must target an existing draft submission
-    let sub_id_str = submission_id_opt
-        .ok_or_else(|| AppError::BadRequest("submission_id is required".into()))?;
-    let submission_id = Uuid::parse_str(&sub_id_str)
-        .map_err(|_| AppError::BadRequest("Invalid submission_id format".into()))?;
+    // If submission_id is provided, look up target submission; otherwise, fall back to active draft submission
+    let (submission_id, existing, coop) = match submission_id_opt {
+        Some(sub_id_str) => {
+            let sub_id = Uuid::parse_str(&sub_id_str)
+                .map_err(|_| AppError::BadRequest("Invalid submission_id format".into()))?;
+            let existing = state
+                .submission_repo
+                .find_by_id(sub_id)
+                .await?
+                .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    let existing = state
-        .submission_repo
-        .find_by_id(submission_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
-
-    let coop = if is_apex {
-        let apex_db_id =
-            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)
+            let coop = if is_apex {
+                let apex_db_id = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(
+                    &state, &claims,
+                )
                 .await?;
-        let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
-        let coop_model = cooperatives
-            .iter()
-            .find(|c| c.id == existing.cooperative_id)
-            .ok_or_else(|| {
-                AppError::Forbidden("Access denied: submission does not belong to your apex".into())
-            })?;
-        coop_model.clone()
-    } else {
-        let resolved =
-            crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
-        if existing.cooperative_id != resolved.id {
-            return Err(AppError::Forbidden(
-                "Submission does not belong to your cooperative".into(),
-            ));
+                let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+                cooperatives
+                    .iter()
+                    .find(|c| c.id == existing.cooperative_id)
+                    .cloned()
+                    .ok_or_else(|| {
+                        AppError::Forbidden(
+                            "Access denied: submission does not belong to your apex".into(),
+                        )
+                    })?
+            } else {
+                let resolved =
+                    crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims)
+                        .await?;
+                if existing.cooperative_id != resolved.id {
+                    return Err(AppError::Forbidden(
+                        "Submission does not belong to your cooperative".into(),
+                    ));
+                }
+                resolved
+            };
+            (sub_id, existing, coop)
         }
-        resolved
+        None => {
+            // Fallback for legacy callers: find latest active draft submission for the cooperative
+            let coop = if is_apex {
+                let apex_db_id = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(
+                    &state, &claims,
+                )
+                .await?;
+                let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+                cooperatives.first().cloned().ok_or_else(|| {
+                    AppError::NotFound("No cooperative found for your apex account".into())
+                })?
+            } else {
+                crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims)
+                    .await?
+            };
+            let subs = state.submission_repo.find_by_cooperative(coop.id).await?;
+            let draft = subs
+                .into_iter()
+                .find(|s| s.status == crate::entities::enums::SubmissionStatus::Draft)
+                .ok_or_else(|| {
+                    AppError::BadRequest(
+                        "submission_id parameter is required (no active draft submission found)"
+                            .into(),
+                    )
+                })?;
+            (draft.id, draft, coop)
+        }
     };
+
     if existing.status != crate::entities::enums::SubmissionStatus::Draft {
         return Err(AppError::Conflict(
             "Can only upload to a draft submission".into(),
@@ -548,7 +582,9 @@ pub async fn delete_single_uploaded_file(
         .ok_or_else(|| AppError::NotFound("File not found".into()))?;
 
     if file.submission_id != submission_id {
-        return Err(AppError::Forbidden("File does not belong to this submission".into()));
+        return Err(AppError::Forbidden(
+            "File does not belong to this submission".into(),
+        ));
     }
 
     let _ = state.storage.delete(&file.storage_key).await;
@@ -636,4 +672,3 @@ pub async fn list_uploaded_files(
     let dtos: Vec<UploadedFileResponse> = filtered.into_iter().map(Into::into).collect();
     Ok(Json(dtos))
 }
-

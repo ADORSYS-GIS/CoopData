@@ -178,7 +178,9 @@ pub type DocxImages = Vec<(Vec<u8>, String)>;
 /// balance-sheet / income-statement line items. Scanned/image-based documents
 /// yield empty text but their embedded images are returned for vision routing.
 pub fn extract_docx_content(bytes: &[u8]) -> AppResult<(String, DocxImages)> {
-    use docx_rs::{read_docx, DocumentChild, ParagraphChild, RunChild, TableCellContent, TableChild};
+    use docx_rs::{
+        read_docx, DocumentChild, ParagraphChild, RunChild, TableCellContent, TableChild,
+    };
 
     let doc = read_docx(bytes)
         .map_err(|e| AppError::BadRequest(format!("Failed to parse Word document: {e}")))?;
@@ -1187,13 +1189,12 @@ impl FinancialStatementExtractor for LlmExtractor {
             {
                 tracing::info!("=== WORD FILE — EXTRACTING WITH DOCX-RS ===");
                 let bytes = file_bytes.to_vec();
-                let (text, images) = tokio::task::spawn_blocking(move || {
-                    extract_docx_content(&bytes)
-                })
-                .await
-                .map_err(|e| {
-                    AppError::InternalServerError(format!("Word thread join error: {e}"))
-                })??;
+                let (text, images) =
+                    tokio::task::spawn_blocking(move || extract_docx_content(&bytes))
+                        .await
+                        .map_err(|e| {
+                            AppError::InternalServerError(format!("Word thread join error: {e}"))
+                        })??;
                 if !text.trim().is_empty() {
                     tracing::info!(chars = text.len(), "=== WORD TEXT EXTRACTED ===");
                     tracing::info!("=== WORD TEXT START ===\n{text}\n=== WORD TEXT END ===");
@@ -1682,7 +1683,10 @@ mod tests {
     #[test]
     fn test_extract_docx_content_real_files() {
         let base = std::path::Path::new("../doc/Testdata");
-        for name in ["FINANCIAL POSITION STATEMENT.docx", "INCOME & EXPENSES STATEMENT.docx"] {
+        for name in [
+            "FINANCIAL POSITION STATEMENT.docx",
+            "INCOME & EXPENSES STATEMENT.docx",
+        ] {
             let path = base.join(name);
             if !path.exists() {
                 eprintln!("SKIP (file not present): {name}");
