@@ -33,11 +33,16 @@ describe("validatePassword()", () => {
   });
 
   it("rejects a password equal to the username", () => {
-    expect(validatePassword("john@coop.test", "john@coop.test").find((r) => r.key === "notUsername")?.met).toBe(false);
+    expect(
+      validatePassword("john@coop.test", "john@coop.test").find((r) => r.key === "notUsername")
+        ?.met,
+    ).toBe(false);
   });
 
   it("accepts a password different from the username", () => {
-    expect(validatePassword("Strong1@pass", "john@coop.test").find((r) => r.key === "notUsername")?.met).toBe(true);
+    expect(
+      validatePassword("Strong1@pass", "john@coop.test").find((r) => r.key === "notUsername")?.met,
+    ).toBe(true);
   });
 });
 
