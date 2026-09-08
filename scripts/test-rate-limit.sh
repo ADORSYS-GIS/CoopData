@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # CoopData - Rate Limiting Test Script
-# Verifies the Axum Redis token-bucket rate limiter on the sensitive auth
-# endpoints (Layer 3 of the 3-layer defense). Sends N rapid requests and
-# expects the (N+1)th to return HTTP 429 with a Retry-After header.
+# Verifies the 3-layer rate limiting / abuse-prevention defense:
 #
-# Usage:  ./scripts/test-rate-limit.sh [--keycloak]
+#   Layer 3 (Axum Redis token bucket)  - sensitive auth endpoints return 429
+#   Layer 1 (Keycloak brute-force)     - login locked after 5 failed attempts
 #
-#   --keycloak   Also test Layer 1 (Keycloak brute-force detection) by sending
-#                5 wrong passwords then a correct one. NOTE: this temporarily
-#                locks the test user for ~60s+.
+# Both layers are tested by default. Use --no-keycloak to skip Layer 1
+# (it temporarily locks the test user for ~60s+).
+#
+# Usage:  ./scripts/test-rate-limit.sh [--no-keycloak]
 #
 # Env overrides (all optional):
 #   BACKEND_URL        default http://localhost:3000
@@ -19,18 +19,19 @@ set -euo pipefail
 #   CLIENT_ID          default coopdata-backend
 #   CLIENT_SECRET      default $KEYCLOAK_CLIENT_SECRET
 #   RATE_LIMIT_MAX     default 5   (must match RATE_LIMIT_AUTH_MAX)
+#   KC_TEST_USER       default admin@ministry.gov
+#   KC_TEST_PASSWORD   default Ministry@Admin2026!
 #
-# The script sends RATE_LIMIT_MAX + 1 requests and expects the last to be 429.
-#
-# Auth: uses the coopdata-backend service account (client_credentials grant).
-# The backend accepts service-account tokens (audience check is skipped for
-# them), so this works without provisioning a test user.
+# Layer 3 sends RATE_LIMIT_MAX + 1 requests and expects the last to be 429.
+# Auth for Layer 3 uses the coopdata-backend service account (client_credentials
+# grant) — the backend accepts service-account tokens, so no test user needed.
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
-info() { echo -e "${CYAN}[INFO]${NC}  $*"; }
-ok()   { echo -e "${GREEN}[OK]${NC}    $*"; }
-warn() { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-fail() { echo -e "${RED}[FAIL]${NC}  $*"; }
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+info()   { echo -e "${CYAN}[INFO]${NC}  $*"; }
+ok()     { echo -e "${GREEN}[OK]${NC}    $*"; }
+warn()   { echo -e "${YELLOW}[WARN]${NC}  $*"; }
+fail()   { echo -e "${RED}[FAIL]${NC}  $*"; }
+header() { echo; echo -e "${BOLD}${CYAN}══════════════════════════════════════════════════════════${NC}"; echo -e "${BOLD}${CYAN}  $*${NC}"; echo -e "${BOLD}${CYAN}══════════════════════════════════════════════════════════${NC}"; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR/.."
@@ -43,10 +44,10 @@ if [[ -f .env ]]; then
 fi
 
 # Parse flags
-TEST_KEYCLOAK=0
+TEST_KEYCLOAK=1
 for arg in "$@"; do
     case "$arg" in
-        --keycloak) TEST_KEYCLOAK=1 ;;
+        --no-keycloak) TEST_KEYCLOAK=0 ;;
         *) warn "Unknown argument ignored: $arg" ;;
     esac
 done
@@ -58,10 +59,16 @@ CLIENT_ID="${CLIENT_ID:-coopdata-backend}"
 CLIENT_SECRET="${CLIENT_SECRET:-${KEYCLOAK_CLIENT_SECRET:-}}"
 RATE_LIMIT_MAX="${RATE_LIMIT_MAX:-5}"
 REQUESTS=$((RATE_LIMIT_MAX + 1))
+KC_USER="${KC_TEST_USER:-admin@ministry.gov}"
+KC_PASS="${KC_TEST_PASSWORD:-Ministry@Admin2026!}"
 
 ENDPOINT="/api/v1/me/verify-identity"
+KC_TOKEN_URL="$KEYCLOAK_URL/realms/$KEYCLOAK_REALM/protocol/openid-connect/token"
 
-# ── 1. Ensure backend is up ────────────────────────────────────────────────
+PASS=true
+
+# ── 0. Ensure backend is up ────────────────────────────────────────────────
+header "Preparing stack"
 if ! curl -sf --max-time 5 "$BACKEND_URL/api/v1/health" >/dev/null 2>&1; then
     warn "Backend not running at $BACKEND_URL. Starting stack..."
     docker compose up -d backend postgres redis keycloak minio
@@ -78,13 +85,15 @@ else
     ok "Backend already running at $BACKEND_URL"
 fi
 
-# ── 2. Obtain a service-account JWT via Keycloak client_credentials ───────
+# ── LAYER 3: Axum Redis token bucket ───────────────────────────────────────
+header "LAYER 3 - Axum Redis token bucket (sensitive auth endpoints)"
+
 if [[ -z "$CLIENT_SECRET" ]]; then
     fail "CLIENT_SECRET is empty. Set KEYCLOAK_CLIENT_SECRET in .env or pass CLIENT_SECRET."
     exit 1
 fi
-info "Fetching service-account token for $CLIENT_ID from $KEYCLOAK_URL/realms/$KEYCLOAK_REALM ..."
-TOKEN_RESP=$(curl -s -X POST "$KEYCLOAK_URL/realms/$KEYCLOAK_REALM/protocol/openid-connect/token" \
+info "Fetching service-account token for $CLIENT_ID ..."
+TOKEN_RESP=$(curl -s -X POST "$KC_TOKEN_URL" \
     -d "grant_type=client_credentials" \
     -d "client_id=$CLIENT_ID" \
     -d "client_secret=$CLIENT_SECRET")
@@ -95,7 +104,6 @@ if [[ -z "$TOKEN" ]]; then
 fi
 ok "Token obtained"
 
-# ── 3. Fire rapid requests and expect 429 on the last ─────────────────────
 info "Sending $REQUESTS rapid requests to $ENDPOINT (limit=$RATE_LIMIT_MAX)..."
 codes=()
 for i in $(seq 1 "$REQUESTS"); do
@@ -108,10 +116,7 @@ for i in $(seq 1 "$REQUESTS"); do
     echo "  request $i -> HTTP $code"
 done
 
-# ── 4. Assertions ──────────────────────────────────────────────────────────
 LAST="${codes[-1]}"
-PASS=true
-
 if [[ "$LAST" == "429" ]]; then
     ok "Last request returned 429 (rate limit enforced)"
 else
@@ -119,7 +124,6 @@ else
     PASS=false
 fi
 
-# Confirm Retry-After header is present on a limited request
 RETRY=$(curl -si -X POST "$BACKEND_URL$ENDPOINT" \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
@@ -130,13 +134,10 @@ else
     warn "Retry-After header not found on limited response"
 fi
 
-# ── 5. (Optional) Layer 1: Keycloak brute-force detection ─────────────────
+# ── LAYER 1: Keycloak brute-force detection ────────────────────────────────
 if [[ "$TEST_KEYCLOAK" == "1" ]]; then
-    KC_USER="${KC_TEST_USER:-admin@ministry.gov}"
-    KC_PASS="${KC_TEST_PASSWORD:-Ministry@Admin2026!}"
-    KC_TOKEN_URL="$KEYCLOAK_URL/realms/$KEYCLOAK_REALM/protocol/openid-connect/token"
-
-    info "Testing Keycloak brute-force detection for $KC_USER (locks user ~60s+)..."
+    header "LAYER 1 - Keycloak brute-force detection (login)"
+    info "Testing for $KC_USER (locks user ~60s+)..."
     for i in 1 2 3 4 5; do
         curl -s -o /dev/null -X POST "$KC_TOKEN_URL" \
             -d "grant_type=password" -d "client_id=$CLIENT_ID" -d "client_secret=$CLIENT_SECRET" \
@@ -153,12 +154,15 @@ if [[ "$TEST_KEYCLOAK" == "1" ]]; then
     else
         ok "Keycloak brute-force enforced (correct password blocked after 5 failures)"
     fi
+else
+    header "LAYER 1 - Keycloak brute-force detection (login)"
+    warn "Skipped (use --no-keycloak to skip, or remove it to run)"
 fi
 
 echo
 if [[ "$PASS" == "true" ]]; then
-    ok "Rate limiting is working as expected."
+    header "RESULT: All rate-limiting layers working as expected"
 else
-    fail "Rate limiting test FAILED."
+    header "RESULT: Rate-limiting test FAILED"
     exit 1
 fi
