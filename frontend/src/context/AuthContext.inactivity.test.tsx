@@ -64,7 +64,7 @@ describe("Inactivity Timeout Logic", () => {
       const startTime = new Date("2026-01-01T10:00:00Z").getTime();
       vi.setSystemTime(startTime);
 
-      let lastActivity = Date.now();
+      const lastActivity = Date.now();
       let logoutCalled = false;
 
       const checkInactivity = () => {
