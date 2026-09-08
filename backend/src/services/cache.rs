@@ -237,8 +237,7 @@ impl CacheService {
                 let mut lock = map.lock().unwrap();
                 let (count, reset_at) = match lock.get(key).cloned() {
                     Some(json) => {
-                        let v: serde_json::Value =
-                            serde_json::from_str(&json).unwrap_or_default();
+                        let v: serde_json::Value = serde_json::from_str(&json).unwrap_or_default();
                         let reset_at = v.get("reset_at").and_then(|x| x.as_u64()).unwrap_or(0);
                         if now >= reset_at {
                             (0u64, now + window_secs * 1000)

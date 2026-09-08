@@ -10,8 +10,11 @@ use axum::{
 use common::mock::TestApp;
 use coop_data_backend::api::routes::api::role_guard_layer;
 use coop_data_backend::api::routes::{
-    apex::apex_routes, cooperative::cooperative_routes, federation::federation_routes,
-    ministry::ministry_routes, shared::{sensitive_auth_routes, shared_routes},
+    apex::apex_routes,
+    cooperative::cooperative_routes,
+    federation::federation_routes,
+    ministry::ministry_routes,
+    shared::{sensitive_auth_routes, shared_routes},
 };
 use coop_data_backend::auth::claims::{Claims, RealmAccess};
 use coop_data_backend::auth::rbac::roles;
