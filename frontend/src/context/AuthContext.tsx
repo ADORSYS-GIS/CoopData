@@ -61,7 +61,9 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     let lastActivity = Date.now();
 
     // The actual timer that logs out after 10 min of no activity
+    // Guard: Only run for authenticated users to avoid clearing offline data for anonymous visitors
     const checkInactivity = () => {
+      if (!isAuthenticated) return;
       const idleTime = Date.now() - lastActivity;
       if (idleTime >= INACTIVITY_TIMEOUT_MS) {
         console.log("[auth-context] Inactivity timeout — logging out");
@@ -101,7 +103,7 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
       if (rafId) cancelAnimationFrame(rafId);
       events.forEach((e) => window.removeEventListener(e, handleActivity));
     };
-  }, []); // Empty deps - logout is accessed via ref
+  }, [isAuthenticated]); // Include isAuthenticated since we guard on it
 
   useEffect(() => {
     let mounted = true;
