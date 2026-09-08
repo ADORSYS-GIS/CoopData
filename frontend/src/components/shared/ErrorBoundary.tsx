@@ -4,11 +4,16 @@ import i18next from "i18next";
 /**
  * ErrorBoundary wraps React components to catch and handle rendering errors gracefully.
  *
- * Security behavior:
- * - DEV mode: Shows raw error message for debugging purposes
- * - PROD mode: Hides raw error details to prevent information disclosure
+ * Wraps child components and catches any errors thrown during their render lifecycle.
+ * When an error occurs:
+ * - Displays a safe, user-friendly error message to users
+ * - Logs full error details to browser DevTools Console (F12) for debugging
  *
- * All errors are logged to console for debugging regardless of environment.
+ * Security behavior:
+ * - Raw errors are NEVER shown in the UI (prevents information disclosure)
+ * - All errors are logged to browser DevTools Console for debugging
+ *
+ * Usage: Wrap any component that might throw errors (e.g., form wizards, data grids)
  */
 interface Props {
   children: ReactNode;
@@ -32,7 +37,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error details for debugging (always, regardless of environment)
+    // Log error details to DevTools Console for debugging
+    // (Users never see this in the UI)
     console.error(
       `[ErrorBoundary] Uncaught error in "${this.props.stepName || "unknown"}"]:`,
       error,
@@ -52,14 +58,9 @@ export class ErrorBoundary extends Component<Props, State> {
               })}
             </p>
             {/*
-              DEV mode: Show raw error for debugging
-              PROD mode: Hide error details to prevent information disclosure
+              Raw errors are NEVER shown in the UI.
+              Check DevTools Console (F12) to see error details for debugging.
             */}
-            {import.meta.env.DEV && this.state.error && (
-              <pre className="mt-3 p-3 bg-muted/60 rounded-xl text-[10px] text-left overflow-auto font-mono text-muted-foreground max-h-32 border border-border">
-                {this.state.error.toString()}
-              </pre>
-            )}
           </div>
         )
       );

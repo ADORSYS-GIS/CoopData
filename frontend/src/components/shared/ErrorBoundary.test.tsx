@@ -122,35 +122,18 @@ describe("ErrorBoundary", () => {
       // Should show the step name in the description
       expect(screen.getByText(/Financial Data Entry/)).toBeInTheDocument();
     });
-  });
 
-  describe("Production Mode (DEV=false)", () => {
-    it("should hide raw error in production mode", () => {
-      vi.stubEnv("DEV", false);
-
-      render(
-        <ErrorBoundary>
-          <RenderError message="Sensitive internal error details" />
-        </ErrorBoundary>,
-      );
-
-      // In PROD mode, should NOT show the error
-      expect(screen.queryByText(/Sensitive internal error/)).not.toBeInTheDocument();
-    });
-  });
-
-  describe("DEV Mode", () => {
-    it("should show raw error in DEV mode", () => {
+    it("should NEVER show raw error in UI (even in DEV mode)", () => {
       vi.stubEnv("DEV", true);
 
       render(
         <ErrorBoundary>
-          <RenderError message="Debug error info" />
+          <RenderError message="This should NEVER appear in UI" />
         </ErrorBoundary>,
       );
 
-      // In DEV mode, should show the error
-      expect(screen.getByText(/Debug error info/)).toBeInTheDocument();
+      // Raw error should NEVER be shown in the UI
+      expect(screen.queryByText(/This should NEVER appear in UI/)).not.toBeInTheDocument();
     });
   });
 
