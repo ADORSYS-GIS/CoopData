@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
 import { useUserRole } from "@/lib/auth";
 import type { components } from "@/openapi-client/api";
@@ -12,13 +12,13 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
   const role = useUserRole();
   return useMutation({
     mutationFn: async ({
-      file,
+      files,
       reportingYear = new Date().getFullYear(),
       accountingYear = "calendar",
       currency = "SZL",
       submissionId: sid,
     }: {
-      file: File;
+      files: File[];
       reportingYear?: number;
       accountingYear?: string;
       currency?: string;
@@ -27,7 +27,9 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
       const base = role === "apex" ? "/api/v1/apex" : "/api/v1/cooperative";
       const token = await getAccessToken();
       const form = new FormData();
-      form.append("file", file);
+      for (const file of files) {
+        form.append("file", file);
+      }
       form.append("reporting_year", String(reportingYear));
       form.append("accounting_year", accountingYear);
       form.append("currency", currency);
@@ -56,7 +58,63 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
       queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
       if (sid) {
         queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", sid] });
+        queryClient.invalidateQueries({ queryKey: ["submission-files", sid] });
       }
     },
   });
 };
+
+export interface UploadedFileItem {
+  id: string;
+  submission_id: string;
+  original_name: string;
+  mime_type?: string;
+  size_bytes?: number;
+  created_at: string;
+}
+
+export const useSubmissionFiles = (submissionId?: string, category: string = "financial") => {
+  const role = useUserRole();
+  return useQuery({
+    queryKey: ["submission-files", submissionId, role, category],
+    queryFn: async (): Promise<UploadedFileItem[]> => {
+      if (!submissionId) return [];
+      const token = await getAccessToken();
+      const res = await fetch(
+        `${API_BASE}/api/v1/${role}/submissions/${submissionId}/files?category=${category}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!submissionId,
+  });
+};
+
+export const useDeleteSingleFile = (submissionId?: string) => {
+  const queryClient = useQueryClient();
+  const role = useUserRole();
+  return useMutation({
+    mutationFn: async ({ submissionId: sid, fileId }: { submissionId: string; fileId: string }) => {
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE}/api/v1/${role}/submissions/${sid}/files/${fileId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as Record<string, string>)["message"] ?? "Failed to delete file");
+      }
+    },
+    onSuccess: (_data, vars) => {
+      const sid = vars.submissionId ?? submissionId;
+      if (sid) {
+        queryClient.invalidateQueries({ queryKey: ["submission-files", sid] });
+        queryClient.invalidateQueries({ queryKey: ["cooperative-submissions", sid] });
+      }
+    },
+  });
+};
+

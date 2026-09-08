@@ -16,6 +16,8 @@ pub struct Model {
     pub reporting_year: i32,
     pub period_type: PeriodType,
     pub period_value: String,
+    /// Month (1-12) in which the fiscal year / Q1 begins. Defaults to 1 (January).
+    pub fiscal_start_month: i32,
     pub status: SubmissionStatus,
     pub current_tier: ReviewTier,
     #[sea_orm(nullable)]

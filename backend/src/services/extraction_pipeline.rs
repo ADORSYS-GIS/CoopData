@@ -16,14 +16,26 @@ use crate::services::abnormality_detector::AbnormalityDetector;
 use crate::services::ai_extraction::FinancialStatementExtractor;
 use sea_orm::Set;
 
+/// A single uploaded file to be fed into the extraction pipeline.
+#[derive(Debug, Clone)]
+pub struct ExtractionFileInput {
+    pub bytes: Vec<u8>,
+    pub mime_type: String,
+}
+
+impl ExtractionFileInput {
+    pub fn new(bytes: Vec<u8>, mime_type: String) -> Self {
+        Self { bytes, mime_type }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn run_extraction_pipeline(
     job_id: Uuid,
     submission_id: Uuid,
     cooperative_id: Uuid,
     reporting_year: i32,
-    file_bytes: Vec<u8>,
-    mime_type: String,
+    files: Vec<ExtractionFileInput>,
     cooperative_type: String,
     extractor: Arc<dyn FinancialStatementExtractor>,
     job_repo: ExtractionJobRepository,
@@ -41,8 +53,7 @@ pub async fn run_extraction_pipeline(
         submission_id,
         cooperative_id,
         reporting_year,
-        file_bytes,
-        mime_type,
+        files,
         cooperative_type,
         extractor,
         &job_repo,
@@ -81,8 +92,7 @@ pub async fn run_pipeline_inner(
     submission_id: Uuid,
     cooperative_id: Uuid,
     reporting_year: i32,
-    file_bytes: Vec<u8>,
-    mime_type: String,
+    files: Vec<ExtractionFileInput>,
     cooperative_type: String,
     extractor: Arc<dyn FinancialStatementExtractor>,
     job_repo: &ExtractionJobRepository,
@@ -96,12 +106,26 @@ pub async fn run_pipeline_inner(
 ) -> AppResult<()> {
     let now = chrono::Utc::now();
 
-    // Stage 1 — preprocessing: parse file bytes → raw text
+    // Stage 1 — preprocessing: parse each file → raw text, then concatenate.
+    // Multiple files (e.g. a balance sheet PDF + an income statement image) are
+    // captured independently and merged so the LLM sees the full picture.
     job_repo
         .update_status(job_id, "preprocessing", Some(now), None, None)
         .await?;
 
-    let raw_text = extractor.capture(&file_bytes, &mime_type).await?;
+    let mut raw_text = String::new();
+    for (i, file) in files.iter().enumerate() {
+        let part = extractor.capture(&file.bytes, &file.mime_type).await?;
+        if i > 0 {
+            raw_text.push_str("\n\n");
+        }
+        raw_text.push_str(&part);
+    }
+    if raw_text.trim().is_empty() {
+        return Err(crate::error::AppError::BadRequest(
+            "No extractable content found in the uploaded file(s)".into(),
+        ));
+    }
 
     // Stage 2 — extracting: raw text ready, load CoA + aliases
     job_repo

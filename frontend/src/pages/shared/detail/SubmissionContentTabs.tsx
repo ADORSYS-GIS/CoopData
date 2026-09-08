@@ -11,6 +11,7 @@ import {
   Trash2,
   AlertCircle,
   Users,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,6 +19,7 @@ import { QuestionnaireResponseViewer } from "@/components/submissions/Questionna
 import { FinancialStatementEditor } from "@/pages/cooperative/FinancialStatementEditor";
 import { UploadFinancialStatementWidget } from "@/pages/cooperative/UploadFinancialStatement";
 import { useDeleteFinancialStatement } from "@/hooks/submissions/useSubmissions";
+import { useSubmissionFiles, useDeleteSingleFile } from "@/hooks/submissions/useUpload";
 import { NfDatabasesTab } from "./NfDatabasesTab";
 import { DocumentViewer } from "./DocumentViewer";
 import { ReconciliationAuditCard } from "@/components/submissions/ReconciliationAuditCard";
@@ -207,6 +209,25 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { data: uploadedFiles = [] } = useSubmissionFiles(submission?.id, "financial");
+  const [selectedFileId, setSelectedFileId] = React.useState<string | null>(null);
+  const deleteSingleFile = useDeleteSingleFile(submission?.id);
+
+  const activeFileId = selectedFileId || (uploadedFiles[0]?.id ?? extractionJob?.source_file_id);
+
+  const handleDeleteSingleFile = async (e: React.MouseEvent, fileId: string) => {
+    e.stopPropagation();
+    if (!submission?.id) return;
+    try {
+      await deleteSingleFile.mutateAsync({ submissionId: submission.id, fileId });
+      toast.success(t("submissions.detail.contentTabs.toastDeleteDocSuccess", "File deleted"));
+      if (selectedFileId === fileId) {
+        setSelectedFileId(null);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete file");
+    }
+  };
 
   if (!submission) {
     return null;
@@ -356,7 +377,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                 </div>
               </Card>
             )}
-            {submission.extraction_job_id && extractionJob?.source_file_id && !isExtracting && (
+            {submission.extraction_job_id && (activeFileId || extractionJob?.source_file_id) && !isExtracting && (
               <Card
                 title={t("submissions.detail.contentTabs.uploadedDocTitle")}
                 subtitle={t("submissions.detail.contentTabs.uploadedDocSubtitle")}
@@ -366,8 +387,43 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                   ) : undefined
                 }
               >
+                {uploadedFiles.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-2 mb-4 p-2 rounded-xl bg-muted/30 border border-border">
+                    <span className="text-xs font-semibold text-muted-foreground mr-1">
+                      Uploaded Documents ({uploadedFiles.length}):
+                    </span>
+                    {uploadedFiles.map((file) => {
+                      const isActive = file.id === activeFileId;
+                      return (
+                        <div
+                          key={file.id}
+                          onClick={() => setSelectedFileId(file.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
+                          }`}
+                        >
+                          <FileText className="size-3.5" />
+                          <span className="truncate max-w-[200px]">{file.original_name}</span>
+                          {isDraft && !isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteSingleFile(e, file.id)}
+                              disabled={deleteSingleFile.isPending}
+                              title="Delete this file"
+                              className="ml-1 rounded p-0.5 hover:bg-black/20 hover:text-destructive transition-colors cursor-pointer"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 <DocumentViewer
-                  src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${extractionJob.source_file_id}`}
+                  src={`${import.meta.env.VITE_API_BASE_URL || ""}/api/v1/${role}/submissions/${submission.id}/files/${activeFileId}`}
                 />
               </Card>
             )}

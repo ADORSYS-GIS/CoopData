@@ -194,6 +194,121 @@ const FARM_COOP_HEADERS: &[&str] = &[
     "climate_mitigation_practices",
 ];
 
+// ── Required headers ──────────────────────────────────────────────────────────
+// Only these columns are mandatory for a sheet to be accepted. Every other
+// column in the *_HEADERS arrays is optional and falls back to a sensible
+// default when absent (the row parsers already handle missing optional columns
+// via `.unwrap_or(&0)`). This lets real-world workbooks (which often omit
+// derived/flag columns) upload successfully instead of failing with
+// MISSING_HEADERS.
+const MEMBERS_REQUIRED: &[&str] = &[
+    "member_id",
+    "join_date",
+    "status",
+    "gender",
+    "age_group",
+    "region",
+    "urban_rural",
+];
+
+const SAVINGS_REQUIRED: &[&str] = &[
+    "member_id",
+    "savings_account_id",
+    "account_type",
+    "account_opening_date",
+];
+
+const LOANS_REQUIRED: &[&str] = &[
+    "member_id",
+    "loan_id",
+    "loan_product_type",
+    "loan_start_date",
+    "loan_maturity_date",
+    "loan_status",
+];
+
+const FD_REQUIRED: &[&str] = &[
+    "member_id",
+    "fixed_deposit_id",
+    "deposit_type",
+    "start_date",
+    "maturity_date",
+    "status",
+];
+
+// ── Header aliases ────────────────────────────────────────────────────────────
+// Maps real-world header labels (normalised: lowercase, spaces/hyphens/slashes
+// collapsed to a single underscore) to the canonical field(s) they represent.
+// The candidate list is in priority order; the first candidate that is a
+// required/expected column for the current sheet wins. This is deterministic
+// and works without an LLM, so uploads succeed even when the AI backend is a
+// mock or unavailable.
+const HEADER_ALIASES: &[(&str, &[&str])] = &[
+    ("member_code", &["member_id"]),
+    ("member", &["member_id"]),
+    ("memberid", &["member_id"]),
+    ("account_code", &["savings_account_id"]),
+    ("loan_code", &["loan_id"]),
+    ("deposit_code", &["fixed_deposit_id"]),
+    ("type", &["account_type", "deposit_type", "loan_product_type"]),
+    ("open_date", &["account_opening_date", "start_date"]),
+    ("opening_date", &["account_opening_date", "start_date"]),
+    ("status", &["account_status", "loan_status", "status", "operational_status"]),
+    ("frequency", &["contribution_frequency"]),
+    ("last_contrib_date", &["last_contribution_date"]),
+    ("last_contribution_date", &["last_contribution_date"]),
+    ("contribs_count", &["number_of_contributions"]),
+    ("contributions_count", &["number_of_contributions"]),
+    ("number_of_contributions", &["number_of_contributions"]),
+    ("trend", &["balance_trend"]),
+    ("product_type", &["loan_product_type"]),
+    ("start_date", &["loan_start_date", "start_date"]),
+    ("maturity_date", &["loan_maturity_date", "maturity_date"]),
+    ("borrower_type", &["borrower_type"]),
+    ("dpd_category", &["days_past_due_category"]),
+    ("days_past_due", &["days_past_due_category"]),
+    ("days_past_due_category", &["days_past_due_category"]),
+    ("loan_amount", &["loan_amount"]),
+    ("tenure", &["tenure_category", "original_tenure_selected"]),
+    ("tenure_category", &["tenure_category"]),
+    ("join_date", &["join_date"]),
+    ("age_group", &["age_group"]),
+    ("urban_rural", &["urban_rural"]),
+    ("agm_attendance", &["agm_attendance"]),
+    ("voted", &["voting_exercised"]),
+    ("voting", &["voting_exercised"]),
+    ("voting_exercised", &["voting_exercised"]),
+    ("balance_share", &["share_balance"]),
+    ("share_balance", &["share_balance"]),
+    ("gender", &["gender"]),
+    ("region", &["region"]),
+    ("exit_date", &["exit_date"]),
+    ("leadership_role", &["leadership_role"]),
+    ("deposit_type", &["deposit_type"]),
+    ("original_tenure_selected", &["original_tenure_selected"]),
+    ("interest_rate", &["interest_rate"]),
+    ("balance", &["balance"]),
+];
+
+/// Normalise a header label for alias lookup: lowercase, collapse spaces,
+/// hyphens and slashes into a single underscore.
+fn normalise_header(h: &str) -> String {
+    h.trim()
+        .to_lowercase()
+        .split([' ', '-', '/'])
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("_")
+}
+
+/// Return the canonical candidates for a normalised actual header, if any.
+fn alias_candidates(normalised: &str) -> Option<&'static [&'static str]> {
+    HEADER_ALIASES
+        .iter()
+        .find(|(a, _)| *a == normalised)
+        .map(|(_, c)| *c)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct MemberRecord {
     pub member_id: String,
@@ -525,6 +640,7 @@ use calamine::{Data, Range};
 async fn build_column_map(
     header_row: &[Data],
     expected_headers: &[&str],
+    required_headers: &[&str],
     sheet_name: &str,
     result: &mut NfParseResult,
     mapper: Option<&dyn NfHeaderMapper>,
@@ -563,8 +679,8 @@ async fn build_column_map(
     );
 
     // ── Pass 2: built-in fuzzy aliases ────────────────────────────────────────
-    // Handles: spaces↔underscores, hyphens, capitalisation, and close typos
-    // (Levenshtein distance ≤ 2 on the normalised form).
+    // Handles: spaces↔underscores, hyphens, capitalisation, common real-world
+    // abbreviations (e.g. "Member CODE" → member_id), and close typos.
     let mut still_missing: Vec<&str> = Vec::new();
 
     for &expected in &missing_after_exact {
@@ -586,6 +702,30 @@ async fn build_column_map(
                 rule: "MAPPED".to_string(),
                 message: format!(
                     "ℹ️ MAPPED: '{}' was mapped to '{}' via formatting normalisation",
+                    actual_key, expected
+                ),
+            });
+            col_map.insert(expected.to_string(), idx);
+            continue;
+        }
+
+        // Alias lookup: a real-world label (e.g. "Member CODE", "Account CODE",
+        // "Open Date", "Contribs Count") that maps to this canonical field.
+        let alias_match = col_map.iter().find_map(|(actual, &idx)| {
+            let normalised = normalise_header(actual);
+            alias_candidates(&normalised)
+                .filter(|cands| cands.contains(&expected))
+                .map(|_| (idx, actual.clone()))
+        });
+
+        if let Some((idx, actual_key)) = alias_match {
+            result.warnings.push(NfParseWarning {
+                sheet: sheet_name.to_string(),
+                row: 0,
+                column: expected.to_string(),
+                rule: "MAPPED".to_string(),
+                message: format!(
+                    "ℹ️ MAPPED: '{}' was mapped to '{}' via header alias",
                     actual_key, expected
                 ),
             });
@@ -625,16 +765,24 @@ async fn build_column_map(
         }
     }
 
-    if still_missing.is_empty() {
+    // Only the truly-required columns can fail the upload. Optional columns that
+    // could not be resolved are simply left out (the row parsers default them).
+    let missing_required: Vec<&str> = required_headers
+        .iter()
+        .copied()
+        .filter(|&e| !col_map.contains_key(e))
+        .collect();
+
+    if missing_required.is_empty() {
         return Some(col_map);
     }
 
-    // ── Pass 3: LLM mapping ───────────────────────────────────────────────────
+    // ── Pass 3: LLM mapping (only for the still-missing required columns) ─────
     if let Some(m) = mapper {
         tracing::info!(
             sheet = sheet_name,
-            missing = ?still_missing,
-            "Pass 2 (fuzzy) left missing columns — calling LLM header mapper"
+            missing = ?missing_required,
+            "Built-in mapping left required columns missing — calling LLM header mapper"
         );
 
         let non_empty_actuals: Vec<String> = actual_headers
@@ -649,7 +797,7 @@ async fn build_column_map(
 
         let mut still_missing_after_ai: Vec<&str> = Vec::new();
 
-        for &expected in &still_missing {
+        for &expected in &missing_required {
             // The LLM returns { actual_header_lowercase → canonical }
             // Find an entry where the value matches the expected canonical field
             if let Some((actual_key, _)) = ai_map
@@ -704,16 +852,16 @@ async fn build_column_map(
     // No mapper available — report missing as before
     tracing::error!(
         sheet = sheet_name,
-        missing = ?still_missing,
+        missing = ?missing_required,
         "Missing required columns in sheet (no AI mapper configured)"
     );
     result.errors.push(NfParseError {
         sheet: sheet_name.to_string(),
         row: 0,
         column: "headers".to_string(),
-        value: still_missing.join(", "),
+        value: missing_required.join(", "),
         rule: "MISSING_HEADERS".to_string(),
-        message: format!("Missing required columns: {}", still_missing.join(", ")),
+        message: format!("Missing required columns: {}", missing_required.join(", ")),
     });
     None
 }
@@ -730,7 +878,16 @@ async fn parse_members_sheet(
     };
 
     let map =
-        match build_column_map(header_row, MEMBERS_HEADERS, SHEET_MEMBERS, result, mapper).await {
+        match build_column_map(
+            header_row,
+            MEMBERS_HEADERS,
+            MEMBERS_REQUIRED,
+            SHEET_MEMBERS,
+            result,
+            mapper,
+        )
+        .await
+        {
             Some(m) => m,
             None => return,
         };
@@ -741,7 +898,7 @@ async fn parse_members_sheet(
         let member_id = get_string_cell(row, *map.get("member_id").unwrap());
         let join_date = get_date_cell(row, *map.get("join_date").unwrap());
         let status = get_string_cell(row, *map.get("status").unwrap());
-        let exit_date = get_optional_date_cell(row, *map.get("exit_date").unwrap());
+        let exit_date = get_optional_date_cell(row, *map.get("exit_date").unwrap_or(&0));
         let gender = get_string_cell(row, *map.get("gender").unwrap());
         let age_group = get_string_cell(row, *map.get("age_group").unwrap());
         let region = get_string_cell(row, *map.get("region").unwrap());
@@ -895,7 +1052,16 @@ async fn parse_savings_sheet(
     };
 
     let map =
-        match build_column_map(header_row, SAVINGS_HEADERS, SHEET_SAVINGS, result, mapper).await {
+        match build_column_map(
+            header_row,
+            SAVINGS_HEADERS,
+            SAVINGS_REQUIRED,
+            SHEET_SAVINGS,
+            result,
+            mapper,
+        )
+        .await
+        {
             Some(m) => m,
             None => return,
         };
@@ -1000,7 +1166,16 @@ async fn parse_loans_sheet(
         None => return,
     };
 
-    let map = match build_column_map(header_row, LOANS_HEADERS, SHEET_LOANS, result, mapper).await {
+    let map = match build_column_map(
+        header_row,
+        LOANS_HEADERS,
+        LOANS_REQUIRED,
+        SHEET_LOANS,
+        result,
+        mapper,
+    )
+    .await
+    {
         Some(m) => m,
         None => return,
     };
@@ -1164,8 +1339,15 @@ async fn parse_fixed_deposits_sheet(
         None => return,
     };
 
-    let map = match build_column_map(header_row, FD_HEADERS, SHEET_FIXED_DEPOSITS, result, mapper)
-        .await
+    let map = match build_column_map(
+        header_row,
+        FD_HEADERS,
+        FD_REQUIRED,
+        SHEET_FIXED_DEPOSITS,
+        result,
+        mapper,
+    )
+    .await
     {
         Some(m) => m,
         None => return,
@@ -1388,16 +1570,10 @@ fn get_optional_string_cell(row: &[Data], col: usize) -> Option<String> {
 fn get_date_cell(row: &[Data], col: usize) -> Option<NaiveDate> {
     let cell = row.get(col)?;
     match cell {
-        Data::DateTime(_) | Data::DurationIso(_) | Data::DateTimeIso(_) => {
-            let dt_str = match cell {
-                Data::DateTime(f) => f.to_string(),
-                Data::DateTimeIso(s) | Data::DurationIso(s) => s.clone(),
-                _ => return None,
-            };
-            NaiveDate::parse_from_str(&dt_str, "%Y-%m-%d")
-                .or_else(|_| NaiveDate::parse_from_str(&dt_str, "%Y-%m-%d %H:%M:%S"))
-                .ok()
-        }
+        Data::DateTime(dt) => dt.as_datetime().map(|d| d.date()),
+        Data::DurationIso(s) | Data::DateTimeIso(s) => NaiveDate::parse_from_str(s, "%Y-%m-%d")
+            .or_else(|_| NaiveDate::parse_from_str(s, "%Y-%m-%d %H:%M:%S"))
+            .ok(),
         Data::String(s) => NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d")
             .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%d/%m/%Y"))
             .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%m/%d/%Y"))
@@ -1462,6 +1638,7 @@ async fn parse_farm_coop_sheet(
 
     let map = match build_column_map(
         header_row,
+        FARM_COOP_HEADERS,
         FARM_COOP_HEADERS,
         SHEET_FARM_COOP,
         result,
@@ -1672,6 +1849,7 @@ mod tests {
         let map = build_column_map(
             &header_row,
             &["member_id", "join_date", "status"],
+            &["member_id", "join_date", "status"],
             "TEST",
             &mut result,
             None,
@@ -1694,6 +1872,7 @@ mod tests {
         let map = build_column_map(
             &header_row,
             &["member_id", "join_date", "status"],
+            &["member_id", "join_date", "status"],
             "TEST",
             &mut result,
             None,
@@ -1714,6 +1893,7 @@ mod tests {
         let map = build_column_map(
             &header_row,
             &["member_id", "join_date"],
+            &["member_id", "join_date"],
             "TEST",
             &mut result,
             None,
@@ -1721,5 +1901,166 @@ mod tests {
         .await;
         assert!(map.is_some());
         assert!(result.errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_build_column_map_optional_missing_ok() {
+        // "status" is optional here (not in required_headers) so it should NOT
+        // produce a MISSING_HEADERS error even though it is absent.
+        let header_row = vec![
+            Data::String("member_id".to_string()),
+            Data::String("join_date".to_string()),
+        ];
+        let mut result = NfParseResult::default();
+        let map = build_column_map(
+            &header_row,
+            &["member_id", "join_date", "status"],
+            &["member_id", "join_date"],
+            "TEST",
+            &mut result,
+            None,
+        )
+        .await;
+        assert!(map.is_some());
+        assert!(result.errors.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_build_column_map_alias_member_code() {
+        // Real-world header "Member CODE" should map to member_id via alias.
+        let header_row = vec![
+            Data::String("#".to_string()),
+            Data::String("Member CODE".to_string()),
+            Data::String("Join Date".to_string()),
+            Data::String("Status".to_string()),
+            Data::String("Gender".to_string()),
+            Data::String("Age Group".to_string()),
+            Data::String("Region".to_string()),
+            Data::String("Urban/Rural".to_string()),
+        ];
+        let mut result = NfParseResult::default();
+        let map = build_column_map(
+            &header_row,
+            MEMBERS_HEADERS,
+            MEMBERS_REQUIRED,
+            "TEST",
+            &mut result,
+            None,
+        )
+        .await;
+        assert!(map.is_some(), "expected alias mapping to succeed");
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+        let map = map.unwrap();
+        assert_eq!(map.get("member_id"), Some(&1));
+        assert_eq!(map.get("join_date"), Some(&2));
+        assert_eq!(map.get("urban_rural"), Some(&7));
+    }
+
+    #[tokio::test]
+    async fn test_build_column_map_alias_savings() {
+        // Real-world SAVINGS sheet headers should map to canonical fields.
+        let header_row = vec![
+            Data::String("#".to_string()),
+            Data::String("Member CODE".to_string()),
+            Data::String("Account CODE".to_string()),
+            Data::String("Type".to_string()),
+            Data::String("Open Date".to_string()),
+            Data::String("Status".to_string()),
+            Data::String("Frequency".to_string()),
+            Data::String("Last Contrib Date".to_string()),
+            Data::String("Contribs Count".to_string()),
+            Data::String("Trend".to_string()),
+            Data::String("Interest Rate".to_string()),
+            Data::String("Balance".to_string()),
+        ];
+        let mut result = NfParseResult::default();
+        let map = build_column_map(
+            &header_row,
+            SAVINGS_HEADERS,
+            SAVINGS_REQUIRED,
+            "TEST",
+            &mut result,
+            None,
+        )
+        .await;
+        assert!(map.is_some(), "expected savings alias mapping to succeed");
+        assert!(result.errors.is_empty(), "errors: {:?}", result.errors);
+        let map = map.unwrap();
+        assert_eq!(map.get("member_id"), Some(&1));
+        assert_eq!(map.get("savings_account_id"), Some(&2));
+        assert_eq!(map.get("account_type"), Some(&3));
+        assert_eq!(map.get("account_opening_date"), Some(&4));
+        assert_eq!(map.get("account_status"), Some(&5));
+        assert_eq!(map.get("contribution_frequency"), Some(&6));
+        assert_eq!(map.get("last_contribution_date"), Some(&7));
+        assert_eq!(map.get("number_of_contributions"), Some(&8));
+        assert_eq!(map.get("balance_trend"), Some(&9));
+    }
+
+    #[test]
+    fn test_normalise_header() {
+        assert_eq!(normalise_header("Member CODE"), "member_code");
+        assert_eq!(normalise_header("Urban/Rural"), "urban_rural");
+        assert_eq!(normalise_header("Last Contrib Date"), "last_contrib_date");
+        assert_eq!(normalise_header("  AGM Attendance  "), "agm_attendance");
+    }
+
+    #[tokio::test]
+    async fn test_parse_real_testdata_files() {
+        // Reads the real workbooks from doc/Testdata to verify the alias mapping
+        // and reduced required-header sets accept them. Skips silently if the
+        // files are not present (e.g. CI without the data directory).
+        let base = std::path::Path::new("../doc/Testdata");
+        let cases: &[(&str, Option<NfSection>)] = &[
+            ("SAVINGS.xlsx", Some(NfSection::Savings)),
+            ("LOANS.xlsx", Some(NfSection::Loans)),
+            ("MEMBERSHIP.xlsx", Some(NfSection::Members)),
+            ("FIXED DEPOSIT.xlsx", Some(NfSection::FixedDeposits)),
+            (
+                "COOPDATA DATA BASES AUGUST 2026.xlsx",
+                None,
+            ),
+        ];
+
+        for (name, section) in cases {
+            let path = base.join(name);
+            if !path.exists() {
+                eprintln!("SKIP (file not present): {name}");
+                continue;
+            }
+            let bytes = std::fs::read(&path).unwrap();
+            let parser = CalamineNfParser::new();
+            let result = parser.parse(&bytes, None, *section).await;
+            match result {
+                Ok(r) => {
+                    eprintln!(
+                        "OK {name}: members={} savings={} loans={} fd={} errors={} warnings={}",
+                        r.members.len(),
+                        r.savings_accounts.len(),
+                        r.loans.len(),
+                        r.fixed_deposits.len(),
+                        r.errors.len(),
+                        r.warnings.len()
+                    );
+                    // The critical fix: no header-blocking MISSING_HEADERS error.
+                    // Row-level data errors (e.g. a row missing a start date) are
+                    // acceptable and reported per-row.
+                    assert!(
+                        !r.errors.iter().any(|e| e.rule == "MISSING_HEADERS"),
+                        "{name} produced a header-blocking error: {:?}",
+                        r.errors
+                    );
+                    // Sanity: at least some rows were parsed for the expected sections.
+                    let total = r.members.len()
+                        + r.savings_accounts.len()
+                        + r.loans.len()
+                        + r.fixed_deposits.len();
+                    assert!(total > 0, "{name} parsed zero rows");
+                }
+                Err(e) => {
+                    panic!("{name} failed to parse: {e}");
+                }
+            }
+        }
     }
 }

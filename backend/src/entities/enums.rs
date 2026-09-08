@@ -161,11 +161,11 @@ pub enum EswatiniRegion {
 
 impl EswatiniRegion {
     pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "Hhohho" => Some(Self::Hhohho),
-            "Lubombo" => Some(Self::Lubombo),
-            "Manzini" => Some(Self::Manzini),
-            "Shiselweni" => Some(Self::Shiselweni),
+        match s.trim().to_lowercase().as_str() {
+            "hhohho" | "hho hho" => Some(Self::Hhohho),
+            "lubombo" => Some(Self::Lubombo),
+            "manzini" => Some(Self::Manzini),
+            "shiselweni" => Some(Self::Shiselweni),
             _ => None,
         }
     }
@@ -296,9 +296,9 @@ pub enum UrbanRural {
 
 impl UrbanRural {
     pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "Urban" => Some(Self::Urban),
-            "Rural" => Some(Self::Rural),
+        match s.trim().to_lowercase().as_str() {
+            "urban" | "u" | "city" | "town" => Some(Self::Urban),
+            "rural" | "r" | "village" => Some(Self::Rural),
             _ => None,
         }
     }
@@ -480,14 +480,17 @@ pub enum MemberStatus {
     Dormant,
     #[sea_orm(string_value = "Exited")]
     Exited,
+    #[sea_orm(string_value = "Deceased")]
+    Deceased,
 }
 
 impl MemberStatus {
     pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "Active" => Some(Self::Active),
-            "Dormant" => Some(Self::Dormant),
-            "Exited" => Some(Self::Exited),
+        match s.trim().to_lowercase().as_str() {
+            "active" | "member" => Some(Self::Active),
+            "dormant" | "inactive" => Some(Self::Dormant),
+            "exited" | "exit" | "left" | "resigned" | "terminated" => Some(Self::Exited),
+            "deceased" | "deceased member" | "dead" => Some(Self::Deceased),
             _ => None,
         }
     }
@@ -497,6 +500,7 @@ impl MemberStatus {
             Self::Active => "Active",
             Self::Dormant => "Dormant",
             Self::Exited => "Exited",
+            Self::Deceased => "Deceased",
         }
     }
 }
@@ -516,10 +520,10 @@ pub enum Gender {
 
 impl Gender {
     pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "Male" => Some(Self::Male),
-            "Female" => Some(Self::Female),
-            "Other" => Some(Self::Other),
+        match s.trim().to_lowercase().as_str() {
+            "male" | "m" => Some(Self::Male),
+            "female" | "f" => Some(Self::Female),
+            "other" | "o" => Some(Self::Other),
             _ => None,
         }
     }
@@ -550,11 +554,14 @@ pub enum AgeGroup {
 
 impl AgeGroup {
     pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "<18" => Some(Self::Under18),
-            "18-35" => Some(Self::Between18And35),
-            "36-50" => Some(Self::Between36And50),
-            "50+" => Some(Self::Over50),
+        let norm = s.trim().to_lowercase().replace(' ', "");
+        match norm.as_str() {
+            "<18" | "under18" | "below18" | "0-17" | "17andunder" => Some(Self::Under18),
+            "18-35" | "18to35" | "18-34" => Some(Self::Between18And35),
+            "36-50" | "36to50" | "35-50" => Some(Self::Between36And50),
+            "50+" | ">50" | "over50" | "51+" | "50andabove" | "above50" | "50-60" => {
+                Some(Self::Over50)
+            }
             _ => None,
         }
     }
@@ -584,10 +591,10 @@ pub enum AccountType {
 
 impl AccountType {
     pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "Voluntary" => Some(Self::Voluntary),
-            "Mandatory" => Some(Self::Mandatory),
-            "Fixed" => Some(Self::Fixed),
+        match s.trim().to_lowercase().as_str() {
+            "voluntary" | "vol" | "voluntary savings" => Some(Self::Voluntary),
+            "mandatory" | "mand" | "mandatory savings" => Some(Self::Mandatory),
+            "fixed" | "fixed deposit" | "fixed term" => Some(Self::Fixed),
             _ => None,
         }
     }
@@ -618,11 +625,17 @@ pub enum LoanStatus {
 
 impl LoanStatus {
     pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "Performing" => Some(Self::Performing),
-            "Arrears" => Some(Self::Arrears),
-            "Restructured" => Some(Self::Restructured),
-            "WrittenOff" => Some(Self::WrittenOff),
+        let norm = s.trim().to_lowercase().replace(['_', '-'], " ");
+        match norm.as_str() {
+            "performing" | "active" | "current" | "good" | "in good standing" => {
+                Some(Self::Performing)
+            }
+            "arrears" | "in arrears" | "inarreas" | "overdue" | "delinquent" | "non performing"
+            | "non-performing" => Some(Self::Arrears),
+            "restructured" | "restructure" => Some(Self::Restructured),
+            "writtenoff" | "written off" | "write off" | "writeoff" | "written" | "charged off"
+            | "chargedoff" => Some(Self::WrittenOff),
+            "closed" | "settled" | "paid off" | "paidoff" | "fully paid" => Some(Self::Performing),
             _ => None,
         }
     }
@@ -694,11 +707,13 @@ pub enum FdStatus {
 
 impl FdStatus {
     pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "Active" => Some(Self::Active),
-            "Matured" => Some(Self::Matured),
-            "Withdrawn" => Some(Self::Withdrawn),
-            "RolledOver" => Some(Self::RolledOver),
+        match s.trim().to_lowercase().replace(['_', '-'], " ").as_str() {
+            "active" | "open" => Some(Self::Active),
+            "matured" | "mature" | "maturity" => Some(Self::Matured),
+            "withdrawn" | "withdrew" | "closed" | "cancelled" | "canceled" => {
+                Some(Self::Withdrawn)
+            }
+            "rolledover" | "rolled over" | "renewed" | "rollover" => Some(Self::RolledOver),
             _ => None,
         }
     }

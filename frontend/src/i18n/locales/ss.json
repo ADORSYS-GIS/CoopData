@@ -1048,6 +1048,11 @@
         "openInNewTab": "Vula ethebhu elisha",
         "openFull": "Vula ugcwele",
         "pdfHint": "PDF — sebenzisa ukuskolayina kwesiphequluli ukuze ukhulise",
+        "wordHint": "Idokhumenti ye-Word (.docx)",
+        "excelHint": "Ikhasi le-Excel",
+        "documentHint": "Idokhumenti",
+        "docPreviewDesc": "Ukubuka idokhumenti kulungiselelwe amafayela e-PDF nemifanekiso. Okuhleliwe kule dokhumenti kukhishiwe kwafakwa ethebula leli ngaphansi.",
+        "downloadDoc": "Dawuniloda Idokhumenti",
         "zoomPanHint": "Skrola ukuze ukhulise · Hudula ukuze uhambise",
         "zoomHint": "Skrola ukuze ukhulise",
         "iframeTitle": "Sitatimende Setimali"

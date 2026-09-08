@@ -306,7 +306,7 @@ export function NfDatabasesTab({
           </button>
         </div>
       )}
-      {!isReadOnly && isDraft && !hasData && methodChosen && submissionMethod === "upload" && (
+      {!isReadOnly && isDraft && methodChosen && submissionMethod === "upload" && (
         <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 items-stretch">
           <Card
             title={t("submissions.detail.nfDatabases.uploadTitle")}

@@ -58,7 +58,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── Member demographics ───────────────────────────────────────────────────────
 DO $$ BEGIN
-    CREATE TYPE member_status AS ENUM ('Active', 'Dormant', 'Exited');
+    CREATE TYPE member_status AS ENUM ('Active', 'Dormant', 'Exited', 'Deceased');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
