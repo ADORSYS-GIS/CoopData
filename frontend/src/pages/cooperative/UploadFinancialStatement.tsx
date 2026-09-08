@@ -8,8 +8,23 @@ import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
 import { useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui/spinner";
 
-const ACCEPTED_MIMES = ["application/pdf", "image/png", "image/jpeg", "image/tiff"];
-const ACCEPTED_EXT = ".pdf,.png,.jpg,.jpeg,.tiff,.tif";
+const ACCEPTED_MIMES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/tiff",
+  "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+const ACCEPTED_EXT = ".pdf,.png,.jpg,.jpeg,.tiff,.tif,.webp,.doc,.docx,.xls,.xlsx";
+
+function isAcceptedFile(f: File): boolean {
+  if (ACCEPTED_MIMES.includes(f.type)) return true;
+  return /\.(pdf|png|jpe?g|tiff?|webp|docx?|xlsx?)$/i.test(f.name);
+}
 
 export const UploadFinancialStatementWidget: React.FC<{
   onClose?: () => void;
@@ -20,8 +35,8 @@ export const UploadFinancialStatementWidget: React.FC<{
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const [alertError, setAlertError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -29,38 +44,65 @@ export const UploadFinancialStatementWidget: React.FC<{
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      Object.values(previewUrls).forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [previewUrl]);
+  }, [previewUrls]);
 
   const upload = useUploadFinancialStatement(submissionId);
   const { data: job } = useExtractionJob(jobId);
   const isTerminal = job && ["succeeded", "failed", "partial"].includes(job.status);
 
-  const handleFile = (f: File) => {
-    if (!ACCEPTED_MIMES.includes(f.type) && !f.name.match(/\.(xlsx?|pdf|png|jpe?g|tiff?)$/i)) {
-      toast.error(t("uploadFinancial.toastUnsupportedType"));
-      return;
+  const handleFiles = (incoming: FileList | File[]) => {
+    const accepted: File[] = [];
+    for (const f of Array.from(incoming)) {
+      if (!isAcceptedFile(f)) {
+        toast.error(t("uploadFinancial.toastUnsupportedType", { name: f.name }));
+        continue;
+      }
+      accepted.push(f);
     }
-    setFile(f);
-    if (f.type.startsWith("image/")) {
-      setPreviewUrl(URL.createObjectURL(f));
-    } else {
-      setPreviewUrl(null);
+    if (accepted.length === 0) return;
+    setFiles((prev) => {
+      const seen = new Set(prev.map((p) => p.name + p.size));
+      const merged = [...prev];
+      for (const f of accepted) {
+        if (!seen.has(f.name + f.size)) merged.push(f);
+      }
+      return merged;
+    });
+    const newUrls: Record<string, string> = {};
+    for (const f of accepted) {
+      if (f.type.startsWith("image/")) {
+        newUrls[f.name + f.size] = URL.createObjectURL(f);
+      }
     }
+    setPreviewUrls((prev) => ({ ...prev, ...newUrls }));
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const dropped = e.dataTransfer.files[0];
-    if (dropped) handleFile(dropped);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  };
+
+  const removeFile = (key: string) => {
+    setFiles((prev) => prev.filter((f) => f.name + f.size !== key));
+    setPreviewUrls((prev) => {
+      const next = { ...prev };
+      if (next[key]) {
+        URL.revokeObjectURL(next[key]);
+        delete next[key];
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
-    if (!file) return;
+    if (files.length === 0) return;
     try {
-      const result = await upload.mutateAsync({ file, submissionId });
+      const result = await upload.mutateAsync({ files, submissionId });
       setJobId(result.extraction_job_id);
       toast.success(t("uploadFinancial.toastUploadAccepted"));
     } catch (e) {
@@ -236,43 +278,62 @@ export const UploadFinancialStatementWidget: React.FC<{
               ref={inputRef}
               type="file"
               accept={ACCEPTED_EXT}
+              multiple
               className="sr-only"
               disabled={!navigator.onLine}
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFile(f);
+                if (e.target.files && e.target.files.length > 0) {
+                  handleFiles(e.target.files);
+                }
+                e.target.value = "";
               }}
             />
-            {file ? (
-              <div className="flex flex-col items-center justify-center gap-4">
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="max-h-48 rounded-lg object-contain border border-border shadow-sm"
-                  />
-                ) : (
-                  <FileText className="size-12 text-primary shrink-0" />
-                )}
-                <div className="flex items-center gap-3">
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                  <button
-                    disabled={!navigator.onLine}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFile(null);
-                      setPreviewUrl(null);
-                    }}
-                    className="ml-2 rounded-full p-1.5 hover:bg-muted transition-colors disabled:opacity-50"
-                  >
-                    <X className="size-4 text-muted-foreground" />
-                  </button>
+            {files.length > 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3">
+                <FileText className="size-10 text-primary shrink-0" />
+                <p className="text-sm font-semibold">
+                  {files.length} {files.length === 1 ? "file" : "files"} selected
+                </p>
+                <div className="w-full max-w-sm space-y-2 text-left">
+                  {files.map((f) => {
+                    const key = f.name + f.size;
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2"
+                      >
+                        {previewUrls[key] ? (
+                          <img
+                            src={previewUrls[key]}
+                            alt="Preview"
+                            className="size-8 rounded object-cover border border-border"
+                          />
+                        ) : (
+                          <FileText className="size-4 text-primary shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold truncate">{f.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {(f.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                        <button
+                          disabled={!navigator.onLine}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile(key);
+                          }}
+                          className="rounded-full p-1 hover:bg-muted transition-colors disabled:opacity-50"
+                        >
+                          <X className="size-3.5 text-muted-foreground" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {t("uploadFinancial.dropMore", "Drop more files or click to add")}
+                </p>
               </div>
             ) : (
               <>
@@ -289,7 +350,7 @@ export const UploadFinancialStatementWidget: React.FC<{
           <div className="flex items-center gap-3 mt-4">
             <button
               onClick={handleSubmit}
-              disabled={!file || upload.isPending || !navigator.onLine}
+              disabled={files.length === 0 || upload.isPending || !navigator.onLine}
               title={
                 !navigator.onLine
                   ? t(

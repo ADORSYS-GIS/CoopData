@@ -1,17 +1,26 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
+use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct CreateOrganizationRequest {
+    #[validate(length(min = 1, max = 200, message = "Name must be 1-200 characters"))]
     pub name: String,
     #[serde(default = "default_org_type")]
+    #[validate(length(max = 50, message = "Organization type must be under 50 characters"))]
     pub organization_type: String,
+    #[validate(length(max = 50, message = "Registration number must be under 50 characters"))]
     pub registration_number: Option<String>,
+    #[validate(length(max = 100, message = "Sector must be under 100 characters"))]
     pub sector: Option<String>,
+    #[validate(length(max = 100, message = "Region must be under 100 characters"))]
     pub region: Option<String>,
+    #[validate(email(message = "Invalid email format"))]
     pub contact_email: Option<String>,
+    #[validate(length(max = 30, message = "Phone must be under 30 characters"))]
     pub contact_phone: Option<String>,
+    #[validate(length(max = 500, message = "Address must be under 500 characters"))]
     pub address: Option<String>,
     pub federation_id: Option<Uuid>,
 }
@@ -20,15 +29,23 @@ fn default_org_type() -> String {
     "cooperative".to_string()
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct UpdateOrganizationRequest {
+    #[validate(length(min = 1, max = 200, message = "Name must be 1-200 characters"))]
     pub name: Option<String>,
+    #[validate(length(max = 50, message = "Organization type must be under 50 characters"))]
     pub organization_type: Option<String>,
+    #[validate(length(max = 50, message = "Registration number must be under 50 characters"))]
     pub registration_number: Option<String>,
+    #[validate(length(max = 100, message = "Sector must be under 100 characters"))]
     pub sector: Option<String>,
+    #[validate(length(max = 100, message = "Region must be under 100 characters"))]
     pub region: Option<String>,
+    #[validate(email(message = "Invalid email format"))]
     pub contact_email: Option<String>,
+    #[validate(length(max = 30, message = "Phone must be under 30 characters"))]
     pub contact_phone: Option<String>,
+    #[validate(length(max = 500, message = "Address must be under 500 characters"))]
     pub address: Option<String>,
     pub federation_id: Option<Uuid>,
     pub is_active: Option<bool>,

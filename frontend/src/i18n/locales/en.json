@@ -1054,6 +1054,11 @@
         "openInNewTab": "Open in new tab",
         "openFull": "Open full",
         "pdfHint": "PDF — use browser scroll to zoom",
+        "wordHint": "Word Document (.docx)",
+        "excelHint": "Excel Spreadsheet",
+        "documentHint": "Document",
+        "docPreviewDesc": "Visual preview is optimized for PDF and image files. The content of this document has been extracted and parsed into the table below.",
+        "downloadDoc": "Download Document",
         "zoomPanHint": "Scroll to zoom · Drag to pan",
         "zoomHint": "Scroll to zoom",
         "iframeTitle": "Financial Statement"
@@ -1716,7 +1721,13 @@
     "sectionFixedDeposits": "Fixed deposits only",
     "sectionFarmCoop": "Farm cooperative only",
     "sectionHint": "Upload one workbook containing all tables, or pick a single section to upload one Excel file for it.",
-    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
+    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first.",
+    "clickToCollapse": "Click to collapse",
+    "clickToExpand": "Click to expand",
+    "howToFix": "How to fix",
+    "openFullView": "Full View",
+    "showingCount": "Showing {{count}}",
+    "noMatchingErrors": "No matching errors found."
   },
   "analytics": {
     "filter": {
@@ -4600,7 +4611,7 @@
   "financialStatementUpload": {
     "dropStatement": "Drop your financial statement here",
     "supportedFormats": "Supported formats",
-    "maxSize": "Maximum file size: 20 MB",
+    "maxSize": "Max 20 MB per file · PDF, images, DOC/DOCX, XLS/XLSX",
     "extractFinancialData": "Extract Financial Data",
     "howItWorks": "How it works:",
     "howItWorksDesc": "Upload your audited financial statement (balance sheet, income statement). Our system uses OCR and pattern recognition to extract account codes and values. You'll review and validate all extracted data before it populates the financial statement form.",
@@ -4617,7 +4628,8 @@
       "pages": "Pages",
       "codesFound": "Codes Found",
       "confidence": "Confidence",
-      "scanning": "Scanning"
+      "scanning": "Scanning",
+      "files": "Files"
     },
     "confidenceLevel": {
       "high": "High",
@@ -4652,11 +4664,20 @@
       "goToStatement": "Go to Financial Statement",
       "uploadAnother": "Upload Another"
     },
-    "toastUnsupported": "Unsupported file type. Please upload an Excel (.xlsx, .xls) or CSV file.",
-    "toastTooLarge": "File too large. Maximum size is 50 MB.",
+    "toastUnsupported": "Unsupported file type: {{name}}. Please upload PDF, PNG, JPG, TIFF, WEBP, DOC, DOCX, XLS or XLSX.",
+    "toastTooLarge": "File too large ({{name}}). Maximum size is 20 MB per file.",
     "toastSelected": "File selected: {{name}}",
     "toastExtracted": "Extracted {{count}} rows from {{name}}",
-    "toastConfirmed": "{{name}}: {{count}} valid records ready for submission"
+    "toastConfirmed": "{{name}}: {{count}} valid records ready for submission",
+    "toastExtractionFailed": "Extraction failed: {{error}}",
+    "toastNoSubmission": "No draft submission found. Create a submission first before uploading.",
+    "toastNoData": "No extracted data to apply.",
+    "toastFailed": "Upload failed. Please try again.",
+    "flagged": "Flagged",
+    "flaggedWarning": "{{count}} line item(s) were flagged for low confidence or were unmapped — please verify them manually.",
+    "dropMore": "Drop more files or click to add",
+    "uploading": "Uploading...",
+    "fileSpec": "Upload one or more financial statement documents (balance sheet, income statement). Multiple files are combined into a single extraction."
   },
   "localizedField": {
     "toggle": "Translate",

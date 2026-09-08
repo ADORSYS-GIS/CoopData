@@ -7,6 +7,7 @@ use axum::{
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::api::dto::federation::{
     CreateFederationRequest, FederationResponse, FederationStatsResponse, UpdateFederationRequest,
@@ -39,24 +40,20 @@ pub async fn create_federation(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
+    // Additional whitespace validation (length validator checks raw length, not trimmed)
     if body.name.trim().is_empty() {
-        return Err(crate::error::AppError::BadRequest(
-            "Federation name is required".into(),
+        return Err(AppError::BadRequest(
+            "Name cannot be empty or whitespace-only".into(),
         ));
     }
-
-    // Require at least one domain — the caller must supply it
-    if body.domains.is_empty() {
-        return Err(crate::error::AppError::BadRequest(
-            "At least one domain is required (e.g. \"myfederation.org\")".into(),
-        ));
-    }
-
-    // Validate each domain is non-empty
-    for d in &body.domains {
-        if d.name.trim().is_empty() {
-            return Err(crate::error::AppError::BadRequest(
-                "Domain name cannot be empty".into(),
+    for domain in &body.domains {
+        if domain.name.trim().is_empty() {
+            return Err(AppError::BadRequest(
+                "Domain cannot be empty or whitespace-only".into(),
             ));
         }
     }
@@ -238,6 +235,10 @@ pub async fn update_federation(
     Path(id): Path<String>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
     // Fetch current org so we can preserve existing attributes (created_at, display_name, etc.)
     let current = state
         .keycloak
@@ -519,13 +520,11 @@ pub async fn invite_user_to_federation(
     Path(id): Path<String>,
     Json(body): Json<CreateInvitationRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let email = body.email.trim().to_lowercase();
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
-    if email.is_empty() {
-        return Err(crate::error::AppError::BadRequest(
-            "Email is required".into(),
-        ));
-    }
+    let email = body.email.trim().to_lowercase();
 
     // This endpoint is exclusively for inviting Federation Officers.
     // The Ministry does not choose the role — it is always "federation".
@@ -863,6 +862,10 @@ pub async fn update_federation_profile(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<UpdateFederationRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
     let org_id = ScopeEnforcement::get_federation_org_id(&claims)?;
 
     let domains = body.domains.map(|d| {

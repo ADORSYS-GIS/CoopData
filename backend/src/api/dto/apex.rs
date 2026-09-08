@@ -1,16 +1,21 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct CreateApexRequest {
+    #[validate(length(min = 1, max = 200, message = "Name must be 1-200 characters"))]
     pub name: String,
     #[serde(default)]
+    #[validate(length(max = 1000, message = "Description must be under 1000 characters"))]
     pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct UpdateApexRequest {
+    #[validate(length(min = 1, max = 200, message = "Name must be 1-200 characters"))]
     pub name: Option<String>,
+    #[validate(length(max = 1000, message = "Description must be under 1000 characters"))]
     pub description: Option<String>,
 }
 
