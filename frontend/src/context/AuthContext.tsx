@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
@@ -26,6 +34,9 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   const [isOfflineAuthenticated, setIsOfflineAuthenticated] = useState(false);
   const { t } = useTranslation();
 
+  // Ref to store logout function for use in inactivity timeout
+  const logoutRef = useRef<() => Promise<void>>(async () => {});
+
   // Track online/offline status and flush sync queue / trigger seeder when back online
   useEffect(() => {
     const handleOnline = () => {
@@ -40,6 +51,57 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  // T3: Inactivity timeout — logout after 10 minutes of no user activity
+  // Uses requestAnimationFrame debouncing for performance (Option B)
+  useEffect(() => {
+    const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let rafId: number | null = null;
+    let lastActivity = Date.now();
+
+    // The actual timer that logs out after 10 min of no activity
+    const checkInactivity = () => {
+      const idleTime = Date.now() - lastActivity;
+      if (idleTime >= INACTIVITY_TIMEOUT_MS) {
+        console.log("[auth-context] Inactivity timeout — logging out");
+        logoutRef.current();
+      }
+    };
+
+    // Reset the timer and update last activity time
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      lastActivity = Date.now();
+      timeoutId = setTimeout(checkInactivity, INACTIVITY_TIMEOUT_MS);
+    };
+
+    // Debounced activity handler using requestAnimationFrame
+    // This batches rapid events (mouse moves, scrolls) into single resets
+    const handleActivity = () => {
+      if (rafId) return; // Already scheduled for next frame
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        resetTimer();
+      });
+    };
+
+    // Track these user activities
+    const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
+
+    // Add listeners with passive: true for better scroll performance
+    events.forEach((e) => window.addEventListener(e, handleActivity, { passive: true }));
+
+    // Start the timer immediately
+    resetTimer();
+
+    // Cleanup on unmount
+    return () => {
+      clearTimeout(timeoutId);
+      if (rafId) cancelAnimationFrame(rafId);
+      events.forEach((e) => window.removeEventListener(e, handleActivity));
+    };
+  }, []); // Empty deps - logout is accessed via ref
 
   useEffect(() => {
     let mounted = true;
@@ -141,6 +203,11 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setAccessToken(null);
   }, []);
+
+  // Keep logoutRef in sync with logout callback
+  useEffect(() => {
+    logoutRef.current = logout;
+  }, [logout]);
 
   const hasRoleFn = useCallback(
     (role: Role) => {

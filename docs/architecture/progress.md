@@ -507,6 +507,45 @@
 
 ---
 
+## Phase 23: Security Hardening (T1, T2, T3)
+
+> **Goal**: Implement security, reliability, and testing lifecycle hardening from Issue #107.
+> **Branch**: `securityReliability`
+> **Documentation**: `docs/features/t1-input-sanitization.md`, `docs/features/t2-auth-double-gatekeeper.md`, `docs/features/t3-session-management.md`
+
+### T1: Input Sanitization & Injection Prevention ✅ Complete
+- [x] **T1.1 XSS Prevention (Frontend)** — DOMPurify sanitization in `chart.tsx` and `QuestionnaireAnalyticsPage.tsx`
+- [x] **T1.2 DTO Validation (Backend)** — `#[derive(Validate)]` on 9 DTO files, `.validate()` calls in all handlers
+- [x] **T1.3 Nested Validation** — `#[validate(nested)]` on Vec fields in `federation.rs`
+- [x] **T1.4 Path Traversal Prevention** — Filename sanitization in `upload.rs` and `non_financial.rs`
+- [x] **T1.5 Whitespace Validation** — Explicit `.trim().is_empty()` checks in handlers
+- [x] **T1.6 Tests** — `cargo clippy` ✅, `npm run lint` ✅
+
+### T2: Auth & Authorization Double-Gatekeeper ✅ Complete
+- [x] **T2.1 Auth Failure Logging** — `tracing::warn!` in `middleware.rs` for all auth failures
+- [x] **T2.2 401 Integration Tests** — 7 tests in `auth_integration.rs` covering missing/malformed/invalid tokens
+- [x] **T2.3 Frontend 401 Handling** — Global error handling in `router.tsx` (pre-existing)
+- [x] **T2.4 Documentation** — `docs/features/t2-auth-double-gatekeeper.md`
+
+### T3: Session Management & Token Expiry ✅ Complete
+- [x] **T3.1 Documentation** — Created `docs/features/t3-session-management.md` with full token timing specs
+- [x] **T3.2 Current Implementation Audit** — Verified all existing implementations with exact file references
+- [x] **T3.3 Inactivity Timeout Implementation** — Added 10-min timeout with Option B debouncing in `AuthContext.tsx`
+- [x] **T3.4 Unit Tests** — Wrote 10 inactivity timeout tests in `AuthContext.inactivity.test.tsx`
+- [x] **T3.5 Verification** — `npm run lint` ✅, `npm run typecheck` ✅, tests pass ✅
+
+### Token Timing Specifications (Documented in T3)
+
+| Timer | Value | Status | Location |
+|-------|-------|--------|----------|
+| Access Token | 5 min | ✅ Keycloak config | Keycloak Admin Console |
+| Auto-Refresh | 30 sec before expiry | ✅ Implemented | `authService.ts:8,111,209` |
+| Refresh Token Idle | 30 min | ✅ Keycloak config | Keycloak Admin Console |
+| Offline Token Validity | 30 days | ✅ Implemented | `authService.ts:9-10,472-473` |
+| Inactivity Timeout | 10 min | ❌ Not implemented | `AuthContext.tsx` (pending) |
+
+---
+
 ## Token Management Strategy
 
 - **STOP** after completing a Phase or a complex Feature.
