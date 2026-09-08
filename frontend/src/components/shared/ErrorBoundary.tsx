@@ -1,6 +1,15 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import i18next from "i18next";
 
+/**
+ * ErrorBoundary wraps React components to catch and handle rendering errors gracefully.
+ *
+ * Security behavior:
+ * - DEV mode: Shows raw error message for debugging purposes
+ * - PROD mode: Hides raw error details to prevent information disclosure
+ *
+ * All errors are logged to console for debugging regardless of environment.
+ */
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -23,8 +32,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error details for debugging (always, regardless of environment)
     console.error(
-      `Uncaught error in step boundary [${this.props.stepName || "unknown"}]:`,
+      `[ErrorBoundary] Uncaught error in "${this.props.stepName || "unknown"}"]:`,
       error,
       errorInfo,
     );
@@ -41,7 +51,11 @@ export class ErrorBoundary extends Component<Props, State> {
                 section: this.props.stepName || i18next.t("errorBoundary.thisSection"),
               })}
             </p>
-            {this.state.error && (
+            {/*
+              DEV mode: Show raw error for debugging
+              PROD mode: Hide error details to prevent information disclosure
+            */}
+            {import.meta.env.DEV && this.state.error && (
               <pre className="mt-3 p-3 bg-muted/60 rounded-xl text-[10px] text-left overflow-auto font-mono text-muted-foreground max-h-32 border border-border">
                 {this.state.error.toString()}
               </pre>
