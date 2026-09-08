@@ -1054,6 +1054,11 @@
         "openInNewTab": "Ouvrir dans un nouvel onglet",
         "openFull": "Ouvrir en plein",
         "pdfHint": "PDF — utilisez le défilement du navigateur pour zoomer",
+        "wordHint": "Document Word (.docx)",
+        "excelHint": "Feuille de calcul Excel",
+        "documentHint": "Document",
+        "docPreviewDesc": "Aperçu visuel optimisé pour les fichiers PDF et images. Le contenu de ce document a été extrait et analysé dans le tableau ci-dessous.",
+        "downloadDoc": "Télécharger le document",
         "zoomPanHint": "Défiler pour zoomer · Glisser pour déplacer",
         "zoomHint": "Défiler pour zoomer",
         "iframeTitle": "État financier"

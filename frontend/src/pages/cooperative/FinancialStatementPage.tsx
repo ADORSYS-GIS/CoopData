@@ -42,6 +42,7 @@ import {
   ExpensesSection,
 } from "@/components/financial-form";
 import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
+import { useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
 
 type Tab = "assets" | "liabilities" | "equity" | "income" | "expenses" | "summary";
 
@@ -53,6 +54,11 @@ export const FinancialStatementPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [dataPopulated, setDataPopulated] = useState(false);
+
+  const { data: submissions = [] } = useCooperativeSubmissions(role === "cooperative");
+  const currentSubmission = [...submissions]
+    .sort((a, b) => b.reporting_year - a.reporting_year)
+    .find((s) => s.status === "draft");
 
   if (!role) return null;
 
@@ -309,6 +315,7 @@ export const FinancialStatementPage: React.FC = () => {
             <FinancialStatementUpload
               onDataExtracted={handleDataExtracted}
               onClose={() => setShowUpload(false)}
+              submissionId={currentSubmission?.id}
             />
           </Card>
         )}

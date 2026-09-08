@@ -157,14 +157,24 @@ function CalendarYearPicker({
   );
 }
 
-function formatPeriodBadge(periodType?: string, periodValue?: string, year?: number) {
+function formatPeriodBadge(
+  periodType?: string,
+  periodValue?: string,
+  year?: number,
+  fiscalStartMonth?: number,
+) {
   const pt = (periodType || "YEARLY").toUpperCase();
   const yr = year || "";
   const pv = periodValue || String(yr);
 
   if (pt === "QUARTERLY") {
     const qName = pv.toUpperCase().startsWith("Q") ? pv.toUpperCase() : `Q${pv}`;
-    return `Quarterly - ${qName} ${yr}`.trim();
+    const start =
+      fiscalStartMonth && fiscalStartMonth >= 1 && fiscalStartMonth <= 12 ? fiscalStartMonth : 1;
+    const q = quarterRanges(start).find((x) => x.q === qName);
+    return q
+      ? `Quarterly - ${qName} (${q.label}) ${yr}`.trim()
+      : `Quarterly - ${qName} ${yr}`.trim();
   }
   if (pt === "MONTHLY") {
     const monthNames: Record<string, string> = {
@@ -201,6 +211,46 @@ function formatPeriodBadge(periodType?: string, periodValue?: string, year?: num
   return `Yearly - ${yr}`.trim();
 }
 
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** Quarter month ranges aligned to a fiscal-year start month (1-12, 1 = Jan). */
+function quarterRanges(startMonth: number): { q: string; label: string }[] {
+  const s = (startMonth - 1 + 12) % 12;
+  const quarters: { q: string; label: string }[] = [];
+  for (let i = 0; i < 4; i++) {
+    const m1 = (s + i * 3) % 12;
+    const m3 = (s + i * 3 + 2) % 12;
+    quarters.push({ q: `Q${i + 1}`, label: `${MONTH_NAMES[m1]}–${MONTH_NAMES[m3]}` });
+  }
+  return quarters;
+}
+
+/** Half-year month ranges aligned to a fiscal-year start month (1-12, 1 = Jan). */
+function halfRanges(startMonth: number): { h: string; label: string }[] {
+  const s = (startMonth - 1 + 12) % 12;
+  const m1 = s;
+  const m2 = (s + 5) % 12;
+  const m3 = (s + 6) % 12;
+  const m4 = (s + 11) % 12;
+  return [
+    { h: "H1", label: `${MONTH_NAMES[m1]}–${MONTH_NAMES[m2]}` },
+    { h: "H2", label: `${MONTH_NAMES[m3]}–${MONTH_NAMES[m4]}` },
+  ];
+}
+
 function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const { t } = useOrganizationLabelsContext();
   const navigate = useNavigate();
@@ -210,6 +260,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
     "YEARLY",
   );
   const [periodValue, setPeriodValue] = useState<string>(String(currentYear));
+  const [fiscalStartMonth, setFiscalStartMonth] = useState<number>(1);
   const createSubmission = useCreateSubmission();
 
   const handlePeriodTypeChange = (type: "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL") => {
@@ -227,6 +278,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
         reporting_year: year,
         period_type: periodType,
         period_value: pVal,
+        fiscal_start_month: fiscalStartMonth,
       });
       toast.success(t("submissions.submissionCreated", { year }));
       onClose();
@@ -299,6 +351,36 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* Fiscal year start month (aligns quarters/halves) */}
+          {(periodType === "QUARTERLY" || periodType === "SEMI_ANNUAL") && (
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                Fiscal year starts in
+              </label>
+              <div className="grid grid-cols-6 gap-1.5">
+                {MONTH_NAMES.map((m, idx) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setFiscalStartMonth(idx + 1)}
+                    className={`rounded-lg py-1.5 text-xs font-bold border transition-all ${
+                      fiscalStartMonth === idx + 1
+                        ? "border-primary bg-primary/10 text-primary border-2"
+                        : "border-border bg-surface text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {periodType === "QUARTERLY"
+                  ? "Q1 begins in this month; the other quarters follow automatically."
+                  : "H1 begins in this month; H2 follows automatically."}
+              </p>
+            </div>
+          )}
+
           {/* Dynamic Period Value Selector */}
           {periodType === "QUARTERLY" && (
             <div>
@@ -306,18 +388,21 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
                 Select Quarter
               </label>
               <div className="grid grid-cols-4 gap-2">
-                {["Q1", "Q2", "Q3", "Q4"].map((q) => (
+                {quarterRanges(fiscalStartMonth).map((q) => (
                   <button
-                    key={q}
+                    key={q.q}
                     type="button"
-                    onClick={() => setPeriodValue(q)}
+                    onClick={() => setPeriodValue(q.q)}
                     className={`rounded-xl py-2 text-xs font-bold border transition-all ${
-                      periodValue === q
+                      periodValue === q.q
                         ? "border-primary bg-primary/10 text-primary border-2"
                         : "border-border bg-surface text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    {q}
+                    <span className="block">{q.q}</span>
+                    <span className="block text-[10px] font-normal text-muted-foreground">
+                      {q.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -368,21 +453,21 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
                 Select Half
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {[
-                  { key: "H1", label: "H1 (Jan – Jun)" },
-                  { key: "H2", label: "H2 (Jul – Dec)" },
-                ].map((h) => (
+                {halfRanges(fiscalStartMonth).map((h) => (
                   <button
-                    key={h.key}
+                    key={h.h}
                     type="button"
-                    onClick={() => setPeriodValue(h.key)}
+                    onClick={() => setPeriodValue(h.h)}
                     className={`rounded-xl py-2 text-xs font-bold border transition-all ${
-                      periodValue === h.key
+                      periodValue === h.h
                         ? "border-primary bg-primary/10 text-primary border-2"
                         : "border-border bg-surface text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    {h.label}
+                    <span className="block">{h.h}</span>
+                    <span className="block text-[10px] font-normal text-muted-foreground">
+                      {h.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -789,7 +874,12 @@ function SubmissionTable({
                   <td className="px-5 py-4">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-bold text-foreground text-xs">
-                        {formatPeriodBadge(s.period_type, s.period_value, s.reporting_year)}
+                        {formatPeriodBadge(
+                          s.period_type,
+                          s.period_value,
+                          s.reporting_year,
+                          (s as { fiscal_start_month?: number }).fiscal_start_month,
+                        )}
                       </span>
                       <span className="text-[10px] text-muted-foreground font-medium">
                         Year {s.reporting_year}

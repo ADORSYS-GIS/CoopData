@@ -131,6 +131,7 @@ pub async fn create_submission(
         reporting_year: Set(body.reporting_year),
         period_type: Set(period_type),
         period_value: Set(period_value),
+        fiscal_start_month: Set(body.fiscal_start_month),
         status: Set(crate::entities::enums::SubmissionStatus::Draft),
         current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
         submitted_by: Set(submitted_by),
@@ -386,13 +387,18 @@ pub async fn validate_extraction(
     let extractor = Arc::clone(&state.extractor);
 
     // Call the extraction pipeline synchronously to completely rebuild the line items
+    let pipeline_files = vec![
+        crate::services::extraction_pipeline::ExtractionFileInput::new(
+            file_bytes,
+            file.mime_type.clone().unwrap_or_default(),
+        ),
+    ];
     if let Err(e) = crate::services::extraction_pipeline::run_pipeline_inner(
         job_id,
         id,
         coop.id,
         submission.reporting_year,
-        file_bytes,
-        file.mime_type.clone().unwrap_or_default(),
+        pipeline_files,
         coop_type,
         extractor,
         &state.extraction_job_repo,
@@ -2142,6 +2148,7 @@ pub async fn create_apex_submission(
         reporting_year: Set(body.reporting_year),
         period_type: Set(period_type),
         period_value: Set(period_value),
+        fiscal_start_month: Set(body.fiscal_start_month),
         status: Set(crate::entities::enums::SubmissionStatus::Draft),
         current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
         submitted_by: Set(submitted_by),

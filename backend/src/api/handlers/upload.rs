@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    extract::{Multipart, Path, State},
+    extract::{Multipart, Path, Query, State},
     http::{header, StatusCode},
     response::{IntoResponse, Response},
     Extension, Json,
@@ -19,8 +19,47 @@ use crate::entities::extraction_job::ActiveModel as ExtractionJobModel;
 use crate::entities::financial_statement::ActiveModel as FsModel;
 use crate::entities::uploaded_file::ActiveModel as UploadedFileModel;
 use crate::error::{AppError, AppResult};
-use crate::services::extraction_pipeline::run_extraction_pipeline;
+use crate::services::extraction_pipeline::{run_extraction_pipeline, ExtractionFileInput};
 use crate::AppState;
+
+/// A single uploaded file captured from the multipart request.
+struct UploadedFileInput {
+    bytes: Vec<u8>,
+    original_name: String,
+    mime_type: String,
+}
+
+/// Accepted MIME types for financial statement documents: PDFs, images, Word
+/// documents (.doc/.docx) and Excel workbooks (.xls/.xlsx).
+fn is_supported_financial_mime(mime: &str, name: &str) -> bool {
+    let lower_name = name.to_lowercase();
+    let supported_mimes = [
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/tiff",
+        "image/webp",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ];
+    if supported_mimes.iter().any(|m| mime.starts_with(m)) {
+        return true;
+    }
+    // Fall back to extension when the MIME type is generic (e.g. octet-stream).
+    lower_name.ends_with(".pdf")
+        || lower_name.ends_with(".png")
+        || lower_name.ends_with(".jpg")
+        || lower_name.ends_with(".jpeg")
+        || lower_name.ends_with(".tiff")
+        || lower_name.ends_with(".webp")
+        || lower_name.ends_with(".doc")
+        || lower_name.ends_with(".docx")
+        || lower_name.ends_with(".xls")
+        || lower_name.ends_with(".xlsx")
+}
 
 #[utoipa::path(
     post,
@@ -41,9 +80,7 @@ pub async fn upload_financial_statement(
 ) -> AppResult<impl IntoResponse> {
     let is_apex = claims.has_role("apex");
 
-    let mut file_bytes: Option<Vec<u8>> = None;
-    let mut original_name = String::from("upload");
-    let mut mime_type = String::from("application/octet-stream");
+    let mut files: Vec<UploadedFileInput> = Vec::new();
     let mut accounting_year_str = String::from("calendar");
     let mut currency_str = String::from("SZL");
     let mut submission_id_opt: Option<String> = None;
@@ -56,7 +93,7 @@ pub async fn upload_financial_statement(
         let name = field.name().unwrap_or("").to_string();
         match name.as_str() {
             "file" => {
-                original_name = field.file_name().unwrap_or("upload").to_string();
+                let mut original_name = field.file_name().unwrap_or("upload").to_string();
                 // Sanitize file_name: remove path separators and null bytes to prevent path traversal
                 original_name = original_name
                     .replace(['/', '\\', '\0'], "_")
@@ -67,7 +104,7 @@ pub async fn upload_financial_statement(
                 if original_name.is_empty() {
                     original_name = "upload".to_string();
                 }
-                mime_type = field
+                let mime_type = field
                     .content_type()
                     .unwrap_or("application/octet-stream")
                     .to_string();
@@ -77,11 +114,28 @@ pub async fn upload_financial_statement(
                     .map_err(|e| AppError::BadRequest(format!("Failed to read file: {e}")))?;
                 if bytes.len() > MAX_UPLOAD_BYTES {
                     return Err(AppError::BadRequest(format!(
-                        "File exceeds maximum allowed size of {} MB",
+                        "File '{}' exceeds maximum allowed size of {} MB",
+                        original_name,
                         MAX_UPLOAD_BYTES / (1024 * 1024)
                     )));
                 }
-                file_bytes = Some(bytes.to_vec());
+                if bytes.is_empty() {
+                    return Err(AppError::BadRequest(format!(
+                        "Uploaded file '{}' is empty",
+                        original_name
+                    )));
+                }
+                if !is_supported_financial_mime(&mime_type, &original_name) {
+                    return Err(AppError::BadRequest(format!(
+                        "Unsupported file type for '{}': {mime_type}. Accepted: PDF, PNG, JPEG, TIFF, DOC, DOCX, XLS, XLSX",
+                        original_name
+                    )));
+                }
+                files.push(UploadedFileInput {
+                    bytes: bytes.to_vec(),
+                    original_name,
+                    mime_type,
+                });
             }
             "accounting_year" => {
                 accounting_year_str = field
@@ -99,25 +153,10 @@ pub async fn upload_financial_statement(
         }
     }
 
-    let file_bytes = file_bytes
-        .ok_or_else(|| AppError::BadRequest("No file provided in multipart request".into()))?;
-
-    if file_bytes.is_empty() {
-        return Err(AppError::BadRequest("Uploaded file is empty".into()));
-    }
-
-    // Validate MIME type — PDF and image only
-    let supported_mimes = [
-        "application/pdf",
-        "image/png",
-        "image/jpeg",
-        "image/jpg",
-        "image/tiff",
-    ];
-    if !supported_mimes.iter().any(|m| mime_type.starts_with(m)) {
-        return Err(AppError::BadRequest(format!(
-            "Unsupported file type: {mime_type}. Accepted: PDF, PNG, JPEG, TIFF"
-        )));
+    if files.is_empty() {
+        return Err(AppError::BadRequest(
+            "No file provided in multipart request".into(),
+        ));
     }
 
     let accounting_year =
@@ -129,43 +168,76 @@ pub async fn upload_financial_statement(
     };
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
     let fs_id = Uuid::new_v4();
-    let file_id = Uuid::new_v4();
     let job_id = Uuid::new_v4();
 
-    // submission_id is now required — uploads must target an existing draft submission
-    let sub_id_str = submission_id_opt
-        .ok_or_else(|| AppError::BadRequest("submission_id is required".into()))?;
-    let submission_id = Uuid::parse_str(&sub_id_str)
-        .map_err(|_| AppError::BadRequest("Invalid submission_id format".into()))?;
+    // If submission_id is provided, look up target submission; otherwise, fall back to active draft submission
+    let (submission_id, existing, coop) = match submission_id_opt {
+        Some(sub_id_str) => {
+            let sub_id = Uuid::parse_str(&sub_id_str)
+                .map_err(|_| AppError::BadRequest("Invalid submission_id format".into()))?;
+            let existing = state
+                .submission_repo
+                .find_by_id(sub_id)
+                .await?
+                .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    let existing = state
-        .submission_repo
-        .find_by_id(submission_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
-
-    let coop = if is_apex {
-        let apex_db_id =
-            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)
+            let coop = if is_apex {
+                let apex_db_id = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(
+                    &state, &claims,
+                )
                 .await?;
-        let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
-        let coop_model = cooperatives
-            .iter()
-            .find(|c| c.id == existing.cooperative_id)
-            .ok_or_else(|| {
-                AppError::Forbidden("Access denied: submission does not belong to your apex".into())
-            })?;
-        coop_model.clone()
-    } else {
-        let resolved =
-            crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
-        if existing.cooperative_id != resolved.id {
-            return Err(AppError::Forbidden(
-                "Submission does not belong to your cooperative".into(),
-            ));
+                let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+                cooperatives
+                    .iter()
+                    .find(|c| c.id == existing.cooperative_id)
+                    .cloned()
+                    .ok_or_else(|| {
+                        AppError::Forbidden(
+                            "Access denied: submission does not belong to your apex".into(),
+                        )
+                    })?
+            } else {
+                let resolved =
+                    crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims)
+                        .await?;
+                if existing.cooperative_id != resolved.id {
+                    return Err(AppError::Forbidden(
+                        "Submission does not belong to your cooperative".into(),
+                    ));
+                }
+                resolved
+            };
+            (sub_id, existing, coop)
         }
-        resolved
+        None => {
+            // Fallback for legacy callers: find latest active draft submission for the cooperative
+            let coop = if is_apex {
+                let apex_db_id = crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(
+                    &state, &claims,
+                )
+                .await?;
+                let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
+                cooperatives.first().cloned().ok_or_else(|| {
+                    AppError::NotFound("No cooperative found for your apex account".into())
+                })?
+            } else {
+                crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims)
+                    .await?
+            };
+            let subs = state.submission_repo.find_by_cooperative(coop.id).await?;
+            let draft = subs
+                .into_iter()
+                .find(|s| s.status == crate::entities::enums::SubmissionStatus::Draft)
+                .ok_or_else(|| {
+                    AppError::BadRequest(
+                        "submission_id parameter is required (no active draft submission found)"
+                            .into(),
+                    )
+                })?;
+            (draft.id, draft, coop)
+        }
     };
+
     if existing.status != crate::entities::enums::SubmissionStatus::Draft {
         return Err(AppError::Conflict(
             "Can only upload to a draft submission".into(),
@@ -193,20 +265,24 @@ pub async fn upload_financial_statement(
             fs_id = %existing_fs.id,
             "Replacing existing financial statement"
         );
-        // Delete old file from storage
+        // Delete previously uploaded financial files for this submission from storage
+        if let Ok(existing_files) = state
+            .uploaded_file_repo
+            .find_by_submission(submission_id)
+            .await
+        {
+            for old_file in existing_files {
+                if !old_file.storage_key.starts_with("nf-uploads/") {
+                    let _ = state.storage.delete(&old_file.storage_key).await;
+                    let _ = state.uploaded_file_repo.delete(old_file.id).await;
+                }
+            }
+        }
         if let Some(existing_job) = state
             .extraction_job_repo
             .find_by_submission(submission_id)
             .await?
         {
-            if let Ok(Some(old_file)) = state
-                .uploaded_file_repo
-                .find_by_id(existing_job.source_file_id)
-                .await
-            {
-                let _ = state.storage.delete(&old_file.storage_key).await;
-                state.uploaded_file_repo.delete(old_file.id).await?;
-            }
             state.extraction_job_repo.delete(existing_job.id).await?;
         }
         // Delete existing line items (cascade from financial_statement delete)
@@ -216,29 +292,42 @@ pub async fn upload_financial_statement(
             .await?;
     }
 
-    // Storage key
-    let storage_key = format!("{}/{}/{}.bin", coop.id, submission_id, file_id);
+    // 1. Store each file and create an uploaded_file record for it.
+    let mut file_ids: Vec<Uuid> = Vec::new();
+    let mut pipeline_files: Vec<ExtractionFileInput> = Vec::new();
+    for (i, input) in files.iter().enumerate() {
+        let file_id = Uuid::new_v4();
+        let storage_key = format!("{}/{}/{}.bin", coop.id, submission_id, file_id);
+        state
+            .storage
+            .store(&storage_key, &input.bytes, &input.mime_type)
+            .await?;
 
-    // 1. Store file
-    state
-        .storage
-        .store(&storage_key, &file_bytes, &mime_type)
-        .await?;
+        let file_model = UploadedFileModel {
+            id: Set(file_id),
+            submission_id: Set(submission_id),
+            original_name: Set(input.original_name.clone()),
+            mime_type: Set(Some(input.mime_type.clone())),
+            storage_key: Set(storage_key),
+            size_bytes: Set(Some(input.bytes.len() as i64)),
+            uploaded_by: Set(submitted_by),
+            created_at: Set(chrono::Utc::now()),
+        };
+        state.uploaded_file_repo.create(file_model).await?;
+        file_ids.push(file_id);
+        pipeline_files.push(ExtractionFileInput::new(
+            input.bytes.clone(),
+            input.mime_type.clone(),
+        ));
+        tracing::info!(
+            file_id = %file_id,
+            index = i,
+            name = %input.original_name,
+            "Stored financial statement file"
+        );
+    }
 
-    // 3. Create uploaded_file
-    let file_model = UploadedFileModel {
-        id: Set(file_id),
-        submission_id: Set(submission_id),
-        original_name: Set(original_name),
-        mime_type: Set(Some(mime_type.clone())),
-        storage_key: Set(storage_key),
-        size_bytes: Set(Some(file_bytes.len() as i64)),
-        uploaded_by: Set(submitted_by),
-        created_at: Set(chrono::Utc::now()),
-    };
-    state.uploaded_file_repo.create(file_model).await?;
-
-    // 4. Create financial_statement
+    // 2. Create financial_statement
     let fs_model = FsModel {
         id: Set(fs_id),
         submission_id: Set(submission_id),
@@ -253,11 +342,11 @@ pub async fn upload_financial_statement(
     };
     state.financial_statement_repo.create(fs_model).await?;
 
-    // 5. Create extraction_job
+    // 3. Create extraction_job (source_file_id points to the first file)
     let job_model = ExtractionJobModel {
         id: Set(job_id),
         submission_id: Set(submission_id),
-        source_file_id: Set(file_id),
+        source_file_id: Set(*file_ids.first().unwrap_or(&Uuid::new_v4())),
         status: Set("queued".to_string()),
         engine: Set(None),
         raw_text: Set(None),
@@ -270,7 +359,7 @@ pub async fn upload_financial_statement(
     };
     state.extraction_job_repo.create(job_model).await?;
 
-    // 6. Spawn async extraction pipeline
+    // 4. Spawn async extraction pipeline (all files are captured & merged)
     let coop_type = coop
         .institution_type
         .as_ref()
@@ -293,8 +382,7 @@ pub async fn upload_financial_statement(
             submission_id,
             coop.id,
             reporting_year,
-            file_bytes,
-            mime_type,
+            pipeline_files,
             coop_type,
             extractor,
             job_repo,
@@ -418,19 +506,25 @@ pub async fn delete_financial_statement(
         .await?
         .ok_or_else(|| AppError::NotFound("No financial statement for this submission".into()))?;
 
+    // Delete ALL financial files attached to this submission
+    if let Ok(existing_files) = state
+        .uploaded_file_repo
+        .find_by_submission(submission_id)
+        .await
+    {
+        for old_file in existing_files {
+            if !old_file.storage_key.starts_with("nf-uploads/") {
+                let _ = state.storage.delete(&old_file.storage_key).await;
+                let _ = state.uploaded_file_repo.delete(old_file.id).await;
+            }
+        }
+    }
+
     if let Some(job) = state
         .extraction_job_repo
         .find_by_submission(submission_id)
         .await?
     {
-        if let Some(file) = state
-            .uploaded_file_repo
-            .find_by_id(job.source_file_id)
-            .await?
-        {
-            let _ = state.storage.delete(&file.storage_key).await;
-            state.uploaded_file_repo.delete(file.id).await?;
-        }
         state.extraction_job_repo.delete(job.id).await?;
     }
 
@@ -438,8 +532,143 @@ pub async fn delete_financial_statement(
 
     tracing::info!(
         submission_id = %submission_id,
-        "Financial statement deleted from draft"
+        "Financial statement and all associated files deleted from draft"
     );
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/cooperative/submissions/{submission_id}/files/{file_id}",
+    params(
+        ("submission_id" = Uuid, Path, description = "Submission ID"),
+        ("file_id" = Uuid, Path, description = "File ID")
+    ),
+    responses(
+        (status = 204, description = "File deleted successfully"),
+        (status = 400, description = "Submission is not in draft status"),
+        (status = 403, description = "Access denied"),
+        (status = 404, description = "File or submission not found")
+    ),
+    tag = "Cooperative",
+    security(("bearer" = []))
+)]
+pub async fn delete_single_uploaded_file(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path((submission_id, file_id)): Path<(Uuid, Uuid)>,
+) -> AppResult<impl IntoResponse> {
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+    let submission = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+    if !coop_ids.contains(&submission.cooperative_id) {
+        return Err(AppError::Forbidden("Access denied".into()));
+    }
+    if submission.status != SubmissionStatus::Draft {
+        return Err(AppError::BadRequest(
+            "Can only delete files from draft submissions".into(),
+        ));
+    }
+
+    let file = state
+        .uploaded_file_repo
+        .find_by_id(file_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("File not found".into()))?;
+
+    if file.submission_id != submission_id {
+        return Err(AppError::Forbidden(
+            "File does not belong to this submission".into(),
+        ));
+    }
+
+    let _ = state.storage.delete(&file.storage_key).await;
+    state.uploaded_file_repo.delete(file.id).await?;
+
+    tracing::info!(
+        submission_id = %submission_id,
+        file_id = %file_id,
+        "Single uploaded file deleted"
+    );
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct UploadedFileResponse {
+    pub id: Uuid,
+    pub submission_id: Uuid,
+    pub original_name: String,
+    pub mime_type: Option<String>,
+    pub size_bytes: Option<i64>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl From<crate::entities::uploaded_file::Model> for UploadedFileResponse {
+    fn from(m: crate::entities::uploaded_file::Model) -> Self {
+        Self {
+            id: m.id,
+            submission_id: m.submission_id,
+            original_name: m.original_name,
+            mime_type: m.mime_type,
+            size_bytes: m.size_bytes,
+            created_at: m.created_at,
+        }
+    }
+}
+
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+pub struct ListFilesQuery {
+    pub category: Option<String>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/files",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("category" = Option<String>, Query, description = "Filter category: 'financial' or 'non_financial'")
+    ),
+    responses(
+        (status = 200, description = "List of uploaded files for submission", body = Vec<UploadedFileResponse>),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Cooperative"
+)]
+pub async fn list_uploaded_files(
+    State(state): State<AppState>,
+    Extension(_claims): Extension<Arc<Claims>>,
+    Path(submission_id): Path<Uuid>,
+    Query(query): Query<ListFilesQuery>,
+) -> AppResult<impl IntoResponse> {
+    let _submission = state
+        .submission_repo
+        .find_by_id(submission_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    let files = state
+        .uploaded_file_repo
+        .find_by_submission(submission_id)
+        .await?;
+
+    let filtered: Vec<crate::entities::uploaded_file::Model> = match query.category.as_deref() {
+        Some("financial") => files
+            .into_iter()
+            .filter(|f| !f.storage_key.starts_with("nf-uploads/"))
+            .collect(),
+        Some("non_financial") => files
+            .into_iter()
+            .filter(|f| f.storage_key.starts_with("nf-uploads/"))
+            .collect(),
+        _ => files,
+    };
+
+    let dtos: Vec<UploadedFileResponse> = filtered.into_iter().map(Into::into).collect();
+    Ok(Json(dtos))
 }

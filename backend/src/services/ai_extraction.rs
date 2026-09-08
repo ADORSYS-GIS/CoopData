@@ -169,6 +169,102 @@ pub fn extract_excel_text(bytes: &[u8]) -> AppResult<String> {
     Ok(output)
 }
 
+/// A list of embedded images extracted from a Word document: `(png_bytes, mime_type)`.
+pub type DocxImages = Vec<(Vec<u8>, String)>;
+
+/// Extract text and embedded images from a Word (.docx) file using docx-rs.
+/// Returns `(text, images)` where `images` is a list of `(png_bytes, mime_type)`.
+/// Text is preserved from paragraphs and tables so the LLM can identify
+/// balance-sheet / income-statement line items. Scanned/image-based documents
+/// yield empty text but their embedded images are returned for vision routing.
+pub fn extract_docx_content(bytes: &[u8]) -> AppResult<(String, DocxImages)> {
+    use docx_rs::{
+        read_docx, DocumentChild, ParagraphChild, RunChild, TableCellContent, TableChild,
+    };
+
+    let doc = read_docx(bytes)
+        .map_err(|e| AppError::BadRequest(format!("Failed to parse Word document: {e}")))?;
+
+    let mut output = String::new();
+
+    fn paragraph_text(p: &docx_rs::Paragraph, out: &mut String) {
+        for child in &p.children {
+            if let ParagraphChild::Run(r) = child {
+                for rc in &r.children {
+                    if let RunChild::Text(t) = rc {
+                        out.push_str(&t.text);
+                    }
+                }
+            }
+        }
+    }
+
+    fn table_text(t: &docx_rs::Table, out: &mut String) {
+        for row in &t.rows {
+            let TableChild::TableRow(tr) = row;
+            let mut cells: Vec<String> = Vec::new();
+            for cell in &tr.cells {
+                let docx_rs::TableRowChild::TableCell(tc) = cell;
+                let mut cell_text = String::new();
+                for content in &tc.children {
+                    match content {
+                        TableCellContent::Paragraph(p) => paragraph_text(p, &mut cell_text),
+                        TableCellContent::Table(inner) => table_text(inner, &mut cell_text),
+                        _ => {}
+                    }
+                }
+                cells.push(cell_text.trim().to_string());
+            }
+            if !cells.iter().all(|c| c.is_empty()) {
+                out.push_str(&format!("| {} |\n", cells.join(" | ")));
+            }
+        }
+    }
+
+    for child in &doc.document.children {
+        match child {
+            DocumentChild::Paragraph(p) => {
+                let mut line = String::new();
+                paragraph_text(p, &mut line);
+                if !line.trim().is_empty() {
+                    output.push_str(line.trim());
+                    output.push('\n');
+                }
+            }
+            DocumentChild::Table(t) => table_text(t, &mut output),
+            _ => {}
+        }
+    }
+
+    // Collect embedded images (typically PNG) for scanned/image-based documents.
+    let images: DocxImages = doc
+        .images
+        .iter()
+        .filter_map(|(_, _, _, png)| {
+            let bytes = png.0.clone();
+            if bytes.is_empty() {
+                None
+            } else {
+                Some((bytes, "image/png".to_string()))
+            }
+        })
+        .collect();
+
+    Ok((output, images))
+}
+
+/// Extract text from a Word (.docx) file. Returns an error if the document has
+/// no extractable text (e.g. a scanned image-based document).
+pub fn extract_docx_text(bytes: &[u8]) -> AppResult<String> {
+    let (text, _images) = extract_docx_content(bytes)?;
+    if text.trim().is_empty() {
+        return Err(AppError::BadRequest(
+            "Word document contains no extractable text".into(),
+        ));
+    }
+    Ok(text)
+}
+
 fn cell_to_str(cell: &calamine::Data) -> String {
     use calamine::Data;
     match cell {
@@ -988,8 +1084,8 @@ Map each actual header to the closest canonical field from this list:
   [{canonical_list}]
 
 Rules:
-- Only map when you are confident (typos, spaces vs underscores, capitalisation, language differences are fine to resolve).
-- Do NOT invent or guess mappings for unrelated headers.
+- Be generous: resolve typos, spaces vs underscores, capitalisation, abbreviations, and language differences (e.g. "Member CODE" -> member_id, "Account CODE" -> savings_account_id, "Open Date" -> account_opening_date, "Contribs Count" -> number_of_contributions, "DPD Category" -> days_past_due_category, "Tenure" -> tenure_category, "Voted" -> voting_exercised).
+- Only map when you are reasonably confident. Do NOT invent or guess mappings for unrelated headers.
 - If an actual header has no clear match, omit it from the output.
 - Each canonical field should appear AT MOST ONCE in the output.
 
@@ -1085,6 +1181,34 @@ impl FinancialStatementExtractor for LlmExtractor {
                 tracing::info!(chars = text.len(), "=== EXCEL TEXT EXTRACTED ===");
                 tracing::info!("=== EXCEL TEXT START ===\n{text}\n=== EXCEL TEXT END ===");
                 Ok(text)
+            }
+            m if m.contains("wordprocessingml")
+                || m.contains("msword")
+                || m.ends_with(".docx")
+                || m.ends_with(".doc") =>
+            {
+                tracing::info!("=== WORD FILE — EXTRACTING WITH DOCX-RS ===");
+                let bytes = file_bytes.to_vec();
+                let (text, images) =
+                    tokio::task::spawn_blocking(move || extract_docx_content(&bytes))
+                        .await
+                        .map_err(|e| {
+                            AppError::InternalServerError(format!("Word thread join error: {e}"))
+                        })??;
+                if !text.trim().is_empty() {
+                    tracing::info!(chars = text.len(), "=== WORD TEXT EXTRACTED ===");
+                    tracing::info!("=== WORD TEXT START ===\n{text}\n=== WORD TEXT END ===");
+                    Ok(text)
+                } else if let Some((img_bytes, img_mime)) = images.into_iter().next() {
+                    tracing::info!(
+                        "=== WORD DOC IS IMAGE-BASED — ROUTING EMBEDDED IMAGE TO VISION API ==="
+                    );
+                    self.vision_capture(&img_bytes, &img_mime).await
+                } else {
+                    Err(AppError::BadRequest(
+                        "Word document contains no extractable text or images".into(),
+                    ))
+                }
             }
             other => {
                 tracing::warn!(
@@ -1549,5 +1673,37 @@ pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn
     } else {
         tracing::info!("Using mock extractor (set EXTRACTION_BACKEND=llm to enable real AI)");
         std::sync::Arc::new(MockExtractor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_docx_content_real_files() {
+        let base = std::path::Path::new("../doc/Testdata");
+        for name in [
+            "FINANCIAL POSITION STATEMENT.docx",
+            "INCOME & EXPENSES STATEMENT.docx",
+        ] {
+            let path = base.join(name);
+            if !path.exists() {
+                eprintln!("SKIP (file not present): {name}");
+                continue;
+            }
+            let bytes = std::fs::read(&path).unwrap();
+            let (text, images) = extract_docx_content(&bytes).expect("docx should parse");
+            // A valid docx must yield either extractable text or embedded images.
+            assert!(
+                !text.trim().is_empty() || !images.is_empty(),
+                "{name} produced neither text nor images"
+            );
+            eprintln!(
+                "OK {name}: text={} chars, images={}",
+                text.len(),
+                images.len()
+            );
+        }
     }
 }
