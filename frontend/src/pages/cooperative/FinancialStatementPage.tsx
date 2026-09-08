@@ -214,15 +214,13 @@ export const FinancialStatementPage: React.FC = () => {
   ];
 
   return (
-    <AppShell
-      title={t("financialStatement.title")}
-      subtitle={t("financialStatement.subtitle")}
-      actions={
-        <div className="flex items-center gap-2">
+    <AppShell title={t("financialStatement.title")} subtitle={t("financialStatement.subtitle")}>
+      <div className="space-y-6">
+        <div className="flex items-center justify-end gap-2">
           <button
             onClick={handleSaveDraft}
             disabled={isReadOnly}
-            className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="size-4" />
             {t("financialStatement.saveDraft")}
@@ -230,7 +228,7 @@ export const FinancialStatementPage: React.FC = () => {
           <button
             onClick={handleSubmit}
             disabled={isReadOnly || isSubmitting || !isBalanced}
-            className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="size-4" />
             {isSubmitting
@@ -238,9 +236,6 @@ export const FinancialStatementPage: React.FC = () => {
               : t("financialStatement.submitFiling")}
           </button>
         </div>
-      }
-    >
-      <div className="space-y-6">
         {/* Upload Financial Statement Banner */}
         {!isReadOnly && !showUpload && (
           <div className="flex items-center gap-4 p-4 rounded-xl border border-primary/20 bg-primary/5">

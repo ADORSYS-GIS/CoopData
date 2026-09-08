@@ -499,7 +499,7 @@ export const ConsolidatedDashboardSheet: React.FC<ConsolidatedDashboardSheetProp
             </BarChart>
           </div>
         </div>
-        <table className="w-full text-left text-[11px] mb-8 border-collapse">
+        <table className="w-full text-left text-xs mb-8 border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
               <th className="p-2 border border-slate-700 w-1/4">

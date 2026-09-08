@@ -42,20 +42,20 @@ function buildKpiGroups(t: (key: string) => string): Record<string, BenchmarkGro
     balances: {
       label: t("analytics.comparisonGroupBalances"),
       icon: Coins,
-      colorClass: "text-blue-500 bg-blue-50 dark:bg-blue-950/30",
-      comboboxIconClass: "text-blue-400",
+      colorClass: "text-accent bg-accent/10 dark:bg-primary/30",
+      comboboxIconClass: "text-accent",
     },
     ratios: {
       label: t("analytics.comparisonGroupRatios"),
       icon: Percent,
-      colorClass: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30",
-      comboboxIconClass: "text-emerald-400",
+      colorClass: "text-success bg-success/10 dark:bg-success/30",
+      comboboxIconClass: "text-success",
     },
     non_financial: {
       label: t("analytics.comparisonGroupNonFinancial"),
       icon: Users,
-      colorClass: "text-purple-500 bg-purple-50 dark:bg-purple-950/30",
-      comboboxIconClass: "text-purple-400",
+      colorClass: "text-accent bg-accent/10 dark:bg-accent/30",
+      comboboxIconClass: "text-accent",
     },
   };
 }

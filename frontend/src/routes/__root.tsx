@@ -90,7 +90,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{t("root.error.desc")}</p>
         {import.meta.env.DEV && (
-          <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-muted px-3 py-2 text-left text-[11px] text-destructive">
+          <pre className="mt-3 max-h-32 overflow-auto rounded-lg bg-muted px-3 py-2 text-left text-xs text-destructive">
             {error?.message ?? String(error)}
           </pre>
         )}

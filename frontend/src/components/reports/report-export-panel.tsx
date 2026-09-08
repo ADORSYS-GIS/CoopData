@@ -1,13 +1,5 @@
 import { useState, useMemo } from "react";
-import {
-  Download,
-  FileText,
-  CheckCircle2,
-  X,
-  Loader2,
-  ChevronRight,
-  RefreshCw,
-} from "lucide-react";
+import { Download, FileText, CheckCircle2, X, ChevronRight, RefreshCw } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -33,6 +25,7 @@ import {
 import { StepIndicator } from "./step-indicator";
 import { SelectionSummary } from "./selection-summary";
 import { ActiveStepPicker } from "./active-step-picker";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ReportExportPanelProps {
   submissionId?: string;
@@ -618,7 +611,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
             <div className="flex items-center justify-between border-t border-border px-6 py-4 shrink-0 bg-muted/10">
               {/* Breadcrumb hint */}
               {(needsFedSelector || needsApexSelector || needsCoopSelector) && (
-                <div className="flex items-center gap-1 text-[11px] text-muted-foreground min-w-0 flex-wrap">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0 flex-wrap">
                   {needsFedSelector && (
                     <span
                       className={
@@ -695,12 +688,11 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                     onClick={handleRegenerate}
                     disabled={!canExport || isExporting || isRegenerating}
                     title={t("reportExport.regenerateTooltip")}
-                    className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors disabled:opacity-40"
+                    className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-warning/30 bg-warning/10 text-xs font-semibold text-warning-foreground hover:bg-warning/15 transition-colors disabled:opacity-40"
                   >
                     {isRegenerating ? (
                       <>
-                        <Loader2 className="size-3.5 animate-spin" />{" "}
-                        {t("reportExport.regenerating")}
+                        <Spinner size="sm" /> {t("reportExport.regenerating")}
                       </>
                     ) : (
                       <>
@@ -717,7 +709,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 >
                   {isExporting ? (
                     <>
-                      <Loader2 className="size-3.5 animate-spin" /> {t("reportExport.exporting")}
+                      <Spinner size="sm" /> {t("reportExport.exporting")}
                     </>
                   ) : (
                     <>

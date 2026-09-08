@@ -13,6 +13,8 @@ import {
   Calendar,
   FileCheck,
   TrendingUp,
+  Mail,
+  Building2,
 } from "lucide-react";
 import {
   type ColumnDef,
@@ -126,7 +128,7 @@ function createColumns(
             <Globe className="size-3" />
             {primary.name}
             {primary.verified && (
-              <span className="ml-1 text-emerald-500" title={t("federationsPage.tooltipVerified")}>
+              <span className="ml-1 text-success" title={t("federationsPage.tooltipVerified")}>
                 ✓
               </span>
             )}
@@ -238,7 +240,7 @@ function FederationForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField
           control={form.control}
           name="name"
@@ -246,7 +248,14 @@ function FederationForm({
             <FormItem>
               <FormLabel>{t("federationsPage.formLabelName")}</FormLabel>
               <FormControl>
-                <Input placeholder={t("federationsPage.formPlaceholderName")} {...field} />
+                <div className="relative">
+                  <Building2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder={t("federationsPage.formPlaceholderName")}
+                    {...field}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -260,7 +269,14 @@ function FederationForm({
             <FormItem>
               <FormLabel>{t("federationsPage.formLabelDomain")}</FormLabel>
               <FormControl>
-                <Input placeholder={t("federationsPage.formPlaceholderDomain")} {...field} />
+                <div className="relative">
+                  <Globe className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder={t("federationsPage.formPlaceholderDomain")}
+                    {...field}
+                  />
+                </div>
               </FormControl>
               <FormDescription className="text-xs">
                 {t("federationsPage.formDescDomain")}
@@ -277,24 +293,28 @@ function FederationForm({
             <FormItem>
               <FormLabel>{t("federationsPage.formLabelEmail")}</FormLabel>
               <FormControl>
-                <Input
-                  type="email"
-                  placeholder={t("federationsPage.formPlaceholderEmail")}
-                  {...field}
-                  value={field.value ?? ""}
-                />
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    className="pl-9"
+                    placeholder={t("federationsPage.formPlaceholderEmail")}
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="bg-muted/50 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed flex items-start gap-2">
-          <ShieldAlert className="size-4 shrink-0 text-amber-600 mt-0.5" />
+        <div className="flex items-start gap-2.5 rounded-xl border border-warning/20 bg-warning/5 p-3 text-xs text-muted-foreground leading-relaxed">
+          <ShieldAlert className="size-4 shrink-0 text-warning mt-0.5" />
           <span>{t("federationsPage.disclaimer")}</span>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 pt-1">
           <DialogClose asChild>
             <Button type="button" variant="outline">
               {t("federationsPage.cancel")}
@@ -438,15 +458,7 @@ export const FederationsPage: React.FC = () => {
   };
 
   return (
-    <AppShell
-      title={t("federationsPage.title")}
-      subtitle={t("federationsPage.subtitle")}
-      actions={
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="size-4" /> {t("federationsPage.registerFedBtn")}
-        </Button>
-      }
-    >
+    <AppShell title={t("federationsPage.title")} subtitle={t("federationsPage.subtitle")}>
       <div className="space-y-6">
         {/* Statistics Row */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -485,13 +497,18 @@ export const FederationsPage: React.FC = () => {
           title={t("federationsPage.directoryTitle")}
           subtitle={t("federationsPage.directorySubtitle")}
           action={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toast.success(t("federationsPage.toastExporting"))}
-            >
-              <Download className="size-3.5" /> {t("federationsPage.exportCsv")}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toast.success(t("federationsPage.toastExporting"))}
+              >
+                <Download className="size-3.5" /> {t("federationsPage.exportCsv")}
+              </Button>
+              <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+                <Plus className="size-4" /> {t("federationsPage.registerFedBtn")}
+              </Button>
+            </div>
           }
         >
           {/* Search */}

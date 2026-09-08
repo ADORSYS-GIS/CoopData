@@ -24,10 +24,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Landmark, Users, BarChart3, HelpCircle, Globe, Shield } from "lucide-react";
+import { Landmark, Users, BarChart3, HelpCircle, Globe, Shield } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { Spinner } from "@/components/ui/spinner";
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+const COLORS = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "#ef4444",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
 
 export const NonFinancialConsolidation: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
@@ -47,7 +55,7 @@ export const NonFinancialConsolidation: React.FC = () => {
   if (isLoadingCatalog) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        <Spinner size="md" className="mr-2 h-5 w-5" />
         {t("analytics.loadingCatalog")}
       </div>
     );
@@ -93,7 +101,7 @@ export const NonFinancialConsolidation: React.FC = () => {
 
       {selectedIndicator && isLoadingMetrics && (
         <div className="flex items-center justify-center py-24 text-muted-foreground">
-          <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
+          <Spinner size="md" className="mr-2 h-6 w-6 text-primary" />
           {t("analytics.consolidatingMetrics")}
         </div>
       )}
@@ -161,13 +169,13 @@ export const NonFinancialConsolidation: React.FC = () => {
                       <Bar
                         dataKey="total_sum"
                         name={t("analytics.totalSum")}
-                        fill="#3b82f6"
+                        fill="var(--chart-1)"
                         radius={[4, 4, 0, 0]}
                       />
                       <Bar
                         dataKey="average"
                         name={t("analytics.average")}
-                        fill="#10b981"
+                        fill="var(--chart-2)"
                         radius={[4, 4, 0, 0]}
                       />
                     </BarChart>

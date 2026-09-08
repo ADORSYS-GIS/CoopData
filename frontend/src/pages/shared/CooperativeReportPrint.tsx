@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
 import {
   useCooperativeKpis,
@@ -66,7 +67,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
-          <div className="size-10 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600" />
+          <Spinner size="xl" className="text-accent" />
           <p className="mt-4 text-sm font-semibold">{t("printReports.generatingLayout")}</p>
         </div>
       </div>
@@ -78,7 +79,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800 p-8">
         <div className="text-center">
-          <p className="text-lg font-bold text-red-600">{t("printReports.failedLoad")}</p>
+          <p className="text-lg font-bold text-destructive">{t("printReports.failedLoad")}</p>
           <p className="text-sm text-slate-500 mt-1">{t("printReports.failedLoadDesc")}</p>
         </div>
       </div>

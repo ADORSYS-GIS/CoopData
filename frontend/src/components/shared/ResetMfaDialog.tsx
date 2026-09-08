@@ -1,4 +1,4 @@
-import { Loader2, RefreshCcw, Eye, EyeOff, Smartphone, AlertTriangle } from "lucide-react";
+import { RefreshCcw, Eye, EyeOff, Smartphone, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useResetMfa } from "@/hooks/auth/useSecuritySettings";
 import { keycloak } from "@/services/shared/authService";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ResetMfaDialogProps {
   open: boolean;
@@ -217,11 +218,7 @@ export const ResetMfaDialog: React.FC<ResetMfaDialogProps> = ({ open, onOpenChan
             disabled={resetMfa.isPending || !password || (!isLostDevice && otp.length !== 6)}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-warning px-4 py-2 text-sm font-semibold text-warning-foreground transition-colors hover:bg-warning/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {resetMfa.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <RefreshCcw className="size-4" />
-            )}
+            {resetMfa.isPending ? <Spinner size="sm" /> : <RefreshCcw className="size-4" />}
             {t("profile.mfaConfirmReset", "Reset & Get New Code")}
           </button>
         </DialogFooter>

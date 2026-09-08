@@ -58,27 +58,27 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
 
       <div className="border-t border-slate-700/60 pt-8 flex gap-8 text-xs text-slate-400 relative z-10 flex-wrap">
         <div className="flex-1 min-w-[80px]">
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+          <p className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-1">
             {t("printReports.consolidated.reportingYear")}
           </p>
           <p className="text-sm font-bold text-white">{year}</p>
         </div>
         {totalApexes !== undefined && (
           <div className="flex-1 min-w-[80px]">
-            <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+            <p className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-1">
               {t("printReports.consolidated.activeApexes")}
             </p>
             <p className="text-sm font-bold text-white">{totalApexes}</p>
           </div>
         )}
         <div className="flex-1 min-w-[80px]">
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+          <p className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-1">
             {t("printReports.consolidated.supervisedCoops")}
           </p>
           <p className="text-sm font-bold text-white">{totalCooperatives}</p>
         </div>
         <div>
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+          <p className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-1">
             {t("printReports.consolidated.submissionRate")}
           </p>
           <p className="text-sm font-bold text-white">
@@ -86,7 +86,7 @@ export const ConsolidatedCoverPage: React.FC<ConsolidatedCoverPageProps> = ({
           </p>
         </div>
         <div className="flex-1 min-w-[80px]">
-          <p className="uppercase tracking-widest text-[9px] text-slate-500 font-bold mb-1">
+          <p className="uppercase tracking-widest text-[10px] text-slate-500 font-bold mb-1">
             {t("printReports.consolidated.generatedDate")}
           </p>
           <p className="text-sm font-bold text-white">

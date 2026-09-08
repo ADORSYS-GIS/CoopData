@@ -12,9 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 interface PortfolioClassificationProps {
   reportingYear: number;
@@ -292,7 +293,7 @@ export function PortfolioClassification({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+        <Spinner size="md" className="mr-2 h-5 w-5 text-primary" />
         {t("analytics.loadingPortfolioClassification")}
       </div>
     );
@@ -301,12 +302,12 @@ export function PortfolioClassification({
   return (
     <div className="space-y-6">
       {/* Excel Blue Banner with Slicers */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-blue-950 text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-blue-800">
+      <div className="bg-gradient-to-r from-primary via-primary to-primary text-white rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-primary">
         <div>
           <h2 className="text-xl font-bold tracking-tight">
             {t("analytics.portfolioClassificationTitle")}
           </h2>
-          <p className="text-xs text-blue-200/80 mt-1 font-medium">
+          <p className="text-xs text-primary-foreground/80 mt-1 font-medium">
             {t("analytics.portfolioClassificationSubtitle", { year: reportingYear })}
           </p>
         </div>
@@ -314,7 +315,7 @@ export function PortfolioClassification({
         {/* Slicers Section */}
         <div className="flex items-center gap-3">
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[120px]">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80 block mb-1">
               {t("analytics.date")}
             </span>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -333,7 +334,7 @@ export function PortfolioClassification({
           </div>
 
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[200px]">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-blue-200 block mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80 block mb-1">
               {t("analytics.cooperativesLabel")}
             </span>
             <div className="relative">
@@ -348,7 +349,7 @@ export function PortfolioClassification({
                 <SelectContent>
                   <SelectItem
                     value="clear_all_custom_option"
-                    className="text-xs font-bold text-red-600"
+                    className="text-xs font-bold text-destructive"
                   >
                     {t("analytics.resetSelection")}
                   </SelectItem>
@@ -359,7 +360,7 @@ export function PortfolioClassification({
                           type="checkbox"
                           checked={selectedCoopIds.includes(coop.id)}
                           readOnly
-                          className="rounded text-blue-600 size-3"
+                          className="rounded text-accent size-3"
                         />
                         {coop.name}
                       </span>
@@ -373,8 +374,8 @@ export function PortfolioClassification({
       </div>
 
       {/* Info Explanation Card */}
-      <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-4 flex gap-3 text-xs leading-relaxed shadow-sm">
-        <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
+      <div className="bg-accent/5 border border-accent/10 text-accent rounded-xl p-4 flex gap-3 text-xs leading-relaxed shadow-sm">
+        <Info className="size-4 text-accent shrink-0 mt-0.5" />
         <div>
           <span className="font-bold block mb-1">{t("analytics.spreadsheetAccountMapping")}</span>
           {t("analytics.spreadsheetAccountMappingDesc")}
@@ -405,7 +406,7 @@ export function PortfolioClassification({
           <div className="overflow-x-auto border border-border rounded-xl">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-border bg-muted/40 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b border-border bg-muted/40 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   <th className="py-3 px-4 w-96 sticky left-0 bg-background border-r border-border z-10">
                     {t("analytics.categoryMaturity")}
                   </th>
@@ -419,12 +420,12 @@ export function PortfolioClassification({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border font-mono text-[11px]">
+              <tbody className="divide-y divide-border font-mono text-xs">
                 {classificationRows.map((row, rIdx) => {
                   if (row.isHeader) {
                     return (
                       <tr key={`h-${rIdx}`} className="bg-muted/10 font-bold">
-                        <td className="py-2.5 px-4 sticky left-0 bg-background border-r border-border font-sans font-bold text-primary uppercase text-[9px] tracking-wide">
+                        <td className="py-2.5 px-4 sticky left-0 bg-background border-r border-border font-sans font-bold text-primary uppercase text-[10px] tracking-wide">
                           {row.label}
                         </td>
                         {filteredMatrices.map((coop) => {

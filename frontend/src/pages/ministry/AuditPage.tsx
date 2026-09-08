@@ -5,7 +5,6 @@ import {
   ShieldCheck,
   Activity,
   Globe,
-  Loader2,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
@@ -14,6 +13,7 @@ import {
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell, Card, StatCard } from "@/components/app-shell";
 import { useAuditLogs, type AuditLog, type AuditLogFilters } from "@/hooks/audit/useAuditLogs";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -55,12 +55,12 @@ function shortId(id?: string | null): string {
 }
 
 const actionTone: Record<string, string> = {
-  CREATE: "text-emerald-600 bg-emerald-50 border-emerald-200",
-  UPDATE: "text-sky-600 bg-sky-50 border-sky-200",
-  DELETE: "text-rose-600 bg-rose-50 border-rose-200",
-  INVITE: "text-violet-600 bg-violet-50 border-violet-200",
-  DELETE_INVITATION: "text-rose-600 bg-rose-50 border-rose-200",
-  RESEND_INVITATION: "text-amber-600 bg-amber-50 border-amber-200",
+  CREATE: "text-success bg-success/10 border-success/20",
+  UPDATE: "text-accent bg-accent/10 border-accent/20",
+  DELETE: "text-destructive bg-destructive/10 border-destructive/20",
+  INVITE: "text-accent bg-accent/10 border-accent/20",
+  DELETE_INVITATION: "text-destructive bg-destructive/10 border-destructive/20",
+  RESEND_INVITATION: "text-warning bg-warning/10 border-warning/20",
 };
 
 export const AuditPage: React.FC = () => {
@@ -139,7 +139,7 @@ export const AuditPage: React.FC = () => {
                   resetPage();
                 }}
                 placeholder={t("auditLog.filterActorPlaceholder")}
-                className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-sm transition-all focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/10"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-slate-900 placeholder:text-slate-500 shadow-sm transition-all focus:border-accent/30 focus:outline-none focus:ring-2 focus:ring-accent/10"
               />
             </div>
             <select
@@ -148,7 +148,7 @@ export const AuditPage: React.FC = () => {
                 setAction(e.target.value);
                 resetPage();
               }}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/10"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-accent/30 focus:outline-none focus:ring-2 focus:ring-accent/10"
             >
               {ACTION_OPTIONS.map((a) => (
                 <option key={a} value={a}>
@@ -162,7 +162,7 @@ export const AuditPage: React.FC = () => {
                 setResourceType(e.target.value);
                 resetPage();
               }}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/10"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-accent/30 focus:outline-none focus:ring-2 focus:ring-accent/10"
             >
               {RESOURCE_OPTIONS.map((r) => (
                 <option key={r} value={r}>
@@ -174,7 +174,7 @@ export const AuditPage: React.FC = () => {
 
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              <Spinner size="lg" className="text-muted-foreground" />
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">

@@ -1,0 +1,241 @@
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+
+  # ── Remote state (S3 + DynamoDB locking) ────────────────────────────────────
+  # BOOTSTRAP REQUIRED ONCE before enabling this block:
+  #   1. Create the S3 bucket (SSE enabled) and DynamoDB lock table, e.g.:
+  #        aws s3api create-bucket --bucket coopdata-terraform-state --region eu-central-1 \
+  #          --create-bucket-configuration LocationConstraint=eu-central-1
+  #        aws s3api put-bucket-versioning --bucket coopdata-terraform-state \
+  #          --versioning-configuration Status=Enabled
+  #        aws dynamodb create-table --table-name coopdata-terraform-locks \
+  #          --attribute-definitions AttributeName=LockID,AttributeType=S \
+  #          --key-schema AttributeName=LockID,KeyType=HASH \
+  #          --billing-mode PAY_PER_REQUEST
+  #   2. Run `terraform init -migrate-state` to migrate the local state file.
+  # This provides team access, state locking, versioning, and encryption.
+  backend "s3" {
+    bucket         = "coopdata-terraform-state"
+    key            = "coopdata/terraform.tfstate"
+    region         = "eu-central-1"
+    encrypt        = true
+    dynamodb_table = "coopdata-terraform-locks"
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+# ── SSH Key Pair (imported — private key NEVER enters Terraform state) ────────
+# The private key is generated OUTSIDE Terraform by the operator:
+#   ssh-keygen -t ed25519 -f ~/.ssh/coopdata-<env> -C "coopdata-<env>"
+# Only the PUBLIC key is passed in via the `ssh_public_key` variable and stored
+# in state. This keeps the private key out of the S3 backend state, so a state
+# compromise cannot grant SSH access to the instance.
+resource "aws_key_pair" "main" {
+  key_name   = "coopdata-${var.environment}-key"
+  public_key = var.ssh_public_key
+}
+
+# ── Data: Latest Ubuntu 22.04 LTS AMI ─────────────────────────────────────────
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
+# ── VPC & Networking ──────────────────────────────────────────────────────────
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = {
+    Name        = "coopdata-${var.environment}-vpc"
+    Environment = var.environment
+    Project     = "CoopData"
+  }
+}
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name        = "coopdata-${var.environment}-igw"
+    Environment = var.environment
+    Project     = "CoopData"
+  }
+}
+
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name        = "coopdata-${var.environment}-public-subnet"
+    Environment = var.environment
+    Project     = "CoopData"
+  }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+
+  tags = {
+    Name        = "coopdata-${var.environment}-public-rt"
+    Environment = var.environment
+    Project     = "CoopData"
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+# ── Security Group ────────────────────────────────────────────────────────────
+resource "aws_security_group" "ec2" {
+  name        = "coopdata-${var.environment}-sg"
+  description = "Security group for CoopData EC2 deployment"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "SSH Access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ssh_cidr]
+  }
+
+  ingress {
+    description = "HTTP Traffic"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS Traffic"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "coopdata-${var.environment}-sg"
+    Environment = var.environment
+    Project     = "CoopData"
+  }
+}
+
+# ── EC2 Instance ──────────────────────────────────────────────────────────────
+resource "aws_instance" "server" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
+  key_name               = aws_key_pair.main.key_name
+  subnet_id              = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.ec2.id]
+
+  root_block_device {
+    volume_size           = var.root_volume_size
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
+
+  # Require IMDSv2 tokens — mitigates SSRF-based credential theft via the instance
+  # metadata service (CVE-2021-... / IMDSv1 request forgery).
+  metadata_options {
+    http_tokens            = "required"
+    http_endpoint          = "enabled"
+    instance_metadata_tags = "enabled"
+  }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              set -euo pipefail
+              
+              # System packages
+              apt-get update -y
+              apt-get install -y git curl ca-certificates gnupg lsb-release nginx
+              
+              # Install Docker & Docker Compose V2
+              install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              chmod a+r /etc/apt/keyrings/docker.gpg
+              
+              echo \
+                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+                tee /etc/apt/sources.list.d/docker.list > /dev/null
+                
+              apt-get update -y
+              apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              
+              # Add ubuntu user to docker group
+              usermod -aG docker ubuntu
+              
+              # Set up swap space (2GB) for stability
+              fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+              chmod 600 /swapfile
+              mkswap /swapfile
+              swapon /swapfile
+              echo '/swapfile none swap sw 0 0' >> /etc/fstab
+              
+              # Clone CoopData repository for ubuntu user
+              # WARNING: var.repo_url must be a PUBLIC URL. Never embed credentials
+              # (e.g. https://TOKEN@github.com/...) — they would be exposed in EC2
+              # instance metadata and cloud-init logs. Use a deploy key or OIDC instead.
+              sudo -u ubuntu git clone ${var.repo_url} /home/ubuntu/CoopData
+              chown -R ubuntu:ubuntu /home/ubuntu/CoopData
+              EOF
+
+  tags = {
+    Name        = "coopdata-${var.environment}-server"
+    Environment = var.environment
+    Project     = "CoopData"
+  }
+
+  depends_on = [aws_key_pair.main]
+}
+
+# ── Elastic IP ────────────────────────────────────────────────────────────────
+resource "aws_eip" "server_ip" {
+  instance = aws_instance.server.id
+  domain   = "vpc"
+
+  tags = {
+    Name        = "coopdata-${var.environment}-eip"
+    Environment = var.environment
+    Project     = "CoopData"
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save, Info, CheckCircle, HelpCircle } from "lucide-react";
+import { Save, Info, CheckCircle, HelpCircle } from "lucide-react";
 import { Card } from "@/components/app-shell";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
 import { useMyCooperativeProfile } from "@/hooks/cooperatives/useCooperatives";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 interface NonFinancialIndicatorsFormProps {
   submissionId: string;
@@ -168,7 +169,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
   if (isLoadingCatalog || isLoadingEntries) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        <Spinner size="md" className="mr-2 h-5 w-5" />
         {t("nfIndicatorsForm.loading")}
       </div>
     );
@@ -290,7 +291,7 @@ export const NonFinancialIndicatorsForm: React.FC<NonFinancialIndicatorsFormProp
             >
               {saveMutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner size="md" className="h-4 w-4" />
                   {t("nfIndicatorsForm.saving")}
                 </>
               ) : (

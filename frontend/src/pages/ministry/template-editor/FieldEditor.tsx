@@ -62,7 +62,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
                 )}
 
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs text-muted-foreground">
-                  <span className="capitalize bg-muted border border-border px-2 py-0.5 rounded-md font-medium text-[11px]">
+                  <span className="capitalize bg-muted border border-border px-2 py-0.5 rounded-md font-medium text-xs">
                     {t("templateEditor.fieldEditor.typeLabel")}
                     {field.type === "select"
                       ? t("templateEditor.fieldEditor.typeDropdown")

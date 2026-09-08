@@ -14,7 +14,6 @@ import { Card } from "@/components/app-shell";
 import { SearchableCombobox, type ComboboxOption } from "@/components/ui/searchable-combobox";
 import {
   ArrowRightLeft,
-  Loader2,
   AlertCircle,
   CheckCircle,
   Users,
@@ -26,6 +25,7 @@ import {
 } from "lucide-react";
 import { BenchmarkMatrix } from "@/components/analytics/benchmark-matrix";
 import { computeKpiAverages } from "@/components/analytics/benchmark-utils";
+import { Spinner } from "@/components/ui/spinner";
 import type {
   BenchmarkAverages,
   BenchmarkComparisonLabels,
@@ -306,8 +306,8 @@ export function BenchmarkComparison({
     const coopVal = getValue(selectedCoop, selectedKpi);
     const targetVal = getCompareValue(selectedKpi);
     return [
-      { name: selectedCoop.name, Value: coopVal, color: "#3b82f6" },
-      { name: compareTarget.name, Value: targetVal, color: "#10b981" },
+      { name: selectedCoop.name, Value: coopVal, color: "var(--chart-1)" },
+      { name: compareTarget.name, Value: targetVal, color: "var(--chart-2)" },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -362,7 +362,7 @@ export function BenchmarkComparison({
           label: c.name,
           description: c.region ?? labels.unknownRegion,
           group: "cooperatives",
-          icon: <Users className="size-3 text-blue-400" />,
+          icon: <Users className="size-3 text-accent" />,
         })),
     ];
   }, [
@@ -397,7 +397,7 @@ export function BenchmarkComparison({
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-20 text-slate-500 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-sm">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+        <Spinner size="md" className="h-8 w-8 text-primary mb-3" />
         <span className="text-sm font-medium tracking-wide">{labels.loading}</span>
       </div>
     );
@@ -407,7 +407,7 @@ export function BenchmarkComparison({
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center p-16 text-center bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-sm">
-        <AlertCircle className="h-10 w-10 text-rose-500 mb-3" />
+        <AlertCircle className="h-10 w-10 text-destructive mb-3" />
         <h4 className="text-base font-bold text-slate-900 dark:text-white">
           {labels.loadErrorTitle}
         </h4>
@@ -435,8 +435,8 @@ export function BenchmarkComparison({
   // selected coop lacks data while others in the population have it.)
   if (isCoopUser && cooperatives[0] && !cooperatives[0].has_data) {
     return (
-      <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2">
-        <AlertCircle className="size-4 shrink-0 text-amber-500" />
+      <div className="p-5 border rounded-2xl bg-warning/10 border-warning/20 text-warning-foreground text-sm flex items-center gap-2">
+        <AlertCircle className="size-4 shrink-0 text-warning" />
         <span>{labels.noSubmittedData}</span>
       </div>
     );
@@ -467,7 +467,7 @@ export function BenchmarkComparison({
           {/* ── Target cooperative ─────────────────────────────────── */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-              <Users className="size-3.5 text-blue-500" /> {labels.targetCooperative}
+              <Users className="size-3.5 text-accent" /> {labels.targetCooperative}
             </label>
             <SearchableCombobox
               value={activeCoopId}
@@ -476,7 +476,7 @@ export function BenchmarkComparison({
                 value: c.cooperative_id,
                 label: c.name,
                 description: c.region ?? labels.unknownRegion,
-                icon: <MapPin className="size-3 text-blue-400" />,
+                icon: <MapPin className="size-3 text-accent" />,
               }))}
               placeholder={labels.chooseCooperative}
               searchPlaceholder={labels.searchCooperative}
@@ -486,12 +486,12 @@ export function BenchmarkComparison({
             {selectedCoop && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {selectedCoopSector && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent">
                     <Briefcase className="size-3" /> {labels.sectorBadge(selectedCoopSector)}
                   </span>
                 )}
                 {selectedCoopRegion && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent">
                     <MapPin className="size-3" /> {selectedCoopRegion}
                   </span>
                 )}
@@ -502,7 +502,7 @@ export function BenchmarkComparison({
           {/* ── Comparison peer ────────────────────────────────────── */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-              <ArrowRightLeft className="size-3.5 text-emerald-500" /> {labels.comparisonPeer}
+              <ArrowRightLeft className="size-3.5 text-success" /> {labels.comparisonPeer}
             </label>
             <SearchableCombobox
               value={compareTargetId}
@@ -526,7 +526,7 @@ export function BenchmarkComparison({
             />
             {compareTarget.isSector && (
               <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 pt-1">
-                <Briefcase className="size-3 text-indigo-400" />
+                <Briefcase className="size-3 text-accent" />
                 {compareTarget.isRegional
                   ? labels.sectorRegionalTargetSubtitle(
                       selectedCoopSector ?? "",
@@ -540,7 +540,7 @@ export function BenchmarkComparison({
           {/* ── Focus metric ───────────────────────────────────────── */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-              <Percent className="size-3.5 text-indigo-500" /> {labels.focusMetric}
+              <Percent className="size-3.5 text-accent" /> {labels.focusMetric}
             </label>
             <SearchableCombobox
               value={selectedKpi}
@@ -571,28 +571,28 @@ export function BenchmarkComparison({
         </div>
 
         {selectedCoop && !selectedCoop.has_data ? (
-          <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2">
-            <AlertCircle className="size-4 shrink-0 text-amber-500" />
+          <div className="p-5 border rounded-2xl bg-warning/10 border-warning/20 text-warning-foreground text-sm flex items-center gap-2">
+            <AlertCircle className="size-4 shrink-0 text-warning" />
             <span>{labels.noSubmittedData}</span>
           </div>
         ) : isNationalInsufficient ? (
-          <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">
-            <AlertCircle className="size-4 shrink-0 text-amber-500" />
+          <div className="p-5 border rounded-2xl bg-warning/10 border-warning/20 text-warning-foreground text-sm flex items-center gap-2 mt-6">
+            <AlertCircle className="size-4 shrink-0 text-warning" />
             <span>{labels.insufficientNational}</span>
           </div>
         ) : isSectorRegionalInsufficient ? (
-          <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">
-            <AlertCircle className="size-4 shrink-0 text-amber-500" />
+          <div className="p-5 border rounded-2xl bg-warning/10 border-warning/20 text-warning-foreground text-sm flex items-center gap-2 mt-6">
+            <AlertCircle className="size-4 shrink-0 text-warning" />
             <span>{labels.insufficientSectorRegional}</span>
           </div>
         ) : isSectorInsufficient ? (
-          <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">
-            <AlertCircle className="size-4 shrink-0 text-amber-500" />
+          <div className="p-5 border rounded-2xl bg-warning/10 border-warning/20 text-warning-foreground text-sm flex items-center gap-2 mt-6">
+            <AlertCircle className="size-4 shrink-0 text-warning" />
             <span>{labels.insufficientSector}</span>
           </div>
         ) : isRegionalInsufficient ? (
-          <div className="p-5 border rounded-2xl bg-amber-50/40 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 text-sm flex items-center gap-2 mt-6">
-            <AlertCircle className="size-4 shrink-0 text-amber-500" />
+          <div className="p-5 border rounded-2xl bg-warning/10 border-warning/20 text-warning-foreground text-sm flex items-center gap-2 mt-6">
+            <AlertCircle className="size-4 shrink-0 text-warning" />
             <span>{labels.insufficientRegional}</span>
           </div>
         ) : selectedCoop && activeMetricInfo ? (
@@ -616,12 +616,12 @@ export function BenchmarkComparison({
                   >
                     <defs>
                       <linearGradient id={coopGradientId} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.85} />
-                        <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.85} />
+                        <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.85} />
+                        <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.85} />
                       </linearGradient>
                       <linearGradient id={peerGradientId} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.85} />
-                        <stop offset="95%" stopColor="#047857" stopOpacity={0.85} />
+                        <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.85} />
+                        <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.85} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.06} stroke="currentColor" />
@@ -642,7 +642,7 @@ export function BenchmarkComparison({
                         boxShadow: "0 10px 15px -3px rgba(0,0,0,0.3)",
                       }}
                       labelStyle={{ color: "#fff", fontWeight: "bold", fontSize: "11px" }}
-                      itemStyle={{ color: "#94a3b8", fontSize: "11px" }}
+                      itemStyle={{ color: "var(--muted-foreground)", fontSize: "11px" }}
                       formatter={(val: unknown) => [
                         <span className="text-white font-bold">
                           {formatValue(Number(val), activeMetricInfo.unit)}
@@ -674,8 +674,8 @@ export function BenchmarkComparison({
                   {labels.insightTitle}
                 </h4>
                 <div className="space-y-4">
-                  <div className="p-3.5 bg-blue-50/30 dark:bg-blue-950/10 rounded-xl border border-blue-100/50 dark:border-blue-900/10">
-                    <span className="text-[10px] uppercase font-bold text-blue-500 tracking-wider">
+                  <div className="p-3.5 bg-accent/5 rounded-xl border border-accent/10">
+                    <span className="text-[10px] uppercase font-bold text-accent tracking-wider">
                       {selectedCoop.name}
                     </span>
                     <p className="font-heading text-2xl font-bold text-slate-900 dark:text-white num mt-0.5">
@@ -683,8 +683,8 @@ export function BenchmarkComparison({
                     </p>
                   </div>
 
-                  <div className="p-3.5 bg-emerald-50/30 dark:bg-emerald-950/10 rounded-xl border border-emerald-100/50 dark:border-emerald-900/10">
-                    <span className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
+                  <div className="p-3.5 bg-success/5 rounded-xl border border-success/10">
+                    <span className="text-[10px] uppercase font-bold text-success tracking-wider">
                       {compareTarget.name}
                     </span>
                     <p className="font-heading text-2xl font-bold text-slate-900 dark:text-white num mt-0.5">
@@ -709,20 +709,20 @@ export function BenchmarkComparison({
                     <div
                       className={`flex items-start gap-2.5 rounded-xl p-3.5 border transition-all ${
                         isBetter
-                          ? "bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-200/50 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-350"
-                          : "bg-rose-50/40 dark:bg-rose-950/10 border-rose-200/50 dark:border-rose-900/30 text-rose-700 dark:text-rose-350"
+                          ? "bg-success/10 border-success/20 text-success"
+                          : "bg-destructive/10 border-destructive/20 text-destructive"
                       }`}
                     >
                       {isBetter ? (
-                        <CheckCircle className="size-4 shrink-0 mt-0.5 text-emerald-500" />
+                        <CheckCircle className="size-4 shrink-0 mt-0.5 text-success" />
                       ) : (
-                        <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-500" />
+                        <AlertCircle className="size-4 shrink-0 mt-0.5 text-destructive" />
                       )}
                       <div>
                         <p className="text-xs font-bold leading-none">
                           {isBetter ? labels.outperforming : labels.watchRequired}
                         </p>
-                        <p className="text-[11px] opacity-80 mt-1.5 leading-normal">
+                        <p className="text-xs opacity-80 mt-1.5 leading-normal">
                           {isBetter ? labels.performingAbovePrefix : labels.standingBelowPrefix}
                           <span className="font-bold">
                             {Math.abs(percentDiff).toFixed(1)}%

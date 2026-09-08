@@ -56,14 +56,15 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
-  --font-heading: "DM Serif Display", Georgia, serif;
+  --font-heading: "DM Sans", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --shadow-elev-1: 0 1px 2px 0 oklch(0.15 0.02 250 / 0.06), 0 1px 3px 0 oklch(0.15 0.02 250 / 0.08);
+  /* Flattened, border-based elevation (ClickUp/Mercury model) — subtle, not heavy */
+  --shadow-elev-1: 0 1px 2px 0 oklch(0.15 0.02 250 / 0.04), 0 1px 3px 0 oklch(0.15 0.02 250 / 0.05);
   --shadow-elev-2:
-    0 4px 12px -2px oklch(0.15 0.02 250 / 0.1), 0 2px 4px -2px oklch(0.15 0.02 250 / 0.05);
+    0 2px 8px -2px oklch(0.15 0.02 250 / 0.06), 0 1px 2px -1px oklch(0.15 0.02 250 / 0.04);
   --shadow-elev-3:
-    0 12px 32px -4px oklch(0.15 0.02 250 / 0.14), 0 4px 8px -2px oklch(0.15 0.02 250 / 0.06);
+    0 8px 24px -4px oklch(0.15 0.02 250 / 0.1), 0 2px 6px -2px oklch(0.15 0.02 250 / 0.05);
 
   /* Easing curves (Emil Kowalski principles) */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -110,21 +111,22 @@
   --input: oklch(0.91 0.008 255);
   --ring: oklch(0.5 0.17 240);
 
+  /* Standard categorical chart palette — cohesive, professional, limited */
   --chart-1: oklch(0.5 0.17 240);
-  --chart-2: oklch(0.56 0.15 155);
-  --chart-3: oklch(0.7 0.15 75);
-  --chart-4: oklch(0.55 0.18 305);
-  --chart-5: oklch(0.62 0.14 200);
+  --chart-2: oklch(0.55 0.14 165);
+  --chart-3: oklch(0.66 0.13 85);
+  --chart-4: oklch(0.5 0.16 300);
+  --chart-5: oklch(0.6 0.12 205);
 
-  /* Professional Light Sidebar */
-  --sidebar: oklch(0.96 0.005 250);
-  --sidebar-foreground: oklch(0.15 0.05 258);
-  --sidebar-primary: oklch(0.5 0.17 240);
+  /* Deep navy sidebar — dark in both light and dark mode */
+  --sidebar: oklch(0.15 0.045 258);
+  --sidebar-foreground: oklch(0.92 0.01 250);
+  --sidebar-primary: oklch(0.68 0.16 240);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.92 0.005 250);
-  --sidebar-accent-foreground: oklch(0.15 0.05 258);
-  --sidebar-border: oklch(0.9 0.01 250);
-  --sidebar-ring: oklch(0.5 0.17 240);
+  --sidebar-accent: oklch(0.22 0.05 258);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.26 0.04 258);
+  --sidebar-ring: oklch(0.68 0.16 240);
 }
 
 .dark {
@@ -168,10 +170,10 @@
 
   /* Chart colors — brighter for dark mode */
   --chart-1: oklch(0.68 0.16 240);
-  --chart-2: oklch(0.72 0.17 155);
-  --chart-3: oklch(0.78 0.15 75);
-  --chart-4: oklch(0.68 0.18 305);
-  --chart-5: oklch(0.75 0.14 200);
+  --chart-2: oklch(0.72 0.16 165);
+  --chart-3: oklch(0.78 0.14 85);
+  --chart-4: oklch(0.68 0.17 300);
+  --chart-5: oklch(0.75 0.13 205);
 
   /* Sidebar stays deep navy in both modes */
   --sidebar: oklch(0.13 0.04 258);
@@ -184,9 +186,9 @@
   --sidebar-ring: oklch(0.68 0.16 240);
 
   /* Shadows — subtler in dark mode */
-  --shadow-elev-1: 0 1px 2px 0 oklch(0 0 0 / 0.3), 0 1px 3px 0 oklch(0 0 0 / 0.2);
-  --shadow-elev-2: 0 4px 12px -2px oklch(0 0 0 / 0.4), 0 2px 4px -2px oklch(0 0 0 / 0.2);
-  --shadow-elev-3: 0 12px 32px -4px oklch(0 0 0 / 0.5), 0 4px 8px -2px oklch(0 0 0 / 0.3);
+  --shadow-elev-1: 0 1px 2px 0 oklch(0 0 0 / 0.2), 0 1px 3px 0 oklch(0 0 0 / 0.15);
+  --shadow-elev-2: 0 2px 8px -2px oklch(0 0 0 / 0.25), 0 1px 2px -1px oklch(0 0 0 / 0.15);
+  --shadow-elev-3: 0 8px 24px -4px oklch(0 0 0 / 0.35), 0 2px 6px -2px oklch(0 0 0 / 0.2);
 }
 
 @layer base {

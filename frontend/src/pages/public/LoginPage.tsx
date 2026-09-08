@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLES, ROLE_USERS, type Role } from "@/constants/roles";
 import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "@/components/ui/spinner";
 
 export const LoginPage: React.FC = () => {
   const { login, isAuthenticated, isLoading, user } = useAuth();
@@ -108,7 +109,7 @@ export const LoginPage: React.FC = () => {
           </ul>
         </div>
 
-        <p className="text-[11px] text-primary-foreground/40 relative z-10">
+        <p className="text-xs text-primary-foreground/40 relative z-10">
           © {new Date().getFullYear()} {t("login.ministryName")}
         </p>
       </aside>
@@ -156,7 +157,7 @@ export const LoginPage: React.FC = () => {
           >
             {isLoading ? (
               <>
-                <div className="size-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                <Spinner size="sm" className="text-primary-foreground" />
                 {t("login.connecting")}
               </>
             ) : (
@@ -173,7 +174,7 @@ export const LoginPage: React.FC = () => {
             <>
               <div className="flex items-center gap-3 my-6">
                 <div className="flex-1 h-px bg-border" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t("login.devMode")}
                 </span>
                 <div className="flex-1 h-px bg-border" />
@@ -211,7 +212,7 @@ export const LoginPage: React.FC = () => {
                         >
                           {t(`rolesShort.${role.id}`)}
                         </p>
-                        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+                        <p className="mt-0.5 text-xs leading-snug text-muted-foreground line-clamp-2">
                           {t(`roles.${role.id}`)}
                         </p>
                       </button>
@@ -245,7 +246,7 @@ export const LoginPage: React.FC = () => {
             </>
           )}
 
-          <p className="text-[11px] leading-relaxed text-muted-foreground text-center mt-6">
+          <p className="text-xs leading-relaxed text-muted-foreground text-center mt-6">
             {t("login.acknowledgement")}
           </p>
         </div>
