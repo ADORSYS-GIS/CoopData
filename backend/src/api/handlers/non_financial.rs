@@ -80,6 +80,16 @@ pub async fn upload_non_financial(
         match field.name() {
             Some("file") => {
                 file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
+                // Sanitize file_name: remove path separators and null bytes to prevent path traversal
+                file_name = file_name
+                    .replace(['/', '\\', '\0'], "_")
+                    .chars()
+                    .filter(|c| !c.is_control())
+                    .collect();
+                // Ensure filename is not empty after sanitization
+                if file_name.is_empty() {
+                    file_name = "upload.xlsx".to_string();
+                }
                 content_type = field
                     .content_type()
                     .unwrap_or("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

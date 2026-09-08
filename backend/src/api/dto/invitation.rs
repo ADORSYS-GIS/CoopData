@@ -1,13 +1,19 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct CreateInvitationRequest {
+    #[validate(email(message = "Invalid email format"))]
     pub email: String,
+    #[validate(length(min = 1, max = 100, message = "First name must be 1-100 characters"))]
     pub first_name: String,
+    #[validate(length(min = 1, max = 100, message = "Last name must be 1-100 characters"))]
     pub last_name: String,
+    #[validate(length(min = 1, max = 50, message = "Role must be 1-50 characters"))]
     pub role: String,
     #[serde(default)]
+    #[validate(url(message = "Invalid redirect URL format"))]
     pub redirect_url: Option<String>,
 }
 
