@@ -35,6 +35,9 @@ pub struct AppConfig {
     pub s3_access_key: String,
     pub s3_secret_key: String,
     pub s3_region: String,
+    // Rate limiting
+    pub rate_limit_auth_max: u64,
+    pub rate_limit_auth_window_secs: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -96,6 +99,14 @@ impl AppConfig {
             s3_access_key: env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "minioadmin".into()), // Dev only
             s3_secret_key: env::var("S3_SECRET_KEY").unwrap_or_else(|_| "minioadmin".into()), // Dev only
             s3_region: env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".into()),
+            rate_limit_auth_max: env::var("RATE_LIMIT_AUTH_MAX")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(5),
+            rate_limit_auth_window_secs: env::var("RATE_LIMIT_AUTH_WINDOW_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(60),
         })
     }
 
@@ -162,6 +173,8 @@ mod tests {
             s3_access_key: "minioadmin".into(),
             s3_secret_key: "minioadmin".into(),
             s3_region: "us-east-1".into(),
+            rate_limit_auth_max: 5,
+            rate_limit_auth_window_secs: 60,
         }
     }
 

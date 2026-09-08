@@ -16,34 +16,6 @@ use crate::AppState;
 pub fn shared_routes() -> Router<AppState> {
     Router::new()
         .route("/me", get(get_current_user_profile))
-        .route(
-            "/me/password",
-            post(crate::api::handlers::me::change_password),
-        )
-        .route(
-            "/me/verify-identity",
-            post(crate::api::handlers::me::verify_identity),
-        )
-        .route(
-            "/me/security",
-            get(crate::api::handlers::me::get_security_settings),
-        )
-        .route(
-            "/me/security/mfa/setup",
-            post(crate::api::handlers::me::mfa_setup),
-        )
-        .route(
-            "/me/security/mfa/enable",
-            post(crate::api::handlers::me::enable_mfa),
-        )
-        .route(
-            "/me/security/mfa/reset",
-            post(crate::api::handlers::me::reset_mfa),
-        )
-        .route(
-            "/me/security/mfa",
-            delete(crate::api::handlers::me::disable_mfa),
-        )
         // Non-financial indicator catalog — readable by all authenticated roles
         .route(
             "/non-financial-indicators/catalog",
@@ -112,6 +84,41 @@ pub fn shared_routes() -> Router<AppState> {
         .route(
             "/settings/organization-labels/{key}",
             put(crate::api::handlers::organization_label::update_organization_label),
+        )
+}
+
+/// Sensitive auth-adjacent routes that are rate-limited by client IP to
+/// mitigate brute-force and abuse. The rate-limit layer is applied in
+/// `create_app` (it needs the `AppState`).
+pub fn sensitive_auth_routes() -> Router<AppState> {
+    Router::new()
+        .route(
+            "/me/password",
+            post(crate::api::handlers::me::change_password),
+        )
+        .route(
+            "/me/verify-identity",
+            post(crate::api::handlers::me::verify_identity),
+        )
+        .route(
+            "/me/security",
+            get(crate::api::handlers::me::get_security_settings),
+        )
+        .route(
+            "/me/security/mfa/setup",
+            post(crate::api::handlers::me::mfa_setup),
+        )
+        .route(
+            "/me/security/mfa/enable",
+            post(crate::api::handlers::me::enable_mfa),
+        )
+        .route(
+            "/me/security/mfa/reset",
+            post(crate::api::handlers::me::reset_mfa),
+        )
+        .route(
+            "/me/security/mfa",
+            delete(crate::api::handlers::me::disable_mfa),
         )
 }
 

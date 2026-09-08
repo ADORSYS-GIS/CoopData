@@ -4711,5 +4711,9 @@
     "matrixSubtitle": "Kuhlukaniswa lokunetulu kwatimethrikhi temibuto kanye nenhloso lekhetsiwe",
     "loadErrorTitle": "Kwehluleka Kulayisha Datha Yekuhlukanisa",
     "loadErrorDesc": "Kwenteka liphutsa ngesikhatsi kulayishwa kuhlukanisa kwekusebenta kwemibuto. Sicela utame futsi."
+  },
+  "errors": {
+    "rateLimited": "Imizamo leminyenti. Sicela uphindze emva kwemizuzwana {{seconds}}.",
+    "rateLimitedTitle": "Cala kancane"
   }
 }

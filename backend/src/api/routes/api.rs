@@ -172,6 +172,14 @@ pub fn create_app(state: AppState) -> Router {
 
     let protected = Router::new()
         .merge(shared_routes())
+        .merge(
+            crate::api::routes::shared::sensitive_auth_routes().layer(
+                axum::middleware::from_fn_with_state(
+                    state.clone(),
+                    crate::api::rate_limit::rate_limit_auth,
+                ),
+            ),
+        )
         .merge(user_routes())
         .nest(
             "/ministry",

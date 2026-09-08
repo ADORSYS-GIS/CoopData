@@ -6,6 +6,14 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+/// Result of a rate-limit check.
+#[derive(Debug, Clone, Copy)]
+pub struct RateLimitResult {
+    pub allowed: bool,
+    /// Seconds until the window resets (0 when allowed).
+    pub retry_after_secs: u64,
+}
+
 pub struct CacheService {
     backend: CacheBackend,
 }
@@ -182,6 +190,80 @@ impl CacheService {
                 let prefix = pattern.trim_end_matches('*');
                 lock.retain(|k, _| !k.starts_with(prefix));
                 Ok(())
+            }
+        }
+    }
+
+    /// Fixed-window rate limiter backed by the configured cache backend.
+    ///
+    /// Uses an atomic `INCR` + `EXPIRE` (Redis) or an equivalent in-memory counter.
+    /// Returns whether the request is allowed and, when denied, the seconds until
+    /// the window resets (for the `Retry-After` header).
+    pub async fn rate_limit(
+        &self,
+        key: &str,
+        max: u64,
+        window_secs: u64,
+    ) -> Result<RateLimitResult, redis::RedisError> {
+        match &self.backend {
+            CacheBackend::Redis(client) => {
+                let mut conn = client.get_multiplexed_async_connection().await?;
+                let script = redis::Script::new(
+                    r#"
+                    local current = redis.call('INCR', KEYS[1])
+                    if current == 1 then
+                        redis.call('EXPIRE', KEYS[1], ARGV[1])
+                    end
+                    local ttl = redis.call('TTL', KEYS[1])
+                    return {current, ttl}
+                    "#,
+                );
+                let (current, ttl): (i64, i64) = script
+                    .key(key)
+                    .arg(window_secs)
+                    .invoke_async(&mut conn)
+                    .await?;
+                let allowed = (current as u64) <= max;
+                Ok(RateLimitResult {
+                    allowed,
+                    retry_after_secs: if allowed { 0 } else { ttl.max(1) as u64 },
+                })
+            }
+            CacheBackend::Memory(map) => {
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64;
+                let mut lock = map.lock().unwrap();
+                let (count, reset_at) = match lock.get(key).cloned() {
+                    Some(json) => {
+                        let v: serde_json::Value =
+                            serde_json::from_str(&json).unwrap_or_default();
+                        let reset_at = v.get("reset_at").and_then(|x| x.as_u64()).unwrap_or(0);
+                        if now >= reset_at {
+                            (0u64, now + window_secs * 1000)
+                        } else {
+                            (
+                                v.get("count").and_then(|x| x.as_u64()).unwrap_or(0),
+                                reset_at,
+                            )
+                        }
+                    }
+                    None => (0u64, now + window_secs * 1000),
+                };
+                let new_count = count + 1;
+                let allowed = new_count <= max;
+                let payload = serde_json::json!({ "count": new_count, "reset_at": reset_at });
+                lock.insert(key.to_string(), payload.to_string());
+                let retry_after_secs = if allowed {
+                    0
+                } else {
+                    reset_at.saturating_sub(now).div_ceil(1000).max(1)
+                };
+                Ok(RateLimitResult {
+                    allowed,
+                    retry_after_secs,
+                })
             }
         }
     }
@@ -451,5 +533,48 @@ mod tests {
             assert!(result.is_some());
             assert_eq!(result.unwrap().value, i);
         }
+    }
+
+    #[tokio::test]
+    async fn rate_limit_allows_up_to_max_then_denies() {
+        let cache = CacheService::new("memory://").await.unwrap();
+        let key = "rl:test:1.2.3.4";
+
+        for i in 1..=5 {
+            let result = cache.rate_limit(key, 5, 60).await.unwrap();
+            assert!(result.allowed, "request {} should be allowed", i);
+        }
+
+        let denied = cache.rate_limit(key, 5, 60).await.unwrap();
+        assert!(!denied.allowed);
+        assert!(denied.retry_after_secs >= 1);
+    }
+
+    #[tokio::test]
+    async fn rate_limit_resets_after_window() {
+        let cache = CacheService::new("memory://").await.unwrap();
+        let key = "rl:test:reset";
+
+        for _ in 0..5 {
+            cache.rate_limit(key, 5, 1).await.unwrap();
+        }
+        let denied = cache.rate_limit(key, 5, 1).await.unwrap();
+        assert!(!denied.allowed);
+
+        tokio::time::sleep(Duration::from_millis(1100)).await;
+
+        let allowed = cache.rate_limit(key, 5, 1).await.unwrap();
+        assert!(allowed.allowed);
+    }
+
+    #[tokio::test]
+    async fn rate_limit_keys_are_independent() {
+        let cache = CacheService::new("memory://").await.unwrap();
+
+        for _ in 0..5 {
+            cache.rate_limit("rl:test:a", 5, 60).await.unwrap();
+        }
+        assert!(!cache.rate_limit("rl:test:a", 5, 60).await.unwrap().allowed);
+        assert!(cache.rate_limit("rl:test:b", 5, 60).await.unwrap().allowed);
     }
 }

@@ -4717,5 +4717,9 @@
     "matrixSubtitle": "Comparaison détaillée de chaque métrique du questionnaire avec la cible sélectionnée",
     "loadErrorTitle": "Impossible de charger les données de comparaison",
     "loadErrorDesc": "Une erreur est survenue lors du chargement du benchmarking par questionnaire. Veuillez réessayer."
+  },
+  "errors": {
+    "rateLimited": "Trop de tentatives. Réessayez dans {{seconds}}s.",
+    "rateLimitedTitle": "Ralentissez"
   }
 }
