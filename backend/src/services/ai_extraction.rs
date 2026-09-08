@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use serde::{Deserialize, Serialize};
 
 use crate::entities::account_alias::Model as AliasEntry;
@@ -517,7 +519,8 @@ fn repair_truncated_json(raw: &str) -> Option<String> {
 
 pub struct LlmExtractor {
     client: reqwest::Client,
-    api_key: String,
+    api_keys: Vec<String>,
+    current_key_index: AtomicUsize,
     provider_url: String,
     model: String,
     vision_model: String,
@@ -525,9 +528,18 @@ pub struct LlmExtractor {
     semaphore: tokio::sync::Semaphore,
 }
 
+/// Statuses worth retrying with a different API key. 400 (bad request) is
+/// excluded because the prompt is broken and another key will not help.
+fn is_retryable_status(status: reqwest::StatusCode) -> bool {
+    matches!(
+        status.as_u16(),
+        429 | 403 | 500 | 502 | 503 | 504
+    )
+}
+
 impl LlmExtractor {
     pub fn new(
-        api_key: &str,
+        api_keys: &[String],
         provider_url: &str,
         model: &str,
         vision_model: &str,
@@ -535,13 +547,94 @@ impl LlmExtractor {
     ) -> Self {
         Self {
             client: reqwest::Client::new(),
-            api_key: api_key.to_string(),
+            api_keys: api_keys.to_vec(),
+            current_key_index: AtomicUsize::new(0),
             provider_url: provider_url.trim_end_matches('/').to_string(),
             model: model.to_string(),
             vision_model: vision_model.to_string(),
             max_tokens,
             semaphore: tokio::sync::Semaphore::new(2),
         }
+    }
+
+    /// Send a chat-completions request, rotating through the API key pool on
+    /// retryable failures (429/403/5xx/network). Non-retryable errors (e.g. 400)
+    /// are returned immediately without burning the remaining keys.
+    async fn send_with_rotation(
+        &self,
+        url: &str,
+        body: &serde_json::Value,
+        label: &str,
+    ) -> AppResult<serde_json::Value> {
+        let n = self.api_keys.len();
+        if n == 0 {
+            return Err(AppError::ExternalServiceError(format!(
+                "{label}: no API keys configured"
+            )));
+        }
+
+        let start = self.current_key_index.load(Ordering::Relaxed) % n;
+        let mut last_err: Option<AppError> = None;
+
+        for offset in 0..n {
+            let idx = (start + offset) % n;
+            let key = &self.api_keys[idx];
+
+            let res = self
+                .client
+                .post(url)
+                .bearer_auth(key)
+                .json(body)
+                .send()
+                .await;
+
+            let res = match res {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::warn!(key_idx = idx, error = %e, "{label}: connection error, trying next key");
+                    last_err = Some(AppError::ExternalServiceError(format!(
+                        "{label} request failed: {e}"
+                    )));
+                    continue;
+                }
+            };
+
+            let status = res.status();
+            if status.is_success() {
+                self.current_key_index.store((idx + 1) % n, Ordering::Relaxed);
+                let json: serde_json::Value = res
+                    .json()
+                    .await
+                    .map_err(|e| AppError::ExternalServiceError(format!("{label} parse error: {e}")))?;
+                return Ok(json);
+            }
+
+            let text = res.text().await.unwrap_or_default();
+            if is_retryable_status(status) {
+                tracing::warn!(
+                    key_idx = idx,
+                    status = %status,
+                    "{label}: retryable error, trying next key"
+                );
+                last_err = Some(AppError::ExternalServiceError(format!(
+                    "{label} API error {status}: {text}"
+                )));
+            } else {
+                tracing::error!(
+                    key_idx = idx,
+                    status = %status,
+                    response = %text,
+                    "{label}: non-retryable error"
+                );
+                return Err(AppError::ExternalServiceError(format!(
+                    "{label} API error {status}: {text}"
+                )));
+            }
+        }
+
+        Err(last_err.unwrap_or_else(|| {
+            AppError::ExternalServiceError(format!("{label}: all API keys failed"))
+        }))
     }
 
     /// Call the chat completions endpoint with a text prompt.
@@ -567,28 +660,7 @@ impl LlmExtractor {
         );
         tracing::info!("=== LLM PROMPT START ===\n{prompt}\n=== LLM PROMPT END ===");
 
-        let res = self
-            .client
-            .post(&url)
-            .bearer_auth(&self.api_key)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("LLM request failed: {e}")))?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let text = res.text().await.unwrap_or_default();
-            tracing::error!(status = %status, response = %text, "=== LLM API ERROR ===");
-            return Err(AppError::ExternalServiceError(format!(
-                "LLM API error {status}: {text}"
-            )));
-        }
-
-        let json: serde_json::Value = res
-            .json()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("LLM parse error: {e}")))?;
+        let json = self.send_with_rotation(&url, &body, "LLM").await?;
 
         let finish_reason = json["choices"][0]["finish_reason"].as_str().unwrap_or("");
         tracing::info!(finish_reason, "=== LLM FINISH REASON ===");
@@ -686,28 +758,7 @@ impl LlmExtractor {
         );
         tracing::info!("=== VISION PROMPT START ===\n{vision_prompt}\n=== VISION PROMPT END ===");
 
-        let res = self
-            .client
-            .post(&url)
-            .bearer_auth(&self.api_key)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("Vision API failed: {e}")))?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let text = res.text().await.unwrap_or_default();
-            tracing::error!(status = %status, response = %text, "=== VISION API ERROR ===");
-            return Err(AppError::ExternalServiceError(format!(
-                "Vision API error {status}: {text}"
-            )));
-        }
-
-        let json: serde_json::Value = res
-            .json()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("Vision parse error: {e}")))?;
+        let json = self.send_with_rotation(&url, &body, "Vision").await?;
 
         let finish_reason = json["choices"][0]["finish_reason"].as_str().unwrap_or("");
         tracing::info!(finish_reason, "=== VISION FINISH REASON ===");
@@ -1526,9 +1577,9 @@ impl<T: FinancialStatementExtractor + NfHeaderMapper> Extractor for T {}
 
 pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn Extractor> {
     if config.extraction_backend == "llm" {
-        if config.ai_api_key.is_empty() {
+        if config.ai_api_keys.is_empty() {
             tracing::warn!(
-                "EXTRACTION_BACKEND=llm but AI_API_KEY is not set — falling back to mock extractor"
+                "EXTRACTION_BACKEND=llm but no AI_API_KEYS/AI_API_KEY set — falling back to mock extractor"
             );
             return std::sync::Arc::new(MockExtractor);
         }
@@ -1537,10 +1588,11 @@ pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn
             vision_model = config.ai_vision_model,
             provider = config.ai_provider_url,
             max_tokens = config.ai_max_tokens,
+            api_keys = config.ai_api_keys.len(),
             "Using LLM extractor"
         );
         std::sync::Arc::new(LlmExtractor::new(
-            &config.ai_api_key,
+            &config.ai_api_keys,
             &config.ai_provider_url,
             &config.ai_model,
             &config.ai_vision_model,

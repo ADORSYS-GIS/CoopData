@@ -3,6 +3,7 @@ use crate::error::{AppError, AppResult};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 // ── Output types (design doc §5.2) ────────────────────────────────────────
@@ -229,7 +230,8 @@ pub trait ReportNarrativeGenerator: Send + Sync {
 
 pub struct LlmNarrativeGenerator {
     client: reqwest::Client,
-    api_key: String,
+    api_keys: Vec<String>,
+    current_key_index: AtomicUsize,
     provider_url: String,
     model: String,
     max_tokens: u32,
@@ -243,10 +245,20 @@ impl LlmNarrativeGenerator {
                 .connect_timeout(std::time::Duration::from_secs(10))
                 .build()
                 .expect("Failed to build narrative HTTP client"),
-            api_key: config.ai_api_key.clone(),
+            api_keys: config.ai_api_keys.clone(),
+            current_key_index: AtomicUsize::new(0),
             provider_url: config.ai_provider_url.trim_end_matches('/').to_string(),
             model: config.ai_model.clone(),
             max_tokens: config.ai_max_tokens,
+        }
+    }
+
+    /// Advance the round-robin pointer to the next API key.
+    fn rotate_key(&self) {
+        let n = self.api_keys.len();
+        if n > 0 {
+            let next = (self.current_key_index.load(Ordering::Relaxed) + 1) % n;
+            self.current_key_index.store(next, Ordering::Relaxed);
         }
     }
 
@@ -263,11 +275,21 @@ impl LlmNarrativeGenerator {
         const BASE_DELAY_MS: u64 = 3_000; // 3 seconds base
         const MAX_DELAY_MS: u64 = 20_000; // cap backoff at 20s
 
+        let n = self.api_keys.len();
+        if n == 0 {
+            return Err(AppError::ExternalServiceError(
+                "Narrative LLM: no API keys configured".into(),
+            ));
+        }
+
         for attempt in 1..=MAX_RETRIES {
+            let key_idx = self.current_key_index.load(Ordering::Relaxed) % n;
+            let key = &self.api_keys[key_idx];
+
             let res = self
                 .client
                 .post(&url)
-                .bearer_auth(&self.api_key)
+                .bearer_auth(key)
                 .json(&body)
                 .send()
                 .await;
@@ -275,7 +297,8 @@ impl LlmNarrativeGenerator {
             let res = match res {
                 Ok(r) => r,
                 Err(e) => {
-                    // Connection error — retry with backoff
+                    // Connection error — rotate key and retry with backoff
+                    self.rotate_key();
                     if attempt < MAX_RETRIES {
                         let delay_ms = Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS);
                         tracing::warn!(
@@ -299,23 +322,31 @@ impl LlmNarrativeGenerator {
                 let text = res.text().await.unwrap_or_default();
 
                 // ── Step 1: Determine if this is a DAILY quota or a PER-MINUTE rate limit ──
-                // Daily quota = permanent for today, no point retrying
-                // Per-minute rate limit = temporary, wait and retry
+                // Daily quota = exhausted for this key; rotate to another key.
+                // Per-minute rate limit = temporary, wait and retry.
 
-                // Extract the quota ID to classify the error
                 let is_daily_quota = text.contains("PerDay")
                     || text.contains("Daily")
                     || text.contains("RPD")
                     || text.contains("per_day");
 
+                // Rotate to the next key — another key may not be exhausted.
+                self.rotate_key();
+
                 if is_daily_quota {
-                    tracing::error!(
+                    tracing::warn!(
                         attempt,
-                        "[narrative] 💳 DAILY quota exhausted — failing immediately (no retry, quota won't recover today). response={}",
-                        text.chars().take(200).collect::<String>()
+                        key_idx,
+                        "[narrative] 💳 DAILY quota exhausted on key {}, rotating to next key",
+                        key_idx
                     );
+                    if attempt < MAX_RETRIES {
+                        let delay_ms = Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS);
+                        tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+                        continue;
+                    }
                     return Err(AppError::ExternalServiceError(format!(
-                        "Narrative LLM daily quota exhausted: {text}"
+                        "Narrative LLM daily quota exhausted on all keys: {text}"
                     )));
                 }
 
@@ -404,7 +435,8 @@ impl LlmNarrativeGenerator {
             }
 
             if res.status().as_u16() == 503 {
-                // 503 Service Unavailable — transient, retry with backoff
+                // 503 Service Unavailable — rotate key and retry with backoff
+                self.rotate_key();
                 if attempt < MAX_RETRIES {
                     let delay_ms = Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS);
                     tracing::warn!(
@@ -936,10 +968,11 @@ impl ReportNarrativeGenerator for MockNarrativeGenerator {
 // ── Factory ─────────────────────────────────────────────────────────────────
 
 pub fn create_narrative_generator(config: &AppConfig) -> Arc<dyn ReportNarrativeGenerator> {
-    if config.extraction_backend == "llm" && !config.ai_api_key.is_empty() {
+    if config.extraction_backend == "llm" && !config.ai_api_keys.is_empty() {
         tracing::info!(
-            "Narrative generator: LLM backend (model: {})",
-            config.ai_model
+            "Narrative generator: LLM backend (model: {}, keys: {})",
+            config.ai_model,
+            config.ai_api_keys.len()
         );
         Arc::new(LlmNarrativeGenerator::new(config))
     } else {
