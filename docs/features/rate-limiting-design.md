@@ -62,6 +62,7 @@ All are in `shared_routes()` (`src/api/routes/shared.rs`), authenticated, keyed 
 | ------ | -------- | --- |
 | POST | `/api/v1/me/verify-identity` | Verifies current password (brute-force surface) |
 | POST | `/api/v1/me/password` | Password change |
+| GET | `/api/v1/me/security` | Security settings |
 | POST | `/api/v1/me/security/mfa/setup` | MFA setup |
 | POST | `/api/v1/me/security/mfa/enable` | MFA enable |
 | POST | `/api/v1/me/security/mfa/reset` | MFA reset |

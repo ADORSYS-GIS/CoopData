@@ -35,12 +35,20 @@ export const apiClient = createClient<paths>({
 });
 
 const RATE_LIMIT_TOAST_ID = "rate-limit-429";
+let rateLimitTimer: number | null = null;
 
 /**
  * Shows a persistent toast with a live countdown when the backend returns 429.
  * The countdown is driven by the `Retry-After` header (seconds).
+ * Any previously running countdown is cancelled first so repeated 429s don't
+ * spawn overlapping intervals.
  */
 function showRateLimitToast(retryAfterSecs: number) {
+  if (rateLimitTimer !== null) {
+    window.clearInterval(rateLimitTimer);
+    rateLimitTimer = null;
+  }
+
   const total = Math.max(1, Math.floor(retryAfterSecs));
   let remaining = total;
 
@@ -51,10 +59,11 @@ function showRateLimitToast(retryAfterSecs: number) {
     });
 
   render();
-  const timer = window.setInterval(() => {
+  rateLimitTimer = window.setInterval(() => {
     remaining -= 1;
     if (remaining <= 0) {
-      window.clearInterval(timer);
+      window.clearInterval(rateLimitTimer!);
+      rateLimitTimer = null;
       toast.dismiss(RATE_LIMIT_TOAST_ID);
     } else {
       render();

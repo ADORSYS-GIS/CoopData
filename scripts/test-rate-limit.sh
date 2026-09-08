@@ -41,6 +41,7 @@ cd "$ROOT_DIR"
 # which breaks on values containing spaces, e.g. SMTP_PASSWORD)
 if [[ -f .env ]]; then
     CLIENT_SECRET="${CLIENT_SECRET:-$(grep -E '^KEYCLOAK_CLIENT_SECRET=' .env | head -1 | cut -d= -f2-)}"
+    KC_PASS="${KC_TEST_PASSWORD:-$(grep -E '^COOPDATA_MINISTRY_ADMIN_PASSWORD=' .env | head -1 | cut -d= -f2-)}"
 fi
 
 # Parse flags
@@ -60,7 +61,7 @@ CLIENT_SECRET="${CLIENT_SECRET:-${KEYCLOAK_CLIENT_SECRET:-}}"
 RATE_LIMIT_MAX="${RATE_LIMIT_MAX:-5}"
 REQUESTS=$((RATE_LIMIT_MAX + 1))
 KC_USER="${KC_TEST_USER:-admin@ministry.gov}"
-KC_PASS="${KC_TEST_PASSWORD:-Ministry@Admin2026!}"
+KC_PASS="${KC_PASS:-}"
 
 ENDPOINT="/api/v1/me/verify-identity"
 KC_TOKEN_URL="$KEYCLOAK_URL/realms/$KEYCLOAK_REALM/protocol/openid-connect/token"
@@ -137,6 +138,10 @@ fi
 # ── LAYER 1: Keycloak brute-force detection ────────────────────────────────
 if [[ "$TEST_KEYCLOAK" == "1" ]]; then
     header "LAYER 1 - Keycloak brute-force detection (login)"
+    if [[ -z "$KC_PASS" ]]; then
+        fail "KC_TEST_PASSWORD is not set. Set COOPDATA_MINISTRY_ADMIN_PASSWORD in .env or pass KC_TEST_PASSWORD."
+        exit 1
+    fi
     info "Testing for $KC_USER (locks user ~60s+)..."
     for i in 1 2 3 4 5; do
         curl -s -o /dev/null -X POST "$KC_TOKEN_URL" \
