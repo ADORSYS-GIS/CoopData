@@ -28,7 +28,7 @@ use crate::AppState;
 
 /// Resolve a federation's PostgreSQL tracking record by its Keycloak org ID,
 /// auto-backfilling a row if one is missing so Keycloak and PG never diverge.
-async fn resolve_federation_record(
+pub(crate) async fn resolve_federation_record(
     state: &AppState,
     org_id: &str,
 ) -> AppResult<crate::entities::federation::Model> {
@@ -47,6 +47,15 @@ async fn resolve_federation_record(
     };
     state.federation_repo.create(backfill_model).await
 }
+
+/// Public alias for `resolve_federation_record`, callable from the `auth` module.
+pub async fn resolve_federation_record_pub(
+    state: &AppState,
+    org_id: &str,
+) -> AppResult<crate::entities::federation::Model> {
+    resolve_federation_record(state, org_id).await
+}
+
 
 #[utoipa::path(
     post,
@@ -594,14 +603,32 @@ pub async fn apex_submit_submission(
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
         (status = 200, description = "Abnormality flags", body = Vec<AbnormalityFlagResponse>),
+        (status = 403, description = "Forbidden — submission does not belong to your scope"),
         (status = 404, description = "Not found")
     ),
     tag = "Apex"
 )]
 pub async fn get_submission_flags(
     State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
+    // Verify the submission belongs to a cooperative this caller can access.
+    // Tenant identity is derived from JWT claims only — never from client input.
+    let coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+    let submission = state
+        .submission_repo
+        .find_by_id_for_cooperatives(id, &coop_ids)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    tracing::debug!(
+        submission_id = %submission.id,
+        cooperative_id = %submission.cooperative_id,
+        "Fetching flags for verified submission"
+    );
+
     let flags = state
         .flag_repo
         .find_by_submission(id)
@@ -612,6 +639,7 @@ pub async fn get_submission_flags(
 
     Ok((StatusCode::OK, Json(flags)))
 }
+
 
 // ── Review handlers (Apex) ────────────────────────────────────────────────────
 
@@ -845,6 +873,10 @@ pub async fn apex_approve_submission(
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Tenant identity is derived from JWT claims only. Verify the submission
+    // belongs to a cooperative under this caller's apex before any state change.
+    crate::auth::TenantIsolation::verify_apex_owns_submission(&state, &claims, id).await?;
+
     let workflow = SubmissionWorkflow::new(
         state.submission_repo.clone(),
         state.review_repo.clone(),
@@ -882,6 +914,10 @@ pub async fn apex_return_submission(
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Tenant identity is derived from JWT claims only. Verify the submission
+    // belongs to a cooperative under this caller's apex before any state change.
+    crate::auth::TenantIsolation::verify_apex_owns_submission(&state, &claims, id).await?;
+
     let workflow = SubmissionWorkflow::new(
         state.submission_repo.clone(),
         state.review_repo.clone(),
@@ -1008,6 +1044,10 @@ pub async fn federation_approve_submission(
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Tenant identity is derived from JWT claims only. Verify the submission
+    // belongs to a cooperative under this caller's federation before any state change.
+    crate::auth::TenantIsolation::verify_federation_owns_submission(&state, &claims, id).await?;
+
     let workflow = SubmissionWorkflow::new(
         state.submission_repo.clone(),
         state.review_repo.clone(),
@@ -1047,6 +1087,10 @@ pub async fn federation_return_submission(
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Tenant identity is derived from JWT claims only. Verify the submission
+    // belongs to a cooperative under this caller's federation before any state change.
+    crate::auth::TenantIsolation::verify_federation_owns_submission(&state, &claims, id).await?;
+
     let workflow = SubmissionWorkflow::new(
         state.submission_repo.clone(),
         state.review_repo.clone(),
