@@ -183,7 +183,7 @@ pub async fn create_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "create",
+            "CREATE",
             "submission",
             Some(&submission.id.to_string()),
             Some(serde_json::json!({
@@ -548,7 +548,7 @@ pub async fn submit_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "submit",
+            "SUBMIT",
             "submission",
             Some(&updated.id.to_string()),
             Some(serde_json::json!({
@@ -639,7 +639,7 @@ pub async fn apex_submit_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "submit",
+            "SUBMIT",
             "submission",
             Some(&updated.id.to_string()),
             Some(serde_json::json!({
@@ -942,7 +942,7 @@ pub async fn apex_approve_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "approve",
+            "APPROVE",
             "submission",
             Some(&updated.id.to_string()),
             Some(serde_json::json!({
@@ -1005,7 +1005,7 @@ pub async fn apex_return_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "return",
+            "RETURN",
             "submission",
             Some(&updated.id.to_string()),
             Some(serde_json::json!({
@@ -1157,7 +1157,7 @@ pub async fn federation_approve_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "approve",
+            "APPROVE",
             "submission",
             Some(&updated.id.to_string()),
             Some(serde_json::json!({
@@ -1220,7 +1220,7 @@ pub async fn federation_return_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "return",
+            "RETURN",
             "submission",
             Some(&updated.id.to_string()),
             Some(serde_json::json!({
@@ -1550,7 +1550,7 @@ pub async fn ministry_approve_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "approve",
+            "APPROVE",
             "submission",
             Some(&updated.id.to_string()),
             Some(serde_json::json!({
@@ -1613,7 +1613,7 @@ pub async fn ministry_reject_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "reject",
+            "REJECT",
             "submission",
             Some(&updated.id.to_string()),
             Some(serde_json::json!({
@@ -1772,7 +1772,7 @@ pub async fn update_submission_section(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "update",
+            "UPDATE",
             "submission_section",
             Some(&submission.id.to_string()),
             Some(serde_json::json!({
@@ -1894,7 +1894,7 @@ pub async fn delete_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "delete",
+            "DELETE",
             "submission",
             Some(&submission.id.to_string()),
             Some(serde_json::json!({
@@ -2315,7 +2315,7 @@ pub async fn update_submission_method(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "update",
+            "UPDATE",
             "submission",
             Some(&submission.id.to_string()),
             Some(serde_json::json!({
@@ -2486,7 +2486,7 @@ pub async fn create_apex_submission(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "create",
+            "CREATE",
             "submission",
             Some(&submission.id.to_string()),
             Some(serde_json::json!({

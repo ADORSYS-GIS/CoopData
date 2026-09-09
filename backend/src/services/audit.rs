@@ -43,7 +43,7 @@ impl AuditService {
             id: sea_orm::Set(uuid::Uuid::new_v4()),
             actor_keycloak_id: sea_orm::Set(claims.sub.clone()),
             actor_id: sea_orm::Set(actor_id),
-            action: sea_orm::Set(action.to_string()),
+            action: sea_orm::Set(action.to_uppercase()),
             resource_type: sea_orm::Set(resource_type.to_string()),
             resource_keycloak_id: sea_orm::Set(resource_keycloak_id.map(|s| s.to_string())),
             details: sea_orm::Set(details),

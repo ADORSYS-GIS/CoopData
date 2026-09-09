@@ -81,7 +81,7 @@ pub async fn create_custom_kpi(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "create",
+            "CREATE",
             "custom_kpi",
             None,
             Some(serde_json::json!({
@@ -176,7 +176,7 @@ pub async fn delete_custom_kpi(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "delete",
+            "DELETE",
             "custom_kpi",
             None,
             Some(serde_json::json!({
@@ -259,7 +259,7 @@ pub async fn update_custom_kpi(
         .log_with_context(
             &audit_ctx,
             &claims,
-            "update",
+            "UPDATE",
             "custom_kpi",
             None,
             Some(serde_json::json!({
