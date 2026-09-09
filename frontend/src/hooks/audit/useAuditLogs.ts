@@ -58,6 +58,7 @@ export const useAuditLogs = (filters: AuditLogFilters) => {
       return data as unknown as PaginatedAuditLog;
     },
     retry: false,
+    staleTime: 30 * 1000, // 30 seconds - audit logs should be more responsive
     placeholderData: keepPreviousData,
   });
 };
