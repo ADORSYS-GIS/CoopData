@@ -1,6 +1,20 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import i18next from "i18next";
 
+/**
+ * ErrorBoundary wraps React components to catch and handle rendering errors gracefully.
+ *
+ * Wraps child components and catches any errors thrown during their render lifecycle.
+ * When an error occurs:
+ * - Displays a safe, user-friendly error message to users
+ * - Logs full error details to browser DevTools Console (F12) for debugging
+ *
+ * Security behavior:
+ * - Raw errors are NEVER shown in the UI (prevents information disclosure)
+ * - All errors are logged to browser DevTools Console for debugging
+ *
+ * Usage: Wrap any component that might throw errors (e.g., form wizards, data grids)
+ */
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -23,8 +37,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error details to DevTools Console for debugging
+    // (Users never see this in the UI)
     console.error(
-      `Uncaught error in step boundary [${this.props.stepName || "unknown"}]:`,
+      `[ErrorBoundary] Uncaught error in "${this.props.stepName || "unknown"}":`,
       error,
       errorInfo,
     );
@@ -41,11 +57,10 @@ export class ErrorBoundary extends Component<Props, State> {
                 section: this.props.stepName || i18next.t("errorBoundary.thisSection"),
               })}
             </p>
-            {this.state.error && (
-              <pre className="mt-3 p-3 bg-muted/60 rounded-xl text-[10px] text-left overflow-auto font-mono text-muted-foreground max-h-32 border border-border">
-                {this.state.error.toString()}
-              </pre>
-            )}
+            {/*
+              Raw errors are NEVER shown in the UI.
+              Check DevTools Console (F12) to see error details for debugging.
+            */}
           </div>
         )
       );

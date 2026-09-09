@@ -12,6 +12,7 @@ use crate::api::dto::custom_kpi::{
     CreateCustomKpiRequest, CustomKpiDto, EvaluateKpiRequest, EvaluateKpiResponse,
     UpdateCustomKpiRequest,
 };
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
@@ -39,6 +40,7 @@ pub struct EvaluateKpiParams {
 pub async fn create_custom_kpi(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(payload): Json<CreateCustomKpiRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !crate::auth::rbac::ScopeEnforcement::is_ministry(&claims) {
@@ -72,6 +74,25 @@ pub async fn create_custom_kpi(
                 .unwrap_or_else(|| serde_json::json!({})),
         )
         .await?;
+
+    // Audit: custom KPI created
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "CREATE",
+            "custom_kpi",
+            None,
+            Some(serde_json::json!({
+                "kpi_id": kpi.id,
+                "name": kpi.name,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for custom KPI creation");
+    }
 
     let response: CustomKpiDto = kpi.into();
     Ok((StatusCode::CREATED, Json(response)))
@@ -131,6 +152,7 @@ pub async fn list_custom_kpis(
 pub async fn delete_custom_kpi(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     if !crate::auth::rbac::ScopeEnforcement::is_ministry(&claims) {
@@ -139,7 +161,33 @@ pub async fn delete_custom_kpi(
         ));
     }
 
+    // Fetch KPI details before deletion for audit
+    let kpi = state
+        .custom_kpi_repo
+        .find_by_id(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Custom KPI not found".into()))?;
+
     state.custom_kpi_repo.delete(id).await?;
+
+    // Audit: custom KPI deleted
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "DELETE",
+            "custom_kpi",
+            None,
+            Some(serde_json::json!({
+                "kpi_id": id,
+                "name": kpi.name,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for custom KPI deletion");
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -163,6 +211,7 @@ pub async fn delete_custom_kpi(
 pub async fn update_custom_kpi(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateCustomKpiRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -203,6 +252,25 @@ pub async fn update_custom_kpi(
     }
 
     let updated = state.custom_kpi_repo.update_model(active).await?;
+
+    // Audit: custom KPI updated
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "UPDATE",
+            "custom_kpi",
+            None,
+            Some(serde_json::json!({
+                "kpi_id": id,
+                "name": updated.name,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for custom KPI update");
+    }
 
     let response: CustomKpiDto = updated.into();
     Ok((StatusCode::OK, Json(response)))

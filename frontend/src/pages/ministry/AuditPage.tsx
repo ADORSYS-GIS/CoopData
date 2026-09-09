@@ -22,15 +22,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-const ACTION_OPTIONS = [
-  "",
-  "CREATE",
-  "UPDATE",
-  "DELETE",
-  "INVITE",
-  "RESEND_INVITATION",
-  "DELETE_INVITATION",
-];
 const RESOURCE_OPTIONS = ["", "user", "federation", "apex", "cooperative", "organization"];
 
 function formatDateTime(iso: string): string {
@@ -54,14 +45,73 @@ function shortId(id?: string | null): string {
   return id.length > 8 ? `${id.slice(0, 8)}…` : id;
 }
 
-const actionTone: Record<string, string> = {
-  CREATE: "text-success bg-success/10 border-success/20",
-  UPDATE: "text-accent bg-accent/10 border-accent/20",
-  DELETE: "text-destructive bg-destructive/10 border-destructive/20",
-  INVITE: "text-accent bg-accent/10 border-accent/20",
-  DELETE_INVITATION: "text-destructive bg-destructive/10 border-destructive/20",
-  RESEND_INVITATION: "text-warning bg-warning/10 border-warning/20",
-};
+export function getActionBadgeStyle(action?: string): string {
+  if (!action) {
+    return "text-slate-700 bg-slate-100 border-slate-200/80";
+  }
+  const act = action.toUpperCase();
+
+  // 1. Destructive / Deletion / Removal / Rejection
+  if (
+    act.includes("DELETE") ||
+    act.includes("REMOVE") ||
+    act.includes("REJECT") ||
+    act.includes("REVOKE") ||
+    act.includes("CANCEL") ||
+    act.includes("PURGE")
+  ) {
+    return "text-rose-700 bg-rose-50/90 border-rose-200/80";
+  }
+
+  // 2. Creation / Addition / Registration / Invite / Upload
+  if (
+    act.includes("CREATE") ||
+    act.includes("ADD") ||
+    act.includes("INSERT") ||
+    act.includes("REGISTER") ||
+    act.includes("INVITE") ||
+    act.includes("UPLOAD")
+  ) {
+    return "text-emerald-700 bg-emerald-50/90 border-emerald-200/80";
+  }
+
+  // 3. Updates / Modifications / Edits
+  if (
+    act.includes("UPDATE") ||
+    act.includes("EDIT") ||
+    act.includes("MODIFY") ||
+    act.includes("CHANGE") ||
+    act.includes("REORDER")
+  ) {
+    return "text-sky-700 bg-sky-50/90 border-sky-200/80";
+  }
+
+  // 4. Verification / Resend / Reset / Security
+  if (
+    act.includes("RESEND") ||
+    act.includes("RESET") ||
+    act.includes("VERIF") ||
+    act.includes("MFA") ||
+    act.includes("LOCK")
+  ) {
+    return "text-amber-700 bg-amber-50/90 border-amber-200/80";
+  }
+
+  // 5. Workflow / Approvals / Submissions / Exports
+  if (
+    act.includes("SUBMIT") ||
+    act.includes("APPROVE") ||
+    act.includes("REVIEW") ||
+    act.includes("RETURN") ||
+    act.includes("EXPORT") ||
+    act.includes("IMPORT")
+  ) {
+    return "text-indigo-700 bg-indigo-50/90 border-indigo-200/80";
+  }
+
+  // 6. Default neutral fallback badge
+  return "text-slate-700 bg-slate-100 border-slate-200/80";
+}
 
 export const AuditPage: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
@@ -88,7 +138,31 @@ export const AuditPage: React.FC = () => {
   const total = data?.total ?? 0;
   const totalPages = data?.total_pages ?? 0;
 
-  const uniqueActions = useMemo(() => new Set(logs.map((l) => l.action)), [logs]);
+  const availableActionOptions = useMemo(() => {
+    const defaultActions = [
+      "CREATE",
+      "UPDATE",
+      "DELETE",
+      "SUBMIT",
+      "APPROVE",
+      "REJECT",
+      "RETURN",
+      "INVITE",
+      "RESEND_INVITATION",
+      "DELETE_INVITATION",
+      "ADD_MEMBER",
+      "UPDATE_MEMBER",
+      "RESEND_VERIFICATION",
+      "CREATE_INDICATOR_CATALOG",
+      "DELETE_INDICATOR_CATALOG",
+    ];
+    const logActions = logs.map((l) => (l.action ? l.action.toUpperCase() : "")).filter(Boolean);
+    const combined = Array.from(new Set([...defaultActions, ...logActions]));
+    combined.sort();
+    return ["", ...combined];
+  }, [logs]);
+
+  const uniqueActions = useMemo(() => new Set(logs.map((l) => l.action?.toUpperCase())), [logs]);
   const uniqueResources = useMemo(() => new Set(logs.map((l) => l.resource_type)), [logs]);
   const uniqueActors = useMemo(() => new Set(logs.map((l) => l.actor_keycloak_id)), [logs]);
 
@@ -150,7 +224,7 @@ export const AuditPage: React.FC = () => {
               }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm focus:border-accent/30 focus:outline-none focus:ring-2 focus:ring-accent/10"
             >
-              {ACTION_OPTIONS.map((a) => (
+              {availableActionOptions.map((a) => (
                 <option key={a} value={a}>
                   {a || t("auditLog.allActions")}
                 </option>
@@ -219,12 +293,11 @@ export const AuditPage: React.FC = () => {
                         </td>
                         <td className="px-5 py-3.5">
                           <span
-                            className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-                              actionTone[log.action] ??
-                              "text-slate-600 bg-slate-50 border-slate-200"
-                            }`}
+                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-wide ${getActionBadgeStyle(
+                              log.action,
+                            )}`}
                           >
-                            {log.action}
+                            {log.action ? log.action.toUpperCase() : "—"}
                           </span>
                         </td>
                         <td className="px-5 py-3.5">
@@ -317,7 +390,10 @@ export const AuditPage: React.FC = () => {
           </DialogHeader>
           {selected && (
             <div className="space-y-3 text-sm">
-              <DetailRow label={t("auditLog.detailRowLabels.action")} value={selected.action} />
+              <DetailRow
+                label={t("auditLog.detailRowLabels.action")}
+                value={selected.action ? selected.action.toUpperCase() : "—"}
+              />
               <DetailRow
                 label={t("auditLog.detailRowLabels.resourceType")}
                 value={selected.resource_type}
