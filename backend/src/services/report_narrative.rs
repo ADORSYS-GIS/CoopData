@@ -257,8 +257,7 @@ impl LlmNarrativeGenerator {
     fn rotate_key(&self) {
         let n = self.api_keys.len();
         if n > 0 {
-            let next = (self.current_key_index.load(Ordering::Relaxed) + 1) % n;
-            self.current_key_index.store(next, Ordering::Relaxed);
+            self.current_key_index.fetch_add(1, Ordering::Relaxed);
         }
     }
 
@@ -340,13 +339,20 @@ impl LlmNarrativeGenerator {
                         "[narrative] 💳 DAILY quota exhausted on key {}, rotating to next key",
                         key_idx
                     );
+                    // With a single key, rotation is a no-op — retrying would only
+                    // re-hit the same exhausted key with backoff. Fail immediately.
+                    if n == 1 {
+                        return Err(AppError::ExternalServiceError(format!(
+                            "Narrative LLM daily quota exhausted on the only configured key: {text}"
+                        )));
+                    }
                     if attempt < MAX_RETRIES {
                         let delay_ms = Self::backoff_delay(attempt, BASE_DELAY_MS, MAX_DELAY_MS);
                         tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
                         continue;
                     }
                     return Err(AppError::ExternalServiceError(format!(
-                        "Narrative LLM daily quota exhausted on all keys: {text}"
+                        "Narrative LLM daily quota exhausted after {MAX_RETRIES} attempts: {text}"
                     )));
                 }
 
