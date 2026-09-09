@@ -1,29 +1,38 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
+use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct CreateUserRequest {
+    #[validate(email(message = "Invalid email format"))]
     pub email: String,
+    #[validate(length(max = 200, message = "Full name must be under 200 characters"))]
     pub full_name: Option<String>,
+    #[validate(length(min = 1, max = 50, message = "Role must be 1-50 characters"))]
     pub role: String,
     pub organization_id: Option<Uuid>,
     #[serde(default)]
     pub group_id: Option<String>,
+    #[validate(length(max = 100, message = "Region must be under 100 characters"))]
     pub region: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct UpdateUserRequest {
+    #[validate(length(max = 200, message = "Full name must be under 200 characters"))]
     pub full_name: Option<String>,
+    #[validate(length(min = 1, max = 50, message = "Role must be 1-50 characters"))]
     pub role: Option<String>,
     pub organization_id: Option<Uuid>,
+    #[validate(length(max = 100, message = "Region must be under 100 characters"))]
     pub region: Option<String>,
     pub is_active: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct AssignRoleRequest {
+    #[validate(length(min = 1, max = 50, message = "Role must be 1-50 characters"))]
     pub role: String,
 }
 
@@ -42,10 +51,13 @@ pub struct UserResponse {
     pub updated_at: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct UpdateUserPasswordRequest {
+    #[validate(length(min = 1, message = "Current password is required"))]
     pub current_password: String,
+    #[validate(length(min = 8, max = 128, message = "New password must be 8-128 characters"))]
     pub new_password: String,
+    #[validate(length(min = 1, message = "Confirm password is required"))]
     pub confirm_password: String,
 }
 

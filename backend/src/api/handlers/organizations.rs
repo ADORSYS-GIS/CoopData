@@ -6,6 +6,7 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::api::dto::{
     CreateOrganizationRequest, OrganizationResponse, PaginatedOrganizationResponse,
@@ -91,9 +92,9 @@ pub async fn create_organization(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if body.name.trim().is_empty() {
-        return Err(AppError::BadRequest("Organization name is required".into()));
-    }
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
     let repo = OrganizationRepository::new(state.db.clone());
     let now = chrono::Utc::now();
@@ -160,6 +161,10 @@ pub async fn update_organization(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateOrganizationRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
     let repo = OrganizationRepository::new(state.db.clone());
     let org = repo.update(id, body).await?;
     tracing::info!(organization_id = %id, "Organization updated");

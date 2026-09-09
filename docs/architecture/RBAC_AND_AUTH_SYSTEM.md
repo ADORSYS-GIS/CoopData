@@ -524,6 +524,36 @@ The `organization` scope (added during provisioning) includes the organization m
 
 `coopdata-admin-client` has a **service account** with `realm-admin` role from the `realm-management` client. The backend uses this service account to make Admin REST API calls to Keycloak.
 
+### 6.6 Password Policy
+
+Keycloak is the IdP and owns all credential hashing/validation. The backend never hashes passwords — it sends plaintext credentials to Keycloak's Admin REST API. Therefore the password policy is enforced **at the realm level** (single source of truth), not in Rust.
+
+Realm `passwordPolicy` (Keycloak 26 uses `and` as the policy separator):
+
+```
+length(8) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1) and notUsername and hashAlgorithm(argon2)
+```
+
+- **Minimum length:** 8 characters
+- **Character classes:** at least 1 uppercase, 1 lowercase, 1 digit, 1 special character
+- **`notUsername`:** password must not contain the username. Since usernames equal email addresses in this system, this also covers email contents.
+- **`hashAlgorithm(argon2)`:** passwords are hashed with Argon2id (Keycloak-native). The Rust `argon2` crate is intentionally **not** used — Keycloak owns hashing, and adding a second hashing path would be dead code and a security anti-pattern.
+
+The policy is enforced automatically by Keycloak for:
+- Admin-set passwords (invitations via backend → Admin API)
+- Self-service password change (`POST /api/v1/me/password`)
+- Password reset (`resetPasswordAllowed: true`)
+- Registration (currently `registrationAllowed: false` — admin-invite only)
+
+**Enforcement points in code:**
+- `keycloak/realm-coopdata.json` — `passwordPolicy` field (source of truth, applied on `--import-realm`)
+- `keycloak/provision.sh` — idempotent `kcadm update realms/... -s passwordPolicy=...` step (applies to already-running realms without re-import)
+- `frontend/src/lib/passwordPolicy.ts` — client-side validation mirroring the realm policy (used by the self-service password change form)
+- `frontend/src/components/shared/PasswordRequirements.tsx` — live criteria checklist shown on password forms
+- `keycloak/themes/coopdata/login/login-update-password.ftl` — static criteria notice on Keycloak's set-password page (invite + reset)
+
+**Note:** The policy applies to *new/changed* passwords only. Existing users with weak passwords remain valid until they change their password.
+
 ---
 
 ## 7. Authentication & Authorization

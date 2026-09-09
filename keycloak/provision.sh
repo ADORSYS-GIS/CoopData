@@ -203,6 +203,18 @@ echo "[provision] Setting login theme..."
   --server "${KEYCLOAK_SERVER}" \
   -s "loginTheme=coopdata" 2>&1 || echo "[provision] Note: Could not set theme"
 
+# ─── Password policy ─────────────────────────────────────────────────────────
+# Enforces strong passwords at the realm level (single source of truth).
+# Applies to admin-set passwords, self-service password change, and password
+# reset. Argon2id is used as the hashing algorithm (Keycloak-native, not the
+# Rust argon2 crate — Keycloak owns credential hashing).
+# Idempotent: re-running overwrites with the same value.
+PASSWORD_POLICY="length(8) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1) and notUsername and hashAlgorithm(argon2)"
+echo "[provision] Setting realm password policy..."
+./kcadm.sh update "realms/${REALM}" \
+  --server "${KEYCLOAK_SERVER}" \
+  -s "passwordPolicy=${PASSWORD_POLICY}" 2>&1 || echo "[provision] Note: Could not set password policy"
+
 # ─── SMTP (email delivery for invitations, verification, password reset) ─────
 # Configured from environment so secrets never live in the committed realm JSON.
 # Defaults to Gmail via an app password. Override in .env for other providers.

@@ -411,13 +411,18 @@ pub async fn validate_extraction(
     let extractor = Arc::clone(&state.extractor);
 
     // Call the extraction pipeline synchronously to completely rebuild the line items
+    let pipeline_files = vec![
+        crate::services::extraction_pipeline::ExtractionFileInput::new(
+            file_bytes,
+            file.mime_type.clone().unwrap_or_default(),
+        ),
+    ];
     if let Err(e) = crate::services::extraction_pipeline::run_pipeline_inner(
         job_id,
         id,
         coop.id,
         submission.reporting_year,
-        file_bytes,
-        file.mime_type.clone().unwrap_or_default(),
+        pipeline_files,
         coop_type,
         extractor,
         &state.extraction_job_repo,

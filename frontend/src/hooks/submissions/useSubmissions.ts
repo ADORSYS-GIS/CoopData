@@ -14,10 +14,12 @@ export type SubmissionResponse = components["schemas"]["SubmissionResponse"] & {
 export type CreateSubmissionRequest = components["schemas"]["CreateSubmissionRequest"] & {
   period_type?: string;
   period_value?: string;
+  fiscal_start_month?: number;
 };
 export type CreateApexSubmissionRequest = components["schemas"]["CreateApexSubmissionRequest"] & {
   period_type?: string;
   period_value?: string;
+  fiscal_start_month?: number;
 };
 export type DelegateSubmissionRequest = components["schemas"]["DelegateSubmissionRequest"];
 export type ReclaimSubmissionRequest = components["schemas"]["ReclaimSubmissionRequest"];

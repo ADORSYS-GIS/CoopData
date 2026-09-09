@@ -6,6 +6,7 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::api::dto::{
     AssignRoleRequest, CreateUserRequest, PaginatedResponse, PaginatedUserResponse,
@@ -112,9 +113,10 @@ pub async fn create_user(
     Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
-    if body.email.trim().is_empty() {
-        return Err(AppError::BadRequest("Email is required".into()));
-    }
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
     validate_role(&body.role)?;
 
     let user_repo = UserRepository::new(state.db.clone());
@@ -536,6 +538,10 @@ pub async fn update_user(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateUserRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
     if let Some(ref role) = &body.role {
         validate_role(role)?;
     }
@@ -608,6 +614,10 @@ pub async fn assign_role_to_user(
     Path(id): Path<Uuid>,
     Json(body): Json<AssignRoleRequest>,
 ) -> AppResult<impl IntoResponse> {
+    // Validate input using validator crate
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
     validate_role(&body.role)?;
 
     let user_repo = UserRepository::new(state.db.clone());

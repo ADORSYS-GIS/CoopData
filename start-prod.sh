@@ -180,6 +180,21 @@ if [[ "$RUNNING_CONTAINERS" -gt 0 ]]; then
     esac
 fi
 
+# ── Secrets Management ─────────────────────────────────────────────────────
+# Load production secrets from an external secret manager (AWS Secrets Manager
+# or HashiCorp Vault) when SECRETS_BACKEND is set to aws/vault. Values already
+# present in the environment / .env always win. See scripts/load-secrets.sh.
+if [[ -f "${SCRIPT_DIR}/scripts/load-secrets.sh" ]]; then
+    info "Loading secrets (SECRETS_BACKEND=${SECRETS_BACKEND:-env})..."
+    # shellcheck disable=SC1091
+    if ! source "${SCRIPT_DIR}/scripts/load-secrets.sh"; then
+        error "Failed to load secrets from secret manager. Aborting."
+    fi
+    ok "Secrets loaded"
+else
+    warn "scripts/load-secrets.sh not found — skipping secret manager loading."
+fi
+
 # ── Pull Images ────────────────────────────────────────────────────────────
 info "Pulling pre-built images from GHCR..."
 $COMPOSE_CMD -f "$PROD_COMPOSE" pull
