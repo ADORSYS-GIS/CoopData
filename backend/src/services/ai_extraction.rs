@@ -531,10 +531,7 @@ pub struct LlmExtractor {
 /// Statuses worth retrying with a different API key. 400 (bad request) is
 /// excluded because the prompt is broken and another key will not help.
 fn is_retryable_status(status: reqwest::StatusCode) -> bool {
-    matches!(
-        status.as_u16(),
-        429 | 403 | 500 | 502 | 503 | 504
-    )
+    matches!(status.as_u16(), 429 | 403 | 500 | 502 | 503 | 504)
 }
 
 impl LlmExtractor {
@@ -601,11 +598,11 @@ impl LlmExtractor {
 
             let status = res.status();
             if status.is_success() {
-                self.current_key_index.store((idx + 1) % n, Ordering::Relaxed);
-                let json: serde_json::Value = res
-                    .json()
-                    .await
-                    .map_err(|e| AppError::ExternalServiceError(format!("{label} parse error: {e}")))?;
+                self.current_key_index
+                    .store((idx + 1) % n, Ordering::Relaxed);
+                let json: serde_json::Value = res.json().await.map_err(|e| {
+                    AppError::ExternalServiceError(format!("{label} parse error: {e}"))
+                })?;
                 return Ok(json);
             }
 

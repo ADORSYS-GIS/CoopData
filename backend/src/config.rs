@@ -26,9 +26,9 @@ pub struct AppConfig {
     pub ai_provider_url: String,    // e.g. https://api.openai.com/v1
     pub ai_api_key: String,
     pub ai_api_keys: Vec<String>, // rotation pool; falls back to [ai_api_key]
-    pub ai_model: String,        // e.g. gpt-4o, claude-sonnet-4-5
-    pub ai_vision_model: String, // model used for image capture (may differ)
-    pub ai_max_tokens: u32,      // max output tokens for LLM calls (default: 65536)
+    pub ai_model: String,         // e.g. gpt-4o, claude-sonnet-4-5
+    pub ai_vision_model: String,  // model used for image capture (may differ)
+    pub ai_max_tokens: u32,       // max output tokens for LLM calls (default: 65536)
     pub storage_type: String,
     pub storage_path: String,
     pub s3_endpoint: String,
