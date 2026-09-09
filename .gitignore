@@ -103,3 +103,7 @@ terraform-ec2/
 id_rsa
 id_ed25519
 
+# Playwright test artifacts (generated, never commit)
+frontend/test-results/
+frontend/playwright-report/
+
