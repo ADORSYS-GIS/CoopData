@@ -25,9 +25,10 @@ pub struct AppConfig {
     pub extraction_backend: String, // "mock" | "llm"
     pub ai_provider_url: String,    // e.g. https://api.openai.com/v1
     pub ai_api_key: String,
-    pub ai_model: String,        // e.g. gpt-4o, claude-sonnet-4-5
-    pub ai_vision_model: String, // model used for image capture (may differ)
-    pub ai_max_tokens: u32,      // max output tokens for LLM calls (default: 65536)
+    pub ai_api_keys: Vec<String>, // rotation pool; falls back to [ai_api_key]
+    pub ai_model: String,         // e.g. gpt-4o, claude-sonnet-4-5
+    pub ai_vision_model: String,  // model used for image capture (may differ)
+    pub ai_max_tokens: u32,       // max output tokens for LLM calls (default: 65536)
     pub storage_type: String,
     pub storage_path: String,
     pub s3_endpoint: String,
@@ -86,6 +87,24 @@ impl AppConfig {
             ai_provider_url: env::var("AI_PROVIDER_URL")
                 .unwrap_or_else(|_| "https://api.openai.com/v1".into()),
             ai_api_key: env::var("AI_API_KEY").unwrap_or_default(),
+            ai_api_keys: {
+                let keys: Vec<String> = env::var("AI_API_KEYS")
+                    .unwrap_or_default()
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                if !keys.is_empty() {
+                    keys
+                } else {
+                    let single = env::var("AI_API_KEY").unwrap_or_default();
+                    if single.is_empty() {
+                        Vec::new()
+                    } else {
+                        vec![single]
+                    }
+                }
+            },
             ai_model: env::var("AI_MODEL").unwrap_or_else(|_| "gpt-4o".into()),
             ai_vision_model: env::var("AI_VISION_MODEL").unwrap_or_else(|_| "gpt-4o".into()),
             ai_max_tokens: env::var("AI_MAX_TOKENS")
@@ -163,6 +182,7 @@ mod tests {
             extraction_backend: "mock".into(),
             ai_provider_url: "https://api.openai.com/v1".into(),
             ai_api_key: String::new(),
+            ai_api_keys: Vec::new(),
             ai_model: "gpt-4o".into(),
             ai_vision_model: "gpt-4o".into(),
             ai_max_tokens: 65536,

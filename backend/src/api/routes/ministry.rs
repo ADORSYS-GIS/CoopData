@@ -123,8 +123,13 @@ pub fn ministry_routes() -> Router<AppState> {
             get(crate::api::handlers::export::export_bulk_consolidated),
         )
         .route(
+            "/submissions/{id}/files",
+            get(crate::api::handlers::upload::list_uploaded_files),
+        )
+        .route(
             "/submissions/{submission_id}/files/{file_id}",
-            get(serve_uploaded_file),
+            get(serve_uploaded_file)
+                .delete(crate::api::handlers::upload::delete_single_uploaded_file),
         )
         // Non-Financial Indicator catalog management (ministry-only)
         .route(

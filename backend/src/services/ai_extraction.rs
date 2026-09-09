@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use serde::{Deserialize, Serialize};
 
 use crate::entities::account_alias::Model as AliasEntry;
@@ -167,6 +169,102 @@ pub fn extract_excel_text(bytes: &[u8]) -> AppResult<String> {
         }
     }
     Ok(output)
+}
+
+/// A list of embedded images extracted from a Word document: `(png_bytes, mime_type)`.
+pub type DocxImages = Vec<(Vec<u8>, String)>;
+
+/// Extract text and embedded images from a Word (.docx) file using docx-rs.
+/// Returns `(text, images)` where `images` is a list of `(png_bytes, mime_type)`.
+/// Text is preserved from paragraphs and tables so the LLM can identify
+/// balance-sheet / income-statement line items. Scanned/image-based documents
+/// yield empty text but their embedded images are returned for vision routing.
+pub fn extract_docx_content(bytes: &[u8]) -> AppResult<(String, DocxImages)> {
+    use docx_rs::{
+        read_docx, DocumentChild, ParagraphChild, RunChild, TableCellContent, TableChild,
+    };
+
+    let doc = read_docx(bytes)
+        .map_err(|e| AppError::BadRequest(format!("Failed to parse Word document: {e}")))?;
+
+    let mut output = String::new();
+
+    fn paragraph_text(p: &docx_rs::Paragraph, out: &mut String) {
+        for child in &p.children {
+            if let ParagraphChild::Run(r) = child {
+                for rc in &r.children {
+                    if let RunChild::Text(t) = rc {
+                        out.push_str(&t.text);
+                    }
+                }
+            }
+        }
+    }
+
+    fn table_text(t: &docx_rs::Table, out: &mut String) {
+        for row in &t.rows {
+            let TableChild::TableRow(tr) = row;
+            let mut cells: Vec<String> = Vec::new();
+            for cell in &tr.cells {
+                let docx_rs::TableRowChild::TableCell(tc) = cell;
+                let mut cell_text = String::new();
+                for content in &tc.children {
+                    match content {
+                        TableCellContent::Paragraph(p) => paragraph_text(p, &mut cell_text),
+                        TableCellContent::Table(inner) => table_text(inner, &mut cell_text),
+                        _ => {}
+                    }
+                }
+                cells.push(cell_text.trim().to_string());
+            }
+            if !cells.iter().all(|c| c.is_empty()) {
+                out.push_str(&format!("| {} |\n", cells.join(" | ")));
+            }
+        }
+    }
+
+    for child in &doc.document.children {
+        match child {
+            DocumentChild::Paragraph(p) => {
+                let mut line = String::new();
+                paragraph_text(p, &mut line);
+                if !line.trim().is_empty() {
+                    output.push_str(line.trim());
+                    output.push('\n');
+                }
+            }
+            DocumentChild::Table(t) => table_text(t, &mut output),
+            _ => {}
+        }
+    }
+
+    // Collect embedded images (typically PNG) for scanned/image-based documents.
+    let images: DocxImages = doc
+        .images
+        .iter()
+        .filter_map(|(_, _, _, png)| {
+            let bytes = png.0.clone();
+            if bytes.is_empty() {
+                None
+            } else {
+                Some((bytes, "image/png".to_string()))
+            }
+        })
+        .collect();
+
+    Ok((output, images))
+}
+
+/// Extract text from a Word (.docx) file. Returns an error if the document has
+/// no extractable text (e.g. a scanned image-based document).
+pub fn extract_docx_text(bytes: &[u8]) -> AppResult<String> {
+    let (text, _images) = extract_docx_content(bytes)?;
+    if text.trim().is_empty() {
+        return Err(AppError::BadRequest(
+            "Word document contains no extractable text".into(),
+        ));
+    }
+    Ok(text)
 }
 
 fn cell_to_str(cell: &calamine::Data) -> String {
@@ -517,7 +615,8 @@ fn repair_truncated_json(raw: &str) -> Option<String> {
 
 pub struct LlmExtractor {
     client: reqwest::Client,
-    api_key: String,
+    api_keys: Vec<String>,
+    current_key_index: AtomicUsize,
     provider_url: String,
     model: String,
     vision_model: String,
@@ -525,9 +624,15 @@ pub struct LlmExtractor {
     semaphore: tokio::sync::Semaphore,
 }
 
+/// Statuses worth retrying with a different API key. 400 (bad request) is
+/// excluded because the prompt is broken and another key will not help.
+fn is_retryable_status(status: reqwest::StatusCode) -> bool {
+    matches!(status.as_u16(), 429 | 403 | 500 | 502 | 503 | 504)
+}
+
 impl LlmExtractor {
     pub fn new(
-        api_key: &str,
+        api_keys: &[String],
         provider_url: &str,
         model: &str,
         vision_model: &str,
@@ -535,13 +640,94 @@ impl LlmExtractor {
     ) -> Self {
         Self {
             client: reqwest::Client::new(),
-            api_key: api_key.to_string(),
+            api_keys: api_keys.to_vec(),
+            current_key_index: AtomicUsize::new(0),
             provider_url: provider_url.trim_end_matches('/').to_string(),
             model: model.to_string(),
             vision_model: vision_model.to_string(),
             max_tokens,
             semaphore: tokio::sync::Semaphore::new(2),
         }
+    }
+
+    /// Send a chat-completions request, rotating through the API key pool on
+    /// retryable failures (429/403/5xx/network). Non-retryable errors (e.g. 400)
+    /// are returned immediately without burning the remaining keys.
+    async fn send_with_rotation(
+        &self,
+        url: &str,
+        body: &serde_json::Value,
+        label: &str,
+    ) -> AppResult<serde_json::Value> {
+        let n = self.api_keys.len();
+        if n == 0 {
+            return Err(AppError::ExternalServiceError(format!(
+                "{label}: no API keys configured"
+            )));
+        }
+
+        let start = self.current_key_index.load(Ordering::Relaxed) % n;
+        let mut last_err: Option<AppError> = None;
+
+        for offset in 0..n {
+            let idx = (start + offset) % n;
+            let key = &self.api_keys[idx];
+
+            let res = self
+                .client
+                .post(url)
+                .bearer_auth(key)
+                .json(body)
+                .send()
+                .await;
+
+            let res = match res {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::warn!(key_idx = idx, error = %e, "{label}: connection error, trying next key");
+                    last_err = Some(AppError::ExternalServiceError(format!(
+                        "{label} request failed: {e}"
+                    )));
+                    continue;
+                }
+            };
+
+            let status = res.status();
+            if status.is_success() {
+                self.current_key_index
+                    .store((idx + 1) % n, Ordering::Relaxed);
+                let json: serde_json::Value = res.json().await.map_err(|e| {
+                    AppError::ExternalServiceError(format!("{label} parse error: {e}"))
+                })?;
+                return Ok(json);
+            }
+
+            let text = res.text().await.unwrap_or_default();
+            if is_retryable_status(status) {
+                tracing::warn!(
+                    key_idx = idx,
+                    status = %status,
+                    "{label}: retryable error, trying next key"
+                );
+                last_err = Some(AppError::ExternalServiceError(format!(
+                    "{label} API error {status}: {text}"
+                )));
+            } else {
+                tracing::error!(
+                    key_idx = idx,
+                    status = %status,
+                    response = %text,
+                    "{label}: non-retryable error"
+                );
+                return Err(AppError::ExternalServiceError(format!(
+                    "{label} API error {status}: {text}"
+                )));
+            }
+        }
+
+        Err(last_err.unwrap_or_else(|| {
+            AppError::ExternalServiceError(format!("{label}: all API keys failed"))
+        }))
     }
 
     /// Call the chat completions endpoint with a text prompt.
@@ -567,28 +753,7 @@ impl LlmExtractor {
         );
         tracing::info!("=== LLM PROMPT START ===\n{prompt}\n=== LLM PROMPT END ===");
 
-        let res = self
-            .client
-            .post(&url)
-            .bearer_auth(&self.api_key)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("LLM request failed: {e}")))?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let text = res.text().await.unwrap_or_default();
-            tracing::error!(status = %status, response = %text, "=== LLM API ERROR ===");
-            return Err(AppError::ExternalServiceError(format!(
-                "LLM API error {status}: {text}"
-            )));
-        }
-
-        let json: serde_json::Value = res
-            .json()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("LLM parse error: {e}")))?;
+        let json = self.send_with_rotation(&url, &body, "LLM").await?;
 
         let finish_reason = json["choices"][0]["finish_reason"].as_str().unwrap_or("");
         tracing::info!(finish_reason, "=== LLM FINISH REASON ===");
@@ -686,28 +851,7 @@ impl LlmExtractor {
         );
         tracing::info!("=== VISION PROMPT START ===\n{vision_prompt}\n=== VISION PROMPT END ===");
 
-        let res = self
-            .client
-            .post(&url)
-            .bearer_auth(&self.api_key)
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("Vision API failed: {e}")))?;
-
-        if !res.status().is_success() {
-            let status = res.status();
-            let text = res.text().await.unwrap_or_default();
-            tracing::error!(status = %status, response = %text, "=== VISION API ERROR ===");
-            return Err(AppError::ExternalServiceError(format!(
-                "Vision API error {status}: {text}"
-            )));
-        }
-
-        let json: serde_json::Value = res
-            .json()
-            .await
-            .map_err(|e| AppError::ExternalServiceError(format!("Vision parse error: {e}")))?;
+        let json = self.send_with_rotation(&url, &body, "Vision").await?;
 
         let finish_reason = json["choices"][0]["finish_reason"].as_str().unwrap_or("");
         tracing::info!(finish_reason, "=== VISION FINISH REASON ===");
@@ -988,8 +1132,8 @@ Map each actual header to the closest canonical field from this list:
   [{canonical_list}]
 
 Rules:
-- Only map when you are confident (typos, spaces vs underscores, capitalisation, language differences are fine to resolve).
-- Do NOT invent or guess mappings for unrelated headers.
+- Be generous: resolve typos, spaces vs underscores, capitalisation, abbreviations, and language differences (e.g. "Member CODE" -> member_id, "Account CODE" -> savings_account_id, "Open Date" -> account_opening_date, "Contribs Count" -> number_of_contributions, "DPD Category" -> days_past_due_category, "Tenure" -> tenure_category, "Voted" -> voting_exercised).
+- Only map when you are reasonably confident. Do NOT invent or guess mappings for unrelated headers.
 - If an actual header has no clear match, omit it from the output.
 - Each canonical field should appear AT MOST ONCE in the output.
 
@@ -1085,6 +1229,34 @@ impl FinancialStatementExtractor for LlmExtractor {
                 tracing::info!(chars = text.len(), "=== EXCEL TEXT EXTRACTED ===");
                 tracing::info!("=== EXCEL TEXT START ===\n{text}\n=== EXCEL TEXT END ===");
                 Ok(text)
+            }
+            m if m.contains("wordprocessingml")
+                || m.contains("msword")
+                || m.ends_with(".docx")
+                || m.ends_with(".doc") =>
+            {
+                tracing::info!("=== WORD FILE — EXTRACTING WITH DOCX-RS ===");
+                let bytes = file_bytes.to_vec();
+                let (text, images) =
+                    tokio::task::spawn_blocking(move || extract_docx_content(&bytes))
+                        .await
+                        .map_err(|e| {
+                            AppError::InternalServerError(format!("Word thread join error: {e}"))
+                        })??;
+                if !text.trim().is_empty() {
+                    tracing::info!(chars = text.len(), "=== WORD TEXT EXTRACTED ===");
+                    tracing::info!("=== WORD TEXT START ===\n{text}\n=== WORD TEXT END ===");
+                    Ok(text)
+                } else if let Some((img_bytes, img_mime)) = images.into_iter().next() {
+                    tracing::info!(
+                        "=== WORD DOC IS IMAGE-BASED — ROUTING EMBEDDED IMAGE TO VISION API ==="
+                    );
+                    self.vision_capture(&img_bytes, &img_mime).await
+                } else {
+                    Err(AppError::BadRequest(
+                        "Word document contains no extractable text or images".into(),
+                    ))
+                }
             }
             other => {
                 tracing::warn!(
@@ -1526,9 +1698,9 @@ impl<T: FinancialStatementExtractor + NfHeaderMapper> Extractor for T {}
 
 pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn Extractor> {
     if config.extraction_backend == "llm" {
-        if config.ai_api_key.is_empty() {
+        if config.ai_api_keys.is_empty() {
             tracing::warn!(
-                "EXTRACTION_BACKEND=llm but AI_API_KEY is not set — falling back to mock extractor"
+                "EXTRACTION_BACKEND=llm but no AI_API_KEYS/AI_API_KEY set — falling back to mock extractor"
             );
             return std::sync::Arc::new(MockExtractor);
         }
@@ -1537,10 +1709,11 @@ pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn
             vision_model = config.ai_vision_model,
             provider = config.ai_provider_url,
             max_tokens = config.ai_max_tokens,
+            api_keys = config.ai_api_keys.len(),
             "Using LLM extractor"
         );
         std::sync::Arc::new(LlmExtractor::new(
-            &config.ai_api_key,
+            &config.ai_api_keys,
             &config.ai_provider_url,
             &config.ai_model,
             &config.ai_vision_model,
@@ -1549,5 +1722,37 @@ pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn
     } else {
         tracing::info!("Using mock extractor (set EXTRACTION_BACKEND=llm to enable real AI)");
         std::sync::Arc::new(MockExtractor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_docx_content_real_files() {
+        let base = std::path::Path::new("../doc/Testdata");
+        for name in [
+            "FINANCIAL POSITION STATEMENT.docx",
+            "INCOME & EXPENSES STATEMENT.docx",
+        ] {
+            let path = base.join(name);
+            if !path.exists() {
+                eprintln!("SKIP (file not present): {name}");
+                continue;
+            }
+            let bytes = std::fs::read(&path).unwrap();
+            let (text, images) = extract_docx_content(&bytes).expect("docx should parse");
+            // A valid docx must yield either extractable text or embedded images.
+            assert!(
+                !text.trim().is_empty() || !images.is_empty(),
+                "{name} produced neither text nor images"
+            );
+            eprintln!(
+                "OK {name}: text={} chars, images={}",
+                text.len(),
+                images.len()
+            );
+        }
     }
 }

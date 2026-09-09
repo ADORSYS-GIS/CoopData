@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import DOMPurify from "dompurify";
 import {
   BarChart3,
   Users,
@@ -237,11 +238,14 @@ export const QuestionnaireAnalyticsPage: React.FC = () => {
                 <AlertCircle className="size-4 shrink-0 text-accent" />
                 <span
                   dangerouslySetInnerHTML={{
-                    __html: t("questionnaireAnalytics.scopeMessage", {
-                      reporting: stats.total_reporting_cooperatives,
-                      total: cooperatives.length,
-                      year: reportingYear,
-                    }),
+                    __html: DOMPurify.sanitize(
+                      t("questionnaireAnalytics.scopeMessage", {
+                        reporting: stats.total_reporting_cooperatives,
+                        total: cooperatives.length,
+                        year: reportingYear,
+                      }),
+                      { USE_PROFILES: { html: true } },
+                    ),
                   }}
                 />
               </div>

@@ -312,6 +312,15 @@
         "apexScope": "Âmbito do apex",
         "ownCoopOnly": "Apenas a própria cooperativa"
       }
+    },
+    "passwordPolicyViolation": "A nova palavra-passe não cumpre os critérios de segurança exigidos.",
+    "passwordRule": {
+      "minLength": "Pelo menos 8 caracteres",
+      "uppercase": "Pelo menos uma letra maiúscula",
+      "lowercase": "Pelo menos uma letra minúscula",
+      "digit": "Pelo menos um número",
+      "special": "Pelo menos um caráter especial",
+      "notUsername": "Não pode ser igual ao seu nome de utilizador"
     }
   },
   "landing": {
@@ -1048,6 +1057,11 @@
         "openInNewTab": "Abrir num novo separador",
         "openFull": "Abrir completo",
         "pdfHint": "PDF — use o scroll do navegador para fazer zoom",
+        "wordHint": "Documento Word (.docx)",
+        "excelHint": "Folha de Cálculo Excel",
+        "documentHint": "Documento",
+        "docPreviewDesc": "A pré-visualização visual está otimizada para ficheiros PDF e imagens. O conteúdo deste documento foi extraído e analisado na tabela abaixo.",
+        "downloadDoc": "Descarregar Documento",
         "zoomPanHint": "Scroll para zoom · Arrastar para deslocar",
         "zoomHint": "Scroll para zoom",
         "iframeTitle": "Demonstração Financeira"
