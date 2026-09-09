@@ -583,6 +583,7 @@ pub async fn submit_submission(
 pub async fn apex_submit_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let apex_db_id =
@@ -631,6 +632,28 @@ pub async fn apex_submit_submission(
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
     tracing::info!(submission_id = %id, apex_id = %apex_db_id, "Apex-initiated submission submitted to federation");
+
+    // Audit: apex-initiated submission submitted to federation
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "submit",
+            "submission",
+            Some(&updated.id.to_string()),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": updated.reference,
+                "reporting_year": updated.reporting_year,
+                "status": updated.status.as_str(),
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for apex submission submit");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
