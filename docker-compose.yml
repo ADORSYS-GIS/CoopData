@@ -160,6 +160,8 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
       S3_REGION: ${S3_REGION:-us-east-1}
+      RATE_LIMIT_AUTH_MAX: ${RATE_LIMIT_AUTH_MAX:-5}
+      RATE_LIMIT_AUTH_WINDOW_SECS: ${RATE_LIMIT_AUTH_WINDOW_SECS:-60}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:

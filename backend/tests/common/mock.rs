@@ -157,5 +157,7 @@ pub fn test_config() -> AppConfig {
         s3_access_key: "minioadmin".to_string(),
         s3_secret_key: "minioadmin".to_string(),
         s3_region: "us-east-1".to_string(),
+        rate_limit_auth_max: 5,
+        rate_limit_auth_window_secs: 60,
     }
 }

@@ -4764,5 +4764,9 @@
     "matrixSubtitle": "Detailed comparison of every questionnaire metric against the selected target",
     "loadErrorTitle": "Couldn't Load Benchmark Data",
     "loadErrorDesc": "Something went wrong while loading the questionnaire benchmark. Please try again."
+  },
+  "errors": {
+    "rateLimited": "Too many attempts. Please try again in {{seconds}}s.",
+    "rateLimitedTitle": "Slow down"
   }
 }
