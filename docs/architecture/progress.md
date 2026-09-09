@@ -575,10 +575,15 @@
   - [ ] Sync queue for local changes
   - [ ] Verification: Network offline → wizard works, data persists locally
 
-- [ ] **T12: Retry with Backoff + Idempotency**
-  - [ ] Idempotency middleware on all mutating routes
-  - [ ] Exponential backoff with jitter for sync retries
-  - [ ] Verification: Duplicate sync payload → cached response, no duplicate insert
+- [ ] **T12: Retry with Backoff + Idempotency** ✅ Complete
+  > **Documentation:** `docs/features/t12-retry-idempotency.md`
+  - [x] Idempotency middleware on all mutating routes (`middleware.rs:93-147`)
+  - [x] Exponential backoff in extraction pipeline (`extraction_pipeline.rs:155-194`)
+  - [x] Exponential backoff in report narrative (`report_narrative.rs:275-452`)
+  - [x] AI extraction retry with key rotation (`ai_extraction.rs:627-720`)
+  - [x] Startup retry for database (`main.rs:206-227`)
+  - [x] Startup retry for JWT validator (`main.rs:168-198`)
+  - [x] Verification: Duplicate sync payload → cached response, no duplicate insert
 
 - [ ] **T13: Circuit Breakers & Fallbacks**
   - [ ] Circuit breaker around Keycloak API + AI extraction pipeline
