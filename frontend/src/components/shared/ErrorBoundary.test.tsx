@@ -59,7 +59,7 @@ describe("ErrorBoundary", () => {
   });
 
   // Helper component that throws during render
-  function RenderError({ message }: { message?: string }) {
+  function RenderError({ message }: { message?: string }): null {
     throw new Error(message || "Render error");
   }
 
