@@ -904,7 +904,9 @@ pub async fn apex_approve_submission(
         state.kpi_record_repo.clone(),
         state.db.clone(),
     );
-    workflow.apex_approve(id, &claims, body.comment.clone()).await?;
+    workflow
+        .apex_approve(id, &claims, body.comment.clone())
+        .await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
@@ -965,7 +967,9 @@ pub async fn apex_return_submission(
         state.kpi_record_repo.clone(),
         state.db.clone(),
     );
-    workflow.apex_return(id, &claims, body.comment.clone()).await?;
+    workflow
+        .apex_return(id, &claims, body.comment.clone())
+        .await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
@@ -1362,7 +1366,9 @@ pub async fn ministry_approve_submission(
         state.kpi_record_repo.clone(),
         state.db.clone(),
     );
-    workflow.ministry_approve(id, &claims, body.comment.clone()).await?;
+    workflow
+        .ministry_approve(id, &claims, body.comment.clone())
+        .await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
@@ -1569,7 +1575,9 @@ pub async fn ministry_reject_submission(
         state.kpi_record_repo.clone(),
         state.db.clone(),
     );
-    workflow.ministry_reject(id, &claims, body.comment.clone()).await?;
+    workflow
+        .ministry_reject(id, &claims, body.comment.clone())
+        .await?;
     let updated = state
         .submission_repo
         .find_by_id(id)

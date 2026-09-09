@@ -15,9 +15,7 @@ async fn app() -> axum::Router {
 }
 
 /// Helper to parse JSON response body, returning None if body is empty.
-async fn try_parse_json_response(
-    response: axum::response::Response,
-) -> Option<serde_json::Value> {
+async fn try_parse_json_response(response: axum::response::Response) -> Option<serde_json::Value> {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .ok()?;
@@ -162,9 +160,7 @@ async fn test_nonexistent_route_returns_404() {
         assert_eq!(json["error"], "not_found");
         let message = json["message"].as_str().unwrap_or("");
         assert!(
-            !message.contains("database")
-                && !message.contains("sql")
-                && !message.contains("stack"),
+            !message.contains("database") && !message.contains("sql") && !message.contains("stack"),
             "Should not expose internal details"
         );
     }
@@ -366,9 +362,7 @@ async fn test_error_messages_are_user_friendly() {
 
     // Message should not contain technical jargon
     assert!(
-        !message.contains("tower")
-            && !message.contains("axum")
-            && !message.contains("hyper"),
+        !message.contains("tower") && !message.contains("axum") && !message.contains("hyper"),
         "Error message should not contain framework internals"
     );
 }
@@ -396,7 +390,10 @@ async fn test_openapi_spec_served() {
     let json = try_parse_json_response(response).await.unwrap();
 
     // Verify it's a valid OpenAPI spec
-    assert!(json.get("openapi").is_some(), "Should be valid OpenAPI spec");
+    assert!(
+        json.get("openapi").is_some(),
+        "Should be valid OpenAPI spec"
+    );
     assert!(json.get("info").is_some(), "Should have info section");
 }
 
