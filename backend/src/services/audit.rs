@@ -62,14 +62,14 @@ impl AuditService {
         claims: &Claims,
         action: &str,
         resource_type: &str,
-        resource_keycloak_id: &str,
+        resource_keycloak_id: Option<&str>,
         details: Option<serde_json::Value>,
     ) -> AppResult<audit_log::Model> {
         self.log(
             claims,
             action,
             resource_type,
-            Some(resource_keycloak_id),
+            resource_keycloak_id,
             details,
             audit_ctx.ip_address.as_deref(),
             audit_ctx.user_agent.as_deref(),

@@ -83,7 +83,7 @@ pub async fn create_custom_kpi(
             &claims,
             "create",
             "custom_kpi",
-            "",
+            None,
             Some(serde_json::json!({
                 "kpi_id": kpi.id,
                 "name": kpi.name,
@@ -178,7 +178,7 @@ pub async fn delete_custom_kpi(
             &claims,
             "delete",
             "custom_kpi",
-            "",
+            None,
             Some(serde_json::json!({
                 "kpi_id": id,
                 "name": kpi.name,
@@ -261,7 +261,7 @@ pub async fn update_custom_kpi(
             &claims,
             "update",
             "custom_kpi",
-            "",
+            None,
             Some(serde_json::json!({
                 "kpi_id": id,
                 "name": updated.name,

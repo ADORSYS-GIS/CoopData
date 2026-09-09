@@ -184,7 +184,7 @@ pub async fn create_submission(
             &claims,
             "create",
             "submission",
-            &submission.id.to_string(),
+            Some(&submission.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": submission.id,
                 "reference": submission.reference,
@@ -549,7 +549,7 @@ pub async fn submit_submission(
             &claims,
             "submit",
             "submission",
-            &updated.id.to_string(),
+            Some(&updated.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": updated.reference,
@@ -918,7 +918,7 @@ pub async fn apex_approve_submission(
             &claims,
             "approve",
             "submission",
-            &updated.id.to_string(),
+            Some(&updated.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": updated.reference,
@@ -979,7 +979,7 @@ pub async fn apex_return_submission(
             &claims,
             "return",
             "submission",
-            &updated.id.to_string(),
+            Some(&updated.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": updated.reference,
@@ -1131,7 +1131,7 @@ pub async fn federation_approve_submission(
             &claims,
             "approve",
             "submission",
-            &updated.id.to_string(),
+            Some(&updated.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": updated.reference,
@@ -1194,7 +1194,7 @@ pub async fn federation_return_submission(
             &claims,
             "return",
             "submission",
-            &updated.id.to_string(),
+            Some(&updated.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": updated.reference,
@@ -1522,7 +1522,7 @@ pub async fn ministry_approve_submission(
             &claims,
             "approve",
             "submission",
-            &updated.id.to_string(),
+            Some(&updated.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": updated.reference,
@@ -1583,7 +1583,7 @@ pub async fn ministry_reject_submission(
             &claims,
             "reject",
             "submission",
-            &updated.id.to_string(),
+            Some(&updated.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": updated.reference,
@@ -1742,7 +1742,7 @@ pub async fn update_submission_section(
             &claims,
             "update",
             "submission_section",
-            &submission.id.to_string(),
+            Some(&submission.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "section": section,
@@ -1864,7 +1864,7 @@ pub async fn delete_submission(
             &claims,
             "delete",
             "submission",
-            &submission.id.to_string(),
+            Some(&submission.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": submission.reference,
@@ -2285,7 +2285,7 @@ pub async fn update_submission_method(
             &claims,
             "update",
             "submission",
-            &submission.id.to_string(),
+            Some(&submission.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": id,
                 "reference": submission.reference,
@@ -2455,7 +2455,7 @@ pub async fn create_apex_submission(
             &claims,
             "create",
             "submission",
-            &submission.id.to_string(),
+            Some(&submission.id.to_string()),
             Some(serde_json::json!({
                 "submission_id": submission.id,
                 "reference": submission.reference,

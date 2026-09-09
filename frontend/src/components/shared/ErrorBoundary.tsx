@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // Log error details to DevTools Console for debugging
     // (Users never see this in the UI)
     console.error(
-      `[ErrorBoundary] Uncaught error in "${this.props.stepName || "unknown"}"]:`,
+      `[ErrorBoundary] Uncaught error in "${this.props.stepName || "unknown"}":`,
       error,
       errorInfo,
     );

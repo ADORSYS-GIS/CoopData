@@ -420,7 +420,7 @@ pub async fn upload_financial_statement(
             &claims,
             "upload",
             "uploaded_file",
-            "",
+            None,
             Some(serde_json::json!({
                 "submission_id": submission_id,
                 "file_id": file_id,

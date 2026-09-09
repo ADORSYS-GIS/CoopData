@@ -3,25 +3,12 @@ use axum::{
     response::Response,
 };
 
-use crate::auth::claims::Claims;
-
 /// Context extracted from the HTTP request for audit logging.
 /// Contains the client IP address and user agent string.
 #[derive(Clone, Debug, Default)]
 pub struct AuditContext {
     pub ip_address: Option<String>,
     pub user_agent: Option<String>,
-}
-
-impl AuditContext {
-    /// Create an AuditContext from Claims (without IP/User-Agent).
-    /// Used in handlers where request context is not available.
-    pub fn from_claims(_claims: &Claims) -> Self {
-        Self {
-            ip_address: None,
-            user_agent: None,
-        }
-    }
 }
 
 /// Middleware that extracts IP address and user agent from the request
