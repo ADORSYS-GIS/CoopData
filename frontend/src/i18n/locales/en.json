@@ -260,6 +260,15 @@
     "fillAllFields": "Please fill in all password fields.",
     "passwordsNoMatch": "New passwords do not match.",
     "passwordTooShort": "New password must be at least 8 characters.",
+    "passwordPolicyViolation": "New password does not meet the required security criteria.",
+    "passwordRule": {
+      "minLength": "At least 8 characters",
+      "uppercase": "At least one uppercase letter",
+      "lowercase": "At least one lowercase letter",
+      "digit": "At least one number",
+      "special": "At least one special character",
+      "notUsername": "Must not be the same as your username"
+    },
     "passwordUpdated": "Password updated successfully!",
     "unexpectedError": "Unexpected error.",
     "loadingSecurity": "Loading security settings…",

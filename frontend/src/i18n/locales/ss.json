@@ -312,6 +312,15 @@
         "apexScope": "Umkhawulo wepheksi",
         "ownCoopOnly": "Ikhopharethi yakho kuphela"
       }
+    },
+    "passwordPolicyViolation": "Liphasiwedi lensha alihambisani nemibandzela yekuvikeleka ledingekako.",
+    "passwordRule": {
+      "minLength": "Kumele kube netinhlamvu letingu-8 noma ngetulu",
+      "uppercase": "Kumele kube nencwadzana yekucala lenkhulu",
+      "lowercase": "Kumele kube nencwadzana yekucala lencane",
+      "digit": "Kumele kube nenombolo yinye",
+      "special": "Kumele kube nesibonakaliso lesikhetsekile sinye",
+      "notUsername": "Akumele kufane nelibito lakho lelisebentisi"
     }
   },
   "landing": {

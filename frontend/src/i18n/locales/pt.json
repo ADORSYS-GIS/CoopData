@@ -312,6 +312,15 @@
         "apexScope": "Âmbito do apex",
         "ownCoopOnly": "Apenas a própria cooperativa"
       }
+    },
+    "passwordPolicyViolation": "A nova palavra-passe não cumpre os critérios de segurança exigidos.",
+    "passwordRule": {
+      "minLength": "Pelo menos 8 caracteres",
+      "uppercase": "Pelo menos uma letra maiúscula",
+      "lowercase": "Pelo menos uma letra minúscula",
+      "digit": "Pelo menos um número",
+      "special": "Pelo menos um caráter especial",
+      "notUsername": "Não pode ser igual ao seu nome de utilizador"
     }
   },
   "landing": {
