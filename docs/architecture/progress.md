@@ -729,6 +729,38 @@
   - `upload_financial_statement` — upload action
 - [x] **24.7 Extraction Handler** — No changes needed (read-only endpoint)
 - [x] **24.8 Verification** — All 15 audit tests pass ✅, `cargo check` ✅
+### Phase 23: Rate Limiting & Abuse Prevention (T6 / #134) ✅ Complete
+
+> **Goal**: Protect sensitive auth endpoints against brute-force and abuse via a 3-layer defense (Keycloak brute-force detection + nginx `limit_req` + Axum Redis token bucket). Design: `docs/features/rate-limiting-design.md`.
+
+- [x] **24.1 Backend — Redis token bucket middleware**
+  - [x] New `src/api/rate_limit.rs` middleware using existing `CacheService` (Redis `INCR`+`EXPIRE` via Lua; memory backend for dev/tests)
+  - [x] Key by client IP (via `AuditContext`) for auth-adjacent endpoints
+  - [x] Return `429` with `Retry-After` header (remaining key TTL)
+  - [x] Fail-open on Redis errors (log + allow) to avoid lockouts
+- [x] **24.2 Backend — Config**
+  - [x] Add `RATE_LIMIT_AUTH_MAX`, `RATE_LIMIT_AUTH_WINDOW_SECS` to `AppConfig`
+  - [x] Update `backend/.env.example`, root `.env.example`, `docker-compose.yml`
+- [x] **24.3 Backend — Wire into `create_app`**
+  - [x] Apply rate-limit layer to `/me/verify-identity`, `/me/password`, `/me/security/mfa/*` via `sensitive_auth_routes()`
+- [x] **24.4 Nginx `limit_req` (login)**
+  - [x] Add `limit_req_zone` + `limit_req` on Keycloak token endpoint in `nginx-host.conf`, `limit_req_status 429`
+- [x] **23.5 Keycloak brute-force detection**
+  - [x] Enabled `bruteForceProtected` + thresholds in `keycloak/realm-coopdata.json`
+- [x] **24.6 Tests & Verification**
+  - [x] Unit tests for token-bucket logic (3 tests)
+  - [x] Fixed `tests/handlers_verify_identity.rs` router to include `sensitive_auth_routes()`
+  - [x] `cargo clippy` clean + `cargo test` all pass (342 tests)
+  - [x] **Live verification** via `scripts/test-rate-limit.sh`: 6 rapid requests to `/api/v1/me/verify-identity` → 6th returns `429` with `Retry-After: 60` ✅
+  - [x] **Live verification** of Keycloak brute-force (Layer 1): 5 wrong passwords then correct → blocked ✅
+- [x] **24.7 Frontend — 429 UI handling**
+  - [x] `src/openapi-client/index.ts` — global `onResponse` handler for `429`: shows a sonner toast with a live `Retry-After` countdown
+  - [x] Added `errors.rateLimited` / `errors.rateLimitedTitle` i18n keys to en/fr/pt/ss
+  - [x] `tsc --noEmit` + eslint clean
+- [x] **24.8 Test script enhancements**
+  - [x] `scripts/test-rate-limit.sh` — added `--keycloak` flag to also test Layer 1 (Keycloak brute-force lockout)
+  - [x] Fixed `.env` loading (values with spaces) and switched to service-account token
+  - [x] Documented Keycloak realm-import caveat in `docs/features/rate-limiting-design.md`
 
 ---
 

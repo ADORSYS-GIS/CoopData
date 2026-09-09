@@ -146,6 +146,7 @@ pub fn test_config() -> AppConfig {
         extraction_backend: "mock".to_string(),
         ai_provider_url: "https://api.openai.com/v1".to_string(),
         ai_api_key: String::new(),
+        ai_api_keys: Vec::new(),
         ai_model: "gpt-4o".to_string(),
         ai_vision_model: "gpt-4o".to_string(),
         ai_max_tokens: 65536,
@@ -156,5 +157,7 @@ pub fn test_config() -> AppConfig {
         s3_access_key: "minioadmin".to_string(),
         s3_secret_key: "minioadmin".to_string(),
         s3_region: "us-east-1".to_string(),
+        rate_limit_auth_max: 5,
+        rate_limit_auth_window_secs: 60,
     }
 }

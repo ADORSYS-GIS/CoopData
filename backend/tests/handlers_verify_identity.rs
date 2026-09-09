@@ -10,8 +10,11 @@ use axum::{
 use common::mock::TestApp;
 use coop_data_backend::api::routes::api::role_guard_layer;
 use coop_data_backend::api::routes::{
-    apex::apex_routes, cooperative::cooperative_routes, federation::federation_routes,
-    ministry::ministry_routes, shared::shared_routes,
+    apex::apex_routes,
+    cooperative::cooperative_routes,
+    federation::federation_routes,
+    ministry::ministry_routes,
+    shared::{sensitive_auth_routes, shared_routes},
 };
 use coop_data_backend::auth::claims::{Claims, RealmAccess};
 use coop_data_backend::auth::rbac::roles;
@@ -46,6 +49,7 @@ fn test_router(claims: Claims, state: coop_data_backend::AppState) -> Router {
 
     let protected = Router::new()
         .merge(shared_routes())
+        .merge(sensitive_auth_routes())
         .nest(
             "/ministry",
             ministry_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
