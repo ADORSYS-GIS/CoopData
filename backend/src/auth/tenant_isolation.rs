@@ -83,9 +83,7 @@ impl TenantIsolation {
             .find_by_id_for_cooperatives(submission_id, &coop_ids)
             .await?
             .ok_or_else(|| {
-                AppError::Forbidden(
-                    "Access denied: submission does not belong to your apex".into(),
-                )
+                AppError::Forbidden("Access denied: submission does not belong to your apex".into())
             })?;
 
         Ok((submission, apex_db_id))
@@ -105,8 +103,7 @@ impl TenantIsolation {
         })?;
 
         let federation =
-            crate::api::handlers::submission::resolve_federation_record_pub(state, &org_id)
-                .await?;
+            crate::api::handlers::submission::resolve_federation_record_pub(state, &org_id).await?;
 
         let apexes = state.apex_repo.find_by_federation_id(federation.id).await?;
 

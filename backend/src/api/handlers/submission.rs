@@ -56,7 +56,6 @@ pub async fn resolve_federation_record_pub(
     resolve_federation_record(state, org_id).await
 }
 
-
 #[utoipa::path(
     post,
     path = "/api/v1/cooperative/submissions",
@@ -639,7 +638,6 @@ pub async fn get_submission_flags(
 
     Ok((StatusCode::OK, Json(flags)))
 }
-
 
 // ── Review handlers (Apex) ────────────────────────────────────────────────────
 
