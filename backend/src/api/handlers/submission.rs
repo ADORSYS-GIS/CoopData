@@ -863,6 +863,7 @@ pub async fn get_submission_as_ministry(
     responses(
         (status = 200, description = "Approved, forwarded to federation", body = SubmissionResponse),
         (status = 400, description = "Invalid state"),
+        (status = 403, description = "Forbidden — submission does not belong to your apex"),
         (status = 404, description = "Not found")
     ),
     tag = "Apex"
@@ -904,6 +905,7 @@ pub async fn apex_approve_submission(
     responses(
         (status = 200, description = "Returned to cooperative", body = SubmissionResponse),
         (status = 400, description = "Invalid state"),
+        (status = 403, description = "Forbidden — submission does not belong to your apex"),
         (status = 404, description = "Not found")
     ),
     tag = "Apex"
@@ -1034,6 +1036,7 @@ pub async fn list_federation_submissions(
     responses(
         (status = 200, description = "Approved, forwarded to ministry", body = SubmissionResponse),
         (status = 400, description = "Invalid state"),
+        (status = 403, description = "Forbidden — submission does not belong to your federation"),
         (status = 404, description = "Not found")
     ),
     tag = "Federation"
@@ -1077,6 +1080,7 @@ pub async fn federation_approve_submission(
     responses(
         (status = 200, description = "Returned to apex", body = SubmissionResponse),
         (status = 400, description = "Invalid state"),
+        (status = 403, description = "Forbidden — submission does not belong to your federation"),
         (status = 404, description = "Not found")
     ),
     tag = "Federation"

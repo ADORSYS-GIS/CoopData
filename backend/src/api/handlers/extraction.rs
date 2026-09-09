@@ -18,7 +18,6 @@ use crate::AppState;
     params(("id" = Uuid, Path, description = "Extraction job ID")),
     responses(
         (status = 200, description = "Extraction job status", body = ExtractionJobResponse),
-        (status = 403, description = "Forbidden — job does not belong to your scope"),
         (status = 404, description = "Not found")
     ),
     tag = "Cooperative"
