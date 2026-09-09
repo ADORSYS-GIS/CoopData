@@ -146,6 +146,7 @@ pub fn test_config() -> AppConfig {
         extraction_backend: "mock".to_string(),
         ai_provider_url: "https://api.openai.com/v1".to_string(),
         ai_api_key: String::new(),
+        ai_api_keys: Vec::new(),
         ai_model: "gpt-4o".to_string(),
         ai_vision_model: "gpt-4o".to_string(),
         ai_max_tokens: 65536,
