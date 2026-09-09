@@ -17,6 +17,7 @@ use crate::api::dto::submission::{
     SubmissionReviewResponse, SubmissionSectionResponse, UpdateSectionStatusRequest,
     UpdateSubmissionMethodRequest,
 };
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 
 use crate::entities::enums::SubmissionStatus;
@@ -64,6 +65,7 @@ async fn resolve_federation_record(
 pub async fn create_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateSubmissionRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.reporting_year < 1900 || body.reporting_year > 2100 {
@@ -130,7 +132,7 @@ pub async fn create_submission(
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),
         period_type: Set(period_type),
-        period_value: Set(period_value),
+        period_value: Set(period_value.clone()),
         status: Set(crate::entities::enums::SubmissionStatus::Draft),
         current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
         submitted_by: Set(submitted_by),
@@ -173,6 +175,29 @@ pub async fn create_submission(
         "Submission created with {} sections",
         sections.len()
     );
+
+    // Audit: submission created
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "create",
+            "submission",
+            &submission.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": submission.id,
+                "reference": submission.reference,
+                "reporting_year": body.reporting_year,
+                "period_type": period_type.as_str(),
+                "period_value": period_value,
+                "submission_method": submission_method_val,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for submission creation");
+    }
 
     let mut resp = SubmissionResponse::from(submission);
     resp.sections = sections
@@ -475,6 +500,7 @@ pub async fn validate_extraction(
 pub async fn submit_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let coop =
@@ -509,6 +535,28 @@ pub async fn submit_submission(
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
     tracing::info!(submission_id = %id, cooperative_id = %coop.id, "Submission submitted to apex");
+
+    // Audit: submission submitted
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "submit",
+            "submission",
+            &updated.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": updated.reference,
+                "reporting_year": updated.reporting_year,
+                "status": updated.status.as_str(),
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for submission submit");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -836,6 +884,7 @@ pub async fn get_submission_as_ministry(
 pub async fn apex_approve_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -849,12 +898,35 @@ pub async fn apex_approve_submission(
         state.kpi_record_repo.clone(),
         state.db.clone(),
     );
-    workflow.apex_approve(id, &claims, body.comment).await?;
+    workflow.apex_approve(id, &claims, body.comment.clone()).await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Audit: submission approved by apex
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "approve",
+            "submission",
+            &updated.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": updated.reference,
+                "reporting_year": updated.reporting_year,
+                "status": updated.status.as_str(),
+                "comment": body.comment,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for apex approval");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -873,6 +945,7 @@ pub async fn apex_approve_submission(
 pub async fn apex_return_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -886,12 +959,35 @@ pub async fn apex_return_submission(
         state.kpi_record_repo.clone(),
         state.db.clone(),
     );
-    workflow.apex_return(id, &claims, body.comment).await?;
+    workflow.apex_return(id, &claims, body.comment.clone()).await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Audit: submission returned by apex
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "return",
+            "submission",
+            &updated.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": updated.reference,
+                "reporting_year": updated.reporting_year,
+                "status": updated.status.as_str(),
+                "comment": body.comment,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for apex return");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -999,6 +1095,7 @@ pub async fn list_federation_submissions(
 pub async fn federation_approve_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -1013,13 +1110,36 @@ pub async fn federation_approve_submission(
         state.db.clone(),
     );
     workflow
-        .federation_approve(id, &claims, body.comment)
+        .federation_approve(id, &claims, body.comment.clone())
         .await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Audit: submission approved by federation
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "approve",
+            "submission",
+            &updated.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": updated.reference,
+                "reporting_year": updated.reporting_year,
+                "status": updated.status.as_str(),
+                "comment": body.comment,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for federation approval");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -1038,6 +1158,7 @@ pub async fn federation_approve_submission(
 pub async fn federation_return_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -1052,13 +1173,36 @@ pub async fn federation_return_submission(
         state.db.clone(),
     );
     workflow
-        .federation_return(id, &claims, body.comment)
+        .federation_return(id, &claims, body.comment.clone())
         .await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Audit: submission returned by federation
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "return",
+            "submission",
+            &updated.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": updated.reference,
+                "reporting_year": updated.reporting_year,
+                "status": updated.status.as_str(),
+                "comment": body.comment,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for federation return");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -1198,6 +1342,7 @@ pub async fn list_ministry_submissions(
 pub async fn ministry_approve_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -1211,7 +1356,7 @@ pub async fn ministry_approve_submission(
         state.kpi_record_repo.clone(),
         state.db.clone(),
     );
-    workflow.ministry_approve(id, &claims, body.comment).await?;
+    workflow.ministry_approve(id, &claims, body.comment.clone()).await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
@@ -1364,6 +1509,28 @@ pub async fn ministry_approve_submission(
         }
     });
 
+    // Audit: submission approved by ministry (final approval)
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "approve",
+            "submission",
+            &updated.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": updated.reference,
+                "reporting_year": updated.reporting_year,
+                "status": updated.status.as_str(),
+                "comment": body.comment,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for ministry approval");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -1382,6 +1549,7 @@ pub async fn ministry_approve_submission(
 pub async fn ministry_reject_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<ReviewActionRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -1395,12 +1563,35 @@ pub async fn ministry_reject_submission(
         state.kpi_record_repo.clone(),
         state.db.clone(),
     );
-    workflow.ministry_reject(id, &claims, body.comment).await?;
+    workflow.ministry_reject(id, &claims, body.comment.clone()).await?;
     let updated = state
         .submission_repo
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Audit: submission rejected by ministry
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "reject",
+            "submission",
+            &updated.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": updated.reference,
+                "reporting_year": updated.reporting_year,
+                "status": updated.status.as_str(),
+                "comment": body.comment,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for ministry rejection");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -1463,6 +1654,7 @@ pub async fn list_submission_sections(
 pub async fn update_submission_section(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path((id, section)): Path<(Uuid, String)>,
     Json(body): Json<UpdateSectionStatusRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -1537,6 +1729,26 @@ pub async fn update_submission_section(
         "Section status updated"
     );
 
+    // Audit: section updated
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "update",
+            "submission_section",
+            &submission.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "section": section,
+                "status": body.status,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for section update");
+    }
+
     Ok((
         StatusCode::OK,
         Json(SubmissionSectionResponse::from(updated)),
@@ -1559,6 +1771,7 @@ pub async fn update_submission_section(
 pub async fn delete_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
@@ -1637,6 +1850,27 @@ pub async fn delete_submission(
         status = %submission.status.as_str(),
         "Submission deleted"
     );
+
+    // Audit: submission deleted
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "delete",
+            "submission",
+            &submission.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": submission.reference,
+                "reporting_year": submission.reporting_year,
+                "status": submission.status.as_str(),
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for submission deletion");
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -1962,6 +2196,7 @@ pub async fn get_membership_stats(
 pub async fn update_submission_method(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateSubmissionMethodRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -2037,6 +2272,26 @@ pub async fn update_submission_method(
         "Submission method updated"
     );
 
+    // Audit: submission method updated
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "update",
+            "submission",
+            &submission.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": id,
+                "reference": submission.reference,
+                "submission_method": body.submission_method,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for submission method update");
+    }
+
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
 }
 
@@ -2058,6 +2313,7 @@ pub async fn update_submission_method(
 pub async fn create_apex_submission(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(body): Json<CreateApexSubmissionRequest>,
 ) -> AppResult<impl IntoResponse> {
     if body.reporting_year < 1900 || body.reporting_year > 2100 {
@@ -2141,7 +2397,7 @@ pub async fn create_apex_submission(
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),
         period_type: Set(period_type),
-        period_value: Set(period_value),
+        period_value: Set(period_value.clone()),
         status: Set(crate::entities::enums::SubmissionStatus::Draft),
         current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
         submitted_by: Set(submitted_by),
@@ -2185,6 +2441,30 @@ pub async fn create_apex_submission(
         "Apex-initiated submission created with {} sections",
         sections.len()
     );
+
+    // Audit: apex-initiated submission created
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "create",
+            "submission",
+            &submission.id.to_string(),
+            Some(serde_json::json!({
+                "submission_id": submission.id,
+                "reference": submission.reference,
+                "reporting_year": body.reporting_year,
+                "period_type": period_type.as_str(),
+                "period_value": period_value,
+                "submission_method": submission_method_val,
+                "created_by_role": "apex",
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for apex submission creation");
+    }
 
     let mut resp = SubmissionResponse::from(submission);
     resp.sections = sections

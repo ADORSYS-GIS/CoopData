@@ -12,6 +12,7 @@ use uuid::Uuid;
 const MAX_UPLOAD_BYTES: usize = 20 * 1024 * 1024; // 20 MB
 
 use crate::api::dto::upload::UploadResponse;
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 
 use crate::entities::enums::{AccountingYear, Currency, SubmissionStatus};
@@ -37,6 +38,7 @@ use crate::AppState;
 pub async fn upload_financial_statement(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<AuditContext>,
     mut multipart: Multipart,
 ) -> AppResult<impl IntoResponse> {
     let is_apex = claims.has_role("apex");
@@ -219,7 +221,7 @@ pub async fn upload_financial_statement(
     let file_model = UploadedFileModel {
         id: Set(file_id),
         submission_id: Set(submission_id),
-        original_name: Set(original_name),
+        original_name: Set(original_name.clone()),
         mime_type: Set(Some(mime_type.clone())),
         storage_key: Set(storage_key),
         size_bytes: Set(Some(file_bytes.len() as i64)),
@@ -277,6 +279,11 @@ pub async fn upload_financial_statement(
     let flag_repo = state.flag_repo.clone();
     let section_repo = state.section_repo.clone();
 
+    // Store values before moving into the spawn
+    let file_size = file_bytes.len();
+    let audit_original_name = original_name.clone();
+    let audit_mime_type = mime_type.clone();
+
     tokio::spawn(async move {
         run_extraction_pipeline(
             job_id,
@@ -306,6 +313,29 @@ pub async fn upload_financial_statement(
         reporting_year = %reporting_year,
         "Financial statement upload accepted, extraction queued"
     );
+
+    // Audit: file uploaded for extraction
+    if let Err(e) = state
+        .audit
+        .log_with_context(
+            &audit_ctx,
+            &claims,
+            "upload",
+            "uploaded_file",
+            "",
+            Some(serde_json::json!({
+                "submission_id": submission_id,
+                "file_id": file_id,
+                "original_name": audit_original_name,
+                "mime_type": audit_mime_type,
+                "size_bytes": file_size,
+                "extraction_job_id": job_id,
+            })),
+        )
+        .await
+    {
+        tracing::error!(error = %e, "Failed to log audit for file upload");
+    }
 
     Ok((
         StatusCode::ACCEPTED,

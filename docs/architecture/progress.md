@@ -533,6 +533,40 @@
 - [x] **23.7 Design Documentation** — Created `docs/features/t10-error-handling.md` with full T10 implementation details, security considerations, and verification steps.
 - [x] **Verification**: Backend integration tests pass ✅, Frontend unit tests pass ✅, `cargo clippy` ✅, ESLint on changed files ✅
 
+
+### Phase 24: T9 Audit Trails & Tamper-Evident Logging ✅ Complete
+
+> **Goal**: Audit all mutations (create, update, delete, approve, reject) while skipping read-only operations (analytics, stats, benchmarking) per Option A.
+
+- [x] **24.1 Design Documentation** — Created `docs/features/t9-audit-trails.md` documenting:
+  - Scope: mutations only (skip read-only operations)
+  - Audit action types: create, update, delete, approve, reject, upload
+  - Resource types: submission, custom_kpi, uploaded_file, etc.
+  - Tamper-evidence approach: no DELETE endpoint, ministry-only access, DB permissions
+- [x] **24.2 AuditService Enhancement** — Added `log_with_context()` convenience method to `services/audit.rs`
+- [x] **24.3 AuditContext Helper** — Added `AuditContext::from_claims()` to `api/middleware.rs`
+- [x] **24.4 Submission Handler Audits** — Added audit calls to `handlers/submission.rs`:
+  - `create_submission` — create action
+  - `submit_submission` — submit action
+  - `apex_approve_submission` — approve action
+  - `apex_return_submission` — return action
+  - `federation_approve_submission` — approve action
+  - `federation_return_submission` — return action
+  - `ministry_approve_submission` — approve action
+  - `ministry_reject_submission` — reject action
+  - `update_submission_section` — update action
+  - `delete_submission` — delete action
+  - `update_submission_method` — update action
+  - `create_apex_submission` — create action
+- [x] **24.5 Custom KPI Handler Audits** — Added audit calls to `handlers/custom_kpi.rs`:
+  - `create_custom_kpi` — create action
+  - `delete_custom_kpi` — delete action
+  - `update_custom_kpi` — update action
+- [x] **24.6 Upload Handler Audit** — Added audit call to `handlers/upload.rs`:
+  - `upload_financial_statement` — upload action
+- [x] **24.7 Extraction Handler** — No changes needed (read-only endpoint)
+- [x] **24.8 Verification** — All 15 audit tests pass ✅, `cargo check` ✅
+
 ---
 
 ## Token Management Strategy

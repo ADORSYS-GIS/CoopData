@@ -1,3 +1,4 @@
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::entities::audit_log;
 use crate::error::AppResult;
@@ -52,5 +53,27 @@ impl AuditService {
         };
 
         self.repo.create(model).await
+    }
+
+    /// Convenience method that takes AuditContext directly instead of separate IP/user-agent.
+    pub async fn log_with_context(
+        &self,
+        audit_ctx: &AuditContext,
+        claims: &Claims,
+        action: &str,
+        resource_type: &str,
+        resource_keycloak_id: &str,
+        details: Option<serde_json::Value>,
+    ) -> AppResult<audit_log::Model> {
+        self.log(
+            claims,
+            action,
+            resource_type,
+            Some(resource_keycloak_id),
+            details,
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
     }
 }
