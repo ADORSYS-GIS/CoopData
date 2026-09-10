@@ -12,7 +12,7 @@ if (!(global as Record<string, unknown>).crypto) {
   (global as Record<string, unknown>).crypto = crypto;
 }
 if (!globalThis.crypto) {
-  // @ts-ignore
+  // @ts-expect-error - assign crypto polyfill to globalThis for Node 18 builds
   globalThis.crypto = crypto;
 }
 
@@ -50,12 +50,7 @@ export default defineConfig(({ mode }) => {
           globIgnores: ["**/test data/**"],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           navigateFallback: "/index.html",
-          navigateFallbackDenylist: [
-            /^\/api\//,
-            /^\/auth\//,
-            /^\/realms\//,
-            /\.[a-z0-9]+$/i,
-          ],
+          navigateFallbackDenylist: [/^\/api\//, /^\/auth\//, /^\/realms\//, /\.[a-z0-9]+$/i],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
