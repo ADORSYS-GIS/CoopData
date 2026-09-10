@@ -43,6 +43,7 @@ import {
   useSubmission,
 } from "@/hooks/submissions/useSubmissions";
 import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
+import { useNetworkStatus } from "@/hooks/shared/useNetworkStatus";
 import {
   useSubmissionSections,
   useUpdateSubmissionSection,
@@ -284,6 +285,7 @@ export const FinancialStatementEditor: React.FC<{
 }> = ({ fsId, submissionId, isDraft, isCooperative, isReadOnly, isExtracting }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isOnline } = useNetworkStatus();
   const { data: fs } = useFinancialStatement(fsId);
   const { data: items = [], isLoading: itemsLoading } = useLineItems(fsId);
   const updateItems = useUpdateLineItems(fsId);
@@ -401,6 +403,15 @@ export const FinancialStatementEditor: React.FC<{
   };
 
   const handleValidate = async () => {
+    if (!isOnline) {
+      toast.error(
+        t(
+          "financialStatementEditor.validationPanel.offlineDisabled",
+          "AI validation requires an internet connection",
+        ),
+      );
+      return;
+    }
     try {
       await validate.mutateAsync(submissionId);
       toast.success(t("financialStatementEditor.toasts.valComplete"));
@@ -565,7 +576,15 @@ export const FinancialStatementEditor: React.FC<{
             <div className="flex items-center gap-2">
               <button
                 onClick={handleValidate}
-                disabled={validate.isPending || isReadOnly}
+                disabled={validate.isPending || isReadOnly || !isOnline}
+                title={
+                  !isOnline
+                    ? t(
+                        "financialStatementEditor.validationPanel.offlineDisabled",
+                        "AI validation requires an internet connection",
+                      )
+                    : undefined
+                }
                 className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors cursor-pointer"
               >
                 {validate.isPending ? <Spinner size="sm" /> : <RefreshCw className="size-3.5" />}

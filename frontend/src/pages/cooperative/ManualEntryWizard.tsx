@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import {
@@ -16,6 +16,8 @@ import {
   Sprout,
   Trash2,
   Calendar,
+  Save,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, Card } from "@/components/app-shell";
@@ -38,6 +40,13 @@ import {
 import { Route } from "@/routes/app.submissions_.$id.manual-entry";
 import { useQuery } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
+import { useNetworkStatus } from "@/hooks/shared/useNetworkStatus";
+import {
+  loadManualEntryDraft,
+  saveManualEntryDraft,
+  clearManualEntryDraft,
+  type ManualEntryMode,
+} from "@/services/shared/manualEntryDraftService";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
 import { useMembers } from "@/hooks/non-financial/useMembers";
 import { useSavings } from "@/hooks/non-financial/useSavings";
@@ -58,6 +67,7 @@ import type {
   WizardLoan,
   WizardFixedDeposit,
   WizardFarmCoop,
+  ManualEntryDraftState,
 } from "./manual-entry/types";
 import {
   fmt,
@@ -81,6 +91,24 @@ import { SavingsStep } from "./manual-entry/SavingsStep";
 import { LoansStep } from "./manual-entry/LoansStep";
 import { DepositsStep } from "./manual-entry/DepositsStep";
 import { Spinner } from "@/components/ui/spinner";
+
+function hasDraftData(d: ManualEntryDraftState): boolean {
+  if (d.members && d.members.length > 0) return true;
+  if (d.savings && d.savings.length > 0) return true;
+  if (d.loans && d.loans.length > 0) return true;
+  if (d.fixedDeposits && d.fixedDeposits.length > 0) return true;
+  if (d.farmCoop && !!d.farmCoop.cooperativeType) return true;
+  if (d.financialData) {
+    for (const code of Object.keys(d.financialData)) {
+      const months = d.financialData[Number(code)];
+      if (!months) continue;
+      for (const m of Object.keys(months)) {
+        if (months[Number(m)]) return true;
+      }
+    }
+  }
+  return false;
+}
 
 export function ManualEntryWizard() {
   const { t } = useTranslation();
@@ -153,6 +181,85 @@ export function ManualEntryWizard() {
   const [fixedDeposits, setFixedDeposits] = useState<WizardFixedDeposit[]>([]);
   const [farmCoop, setFarmCoop] = useState<WizardFarmCoop>(() => createEmptyFarmCoop());
 
+  // ── Offline draft persistence ──
+  const draftMode: ManualEntryMode = isFinancialWizard ? "financial" : "non_financial";
+  const { isOnline } = useNetworkStatus();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [hasLocalDraft, setHasLocalDraft] = useState(false);
+  const draftAppliedRef = useRef(false);
+
+  // Restore a previously saved local draft (if any) once on mount.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const draft = await loadManualEntryDraft<ManualEntryDraftState>(submissionId, draftMode);
+      if (!mounted) return;
+      if (draft && hasDraftData(draft)) {
+        draftAppliedRef.current = true;
+        setHasLocalDraft(true);
+        if (draft.currency) setCurrency(draft.currency);
+        if (draft.accountingYear) setAccountingYear(draft.accountingYear);
+        if (draft.startMonth) setStartMonth(draft.startMonth);
+        if (draft.periodType) setPeriodType(draft.periodType);
+        if (draft.periodValue) setPeriodValue(draft.periodValue);
+        if (draft.financialData) setFinancialData(draft.financialData);
+        if (draft.members) setMembers(draft.members);
+        if (draft.savings) setSavings(draft.savings);
+        if (draft.loans) setLoans(draft.loans);
+        if (draft.fixedDeposits) setFixedDeposits(draft.fixedDeposits);
+        if (draft.farmCoop) setFarmCoop(draft.farmCoop);
+      }
+      setIsHydrated(true);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [submissionId, draftMode]);
+
+  // Debounced save of the wizard state to IndexedDB so work survives offline
+  // navigation/refresh. Only starts saving once hydration has settled.
+  useEffect(() => {
+    if (!isHydrated) return;
+    const draft: ManualEntryDraftState = {
+      currency,
+      accountingYear,
+      startMonth,
+      periodType,
+      periodValue,
+      financialData,
+      members,
+      savings,
+      loans,
+      fixedDeposits,
+      farmCoop,
+    };
+    const timer = setTimeout(() => {
+      if (hasDraftData(draft)) {
+        void saveManualEntryDraft(submissionId, draftMode, draft);
+        setHasLocalDraft(true);
+      } else {
+        void clearManualEntryDraft(submissionId, draftMode);
+        setHasLocalDraft(false);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [
+    isHydrated,
+    submissionId,
+    draftMode,
+    currency,
+    accountingYear,
+    startMonth,
+    periodType,
+    periodValue,
+    financialData,
+    members,
+    savings,
+    loans,
+    fixedDeposits,
+    farmCoop,
+  ]);
+
   const submitFinancialStatement = useSubmitManualFinancialStatement(submissionId);
   const submitMembers = useSubmitManualMembers(submissionId);
   const deleteFinancialStatement = useDeleteManualFinancialStatement(submissionId);
@@ -214,6 +321,7 @@ export function ManualEntryWizard() {
 
   // ── Load state logic via useEffects ──
   useEffect(() => {
+    if (draftAppliedRef.current) return;
     if (existingLineItems) {
       const grid = createEmptyFinancialGrid();
       for (const item of existingLineItems) {
@@ -226,6 +334,7 @@ export function ManualEntryWizard() {
   }, [existingLineItems]);
 
   useEffect(() => {
+    if (draftAppliedRef.current) return;
     const list = existingMembers?.data;
     if (list) {
       setMembers(
@@ -251,6 +360,7 @@ export function ManualEntryWizard() {
   }, [existingMembers]);
 
   useEffect(() => {
+    if (draftAppliedRef.current) return;
     const list = existingSavings?.data;
     if (list) {
       // SavingsAccountResponse.member_id is a UUID (DB FK), but memberBusinessId
@@ -283,6 +393,7 @@ export function ManualEntryWizard() {
   }, [existingSavings, existingMembers]);
 
   useEffect(() => {
+    if (draftAppliedRef.current) return;
     const list = existingLoans?.data;
     if (list) {
       const uuidToKey: Record<string, string> = {};
@@ -320,6 +431,7 @@ export function ManualEntryWizard() {
   }, [existingLoans, existingMembers]);
 
   useEffect(() => {
+    if (draftAppliedRef.current) return;
     const list = existingDeposits?.data;
     if (list) {
       const uuidToKey: Record<string, string> = {};
@@ -350,6 +462,7 @@ export function ManualEntryWizard() {
   }, [existingDeposits, existingMembers]);
 
   useEffect(() => {
+    if (draftAppliedRef.current) return;
     const list = existingFarm?.data;
     if (list?.[0]) {
       const f = list[0];
@@ -1008,6 +1121,8 @@ export function ManualEntryWizard() {
   const handleSubmitFinancialOnly = async () => {
     try {
       await doSubmitFinancial();
+      await clearManualEntryDraft(submissionId, "financial");
+      setHasLocalDraft(false);
       toast.success(t("manualEntry.toastSubmitFinancialSuccess"));
       navigate({ to: "/app/submissions/$id", params: { id: submissionId } });
     } catch (e) {
@@ -1018,6 +1133,8 @@ export function ManualEntryWizard() {
   const handleSubmitNonFinancialOnly = async () => {
     try {
       await doSubmitNonFinancial();
+      await clearManualEntryDraft(submissionId, "non_financial");
+      setHasLocalDraft(false);
       toast.success(t("manualEntry.toastSubmitNonFinancialSuccess"));
       navigate({ to: "/app/submissions/$id", params: { id: submissionId } });
     } catch (e) {
@@ -1077,6 +1194,27 @@ export function ManualEntryWizard() {
             </p>
           </div>
         </div>
+
+        {/* Local draft indicator */}
+        {hasLocalDraft && (
+          <div
+            role="status"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-medium ${
+              isOnline
+                ? "border-success/30 bg-success/5 text-success"
+                : "border-warning/40 bg-warning/10 text-warning-foreground"
+            }`}
+          >
+            {isOnline ? (
+              <Save className="size-3.5 shrink-0" />
+            ) : (
+              <WifiOff className="size-3.5 shrink-0" />
+            )}
+            <span>
+              {isOnline ? t("manualEntry.draftSavedLocally") : t("manualEntry.draftSavedOffline")}
+            </span>
+          </div>
+        )}
 
         {/* Step indicator */}
         <Card className="px-4 py-3">

@@ -112,6 +112,11 @@ export async function seedOfflineCache(): Promise<void> {
     if (role === "ministry") {
       // Ministry Official: National overview, custom KPIs, audit logs, all templates, all entities
       await safeFetch(async () => {
+        const { data } = await apiClient.GET("/api/v1/ministry/stats");
+        if (data) await cacheSet("analytics", "ministry-stats", userId, data);
+      });
+
+      await safeFetch(async () => {
         const { data } = await apiClient.GET("/api/v1/analytics/national-overview", {
           params: { query: { reporting_year: currentYear } as Record<string, unknown> },
         });
@@ -164,17 +169,17 @@ export async function seedOfflineCache(): Promise<void> {
 
       await safeFetch(async () => {
         const { data } = await apiClient.GET("/api/v1/ministry/federations", {});
-        if (data) await cacheSet("federations", "ministry-federations", userId, data);
+        if (data) await cacheSet("federations", "federations-list", userId, data);
       });
 
       await safeFetch(async () => {
         const { data } = await apiClient.GET("/api/v1/ministry/apexes", {});
-        if (data) await cacheSet("apexes", "ministry-apexes", userId, data);
+        if (data) await cacheSet("apexes", "apexes-list", userId, data);
       });
 
       await safeFetch(async () => {
         const { data } = await apiClient.GET("/api/v1/users", {});
-        if (data) await cacheSet("users", "ministry-users", userId, data);
+        if (data) await cacheSet("users", "users-list", userId, data);
       });
 
       // Seed members + invitations for each federation so they load offline
@@ -212,8 +217,12 @@ export async function seedOfflineCache(): Promise<void> {
     } else if (role === "federation") {
       // Federation User: Federation apexes, national overview
       await safeFetch(async () => {
+        const { data } = await apiClient.GET("/api/v1/federation/stats");
+        if (data) await cacheSet("analytics", "federation-stats", userId, data);
+      });
+      await safeFetch(async () => {
         const { data } = await apiClient.GET("/api/v1/federation/apexes", {});
-        if (data) await cacheSet("apexes", "federation-apexes", userId, data);
+        if (data) await cacheSet("apexes", "apexes-list", userId, data);
       });
       await safeFetch(async () => {
         const { data } = await apiClient.GET("/api/v1/analytics/national-overview", {

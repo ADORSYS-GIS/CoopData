@@ -80,6 +80,14 @@ export interface OfflineMeta {
   value: unknown;
 }
 
+export interface ManualEntryDraft {
+  key: string;
+  submissionId: string;
+  mode: "financial" | "non_financial";
+  data: unknown;
+  updatedAt: number;
+}
+
 export class CoopDataOfflineDB extends Dexie {
   submissions!: Table<CachedSubmission>;
   analytics!: Table<CachedAnalytics>;
@@ -91,6 +99,7 @@ export class CoopDataOfflineDB extends Dexie {
   reports!: Table<CachedReport>;
   syncQueue!: Table<SyncQueueItem>;
   meta!: Table<OfflineMeta>;
+  drafts!: Table<ManualEntryDraft>;
 
   constructor() {
     super("CoopDataOfflineDB");
@@ -125,6 +134,26 @@ export class CoopDataOfflineDB extends Dexie {
       })
       .upgrade(async (tx) => {
         console.log("[offlineDb] Schema upgraded to version 2 successfully");
+      });
+
+    // Version 3 Schema — adds local draft persistence for in-progress manual
+    // entry wizards so work survives navigation/refresh while offline.
+    this.version(3)
+      .stores({
+        submissions: "&id, userId, role, isDirty, cachedAt",
+        analytics: "&key, userId, cachedAt",
+        federations: "&id, userId, cachedAt",
+        apexes: "&id, userId, cachedAt",
+        users: "&id, userId, cachedAt",
+        cooperatives: "&id, userId, cachedAt",
+        formTemplates: "&id, userId, cachedAt",
+        reports: "&id, userId, cachedAt",
+        syncQueue: "++id, userId, status, correlationId, createdAt",
+        meta: "&key",
+        drafts: "&key, submissionId, mode, updatedAt",
+      })
+      .upgrade(async (tx) => {
+        console.log("[offlineDb] Schema upgraded to version 3 (drafts table)");
       });
   }
 }
