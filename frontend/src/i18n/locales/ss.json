@@ -1434,7 +1434,9 @@
     "placeholderMemberId": "MEM-001",
     "placeholderLoanId": "LN-001",
     "placeholderDepositId": "FD-001",
-    "placeholderSavingsId": "SAV-001"
+    "placeholderSavingsId": "SAV-001",
+    "draftSavedLocally": "Draft saved locally on this device",
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
   },
   "financial": {
     "liquidAssets": "Imphahla Enyakazayo",

@@ -69,6 +69,20 @@ export interface WizardFixedDeposit {
   balance: number;
 }
 
+export interface ManualEntryDraftState {
+  currency?: "SZL" | "USD";
+  accountingYear?: "calendar" | "fiscal";
+  startMonth?: number;
+  periodType?: "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
+  periodValue?: string;
+  financialData?: Record<number, Record<number, number>>;
+  members?: WizardMember[];
+  savings?: WizardSavings[];
+  loans?: WizardLoan[];
+  fixedDeposits?: WizardFixedDeposit[];
+  farmCoop?: WizardFarmCoop;
+}
+
 export interface WizardFarmCoop {
   cooperativeType: string;
   primaryActivities: string;

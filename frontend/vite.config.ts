@@ -5,6 +5,16 @@ import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { e2eMockAuth } from "./e2e-mock-auth";
+import crypto from "node:crypto";
+
+// Polyfill crypto on global object for Node 18 build environments (serialize-javascript/terser)
+if (!(global as Record<string, unknown>).crypto) {
+  (global as Record<string, unknown>).crypto = crypto;
+}
+if (!globalThis.crypto) {
+  // @ts-expect-error - assign crypto polyfill to globalThis for Node 18 builds
+  globalThis.crypto = crypto;
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -34,20 +44,13 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: "auto",
-        // Use generateSW strategy: Workbox creates the SW from the manifest
         strategies: "generateSW",
         workbox: {
-          // Pre-cache all JS, CSS, HTML, fonts, and icons
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,webp}"],
-          // SPA fallback: all navigation requests return index.html
-          // This ensures the app loads from cache on any route when offline
+          globIgnores: ["**/test data/**"],
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           navigateFallback: "/index.html",
-          navigateFallbackDenylist: [
-            // Don't intercept API or Keycloak auth requests
-            /^\/api\//,
-            /^\/auth\//,
-            /^\/realms\//,
-          ],
+          navigateFallbackDenylist: [/^\/api\//, /^\/auth\//, /^\/realms\//, /\.[a-z0-9]+$/i],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
@@ -64,7 +67,6 @@ export default defineConfig(({ mode }) => {
               },
             },
           ],
-          // Skip waiting and claim clients immediately
           skipWaiting: true,
           clientsClaim: true,
           cleanupOutdatedCaches: true,
@@ -73,15 +75,23 @@ export default defineConfig(({ mode }) => {
           name: "CoopData",
           short_name: "CoopData",
           description: "Cooperative Financial Data Management Platform",
-          start_url: "/app/dashboard",
+          start_url: "/",
+          scope: "/",
           display: "standalone",
           background_color: "#0f172a",
           theme_color: "#0f172a",
           icons: [
             {
               src: "/coopdatalogo.png",
-              sizes: "any",
+              sizes: "192x192",
               type: "image/png",
+              purpose: "any maskable",
+            },
+            {
+              src: "/coopdatalogo.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "any maskable",
             },
           ],
         },
