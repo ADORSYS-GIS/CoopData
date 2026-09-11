@@ -3,6 +3,21 @@ import { expect } from "@playwright/test";
 import { loginAs } from "./login";
 
 /**
+ * Clears all browser storage to ensure clean session between user logins
+ */
+async function clearBrowserStorage(page: Page) {
+  await page.context().clearCookies();
+  await page.evaluate(() => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      // Ignore errors
+    }
+  });
+}
+
+/**
  * Logs in as Apex, finds submission, approves it
  */
 export async function approveAsApex(
@@ -10,6 +25,9 @@ export async function approveAsApex(
   submissionId: string,
   comment = "Data verified and accurate",
 ) {
+  // Clear storage before logging in as new user
+  await clearBrowserStorage(page);
+  
   await loginAs(page, "apex");
   await page.goto("/app/submissions");
   await page.getByText(submissionId).click();
@@ -24,6 +42,9 @@ export async function approveAsApex(
  * Logs in as Federation, finds submission, approves it
  */
 export async function approveAsFederation(page: Page, submissionId: string) {
+  // Clear storage before logging in as new user
+  await clearBrowserStorage(page);
+  
   await loginAs(page, "federation");
   await page.goto("/app/submissions");
   await page.getByText(submissionId).click();
@@ -37,6 +58,9 @@ export async function approveAsFederation(page: Page, submissionId: string) {
  * Logs in as Ministry, finds submission, gives final approval
  */
 export async function approveAsMinistry(page: Page, submissionId: string) {
+  // Clear storage before logging in as new user
+  await clearBrowserStorage(page);
+  
   await loginAs(page, "ministry");
   await page.goto("/app/submissions");
   await page.getByText(submissionId).click();

@@ -51,11 +51,38 @@ export async function loginAs(page: Page, role: TestRole) {
   
   console.log(`[E2E] Navigating to Keycloak: ${keycloakAuthUrl}`);
   
+  // Clear all browser storage to ensure clean session
+  await page.context().clearCookies();
+  await page.evaluate(() => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      // Ignore errors
+    }
+  });
+  
   // Navigate directly to Keycloak login page
   await page.goto(keycloakAuthUrl);
   
-  // Wait for Keycloak login form to appear
-  await page.waitForSelector('input[name="username"]', { timeout: 30000 });
+  // Wait for Keycloak login form to appear with retry logic
+  try {
+    await page.waitForSelector('input[name="username"]', { timeout: 30000 });
+  } catch (error) {
+    console.log(`[E2E] Login form not found, clearing storage and retrying...`);
+    // Clear storage again and retry
+    await page.context().clearCookies();
+    await page.evaluate(() => {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        // Ignore errors
+      }
+    });
+    await page.goto(keycloakAuthUrl);
+    await page.waitForSelector('input[name="username"]', { timeout: 30000 });
+  }
   
   console.log(`[E2E] Filling credentials for: ${credentials.email}`);
   
