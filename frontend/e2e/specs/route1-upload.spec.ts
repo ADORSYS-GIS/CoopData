@@ -384,7 +384,7 @@ test.describe("Route 1: Upload Method - Happy Path", () => {
     console.log("Navigating back to Submission root...");
     await page.goto(`/app/submissions/${submissionId}`);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     
     // ═══════════════════════════════════════════════════════════════
     // STEP 7: Submit for Review
@@ -394,6 +394,15 @@ test.describe("Route 1: Upload Method - Happy Path", () => {
     
     // Wait for uploads to be processed
     await page.waitForTimeout(2000);
+    
+    // DEBUG: Log ALL buttons on the page to see what's available
+    const allButtonsOnPage = await page.locator('button').allTextContents();
+    console.log(`=== ALL BUTTONS ON PAGE ===`);
+    console.log(JSON.stringify(allButtonsOnPage, null, 2));
+    console.log(`=== END BUTTONS ===`);
+    
+    // Take a screenshot before trying to submit
+    await page.screenshot({ path: `./test-results/before-submit-${Date.now()}.png`, fullPage: true });
     
     // Check if "Submit to FSFASA" button is enabled (the actual label shown in the UI)
     const submitBtn = page.locator('button:has-text("Submit to FSFASA"), button:has-text("Submit to Apex"), button:has-text("Submit")').first();
