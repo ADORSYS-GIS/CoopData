@@ -61,8 +61,20 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
           : policy.content_en;
 
   useEffect(() => {
-    if (dbContent && dbContent.trim().length > 0) {
-      setContent(dbContent);
+    // Normalization helper for raw markdown strings
+    const processMarkdown = (raw: string) => {
+      let text = raw.replace(/\\n/g, "\n");
+      // Remove leading # Title line to avoid repeating the header title from top banner card
+      text = text.replace(/^#\s+.+(\r?\n)+/, "");
+      // Fix inline bullets that were joined without newlines
+      text = text.replace(/([^\n])\s*-\s+([A-Z0-9])/g, "$1\n- $2");
+      // Fix headings that lack preceding newlines
+      text = text.replace(/([^\n])\s*(#{1,4}\s+[A-Z0-9])/gi, "$1\n\n$2");
+      return text;
+    };
+
+    if (dbContent && dbContent.trim().length > 10) {
+      setContent(processMarkdown(dbContent));
       setIsLoadingContent(false);
       return;
     }
@@ -78,10 +90,10 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
         return res.text();
       })
       .then((text) => {
-        setContent(text);
+        setContent(processMarkdown(text));
       })
       .catch(() => {
-        setContent(`# ${title}\n\n*Document content is currently unavailable.*`);
+        setContent(`*Document content for **${title}** is currently unavailable.*`);
       })
       .finally(() => {
         setIsLoadingContent(false);
@@ -107,12 +119,23 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
     return items;
   }, [content]);
 
+  const nodeToString = (node: React.ReactNode): string => {
+    if (typeof node === "string" || typeof node === "number") return String(node);
+    if (Array.isArray(node)) return node.map(nodeToString).join("");
+    if (React.isValidElement(node) && node.props && node.props.children) {
+      return nodeToString((node.props as { children?: React.ReactNode }).children);
+    }
+    return "";
+  };
+
   // Heading ID generator for anchors
-  const headingId = (text: string) =>
-    text
+  const headingId = (children: React.ReactNode) => {
+    const str = nodeToString(children);
+    return str
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
       .replace(/\s+/g, "-");
+  };
 
   return (
     <div
@@ -195,7 +218,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
                 components={{
                   h1: ({ children }) => (
                     <h2
-                      id={headingId(String(children))}
+                      id={headingId(children)}
                       className="mb-4 mt-8 flex items-center gap-2.5 font-heading text-xl font-bold tracking-tight text-foreground first:mt-0"
                     >
                       <FileText className="inline size-5 shrink-0 text-accent" />
@@ -204,7 +227,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
                   ),
                   h2: ({ children }) => (
                     <h3
-                      id={headingId(String(children))}
+                      id={headingId(children)}
                       className="mb-3 mt-8 border-b border-border pb-2 font-heading text-lg font-semibold text-foreground"
                     >
                       {children}
@@ -212,7 +235,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
                   ),
                   h3: ({ children }) => (
                     <h4
-                      id={headingId(String(children))}
+                      id={headingId(children)}
                       className="mb-2 mt-6 font-heading text-base font-semibold text-foreground"
                     >
                       {children}

@@ -48,7 +48,7 @@ export const ROLES: RoleDefinition[] = [
 export const ROLE_NAV: Record<Role, NavGroupId[]> = {
   ministry: ["oversight", "intelligence", "system"],
   federation: ["oversight", "intelligence", "system"],
-  cooperative: ["oversight", "intelligence"],
+  cooperative: ["oversight", "intelligence", "system"],
   apex: ["oversight", "intelligence", "system"],
 };
 
@@ -75,6 +75,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/questionnaire-templates",
       "/app/audit",
       "/app/admin-legal",
+      "/app/data-privacy",
       "/app/profile",
     ],
   },
@@ -87,7 +88,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
-    system: ["/app/users", "/app/admin-legal", "/app/profile"],
+    system: ["/app/users", "/app/admin-legal", "/app/data-privacy", "/app/profile"],
   },
   cooperative: {
     oversight: ["/app/dashboard", "/app/submissions"],
@@ -97,6 +98,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
+    system: ["/app/data-privacy", "/app/profile"],
   },
   apex: {
     oversight: ["/app/dashboard", "/app/cooperatives", "/app/submissions"],
@@ -107,7 +109,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
-    system: ["/app/users"],
+    system: ["/app/users", "/app/data-privacy", "/app/profile"],
   },
 };
 

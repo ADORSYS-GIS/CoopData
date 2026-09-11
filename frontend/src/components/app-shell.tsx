@@ -33,6 +33,7 @@ import {
   Gauge,
   Tags,
   FileText,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect, useMemo } from "react";
@@ -84,6 +85,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
       { to: "/app/admin-legal", label: "Legal Policy Editor", icon: FileText },
+      { to: "/app/data-privacy", label: "Data Privacy & Consents", icon: ShieldCheck },
       { to: "/app/profile", label: "Profile", icon: UserCog },
     ],
   },
@@ -136,6 +138,8 @@ function Sidebar({
     if (item.to === "/app/settings") return t("nav.settings");
     if (item.to === "/app/configure-roles")
       return t("nav.configureRoles", { defaultValue: "Configure Levels" });
+    if (item.to === "/app/data-privacy")
+      return t("nav.dataPrivacy", { defaultValue: "Data Privacy & Consents" });
     if (item.to === "/app/profile") return t("nav.profile");
     return item.label;
   };
