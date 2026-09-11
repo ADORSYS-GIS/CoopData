@@ -764,6 +764,32 @@
 
 ---
 
+## Phase 25: User-Facing Legal, Privacy & Consent Management ✅ Complete
+
+**Ticket:** User-Facing Legal, Privacy & Consent Management
+**Design:** `docs/features/legal-consent-management.md`
+
+### Backend
+- [x] **25.1 Entities + Migrations**
+  - [x] `legal_policies` (versioned, 4-language) — migrations `2024-xx-xx_create_legal_policies.sql`, `39_legal_policies_4lang.sql`
+  - [x] `user_consents` + `privacy_requests` — migration `38_user_consents_and_privacy_requests.sql`
+  - [x] Seed 6 policies in 4 languages — migration `40_seed_legal_policies.sql`
+- [x] **25.2 DTOs** — `consent.rs`, `legal_policy.rs` (request/response + validation)
+- [x] **25.3 Repositories** — `consent_repository.rs`, `legal_policy_repository.rs`
+- [x] **25.4 Handlers** — consent (record / my consents / status / privacy requests) + legal policy (list / get / create / update)
+- [x] **25.5 Routes + OpenAPI** — shared read routes + role-guarded admin routes (`ministry`/`federation`), schemas registered
+- [x] **25.6 Dynamic consent versioning** — current version resolved from `legal_policies` table
+- [x] **25.7 Privacy request lifecycle** — user GET + admin list + admin status update
+
+### Frontend
+- [x] **25.8 Data layer** — `useConsent.ts`, `useLegalDocuments.ts` (typed openapi client)
+- [x] **25.9 Components** — `RegisterConsentModal`, `LegalCenterPage`, `LegalDocumentViewer`, `LanguageToggle` (4 langs), `PrivacySecuritySettings`, `AdminLegalPolicyEditPage`, `Footer`
+- [x] **25.10 Routes** — `/legal` (public), `/app/legal`, `/app/admin-legal`
+- [x] **25.11 Legal content** — 6 policies authored in 4 languages (`en`, `fr`, `pt`, `ss`)
+- [x] **25.12 OpenAPI client + route tree regenerated**
+
+---
+
 ## Token Management Strategy
 
 - **STOP** after completing a Phase or a complex Feature.

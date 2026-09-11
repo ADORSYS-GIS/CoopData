@@ -21,10 +21,18 @@ pub struct Model {
     pub title_en: String,
     /// Human readable title (French)
     pub title_fr: String,
+    /// Human readable title (Portuguese)
+    pub title_pt: String,
+    /// Human readable title (Siswati)
+    pub title_ss: String,
     /// Markdown content (English)
     pub content_en: String,
     /// Markdown content (French)
     pub content_fr: String,
+    /// Markdown content (Portuguese)
+    pub content_pt: String,
+    /// Markdown content (Siswati)
+    pub content_ss: String,
     /// Version number, starting at 1 and incremented on each edit
     pub version: i32,
     pub created_at: DateTime<Utc>,

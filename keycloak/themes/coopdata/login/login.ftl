@@ -3,6 +3,17 @@
     <#if section = "header">
         <#-- Header is handled inside the form panel -->
     <#elseif section = "form">
+        <#-- Resolve the app (frontend) base URL for links back to the platform -->
+        <#assign appUrl = "/">
+        <#if client?? && client.rootUrl?? && client.rootUrl?has_content && client.rootUrl?starts_with("http") && !client.rootUrl?contains("/account") && !client.rootUrl?contains("/realms/")>
+            <#assign appUrl = client.rootUrl>
+        <#elseif client?? && client.baseUrl?? && client.baseUrl?has_content && client.baseUrl?starts_with("http") && !client.baseUrl?contains("/account") && !client.baseUrl?contains("/realms/")>
+            <#assign appUrl = client.baseUrl>
+        <#elseif url.resourcesPath?? && url.resourcesPath?starts_with("http")>
+            <#assign appUrl = url.resourcesPath?keep_before("/realms/")>
+        <#elseif url.loginUrl?? && url.loginUrl?starts_with("http")>
+            <#assign appUrl = url.loginUrl?keep_before("/realms/")>
+        </#if>
         <div class="split-screen-layout">
             <#-- Left Brand Panel (visible on desktop) -->
             <aside class="brand-panel">
@@ -55,16 +66,6 @@
              <main class="form-panel">
                 <#-- Top bar -->
                 <div class="top-bar">
-                    <#assign appUrl = "/">
-                    <#if client?? && client.rootUrl?? && client.rootUrl?has_content && client.rootUrl?starts_with("http") && !client.rootUrl?contains("/account") && !client.rootUrl?contains("/realms/")>
-                        <#assign appUrl = client.rootUrl>
-                    <#elseif client?? && client.baseUrl?? && client.baseUrl?has_content && client.baseUrl?starts_with("http") && !client.baseUrl?contains("/account") && !client.baseUrl?contains("/realms/")>
-                        <#assign appUrl = client.baseUrl>
-                    <#elseif url.resourcesPath?? && url.resourcesPath?starts_with("http")>
-                        <#assign appUrl = url.resourcesPath?keep_before("/realms/")>
-                    <#elseif url.loginUrl?? && url.loginUrl?starts_with("http")>
-                        <#assign appUrl = url.loginUrl?keep_before("/realms/")>
-                    </#if>
                     <a href="${appUrl}" class="back-link">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -161,6 +162,13 @@
                             <p class="form-disclaimer">
                                 By signing in you acknowledge this is the official CoopData platform for the Ministry of Commerce & Cooperative Development.
                             </p>
+
+                            <div class="form-legal-links">
+                                <span>${msg("legalConsent")}</span>
+                                <a href="${appUrl}/legal?doc=terms" target="_blank" rel="noopener">${msg("termsOfService")}</a>
+                                <span class="legal-sep">&middot;</span>
+                                <a href="${appUrl}/legal?doc=privacy" target="_blank" rel="noopener">${msg("privacyPolicy")}</a>
+                            </div>
                         </form>
                     </#if>
 

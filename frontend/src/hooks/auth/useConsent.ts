@@ -47,7 +47,7 @@ export const useConsentStatus = () =>
   useQuery({
     queryKey: [CONSENT_STATUS_KEY],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/consents/status");
+      const { data, error } = await apiClient.GET("/api/v1/consents/status", {});
       if (error) throw new Error(extractErrorMessage(error));
       return data as ConsentStatusResponse;
     },
@@ -58,7 +58,7 @@ export const useMyConsents = () =>
   useQuery({
     queryKey: [MY_CONSENTS_KEY],
     queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/consents/me");
+      const { data, error } = await apiClient.GET("/api/v1/consents/me", {});
       if (error) throw new Error(extractErrorMessage(error));
       return data as UserConsent[];
     },
@@ -105,6 +105,55 @@ export const useSubmitPrivacyRequest = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CONSENT_STATUS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [MY_PRIVACY_REQUESTS_KEY] });
+    },
+  });
+};
+
+const MY_PRIVACY_REQUESTS_KEY = "my-privacy-requests";
+
+export const useMyPrivacyRequests = () =>
+  useQuery({
+    queryKey: [MY_PRIVACY_REQUESTS_KEY],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/privacy/requests/me", {});
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as PrivacyRequest[];
+    },
+  });
+
+const ALL_PRIVACY_REQUESTS_KEY = "all-privacy-requests";
+
+export const useAllPrivacyRequests = () =>
+  useQuery({
+    queryKey: [ALL_PRIVACY_REQUESTS_KEY],
+    queryFn: async () => {
+      const { data, error } = await apiClient.GET("/api/v1/privacy/requests", {});
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as PrivacyRequest[];
+    },
+  });
+
+export const useUpdatePrivacyRequestStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      request_id,
+      status,
+    }: {
+      request_id: string;
+      status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "REJECTED";
+    }): Promise<PrivacyRequest> => {
+      const { data, error } = await apiClient.PUT("/api/v1/privacy/requests/{request_id}", {
+        params: { path: { request_id } },
+        body: { status },
+      });
+      if (error) throw new Error(extractErrorMessage(error));
+      return data as PrivacyRequest;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ALL_PRIVACY_REQUESTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [MY_PRIVACY_REQUESTS_KEY] });
     },
   });
 };

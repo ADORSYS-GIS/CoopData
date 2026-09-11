@@ -30,7 +30,7 @@ export const PrivacySecuritySettings: React.FC = () => {
   const submitRequest = useSubmitPrivacyRequest();
 
   const [requestType, setRequestType] = useState<"EXPORT_DATA" | "CORRECT_DATA" | "DELETE_ACCOUNT">(
-    "EXPORT_DATA"
+    "EXPORT_DATA",
   );
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -44,7 +44,10 @@ export const PrivacySecuritySettings: React.FC = () => {
         details: details.trim() || undefined,
       });
       toast.success(
-        t("privacy.requestSubmitted", "Privacy request submitted successfully! Our compliance team will review it.")
+        t(
+          "privacy.requestSubmitted",
+          "Privacy request submitted successfully! Our compliance team will review it.",
+        ),
       );
       setDetails("");
     } catch (err) {
@@ -60,42 +63,39 @@ export const PrivacySecuritySettings: React.FC = () => {
       title: t("legal.termsOfService", "Terms of Service"),
       version: "1.0",
       accepted: status?.terms_accepted ?? false,
-      link: "/legal/terms",
     },
     {
       type: "PRIVACY_POLICY",
       title: t("legal.privacyPolicy", "Privacy Policy"),
       version: "1.0",
       accepted: status?.privacy_accepted ?? false,
-      link: "/legal/privacy",
     },
     {
       type: "COOKIE_POLICY",
       title: t("legal.cookiePolicy", "Cookie Policy"),
       version: "1.0",
       accepted: status?.accepted_consents.some((c) => c.document_type === "COOKIE_POLICY") ?? false,
-      link: "/legal/cookies",
     },
     {
       type: "ACCEPTABLE_USE",
       title: t("legal.acceptableUse", "Acceptable Use Policy"),
       version: "1.0",
-      accepted: status?.accepted_consents.some((c) => c.document_type === "ACCEPTABLE_USE") ?? false,
-      link: "/legal/acceptable-use",
+      accepted:
+        status?.accepted_consents.some((c) => c.document_type === "ACCEPTABLE_USE") ?? false,
     },
     {
       type: "SECURITY_PROTECTION",
       title: t("legal.securityProtection", "Security & Protection Policy"),
       version: "1.0",
-      accepted: status?.accepted_consents.some((c) => c.document_type === "SECURITY_PROTECTION") ?? false,
-      link: "/legal/security",
+      accepted:
+        status?.accepted_consents.some((c) => c.document_type === "SECURITY_PROTECTION") ?? false,
     },
     {
       type: "DATA_RETENTION",
       title: t("legal.dataRetention", "Data Retention Policy"),
       version: "1.0",
-      accepted: status?.accepted_consents.some((c) => c.document_type === "DATA_RETENTION") ?? false,
-      link: "/legal/data-retention",
+      accepted:
+        status?.accepted_consents.some((c) => c.document_type === "DATA_RETENTION") ?? false,
     },
   ];
 
@@ -104,7 +104,10 @@ export const PrivacySecuritySettings: React.FC = () => {
       {/* Overview & Consent Status */}
       <Card
         title={t("privacy.consentStatusTitle", "Active Legal Consents")}
-        subtitle={t("privacy.consentStatusSub", "Versioned agreement history on file with server timestamping")}
+        subtitle={t(
+          "privacy.consentStatusSub",
+          "Versioned agreement history on file with server timestamping",
+        )}
         edge="accent"
       >
         {statusLoading ? (
@@ -126,12 +129,14 @@ export const PrivacySecuritySettings: React.FC = () => {
                       <p className="text-[11px] text-muted-foreground">Version {pol.version}</p>
                     </div>
                     <StatusPill tone={pol.accepted ? "success" : "warning"}>
-                      {pol.accepted ? t("legal.accepted", "Accepted") : t("legal.pending", "Pending")}
+                      {pol.accepted
+                        ? t("legal.accepted", "Accepted")
+                        : t("legal.pending", "Pending")}
                     </StatusPill>
                   </div>
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50 text-xs">
                     <Link
-                      to={pol.link as any}
+                      to="/legal"
                       className="text-accent hover:underline font-medium text-[11px] inline-flex items-center gap-1"
                     >
                       {t("legal.viewDoc", "View Document")}
@@ -146,7 +151,9 @@ export const PrivacySecuritySettings: React.FC = () => {
                             });
                             toast.success(t("legal.consentRecorded", "Consent recorded!"));
                           } catch (err) {
-                            toast.error(err instanceof Error ? err.message : "Failed to record consent");
+                            toast.error(
+                              err instanceof Error ? err.message : "Failed to record consent",
+                            );
                           }
                         }}
                         disabled={recordConsent.isPending}
@@ -166,7 +173,10 @@ export const PrivacySecuritySettings: React.FC = () => {
       {/* Privacy Requests Form (Export / Correct / Delete) */}
       <Card
         title={t("privacy.requestsTitle", "Submit Privacy & Data Request")}
-        subtitle={t("privacy.requestsSub", "Exercise your GDPR / NDPR data subject rights (Export, Correction, Deletion)")}
+        subtitle={t(
+          "privacy.requestsSub",
+          "Exercise your GDPR / NDPR data subject rights (Export, Correction, Deletion)",
+        )}
         edge="info"
       >
         <form onSubmit={handlePrivacySubmit} className="space-y-4 max-w-2xl">
@@ -201,16 +211,22 @@ export const PrivacySecuritySettings: React.FC = () => {
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => setRequestType(opt.id as any)}
+                    onClick={() =>
+                      setRequestType(opt.id as "EXPORT_DATA" | "CORRECT_DATA" | "DELETE_ACCOUNT")
+                    }
                     className={`p-3 text-left rounded-xl border transition-all ${
                       selected
                         ? "bg-accent/15 border-accent text-foreground shadow-sm"
                         : "bg-surface border-border text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    <Icon className={`size-4 mb-1.5 ${selected ? "text-accent" : "text-muted-foreground"}`} />
+                    <Icon
+                      className={`size-4 mb-1.5 ${selected ? "text-accent" : "text-muted-foreground"}`}
+                    />
                     <p className="text-xs font-bold">{opt.label}</p>
-                    <p className="text-[10px] text-muted-foreground/80 leading-tight mt-0.5">{opt.desc}</p>
+                    <p className="text-[10px] text-muted-foreground/80 leading-tight mt-0.5">
+                      {opt.desc}
+                    </p>
                   </button>
                 );
               })}
@@ -236,7 +252,7 @@ export const PrivacySecuritySettings: React.FC = () => {
               <span>
                 {t(
                   "privacy.deleteWarning",
-                  "Note: Financial statement filings and regulatory audit trails must be retained for 10 years per statutory regulations. Account erasure will anonymize your personal credentials while retaining compliance records."
+                  "Note: Financial statement filings and regulatory audit trails must be retained for 10 years per statutory regulations. Account erasure will anonymize your personal credentials while retaining compliance records.",
                 )}
               </span>
             </div>
@@ -258,7 +274,10 @@ export const PrivacySecuritySettings: React.FC = () => {
       {/* Immutable Consent Audit Log History */}
       <Card
         title={t("privacy.auditHistoryTitle", "Consent Audit Trail")}
-        subtitle={t("privacy.auditHistorySub", "Server-recorded history of all consent acceptances for your account")}
+        subtitle={t(
+          "privacy.auditHistorySub",
+          "Server-recorded history of all consent acceptances for your account",
+        )}
         edge="none"
       >
         {historyLoading ? (
@@ -284,8 +303,12 @@ export const PrivacySecuritySettings: React.FC = () => {
               <tbody className="divide-y divide-border">
                 {history.map((record) => (
                   <tr key={record.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 font-bold text-foreground">{record.document_type}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">v{record.document_version}</td>
+                    <td className="px-4 py-2.5 font-bold text-foreground">
+                      {record.document_type}
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      v{record.document_version}
+                    </td>
                     <td className="px-4 py-2.5 text-muted-foreground">
                       {new Date(record.accepted_at).toLocaleString()}
                     </td>

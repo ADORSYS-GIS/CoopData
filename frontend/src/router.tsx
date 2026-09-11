@@ -1,7 +1,7 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
-import { logout } from "@/services/shared/authService";
+import { logout, isAuthenticated } from "@/services/shared/authService";
 
 const SEVEN_DAYS_MS = 1000 * 60 * 60 * 24 * 7;
 const FIVE_MINUTES_MS = 1000 * 60 * 5;
@@ -22,6 +22,10 @@ function isAuthError(error: unknown): boolean {
 let isLoggingOut = false;
 function handleAuthError(error: unknown) {
   if (!isAuthError(error)) return;
+  // Only treat a 401 as a session-expiry when the user is actually logged in.
+  // Public visitors hitting protected endpoints legitimately get 401s and must
+  // NOT be force-redirected to login (e.g. browsing the public legal center).
+  if (!isAuthenticated()) return;
   if (isLoggingOut) return;
   isLoggingOut = true;
   // Fire-and-forget — redirect to Keycloak login

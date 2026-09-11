@@ -98,4 +98,44 @@ impl ConsentRepository {
             .await
             .map_err(AppError::DatabaseError)
     }
+
+    pub async fn get_privacy_request_by_id(
+        &self,
+        id: Uuid,
+    ) -> AppResult<Option<privacy_requests::Model>> {
+        privacy_requests::Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+
+    pub async fn list_all_privacy_requests(
+        &self,
+    ) -> AppResult<Vec<privacy_requests::Model>> {
+        privacy_requests::Entity::find()
+            .order_by_desc(PrivacyRequestsColumn::CreatedAt)
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+
+    pub async fn update_privacy_request_status(
+        &self,
+        id: Uuid,
+        status: &str,
+    ) -> AppResult<Option<privacy_requests::Model>> {
+        let existing = privacy_requests::Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        let Some(model) = existing else {
+            return Ok(None);
+        };
+
+        let mut active: privacy_requests::ActiveModel = model.into();
+        active.status = Set(status.to_string());
+        active.updated_at = Set(Utc::now());
+        active.update(&self.db).await.map_err(AppError::DatabaseError).map(Some)
+    }
 }

@@ -74,6 +74,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/configure-roles",
       "/app/questionnaire-templates",
       "/app/audit",
+      "/app/admin-legal",
       "/app/profile",
     ],
   },
@@ -86,7 +87,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
-    system: ["/app/users", "/app/profile"],
+    system: ["/app/users", "/app/admin-legal", "/app/profile"],
   },
   cooperative: {
     oversight: ["/app/dashboard", "/app/submissions"],

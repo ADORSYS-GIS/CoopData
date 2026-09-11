@@ -32,6 +32,7 @@ import {
   Calculator,
   Gauge,
   Tags,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect, useMemo } from "react";
@@ -82,6 +83,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/questionnaire-templates", label: "Questionnaire Forms", icon: ClipboardList },
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
+      { to: "/app/admin-legal", label: "Legal Policy Editor", icon: FileText },
       { to: "/app/profile", label: "Profile", icon: UserCog },
     ],
   },

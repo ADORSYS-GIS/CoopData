@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
@@ -37,6 +38,7 @@ import { Route as AppBasicAnalyticsRouteImport } from './routes/app.basic-analyt
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as AppAdminLegalRouteImport } from './routes/app.admin-legal'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
 import { Route as PrintFederationIdRouteImport } from './routes/print.federation.$id'
 import { Route as PrintCooperativeIdRouteImport } from './routes/print.cooperative.$id'
@@ -58,6 +60,11 @@ const UnauthorizedRoute = UnauthorizedRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -191,6 +198,11 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminLegalRoute = AppAdminLegalRouteImport.update({
+  id: '/admin-legal',
+  path: '/admin-legal',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppUsersIndexRoute = AppUsersIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -260,8 +272,10 @@ const AppSubmissionsIdManualEntryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/app/admin-legal': typeof AppAdminLegalRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
@@ -301,8 +315,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/app/admin-legal': typeof AppAdminLegalRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
@@ -342,8 +358,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/app/admin-legal': typeof AppAdminLegalRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
@@ -386,8 +404,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/legal'
     | '/login'
     | '/unauthorized'
+    | '/app/admin-legal'
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
@@ -427,8 +447,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/legal'
     | '/login'
     | '/unauthorized'
+    | '/app/admin-legal'
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
@@ -467,8 +489,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/legal'
     | '/login'
     | '/unauthorized'
+    | '/app/admin-legal'
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
@@ -510,6 +534,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  LegalRoute: typeof LegalRoute
   LoginRoute: typeof LoginRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   PrintMinistryRoute: typeof PrintMinistryRoute
@@ -532,6 +557,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -716,6 +748,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin-legal': {
+      id: '/app/admin-legal'
+      path: '/admin-legal'
+      fullPath: '/app/admin-legal'
+      preLoaderRoute: typeof AppAdminLegalRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/users/': {
       id: '/app/users/'
       path: '/'
@@ -833,6 +872,7 @@ const AppSubmissionsIdRouteWithChildren =
   AppSubmissionsIdRoute._addFileChildren(AppSubmissionsIdRouteChildren)
 
 interface AppRouteChildren {
+  AppAdminLegalRoute: typeof AppAdminLegalRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppApexesRoute: typeof AppApexesRoute
   AppAuditRoute: typeof AppAuditRoute
@@ -863,6 +903,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminLegalRoute: AppAdminLegalRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppApexesRoute: AppApexesRoute,
   AppAuditRoute: AppAuditRoute,
@@ -899,6 +940,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  LegalRoute: LegalRoute,
   LoginRoute: LoginRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   PrintMinistryRoute: PrintMinistryRoute,

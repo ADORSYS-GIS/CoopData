@@ -103,17 +103,31 @@ pub fn shared_routes() -> Router<AppState> {
             post(crate::api::handlers::consent::submit_privacy_request),
         )
         .route(
+            "/privacy/requests/me",
+            get(crate::api::handlers::consent::get_my_privacy_requests),
+        )
+}
+
+/// Admin-only legal & privacy management routes (role-guarded in `create_app`).
+/// These mutate platform-wide governance documents and resolve privacy requests,
+/// so they are intentionally separated from the shared read routes.
+pub fn legal_admin_routes() -> Router<AppState> {
+    Router::new()
+        .route(
             "/legal/policies",
-            get(crate::api::handlers::legal_policy::list_policies)
-                .post(crate::api::handlers::legal_policy::create_policy),
+            post(crate::api::handlers::legal_policy::create_policy),
         )
         .route(
-            "/legal/policies/{slug}",
-            get(crate::api::handlers::legal_policy::get_policy_by_slug),
-        )
-        .route(
-            "/legal/policies/{policy_id}",
+            "/legal/policies/{id}",
             put(crate::api::handlers::legal_policy::update_policy),
+        )
+        .route(
+            "/privacy/requests",
+            get(crate::api::handlers::consent::list_all_privacy_requests),
+        )
+        .route(
+            "/privacy/requests/{request_id}",
+            put(crate::api::handlers::consent::update_privacy_request_status),
         )
 }
 

@@ -462,7 +462,9 @@
         "privacyPolicy": "Politique de confidentialité",
         "termsOfUse": "Conditions d'utilisation",
         "accessibilityStatement": "Déclaration d'accessibilité",
-        "contact": "Contact"
+        "contact": "Contact",
+        "cookiePolicy": "Politique de cookies",
+        "acceptableUse": "Utilisation acceptable"
       }
     }
   },

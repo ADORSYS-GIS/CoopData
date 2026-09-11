@@ -29,9 +29,9 @@ pub async fn list_policies(
 
 #[utoipa::path(
     get,
-    path = "/api/v1/legal/policies/{slug}",
+    path = "/api/v1/legal/policies/{id}",
     params(
-        ("slug" = String, Path, description = "Legal policy slug identifier")
+        ("id" = String, Path, description = "Legal policy slug identifier")
     ),
     responses(
         (status = 200, description = "Get latest policy by slug", body = LegalPolicyResponse),
@@ -77,9 +77,9 @@ pub async fn create_policy(
 
 #[utoipa::path(
     put,
-    path = "/api/v1/legal/policies/{policy_id}",
+    path = "/api/v1/legal/policies/{id}",
     params(
-        ("policy_id" = Uuid, Path, description = "Legal policy UUID")
+        ("id" = Uuid, Path, description = "Legal policy UUID")
     ),
     request_body = LegalPolicyUpdateRequest,
     responses(

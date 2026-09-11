@@ -11,10 +11,18 @@ interface LoginConsentModalProps {
 const MANDATORY_POLICIES = [
   { slug: "privacy", title_en: "Privacy Policy", title_fr: "Politique de confidentialité" },
   { slug: "terms", title_en: "Terms of Service", title_fr: "Conditions d'utilisation" },
-  { slug: "cookie", title_en: "Cookie & Storage Policy", title_fr: "Politique de cookies" },
-  { slug: "disclaimer", title_en: "Legal Disclaimer", title_fr: "Avis juridique" },
-  { slug: "code_of_conduct", title_en: "Acceptable Use & Code of Conduct", title_fr: "Code de conduite" },
-  { slug: "data_processing", title_en: "Data Retention & Processing Policy", title_fr: "Conservation des données" },
+  { slug: "cookies", title_en: "Cookie & Storage Policy", title_fr: "Politique de cookies" },
+  {
+    slug: "acceptable-use",
+    title_en: "Acceptable Use & Code of Conduct",
+    title_fr: "Code de conduite",
+  },
+  { slug: "security", title_en: "Security & Protection Policy", title_fr: "Politique de sécurité" },
+  {
+    slug: "data-retention",
+    title_en: "Data Retention & Processing Policy",
+    title_fr: "Conservation des données",
+  },
 ];
 
 export const LoginConsentModal: React.FC<LoginConsentModalProps> = ({
@@ -54,14 +62,14 @@ export const LoginConsentModal: React.FC<LoginConsentModalProps> = ({
 
     try {
       // Record consent for terms and privacy via backend consent API
-      await (apiClient as any).POST("/api/v1/consents", {
+      await apiClient.POST("/api/v1/consents", {
         body: {
           document_type: "TERMS_OF_SERVICE",
           document_version: "1.0",
         },
       });
 
-      await (apiClient as any).POST("/api/v1/consents", {
+      await apiClient.POST("/api/v1/consents", {
         body: {
           document_type: "PRIVACY_POLICY",
           document_version: "1.0",
@@ -101,8 +109,7 @@ export const LoginConsentModal: React.FC<LoginConsentModalProps> = ({
 
         <div className="flex justify-between items-center text-xs text-slate-400">
           <span className="flex items-center gap-1 text-slate-300 font-medium">
-            <Lock className="w-3.5 h-3.5 text-emerald-400" />
-            6 Required Compliance Policies
+            <Lock className="w-3.5 h-3.5 text-emerald-400" />6 Required Compliance Policies
           </span>
           <button
             type="button"
@@ -148,7 +155,8 @@ export const LoginConsentModal: React.FC<LoginConsentModalProps> = ({
 
           <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-4">
             <p className="text-[11px] text-slate-400 max-w-[280px]">
-              By clicking Accept, you confirm your consent to all selected policies under CoopData governance.
+              By clicking Accept, you confirm your consent to all selected policies under CoopData
+              governance.
             </p>
 
             <button

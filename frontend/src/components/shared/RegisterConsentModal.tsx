@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { ShieldAlert, CheckCircle2, Lock, FileText, ExternalLink } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useConsentStatus, useRecordConsent } from "@/hooks/auth/useConsent";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -34,7 +41,12 @@ export const RegisterConsentModal: React.FC = () => {
 
   const handleAcceptAll = async () => {
     if (!termsChecked || !privacyChecked) {
-      toast.error(t("legal.acceptRequiredToast", "Please accept both the Terms of Service and Privacy Policy to proceed."));
+      toast.error(
+        t(
+          "legal.acceptRequiredToast",
+          "Please accept both the Terms of Service and Privacy Policy to proceed.",
+        ),
+      );
       return;
     }
 
@@ -75,7 +87,7 @@ export const RegisterConsentModal: React.FC = () => {
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
             {t(
               "legal.mandatoryConsentDesc",
-              "To continue using CoopData, please review and accept our mandatory Terms of Service and Privacy Policy (v1.0)."
+              "To continue using CoopData, please review and accept our mandatory Terms of Service and Privacy Policy (v1.0).",
             )}
           </DialogDescription>
         </DialogHeader>
@@ -95,14 +107,18 @@ export const RegisterConsentModal: React.FC = () => {
                 {t("legal.termsOfService", "Terms of Service")} (v1.0) *
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {t("legal.termsAcceptPrompt", "I agree to the platform usage rules, responsibilities, and operational conditions.")}
+                {t(
+                  "legal.termsAcceptPrompt",
+                  "I agree to the platform usage rules, responsibilities, and operational conditions.",
+                )}
               </p>
               <Link
-                to="/app/legal"
+                to="/legal"
                 target="_blank"
                 className="text-[11px] text-accent font-medium hover:underline inline-flex items-center gap-1 mt-1"
               >
-                {t("legal.readFullTerms", "Read Terms of Service")} <ExternalLink className="size-3" />
+                {t("legal.readFullTerms", "Read Terms of Service")}{" "}
+                <ExternalLink className="size-3" />
               </Link>
             </div>
           </label>
@@ -121,14 +137,18 @@ export const RegisterConsentModal: React.FC = () => {
                 {t("legal.privacyPolicy", "Privacy Policy")} (v1.0) *
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {t("legal.privacyAcceptPrompt", "I consent to the collection, processing, and protection of personal & co-op data.")}
+                {t(
+                  "legal.privacyAcceptPrompt",
+                  "I consent to the collection, processing, and protection of personal & co-op data.",
+                )}
               </p>
               <Link
-                to="/app/legal"
+                to="/legal"
                 target="_blank"
                 className="text-[11px] text-accent font-medium hover:underline inline-flex items-center gap-1 mt-1"
               >
-                {t("legal.readFullPrivacy", "Read Privacy Policy")} <ExternalLink className="size-3" />
+                {t("legal.readFullPrivacy", "Read Privacy Policy")}{" "}
+                <ExternalLink className="size-3" />
               </Link>
             </div>
           </label>
@@ -143,7 +163,10 @@ export const RegisterConsentModal: React.FC = () => {
             />
             <div className="text-xs flex-1">
               <span className="font-medium text-foreground">
-                {t("legal.marketingConsent", "Optional: Receive platform product updates & sector newsletters")}
+                {t(
+                  "legal.marketingConsent",
+                  "Optional: Receive platform product updates & sector newsletters",
+                )}
               </span>
             </div>
           </label>

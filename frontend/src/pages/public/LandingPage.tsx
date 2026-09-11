@@ -821,11 +821,27 @@ function PublicFooter() {
           },
           {
             h: t("landing.footer.legalCol"),
-            l: [
-              t("landing.footer.legal.privacyPolicy"),
-              t("landing.footer.legal.termsOfUse"),
-              t("landing.footer.legal.accessibilityStatement"),
-              t("landing.footer.legal.contact"),
+            links: [
+              {
+                label: t("landing.footer.legal.privacyPolicy"),
+                to: "/legal",
+                search: { doc: "privacy" },
+              },
+              {
+                label: t("landing.footer.legal.termsOfUse"),
+                to: "/legal",
+                search: { doc: "terms" },
+              },
+              {
+                label: t("landing.footer.legal.cookiePolicy"),
+                to: "/legal",
+                search: { doc: "cookies" },
+              },
+              {
+                label: t("landing.footer.legal.acceptableUse"),
+                to: "/legal",
+                search: { doc: "acceptable-use" },
+              },
             ],
           },
         ].map((c) => (
@@ -834,13 +850,25 @@ function PublicFooter() {
               {c.h}
             </p>
             <ul className="space-y-2 text-xs font-semibold text-muted-foreground/90">
-              {c.l.map((i) => (
-                <li key={i}>
-                  <a href="#" className="transition-colors hover:text-primary">
-                    {i}
-                  </a>
-                </li>
-              ))}
+              {c.l
+                ? c.l.map((i) => (
+                    <li key={i}>
+                      <a href="#" className="transition-colors hover:text-primary">
+                        {i}
+                      </a>
+                    </li>
+                  ))
+                : c.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        to={link.to}
+                        search={link.search}
+                        className="transition-colors hover:text-primary"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
             </ul>
           </div>
         ))}

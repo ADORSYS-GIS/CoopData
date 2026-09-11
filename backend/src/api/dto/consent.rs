@@ -58,6 +58,12 @@ pub struct PrivacyRequestInput {
     pub details: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
+pub struct PrivacyRequestStatusUpdate {
+    #[validate(length(min = 1, max = 20))]
+    pub status: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PrivacyRequestResponse {
     pub id: Uuid,

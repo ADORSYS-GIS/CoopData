@@ -1,8 +1,9 @@
 # Feature Design: User-Facing Legal, Privacy & Consent Management
 
-> **Status:** Draft / Proposed  
-> **Ticket:** User-Facing Legal, Privacy & Consent Management  
-> **Component:** Frontend + Backend  
+> **Status:** Implemented
+> **Ticket:** User-Facing Legal, Privacy & Consent Management
+> **Component:** Frontend + Backend
+> **Languages:** English (en), French (fr), Portuguese (pt), Siswati (ss)
 
 ---
 
@@ -51,18 +52,33 @@ The platform will:
 
 ## 3. Scope of Legal Documents
 
-| # | Document Type | Endpoint / Route | Assets Location |
+| # | Document Type | Slug | Assets Location |
 |---|---|---|---|
-| 1 | `TERMS_OF_SERVICE` | `/legal/terms` | `/locales/{lang}/legal/terms_v1.0.md` |
-| 2 | `PRIVACY_POLICY` | `/legal/privacy` | `/locales/{lang}/legal/privacy_v1.0.md` |
-| 3 | `COOKIE_POLICY` | `/legal/cookies` | `/locales/{lang}/legal/cookie_v1.0.md` |
-| 4 | `ACCEPTABLE_USE` | `/legal/acceptable-use` | `/locales/{lang}/legal/acceptable_use_v1.0.md` |
-| 5 | `SECURITY_PROTECTION` | `/legal/security` | `/locales/{lang}/legal/security_v1.0.md` |
-| 6 | `DATA_RETENTION` | `/legal/data-retention` | `/locales/{lang}/legal/data_retention_v1.0.md` |
+| 1 | `TERMS_OF_SERVICE` | `terms` | `/locales/{lang}/legal/terms.md` |
+| 2 | `PRIVACY_POLICY` | `privacy` | `/locales/{lang}/legal/privacy.md` |
+| 3 | `COOKIE_POLICY` | `cookies` | `/locales/{lang}/legal/cookies.md` |
+| 4 | `ACCEPTABLE_USE` | `acceptable-use` | `/locales/{lang}/legal/acceptable_use.md` |
+| 5 | `SECURITY_PROTECTION` | `security` | `/locales/{lang}/legal/security.md` |
+| 6 | `DATA_RETENTION` | `data-retention` | `/locales/{lang}/legal/data_retention.md` |
+
+All 6 documents are authored in 4 languages (`en`, `fr`, `pt`, `ss`) both as static
+markdown assets and as seeded rows in the `legal_policies` table (migration 40).
 
 ---
 
 ## 4. Database Schema
+
+### `legal_policies` Table (versioned policies)
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | UUID | Unique record ID |
+| `policy_id` | UUID | Logical identifier grouping versions of the same policy |
+| `slug` | TEXT | URL-safe slug (`terms`, `privacy`, `cookies`, ...) |
+| `title_en/fr/pt/ss` | TEXT | Localized titles |
+| `content_en/fr/pt/ss` | TEXT | Localized markdown content |
+| `version` | INTEGER | Version number, incremented on each edit |
+| `created_at` / `updated_at` | TIMESTAMPTZ | Timestamps |
 
 ### `user_consents` Table
 
@@ -96,4 +112,22 @@ The platform will:
 1. **Server-Side Enforcement**: Policy acceptance must strictly be validated and recorded on the server. Frontend client state is never trusted.
 2. **Immutable Audit Trail**: Previous consent records are never updated or overwritten. New acceptances insert new rows.
 3. **Data Isolation**: Users can only query or view their own consent records (`user_id == claims.sub`).
-4. **Unauthenticated Public Access**: All 6 legal document pages (`/legal/*`) are publicly accessible without authentication.
+4. **Unauthenticated Public Access**: The public legal center (`/legal`) is accessible without authentication.
+5. **Admin-Only Policy Management**: Creating/updating legal policies (`POST`/`PUT /api/v1/legal/policies`) and resolving privacy requests require the `ministry` or `federation` role (role-guarded middleware).
+6. **Dynamic Versioning**: The current consent version for Terms and Privacy is resolved from the latest `legal_policies` row, so re-acceptance is triggered automatically when a policy is republished.
+
+## 6. API Surface
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/v1/consents` | Any user | Record a consent acceptance |
+| GET | `/api/v1/consents/me` | Any user | User's consent history |
+| GET | `/api/v1/consents/status` | Any user | Active compliance check |
+| POST | `/api/v1/privacy/requests` | Any user | Submit export/correct/delete request |
+| GET | `/api/v1/privacy/requests/me` | Any user | User's privacy requests |
+| GET | `/api/v1/privacy/requests` | ministry/federation | List all privacy requests |
+| PUT | `/api/v1/privacy/requests/{id}` | ministry/federation | Update request status |
+| GET | `/api/v1/legal/policies` | Any user | List latest policies |
+| GET | `/api/v1/legal/policies/{slug}` | Any user | Get latest policy by slug |
+| POST | `/api/v1/legal/policies` | ministry/federation | Create policy |
+| PUT | `/api/v1/legal/policies/{policy_id}` | ministry/federation | Publish new policy version |
