@@ -56,6 +56,20 @@ export interface OrganizationLabelsContextValue {
 
 const OrganizationLabelsContext = createContext<OrganizationLabelsContextValue | null>(null);
 
+/**
+ * Display-only fallback labels used when the API response is missing a key.
+ *
+ * NOTE: These are intentionally DIFFERENT from `DEFAULT_ORGANIZATION_LABELS`
+ * (which mirrors the backend seed migration). The values here use abbreviated
+ * short labels ("Fed", "Coop", "Min") that are appropriate for tight UI
+ * surfaces like the sidebar / nav, whereas the seed uses full words
+ * ("Federation", "Cooperative", "Ministry") because that's what the
+ * terminology editor expects to show by default.
+ *
+ * This fallback is only hit when the backend returns no data for a key —
+ * which should never happen in practice because the seed migration always
+ * inserts all four rows.
+ */
 const DEFAULT_LABELS: Record<string, { label: string; short_label: string; plural_label: string }> =
   {
     ministry: { label: "Ministry", short_label: "Min", plural_label: "Ministries" },

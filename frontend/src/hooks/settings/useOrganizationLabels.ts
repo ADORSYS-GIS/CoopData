@@ -57,22 +57,44 @@ export const DEFAULT_ORGANIZATION_LABELS = [
   },
 ];
 
-/** List all organization level labels */
+/** List all organization level labels.
+ *
+ * IMPORTANT: This hook must NOT silently swallow API errors and return
+ * `DEFAULT_ORGANIZATION_LABELS`. Doing so causes the offline cache to store
+ * the hardcoded defaults as if they were real data, which means non-ministry
+ * users (federation / apex / cooperative) never see the labels configured by
+ * the ministry — they keep seeing the defaults forever (until the IDB cache
+ * is cleared manually).
+ *
+ * Instead, we let errors propagate to `useOfflineQuery`, which will:
+ *   1. serve the previously cached labels if any, OR
+ *   2. fall back to `fallbackData` (the hardcoded defaults) as a last resort.
+ *
+ * The fallback is only used when there is no cache AND the fetch fails — it
+ * is never written back to the cache, so a transient failure cannot poison
+ * the cache for every subsequent user.
+ */
 export const useOrganizationLabels = () =>
   useOfflineQuery({
     queryKey: [LABELS_KEY],
     cacheTable: "analytics",
     cacheKey: "organization-labels-list",
+    fallbackData: DEFAULT_ORGANIZATION_LABELS,
     queryFn: async () => {
-      try {
-        const { data, error } = await apiClient.GET("/api/v1/settings/organization-labels");
-        if (error || !data || data.length === 0) {
-          return DEFAULT_ORGANIZATION_LABELS;
-        }
-        return data;
-      } catch {
-        return DEFAULT_ORGANIZATION_LABELS;
+      const { data, error, response } = await apiClient.GET("/api/v1/settings/organization-labels");
+      if (error || !data) {
+        // Surface a real error so useOfflineQuery can decide between
+        // serving the cache or the fallback. Include status code for debugging.
+        const status = (response as { status?: number } | undefined)?.status ?? "unknown";
+        throw new Error(`Failed to load organization labels (status: ${status})`);
       }
+      if (data.length === 0) {
+        // Empty payload is also a problem — the backend should always seed
+        // the four default rows. Treat as an error so we don't cache an
+        // empty array and break the UI.
+        throw new Error("Organization labels response was empty");
+      }
+      return data;
     },
   });
 
