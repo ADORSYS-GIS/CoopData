@@ -1,7 +1,16 @@
 // frontend/src/components/shared/LegalDocumentViewer.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { LegalPolicy, LegalLang } from "@/types/legalPolicy";
-import { FileText, Calendar, GitCommit, ShieldCheck, Loader2 } from "lucide-react";
+import {
+  FileText,
+  Calendar,
+  GitCommit,
+  ShieldCheck,
+  Loader2,
+  BookOpen,
+} from "lucide-react";
 
 interface LegalDocumentViewerProps {
   policy: LegalPolicy;
@@ -79,84 +88,229 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
       });
   }, [policy, lang, dbContent, title]);
 
+  // Build TOC from headings (## level)
+  const tocItems = useMemo(() => {
+    const items: { id: string; text: string; level: number }[] = [];
+    const lines = content.split("\n");
+    for (const line of lines) {
+      const match = line.match(/^(#{2,3})\s+(.+)$/);
+      if (match) {
+        const level = match[1].length;
+        const text = match[2].trim();
+        const id = text
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, "")
+          .replace(/\s+/g, "-");
+        items.push({ id, text, level });
+      }
+    }
+    return items;
+  }, [content]);
+
+  // Heading ID generator for anchors
+  const headingId = (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .replace(/\s+/g, "-");
+
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-border bg-surface shadow-[var(--shadow-elev-1)] ${className}`}
+      className={`overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--shadow-elev-2)] ${className}`}
     >
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-muted/30 px-6 py-5">
-        <div>
-          <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
-            <ShieldCheck className="size-4" />
-            <span>CoopData Official Policy</span>
-          </div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">{title}</h1>
-        </div>
+      <div className="relative overflow-hidden border-b border-border bg-gradient-to-br from-muted/40 via-muted/20 to-transparent px-6 py-6 md:px-8">
+        {/* Decorative accent line */}
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent via-accent/70 to-transparent" />
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5">
-            <GitCommit className="size-3.5 text-accent" />
-            <span>Version {policy.version || 1}.0</span>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-accent">
+              <ShieldCheck className="size-4" />
+              <span>CoopData Official Policy</span>
+            </div>
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+              {title}
+            </h1>
           </div>
-          <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1.5">
-            <Calendar className="size-3.5 text-muted-foreground" />
-            <span>Updated: {new Date(policy.updated_at).toLocaleDateString(LOCALE[lang])}</span>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-[var(--shadow-elev-1)]">
+              <GitCommit className="size-3.5 text-accent" />
+              <span>Version {policy.version || 1}.0</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-[var(--shadow-elev-1)]">
+              <Calendar className="size-3.5" />
+              <span>
+                Updated:{" "}
+                {new Date(policy.updated_at).toLocaleDateString(LOCALE[lang], {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Body */}
-      <div className="min-h-[400px] px-6 py-6 md:px-8 md:py-8">
-        {isLoadingContent ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
-            <Loader2 className="size-8 animate-spin text-accent" />
-            <p className="text-sm">Loading legal document...</p>
-          </div>
-        ) : (
-          <div className="max-w-none text-sm leading-relaxed text-foreground">
-            {content.split("\n\n").map((paragraph, idx) => {
-              if (paragraph.startsWith("# ")) {
-                return (
-                  <h2
-                    key={idx}
-                    className="mb-3 mt-6 flex items-center gap-2 font-heading text-xl font-bold text-foreground"
-                  >
-                    <FileText className="inline size-5 text-accent" />
-                    {paragraph.replace(/^#\s+/, "")}
-                  </h2>
-                );
-              }
-              if (paragraph.startsWith("## ")) {
-                return (
-                  <h3
-                    key={idx}
-                    className="mb-2 mt-5 font-heading text-lg font-semibold text-foreground"
-                  >
-                    {paragraph.replace(/^##\s+/, "")}
-                  </h3>
-                );
-              }
-              if (paragraph.startsWith("- ") || paragraph.startsWith("* ")) {
-                const items = paragraph.split("\n");
-                return (
-                  <ul
-                    key={idx}
-                    className="my-3 list-inside list-disc space-y-1.5 text-muted-foreground"
-                  >
-                    {items.map((item, itemIdx) => (
-                      <li key={itemIdx}>{item.replace(/^[-*]\s+/, "")}</li>
-                    ))}
-                  </ul>
-                );
-              }
-              return (
-                <p key={idx} className="my-3 text-muted-foreground">
-                  {paragraph}
-                </p>
-              );
-            })}
-          </div>
+      <div className="flex">
+        {/* Optional TOC sidebar (desktop only, if enough headings) */}
+        {tocItems.length > 3 && (
+          <aside className="hidden w-56 shrink-0 border-r border-border bg-muted/20 px-4 py-6 xl:block">
+            <div className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <BookOpen className="size-3" />
+              <span>Contents</span>
+            </div>
+            <nav className="space-y-0.5">
+              {tocItems.map((item) => (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  className={`block rounded-md px-2.5 py-1.5 text-[11px] leading-snug transition-colors hover:bg-muted hover:text-foreground ${
+                    item.level === 3
+                      ? "pl-5 text-muted-foreground/70"
+                      : "font-medium text-muted-foreground"
+                  }`}
+                >
+                  {item.text}
+                </a>
+              ))}
+            </nav>
+          </aside>
         )}
+
+        {/* Main content */}
+        <div className="min-h-[400px] flex-1 px-6 py-8 md:px-10 md:py-10">
+          {isLoadingContent ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
+              <Loader2 className="size-8 animate-spin text-accent" />
+              <p className="text-sm">Loading legal document...</p>
+            </div>
+          ) : (
+            <article className="legal-prose max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: ({ children }) => (
+                    <h2
+                      id={headingId(String(children))}
+                      className="mb-4 mt-8 flex items-center gap-2.5 font-heading text-xl font-bold tracking-tight text-foreground first:mt-0"
+                    >
+                      <FileText className="inline size-5 shrink-0 text-accent" />
+                      <span>{children}</span>
+                    </h2>
+                  ),
+                  h2: ({ children }) => (
+                    <h3
+                      id={headingId(String(children))}
+                      className="mb-3 mt-8 border-b border-border pb-2 font-heading text-lg font-semibold text-foreground"
+                    >
+                      {children}
+                    </h3>
+                  ),
+                  h3: ({ children }) => (
+                    <h4
+                      id={headingId(String(children))}
+                      className="mb-2 mt-6 font-heading text-base font-semibold text-foreground"
+                    >
+                      {children}
+                    </h4>
+                  ),
+                  h4: ({ children }) => (
+                    <h5 className="mb-2 mt-4 text-sm font-semibold text-foreground">
+                      {children}
+                    </h5>
+                  ),
+                  p: ({ children }) => (
+                    <p className="my-3 text-sm leading-7 text-muted-foreground">
+                      {children}
+                    </p>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-foreground">{children}</strong>
+                  ),
+                  em: ({ children }) => (
+                    <em className="italic text-muted-foreground">{children}</em>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="my-3 ml-1 space-y-1.5 text-sm text-muted-foreground">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="my-3 ml-1 list-decimal space-y-1.5 pl-5 text-sm text-muted-foreground">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="flex items-start gap-2 leading-7">
+                      <span className="mt-2.5 inline-block size-1.5 shrink-0 rounded-full bg-accent/50" />
+                      <span className="flex-1">{children}</span>
+                    </li>
+                  ),
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      className="font-medium text-accent underline decoration-accent/30 underline-offset-2 transition-colors hover:text-accent/80 hover:decoration-accent/60"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {children}
+                    </a>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="my-4 rounded-r-lg border-l-4 border-accent/40 bg-accent/5 py-3 pl-4 pr-4 text-sm italic text-muted-foreground">
+                      {children}
+                    </blockquote>
+                  ),
+                  code: ({ children, className: codeClassName }) => {
+                    const isBlock = codeClassName?.includes("language-");
+                    if (isBlock) {
+                      return (
+                        <code className="block overflow-x-auto rounded-lg border border-border bg-muted p-4 font-mono text-xs leading-relaxed text-foreground">
+                          {children}
+                        </code>
+                      );
+                    }
+                    return (
+                      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-accent">
+                        {children}
+                      </code>
+                    );
+                  },
+                  table: ({ children }) => (
+                    <div className="my-6 overflow-x-auto rounded-xl border border-border shadow-[var(--shadow-elev-1)]">
+                      <table className="w-full border-collapse text-sm">{children}</table>
+                    </div>
+                  ),
+                  thead: ({ children }) => (
+                    <thead className="bg-muted/60">{children}</thead>
+                  ),
+                  th: ({ children }) => (
+                    <th className="border-b border-border px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground">
+                      {children}
+                    </th>
+                  ),
+                  td: ({ children }) => (
+                    <td className="border-b border-border/50 px-4 py-3 text-sm text-muted-foreground">
+                      {children}
+                    </td>
+                  ),
+                  tr: ({ children }) => (
+                    <tr className="transition-colors hover:bg-muted/30">{children}</tr>
+                  ),
+                  hr: () => (
+                    <hr className="my-8 border-0 border-t border-border" />
+                  ),
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            </article>
+          )}
+        </div>
       </div>
     </div>
   );
