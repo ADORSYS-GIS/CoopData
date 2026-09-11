@@ -8,10 +8,8 @@ export async function dismissErrorOverlay(page: Page) {
   try {
     const overlay = page.locator("vite-error-overlay");
     if (await overlay.isVisible({ timeout: 500 }).catch(() => false)) {
-      // Get error text for debugging
       const errorText = await overlay.textContent().catch(() => "");
       console.warn("[E2E] Vite error overlay detected:", errorText);
-      // Press Escape to dismiss
       await overlay.press("Escape");
     }
   } catch {

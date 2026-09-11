@@ -7,11 +7,13 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : 1,
   reporter: [["html", { open: "never" }], ["list"]],
-  timeout: 30_000,
-  expect: { timeout: 10_000 },
-
+  
+  // Default timeout: 60 seconds for workflow tests
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
+  
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5175",
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5173",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -27,8 +29,8 @@ export default defineConfig({
   webServer: process.env.E2E_SKIP_SERVER
     ? undefined
     : {
-        command: "VITE_E2E_MOCK_AUTH=1 npx vite --port 5175",
-        url: "http://localhost:5175",
+        command: "VITE_E2E_MOCK_AUTH=1 npx vite --port 5173",
+        url: "http://localhost:5173",
         reuseExistingServer: !process.env.CI,
         timeout: 60_000,
       },
