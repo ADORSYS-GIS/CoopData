@@ -12,13 +12,14 @@ use coop_data_backend::{
     },
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, CalamineNfParser,
-    ChartOfAccountsRepository, CooperativeRepository, ExtractionJobRepository, FarmCoopRepository,
-    FederationRepository, FinancialStatementRepository, FixedDepositRepository, LoanRepository,
-    MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, ObjectStorageService, OrganizationLabelRepository,
-    OrganizationRepository, QuestionnaireRepository, QuestionnaireTemplateRepository,
-    SavingsAccountRepository, SubmissionRepository, SubmissionReviewRepository,
-    SubmissionSectionRepository, UploadedFileRepository, UserRepository,
+    ChartOfAccountsRepository, ConsentRepository, CooperativeRepository, ExtractionJobRepository, 
+    FarmCoopRepository, FederationRepository, FinancialStatementRepository, FixedDepositRepository, 
+    LoanRepository, MemberRepository, MinistryReportNarrativesRepository, 
+    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository, 
+    ObjectStorageService, OrganizationLabelRepository, OrganizationRepository, 
+    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository, 
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository, 
+    UploadedFileRepository, UserRepository, LegalPolicyRepository,
 };
 
 #[tokio::main]
@@ -86,6 +87,8 @@ async fn main() -> anyhow::Result<()> {
     let fixed_deposit_repo = FixedDepositRepository::new(db.clone());
     let farm_coop_repo = FarmCoopRepository::new(db.clone());
     let ministry_narratives_repo = MinistryReportNarrativesRepository::new(db.clone());
+    let consent_repo = ConsentRepository::new(db.clone());
+    let legal_policy_repo = LegalPolicyRepository::new(db.clone());
     let questionnaire_repo = QuestionnaireRepository::new(db.clone());
     let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
@@ -145,6 +148,8 @@ async fn main() -> anyhow::Result<()> {
         gotenberg_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
         ai_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
         ministry_narratives_repo,
+        consent_repo,
+        legal_policy_repo,
     };
 
     // Backfill computed KPIs for existing submissions

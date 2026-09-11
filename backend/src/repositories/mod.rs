@@ -20,7 +20,7 @@ where
 
     result
 }
-
+pub mod consent_repository;
 pub mod abnormality_flag;
 pub mod account_alias;
 pub mod apex;
@@ -51,6 +51,7 @@ pub mod submission_review;
 pub mod submission_section;
 pub mod uploaded_file;
 pub mod user;
+pub mod legal_policy_repository;
 
 pub use abnormality_flag::AbnormalityFlagRepository;
 pub use account_alias::AccountAliasRepository;
@@ -58,6 +59,7 @@ pub use apex::ApexRepository;
 pub use assessment::AssessmentRepository;
 pub use audit_log::AuditLogRepository;
 pub use balance_sheet_line_item::BalanceSheetLineItemRepository;
+pub use consent_repository::ConsentRepository;
 pub use chart_of_accounts::ChartOfAccountsRepository;
 pub use cooperative::CooperativeRepository;
 pub use custom_kpi_repository::CustomKpiRepository;
@@ -82,3 +84,4 @@ pub use submission_review::SubmissionReviewRepository;
 pub use submission_section::SubmissionSectionRepository;
 pub use uploaded_file::UploadedFileRepository;
 pub use user::UserRepository;
+pub use legal_policy_repository::LegalPolicyRepository;

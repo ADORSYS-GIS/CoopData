@@ -85,6 +85,36 @@ pub fn shared_routes() -> Router<AppState> {
             "/settings/organization-labels/{key}",
             put(crate::api::handlers::organization_label::update_organization_label),
         )
+        // Legal & Consent Management
+        .route(
+            "/consents",
+            post(crate::api::handlers::consent::record_consent),
+        )
+        .route(
+            "/consents/me",
+            get(crate::api::handlers::consent::get_my_consents),
+        )
+        .route(
+            "/consents/status",
+            get(crate::api::handlers::consent::get_consent_status),
+        )
+        .route(
+            "/privacy/requests",
+            post(crate::api::handlers::consent::submit_privacy_request),
+        )
+        .route(
+            "/legal/policies",
+            get(crate::api::handlers::legal_policy::list_policies)
+                .post(crate::api::handlers::legal_policy::create_policy),
+        )
+        .route(
+            "/legal/policies/{slug}",
+            get(crate::api::handlers::legal_policy::get_policy_by_slug),
+        )
+        .route(
+            "/legal/policies/{policy_id}",
+            put(crate::api::handlers::legal_policy::update_policy),
+        )
 }
 
 /// Sensitive auth-adjacent routes that are rate-limited by client IP to

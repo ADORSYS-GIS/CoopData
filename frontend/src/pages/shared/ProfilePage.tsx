@@ -13,6 +13,7 @@ import { ResetMfaDialog } from "@/components/shared/ResetMfaDialog";
 import { PasswordRequirements } from "@/components/shared/PasswordRequirements";
 import { Spinner } from "@/components/ui/spinner";
 import { isPasswordValid } from "@/lib/passwordPolicy";
+import { PrivacySecuritySettings } from "@/components/settings/PrivacySecuritySettings";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -442,6 +443,11 @@ export const ProfilePage: React.FC = () => {
 
             <ChangePasswordCard username={user.email} />
           </div>
+        </div>
+
+        {/* Privacy & Legal Consent Management */}
+        <div className="pt-6 border-t border-border/60">
+          <PrivacySecuritySettings />
         </div>
       </div>
 

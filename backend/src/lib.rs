@@ -24,7 +24,7 @@ pub use repositories::{
     NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository,
     QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
     SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
-    UploadedFileRepository, UserRepository,
+    UploadedFileRepository, UserRepository, ConsentRepository, LegalPolicyRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;
@@ -77,6 +77,8 @@ pub struct AppState {
     pub gotenberg_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
     pub ai_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
     pub ministry_narratives_repo: crate::repositories::MinistryReportNarrativesRepository,
+    pub consent_repo: ConsentRepository,
+    pub legal_policy_repo: LegalPolicyRepository,
 }
 
 impl AppState {
