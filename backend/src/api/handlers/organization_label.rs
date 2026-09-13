@@ -103,9 +103,23 @@ pub async fn update_organization_label(
 
     tracing::info!(label_key = %key_lower, "Organization label updated");
 
-    // Invalidate Redis cache
+    // Invalidate Redis cache, then write-through the fresh list.
+    // A plain delete leaves a race where a concurrent GET that read the DB
+    // BEFORE this commit re-caches the OLD labels AFTER our delete — serving
+    // stale terminology to every role for the full 5-minute TTL. Re-seeding
+    // the cache with the post-update state closes that window.
     if let Err(e) = state.cache.delete(CACHE_KEY).await {
         tracing::warn!("Failed to invalidate organization labels cache: {}", e);
+    }
+    match repo.find_all().await {
+        Ok(labels) => {
+            let fresh: Vec<OrganizationLabelResponse> =
+                labels.into_iter().map(Into::into).collect();
+            if let Err(e) = state.cache.set(CACHE_KEY, &fresh, Duration::from_secs(300)).await {
+                tracing::warn!("Failed to write-through organization labels cache: {}", e);
+            }
+        }
+        Err(e) => tracing::warn!("Failed to re-read organization labels for cache write-through: {}", e),
     }
 
     // Log to Audit Trail
