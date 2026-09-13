@@ -115,11 +115,18 @@ pub async fn update_organization_label(
         Ok(labels) => {
             let fresh: Vec<OrganizationLabelResponse> =
                 labels.into_iter().map(Into::into).collect();
-            if let Err(e) = state.cache.set(CACHE_KEY, &fresh, Duration::from_secs(300)).await {
+            if let Err(e) = state
+                .cache
+                .set(CACHE_KEY, &fresh, Duration::from_secs(300))
+                .await
+            {
                 tracing::warn!("Failed to write-through organization labels cache: {}", e);
             }
         }
-        Err(e) => tracing::warn!("Failed to re-read organization labels for cache write-through: {}", e),
+        Err(e) => tracing::warn!(
+            "Failed to re-read organization labels for cache write-through: {}",
+            e
+        ),
     }
 
     // Log to Audit Trail
