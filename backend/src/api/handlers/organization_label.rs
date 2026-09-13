@@ -106,8 +106,12 @@ pub async fn update_organization_label(
     // Invalidate Redis cache, then write-through the fresh list.
     // A plain delete leaves a race where a concurrent GET that read the DB
     // BEFORE this commit re-caches the OLD labels AFTER our delete — serving
-    // stale terminology to every role for the full 5-minute TTL. Re-seeding
-    // the cache with the post-update state closes that window.
+    // stale terminology to every role for the full 5-minute TTL. Write-through
+    // re-seeds the cache with the post-update state, and the delayed second
+    // delete below evicts any stale value an in-flight GET still managed to
+    // write between our delete and its set. This NARROWS the window to
+    // near-zero (full exclusion would require versioned cache stamps, which
+    // is overkill for terminology labels — worst case is a 1s staleness).
     if let Err(e) = state.cache.delete(CACHE_KEY).await {
         tracing::warn!("Failed to invalidate organization labels cache: {}", e);
     }
@@ -128,6 +132,21 @@ pub async fn update_organization_label(
             e
         ),
     }
+
+    // Delayed double-delete: an in-flight GET may have read the OLD rows
+    // before this update committed and written them to the cache after the
+    // write-through above. Evicting once more after a grace period wipes any
+    // such stale entry; the next request re-caches the fresh list.
+    let cache = state.cache.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        if let Err(e) = cache.delete(CACHE_KEY).await {
+            tracing::warn!(
+                "Delayed organization labels cache invalidation failed: {}",
+                e
+            );
+        }
+    });
 
     // Log to Audit Trail
     if let Err(e) = state
