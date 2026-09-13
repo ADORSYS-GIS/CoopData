@@ -1,9 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import type { components } from "@/openapi-client/api";
 import { runMutation } from "@/services/shared/syncQueueService";
 
 const LABELS_KEY = "organization-labels";
+
+type OrganizationLabelRow = components["schemas"]["OrganizationLabelResponse"];
 
 function extractErrorMessage(err: unknown): string {
   if (err && typeof err === "object") {
@@ -79,7 +82,10 @@ export const useOrganizationLabels = () =>
     queryKey: [LABELS_KEY],
     cacheTable: "analytics",
     cacheKey: "organization-labels-list",
-    fallbackData: DEFAULT_ORGANIZATION_LABELS,
+    // The defaults are static UI fallbacks without DB timestamps; consumers
+    // only read the label fields, so the missing created_at/updated_at are
+    // irrelevant here.
+    fallbackData: DEFAULT_ORGANIZATION_LABELS as unknown as OrganizationLabelRow[],
     queryFn: async () => {
       const { data, error, response } = await apiClient.GET("/api/v1/settings/organization-labels");
       if (error || !data) {

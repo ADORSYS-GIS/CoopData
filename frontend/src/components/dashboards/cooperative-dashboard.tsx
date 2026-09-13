@@ -148,19 +148,19 @@ export function CooperativeDashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Profile Card */}
           <Card
-            title={profile?.name ?? "Profile"}
-            subtitle="Cooperative identity and registry summary"
+            title={profile?.name ?? t("dashboard.coop.profileTitle")}
+            subtitle={t("dashboard.coop.profileSub")}
           >
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2 mb-3 border-b border-border/50 pb-2">
                 <Building2 className="size-4 text-accent" />
                 <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                  Cooperative Details
+                  {t("dashboard.coop.profileDetails")}
                 </span>
               </div>
               <div className="flex items-center justify-between py-1.5 border-b border-border/50">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Region
+                  {t("dashboard.coop.profileRegion")}
                 </span>
                 <span className="text-sm font-semibold text-foreground">
                   {profile?.region ?? "—"}
@@ -168,7 +168,7 @@ export function CooperativeDashboard() {
               </div>
               <div className="flex items-center justify-between py-1.5">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Institution Type
+                  {t("dashboard.coop.profileInstitutionType")}
                 </span>
                 <span className="text-sm font-semibold text-foreground">
                   {profile?.institution_type ?? "—"}

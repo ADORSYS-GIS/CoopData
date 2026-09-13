@@ -659,6 +659,11 @@
     "coop": {
       "title": "Indzawo Yekusebenta Yekhopharethi",
       "subtitleSuffix": "Layisha data, landzela imibiko, buka luhlatiyo",
+      "profileTitle": "Iphrofayili",
+      "profileSub": "Ulwazi nekufakwa lwekhopharethi kurejhistara",
+      "profileDetails": "Imininingwane Yekhopharethi",
+      "profileRegion": "Sifundza",
+      "profileInstitutionType": "Uhlobo Lwesikhungo",
       "totalSubmissions": "Imibiko Yonke",
       "allDataReturns": "Yonke imibiko yedata",
       "totalSubmissionsInfo": "Inani lesilinganiselwe lemibiko yedata ledaliwe kuwo wonke emaphesenti esikhatsi.",

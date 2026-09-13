@@ -659,6 +659,11 @@
     "coop": {
       "title": "Espaço de Trabalho da Cooperativa",
       "subtitleSuffix": "Carregar dados, acompanhar submissões, ver análises",
+      "profileTitle": "Perfil",
+      "profileSub": "Identidade e resumo de registo da cooperativa",
+      "profileDetails": "Detalhes da Cooperativa",
+      "profileRegion": "Região",
+      "profileInstitutionType": "Tipo de Instituição",
       "totalSubmissions": "Total de Submissões",
       "allDataReturns": "Todos os retornos de dados",
       "totalSubmissionsInfo": "O número total de submissões de dados criadas em todos os períodos.",

@@ -659,6 +659,11 @@
     "coop": {
       "title": "Cooperative Workspace",
       "subtitleSuffix": "Upload data, track submissions, view analytics",
+      "profileTitle": "Profile",
+      "profileSub": "Cooperative identity and registry summary",
+      "profileDetails": "Cooperative Details",
+      "profileRegion": "Region",
+      "profileInstitutionType": "Institution Type",
       "totalSubmissions": "Total Submissions",
       "allDataReturns": "All data returns",
       "totalSubmissionsInfo": "The total number of data submissions created across all time periods.",
