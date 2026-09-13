@@ -1380,6 +1380,7 @@
     "goBack": "Retour",
     "sectionIndicator": "Section {{section}} sur {{total}} : {{title}}",
     "saved": "Enregistré",
+    "draftSavedLocally": "Brouillon enregistré sur cet appareil",
     "saving": "Enregistrement…",
     "failedSave": "Échec de l'enregistrement",
     "populateTestData": "🧪 Peupler les données de test",

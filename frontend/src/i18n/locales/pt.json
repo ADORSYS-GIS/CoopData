@@ -1374,6 +1374,7 @@
     "goBack": "Voltar",
     "sectionIndicator": "Secção {{section}} de {{total}}: {{title}}",
     "saved": "Guardado",
+    "draftSavedLocally": "Rascunho guardado neste dispositivo",
     "saving": "A guardar…",
     "failedSave": "Falha ao guardar",
     "populateTestData": "🧪 Preencher Dados de Teste",

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { fetchWithAuth, getUserProfile } from "@/services/shared/authService";
 import { runMutation } from "@/services/shared/syncQueueService";
-import { cacheSet } from "@/services/shared/offlineCache";
+import { cacheDelete, cacheGet, cacheSet } from "@/services/shared/offlineCache";
 import i18n from "@/i18n";
 import type { QuestionnaireSection } from "@/hooks/admin/useQuestionnaireTemplates";
 
@@ -32,7 +32,25 @@ export const useQuestionnaire = (submissionId: string, questionnaireType?: strin
         ? `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire?questionnaire_type=${questionnaireType}`
         : `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire`;
       const res = await fetchWithAuth(url);
-      if (res.status === 404) return null;
+      if (res.status === 404) {
+        // No server response yet — the submission may still be a DRAFT whose
+        // answers only exist in the local IndexedDB draft slot. Surface the
+        // local draft (if any) so a refresh mid-questionnaire never loses work.
+        const draft = await loadLocalQuestionnaireDraft(submissionId, questionnaireType);
+        if (draft && Object.keys(draft.answers).length > 0) {
+          return {
+            id: `local-draft-${submissionId}`,
+            submission_id: submissionId,
+            cooperative_id: "self",
+            questionnaire_type: questionnaireType ?? "",
+            reporting_year: new Date().getFullYear(),
+            answers: draft.answers,
+            created_at: draft.saved_at,
+            updated_at: draft.saved_at,
+          } as QuestionnaireResponseData;
+        }
+        return null;
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error((body as { message?: string }).message ?? "Failed to load questionnaire");
@@ -41,6 +59,72 @@ export const useQuestionnaire = (submissionId: string, questionnaireType?: strin
     },
     enabled: !!submissionId,
   });
+
+// ─── Local (IndexedDB-only) drafts ────────────────────────────────────────────
+// Draft saves MUST NOT touch the backend: they are intermediate work stored
+// in the browser so the user can refresh / navigate away and come back.
+// Only the final "Complete" action persists answers to the server.
+
+export interface LocalQuestionnaireDraft {
+  answers: QuestionnaireAnswers;
+  saved_at: string;
+}
+
+const localDraftKey = (submissionId: string, questionnaireType?: string): string =>
+  `questionnaire-draft-${submissionId}-${questionnaireType ?? "all"}`;
+
+export async function saveLocalQuestionnaireDraft(
+  submissionId: string,
+  questionnaireType: string | undefined,
+  answers: QuestionnaireAnswers,
+): Promise<void> {
+  const userId = getUserProfile()?.id ?? "anon";
+  const draft: LocalQuestionnaireDraft = { answers, saved_at: new Date().toISOString() };
+  await cacheSet("submissions", localDraftKey(submissionId, questionnaireType), userId, draft);
+}
+
+export async function loadLocalQuestionnaireDraft(
+  submissionId: string,
+  questionnaireType?: string,
+): Promise<LocalQuestionnaireDraft | null> {
+  try {
+    const userId = getUserProfile()?.id ?? "anon";
+    return await cacheGet<LocalQuestionnaireDraft>(
+      "submissions",
+      localDraftKey(submissionId, questionnaireType),
+      userId,
+      true,
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function clearLocalQuestionnaireDraft(
+  submissionId: string,
+  questionnaireType?: string,
+): Promise<void> {
+  try {
+    await cacheDelete("submissions", localDraftKey(submissionId, questionnaireType));
+  } catch {
+    // best-effort cleanup
+  }
+}
+
+/** Saves questionnaire answers to IndexedDB ONLY — never the backend. */
+export const useSaveLocalDraft = (submissionId: string, questionnaireType?: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (answers: QuestionnaireAnswers) => {
+      await saveLocalQuestionnaireDraft(submissionId, questionnaireType, answers);
+      return { saved_at: new Date().toISOString() };
+    },
+    onSuccess: () => {
+      // Re-run the loader so the 404→draft fallback surfaces the saved draft
+      qc.invalidateQueries({ queryKey: [QUESTIONNAIRE_KEY, submissionId, questionnaireType] });
+    },
+  });
+};
 
 export const useSaveQuestionnaire = (submissionId: string) => {
   const qc = useQueryClient();

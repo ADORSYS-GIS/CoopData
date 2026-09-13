@@ -1380,6 +1380,7 @@
     "goBack": "Go Back",
     "sectionIndicator": "Section {{section}} of {{total}}: {{title}}",
     "saved": "Saved",
+    "draftSavedLocally": "Draft saved to this device",
     "saving": "Saving…",
     "failedSave": "Failed to save",
     "populateTestData": "🧪 Populate Test Data",

@@ -1374,6 +1374,7 @@
     "goBack": "Buyela Emuva",
     "sectionIndicator": "Isigaba {{section}} sa {{total}}: {{title}}",
     "saved": "Kugciniwe",
+    "draftSavedLocally": "Idrafti ligciniwe kule divayisi",
     "saving": "Kuyagcina…",
     "failedSave": "Kwehlulekile kugcina",
     "populateTestData": "🧪 Gcwalisa Data Yekuhlola",
