@@ -239,6 +239,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
       });
     });
     setAnswers(mockAnswers);
+    // Populated answers are user-visible work too — mark dirty so a background
+    // refetch cannot overwrite them via the hydration fallback branch.
+    dirtyRef.current = true;
     toast.success(t("questionnaire.testDataPopulated"));
   };
 

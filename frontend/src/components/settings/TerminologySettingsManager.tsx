@@ -29,6 +29,32 @@ interface EditingLabel {
   translations: Record<string, Record<string, string>>;
 }
 
+/**
+ * Order-independent deep comparison of translation maps ({ lang: { field: value }}).
+ * JSON.stringify is not suitable here: objects rebuilt during editing carry a
+ * different key insertion order than the server payload, so identical content
+ * compared as different and falsely flagged rows as dirty.
+ */
+const translationsEqual = (
+  a: Record<string, Record<string, string>> | undefined,
+  b: Record<string, Record<string, string>> | undefined,
+): boolean => {
+  const mapA = a ?? {};
+  const mapB = b ?? {};
+  const langs = new Set([...Object.keys(mapA), ...Object.keys(mapB)]);
+  for (const lang of langs) {
+    const fieldsA = mapA[lang] ?? {};
+    const fieldsB = mapB[lang] ?? {};
+    const fields = new Set([...Object.keys(fieldsA), ...Object.keys(fieldsB)]);
+    for (const field of fields) {
+      // Missing and empty-string are equivalent: the editor deletes keys
+      // instead of storing empty values.
+      if ((fieldsA[field] ?? "") !== (fieldsB[field] ?? "")) return false;
+    }
+  }
+  return true;
+};
+
 export const TerminologySettingsManager: React.FC = () => {
   const { t } = useTranslation();
   const { data: labels, isLoading } = useOrganizationLabels();
@@ -74,8 +100,7 @@ export const TerminologySettingsManager: React.FC = () => {
         current.short_label === item.short_label &&
         current.plural_label === item.plural_label &&
         (current.description || "") === (item.description || "");
-      const sameTranslations =
-        JSON.stringify(current.translations ?? {}) === JSON.stringify(baseTranslations);
+      const sameTranslations = translationsEqual(current.translations, baseTranslations);
       if (!sameText || !sameTranslations) {
         dirty.add(item.key);
       }
