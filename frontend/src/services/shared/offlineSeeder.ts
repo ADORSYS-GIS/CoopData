@@ -107,6 +107,13 @@ export async function seedOfflineCache(): Promise<void> {
       }
     });
 
+    // 5. Organization labels — needed by ALL roles so the configured
+    // terminology renders correctly offline at every level, not just ministry.
+    await safeFetch(async () => {
+      const { data } = await apiClient.GET("/api/v1/settings/organization-labels", {});
+      if (data) await cacheSet("analytics", "organization-labels-list", userId, data);
+    });
+
     // ── ROLE-SPECIFIC SEEDING ──
 
     if (role === "ministry") {
@@ -142,11 +149,6 @@ export async function seedOfflineCache(): Promise<void> {
           params: { query: { page: 1, per_page: 20 } },
         });
         if (data) await cacheSet("analytics", 'audit-logs-{"page":1,"per_page":20}', userId, data);
-      });
-
-      await safeFetch(async () => {
-        const { data } = await apiClient.GET("/api/v1/settings/organization-labels", {});
-        if (data) await cacheSet("analytics", "organization-labels-list", userId, data);
       });
 
       await safeFetch(async () => {
