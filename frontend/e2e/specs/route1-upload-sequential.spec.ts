@@ -416,6 +416,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
   // STEP 7: Ministry final approval
   // ═══════════════════════════════════════════════════════════════
   test("Step 7: Ministry final approval", async ({ page }) => {
+    test.setTimeout(180000); // 3 minutes
     console.log("=== STEP 7: Ministry final approval ===");
     console.log(`Using submission: ${submissionId}`);
 

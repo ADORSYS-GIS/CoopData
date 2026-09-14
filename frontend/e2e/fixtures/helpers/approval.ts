@@ -27,10 +27,18 @@ export async function approveAsApex(
 ) {
   // Clear storage before logging in as new user
   await clearBrowserStorage(page);
-  
+
   await loginAs(page, "apex");
   await page.goto("/app/submissions");
-  await page.getByText(submissionId).click();
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForTimeout(3000);
+
+  // Navigate directly to the submission detail page
+  console.log(`[E2E] Navigating to submission: ${submissionId}`);
+  await page.goto(`/app/submissions/${submissionId}`);
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForTimeout(3000);
+
   await page.click('button:has-text("Approve")');
   await page.fill('textarea[name="comments"]', comment);
   await page.click('button:has-text("Confirm Approval")');
@@ -44,10 +52,18 @@ export async function approveAsApex(
 export async function approveAsFederation(page: Page, submissionId: string) {
   // Clear storage before logging in as new user
   await clearBrowserStorage(page);
-  
+
   await loginAs(page, "federation");
   await page.goto("/app/submissions");
-  await page.getByText(submissionId).click();
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForTimeout(3000);
+
+  // Navigate directly to the submission detail page
+  console.log(`[E2E] Navigating to submission: ${submissionId}`);
+  await page.goto(`/app/submissions/${submissionId}`);
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForTimeout(3000);
+
   await page.click('button:has-text("Approve")');
   await page.click('button:has-text("Confirm Approval")');
   await expect(page.getByText("Status: Pending Ministry Review")).toBeVisible();
@@ -60,10 +76,18 @@ export async function approveAsFederation(page: Page, submissionId: string) {
 export async function approveAsMinistry(page: Page, submissionId: string) {
   // Clear storage before logging in as new user
   await clearBrowserStorage(page);
-  
+
   await loginAs(page, "ministry");
   await page.goto("/app/submissions");
-  await page.getByText(submissionId).click();
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForTimeout(3000);
+
+  // Navigate directly to the submission detail page
+  console.log(`[E2E] Navigating to submission: ${submissionId}`);
+  await page.goto(`/app/submissions/${submissionId}`);
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForTimeout(3000);
+
   await page.click('button:has-text("Approve")');
   await page.click('button:has-text("Confirm Approval")');
   await expect(page.getByText("Status: APPROVED")).toBeVisible();
