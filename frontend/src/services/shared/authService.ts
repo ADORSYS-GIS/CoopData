@@ -115,7 +115,9 @@ async function doInitKeycloak(): Promise<boolean> {
       } catch (e) {
         console.warn("[auth] Token refresh failed:", e);
         if (!navigator.onLine && cachedTokens && isOfflineTokenValid(cachedTokens)) {
-          console.log("[auth] Falling back to offline mode following token refresh error while offline");
+          console.log(
+            "[auth] Falling back to offline mode following token refresh error while offline",
+          );
           offlineModeActive = true;
           return true;
         }

@@ -29,7 +29,10 @@ function handleAuthError(error: unknown) {
     const isAppRoute = window.location.pathname.startsWith("/app");
     const isPrintRoute = window.location.pathname.startsWith("/print");
     if (isAppRoute || isPrintRoute) {
-      console.warn("[router] Background query auth error on app route — suppressing auto-logout:", error);
+      console.warn(
+        "[router] Background query auth error on app route — suppressing auto-logout:",
+        error,
+      );
       return;
     }
   }
