@@ -196,6 +196,7 @@ export const useCreateSubmission = () => {
         priority: body.priority ?? "Routine",
         period_type: (body as { period_type?: string }).period_type ?? "",
         period_value: String((body as { period_value?: number }).period_value ?? ""),
+        fiscal_start_month: (body as { fiscal_start_month?: number }).fiscal_start_month ?? 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         sections: [],

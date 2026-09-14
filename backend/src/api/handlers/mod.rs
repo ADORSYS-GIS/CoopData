@@ -20,10 +20,13 @@ pub mod questionnaire_template;
 pub mod submission;
 pub mod upload;
 pub mod users;
-
+pub mod consent;
+pub mod legal_policy;
 pub use audit::*;
+pub use consent::*;
 pub use health::*;
 pub use organization_label::*;
 pub use organizations::*;
 pub use questionnaire::*;
 pub use users::*;
+pub use legal_policy::*;

@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => {
         // Use generateSW strategy: Workbox creates the SW from the manifest
         strategies: "generateSW",
         workbox: {
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           // Pre-cache all JS, CSS, HTML, fonts, and icons
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,webp}"],
           // SPA fallback: all navigation requests return index.html

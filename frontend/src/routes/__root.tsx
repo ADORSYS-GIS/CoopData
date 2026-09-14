@@ -9,6 +9,7 @@ import { KeycloakAuthProvider } from "../context/AuthContext";
 import { ThemeProvider } from "../lib/theme";
 import { useTranslation } from "react-i18next";
 import { OfflineStatusBanner } from "@/components/shared/OfflineStatusBanner";
+import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 import { getUserProfile } from "@/services/shared/authService";
 
 import { flushSyncQueue } from "@/services/shared/syncQueueService";
@@ -170,6 +171,7 @@ function RootComponent() {
           <OrganizationLabelsProvider>
             <OfflineStatusBanner />
             <Outlet />
+            <CookieConsentBanner />
             <Toaster position="top-right" richColors closeButton duration={4000} />
           </OrganizationLabelsProvider>
         </PersistQueryClientProvider>

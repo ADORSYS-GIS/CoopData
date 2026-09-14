@@ -1568,6 +1568,9 @@
           "400": {
             "description": "Invalid state"
           },
+          "403": {
+            "description": "Forbidden — submission does not belong to your apex"
+          },
           "404": {
             "description": "Not found"
           }
@@ -1656,6 +1659,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden — submission does not belong to your scope"
           },
           "404": {
             "description": "Not found"
@@ -1755,6 +1761,9 @@
           },
           "400": {
             "description": "Invalid state"
+          },
+          "403": {
+            "description": "Forbidden — submission does not belong to your apex"
           },
           "404": {
             "description": "Not found"
@@ -1857,6 +1866,119 @@
           },
           "403": {
             "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/consents": {
+      "post": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "record_consent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordConsentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Consent recorded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserConsentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/consents/me": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "get_my_consents",
+        "responses": {
+          "200": {
+            "description": "User consent history retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserConsentResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/consents/status": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "get_consent_status",
+        "responses": {
+          "200": {
+            "description": "Consent status retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5003,6 +5125,9 @@
           "400": {
             "description": "Invalid state"
           },
+          "403": {
+            "description": "Forbidden — submission does not belong to your federation"
+          },
           "404": {
             "description": "Not found"
           }
@@ -5051,6 +5176,9 @@
           "400": {
             "description": "Invalid state"
           },
+          "403": {
+            "description": "Forbidden — submission does not belong to your federation"
+          },
           "404": {
             "description": "Not found"
           }
@@ -5071,6 +5199,151 @@
                 "schema": {}
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/legal/policies": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "list_policies",
+        "responses": {
+          "200": {
+            "description": "List latest legal policies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LegalPolicyResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "create_policy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalPolicyCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Policy created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalPolicyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/legal/policies/{policy_id}": {
+      "put": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "update_policy",
+        "parameters": [
+          {
+            "name": "policy_id",
+            "in": "path",
+            "description": "Legal policy UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegalPolicyUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "New policy version created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalPolicyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Policy not found"
+          }
+        }
+      }
+    },
+    "/api/v1/legal/policies/{slug}": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "get_policy_by_slug",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "description": "Legal policy slug identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get latest policy by slug",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalPolicyResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Policy not found"
           }
         }
       }
@@ -7084,6 +7357,202 @@
         }
       }
     },
+    "/api/v1/privacy/requests": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "list_all_privacy_requests",
+        "responses": {
+          "200": {
+            "description": "All privacy requests (admin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrivacyRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "submit_privacy_request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivacyRequestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Privacy request submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy/requests/me": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "get_my_privacy_requests",
+        "responses": {
+          "200": {
+            "description": "Current user's privacy requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrivacyRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy/requests/{request_id}": {
+      "put": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "update_privacy_request_status",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "description": "Privacy request UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivacyRequestStatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Privacy request status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/settings/organization-labels": {
       "get": {
         "tags": [
@@ -8141,6 +8610,40 @@
           }
         }
       },
+      "ConsentStatusResponse": {
+        "type": "object",
+        "required": [
+          "terms_accepted",
+          "terms_version",
+          "privacy_accepted",
+          "privacy_version",
+          "has_accepted_all_required",
+          "accepted_consents"
+        ],
+        "properties": {
+          "accepted_consents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserConsentResponse"
+            }
+          },
+          "has_accepted_all_required": {
+            "type": "boolean"
+          },
+          "privacy_accepted": {
+            "type": "boolean"
+          },
+          "privacy_version": {
+            "type": "string"
+          },
+          "terms_accepted": {
+            "type": "boolean"
+          },
+          "terms_version": {
+            "type": "string"
+          }
+        }
+      },
       "ConsolidationCoopTypeRowResponse": {
         "type": "object",
         "required": [
@@ -8686,6 +9189,11 @@
           "cooperative_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "fiscal_start_month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Month (1-12) in which the fiscal year / Q1 begins. Defaults to 1 (January)."
           },
           "period_type": {
             "type": "string",
@@ -9323,6 +9831,11 @@
           "reporting_year"
         ],
         "properties": {
+          "fiscal_start_month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Month (1-12) in which the fiscal year / Q1 begins. Defaults to 1 (January)."
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -10459,6 +10972,154 @@
           }
         }
       },
+      "LegalPolicyCreateRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "title_en",
+          "title_fr",
+          "title_pt",
+          "title_ss",
+          "content_en",
+          "content_fr",
+          "content_pt",
+          "content_ss"
+        ],
+        "properties": {
+          "content_en": {
+            "type": "string"
+          },
+          "content_fr": {
+            "type": "string"
+          },
+          "content_pt": {
+            "type": "string"
+          },
+          "content_ss": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title_en": {
+            "type": "string"
+          },
+          "title_fr": {
+            "type": "string"
+          },
+          "title_pt": {
+            "type": "string"
+          },
+          "title_ss": {
+            "type": "string"
+          }
+        }
+      },
+      "LegalPolicyResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "policy_id",
+          "slug",
+          "title_en",
+          "title_fr",
+          "title_pt",
+          "title_ss",
+          "content_en",
+          "content_fr",
+          "content_pt",
+          "content_ss",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "content_en": {
+            "type": "string"
+          },
+          "content_fr": {
+            "type": "string"
+          },
+          "content_pt": {
+            "type": "string"
+          },
+          "content_ss": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title_en": {
+            "type": "string"
+          },
+          "title_fr": {
+            "type": "string"
+          },
+          "title_pt": {
+            "type": "string"
+          },
+          "title_ss": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LegalPolicyUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "content_en": {
+            "type": "string",
+            "nullable": true
+          },
+          "content_fr": {
+            "type": "string",
+            "nullable": true
+          },
+          "content_pt": {
+            "type": "string",
+            "nullable": true
+          },
+          "content_ss": {
+            "type": "string",
+            "nullable": true
+          },
+          "title_en": {
+            "type": "string",
+            "nullable": true
+          },
+          "title_fr": {
+            "type": "string",
+            "nullable": true
+          },
+          "title_pt": {
+            "type": "string",
+            "nullable": true
+          },
+          "title_ss": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "LineItemBulkUpdateRequest": {
         "type": "object",
         "required": [
@@ -11354,7 +12015,8 @@
         "enum": [
           "Active",
           "Dormant",
-          "Exited"
+          "Exited",
+          "Deceased"
         ]
       },
       "MembershipStatsDto": {
@@ -12730,6 +13392,70 @@
           }
         }
       },
+      "PrivacyRequestInput": {
+        "type": "object",
+        "required": [
+          "request_type"
+        ],
+        "properties": {
+          "details": {
+            "type": "string",
+            "nullable": true
+          },
+          "request_type": {
+            "type": "string"
+          }
+        }
+      },
+      "PrivacyRequestResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "request_type",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "request_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      },
+      "PrivacyRequestStatusUpdate": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "QuestionnaireAnalyticsDetail": {
         "type": "object",
         "required": [
@@ -12965,6 +13691,21 @@
           "comment": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "RecordConsentRequest": {
+        "type": "object",
+        "required": [
+          "document_type",
+          "document_version"
+        ],
+        "properties": {
+          "document_type": {
+            "type": "string"
+          },
+          "document_version": {
+            "type": "string"
           }
         }
       },
@@ -13529,6 +14270,7 @@
           "reporting_year",
           "period_type",
           "period_value",
+          "fiscal_start_month",
           "status",
           "current_tier",
           "priority",
@@ -13620,6 +14362,11 @@
             "format": "uuid",
             "description": "Financial statement ID, present after upload",
             "nullable": true
+          },
+          "fiscal_start_month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Month (1-12) in which the fiscal year / Q1 begins."
           },
           "id": {
             "type": "string",
@@ -14500,6 +15247,48 @@
           "Urban",
           "Rural"
         ]
+      },
+      "UserConsentResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "document_type",
+          "document_version",
+          "accepted_at",
+          "created_at"
+        ],
+        "properties": {
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "document_type": {
+            "type": "string"
+          },
+          "document_version": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ip_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "user_agent": {
+            "type": "string",
+            "nullable": true
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
       },
       "UserProfileResponse": {
         "type": "object",

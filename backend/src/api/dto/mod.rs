@@ -1,5 +1,6 @@
 pub mod apex;
 pub mod audit;
+pub mod consent;
 pub mod basic_benchmark;
 pub mod common;
 pub mod cooperative;
@@ -18,6 +19,7 @@ pub mod submission;
 pub mod upload;
 pub mod user;
 pub mod verification;
+pub mod legal_policy;
 
 pub use apex::*;
 pub use audit::*;
@@ -39,3 +41,5 @@ pub use organization::*;
 pub use organization_label::*;
 pub use user::*;
 pub use verification::*;
+pub use consent::*;
+pub use legal_policy::*;

@@ -2,6 +2,7 @@ import { Navigate, Link, Outlet, createFileRoute } from "@tanstack/react-router"
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { RegisterConsentModal } from "@/components/shared/RegisterConsentModal";
 
 function AppLayout() {
   const { t } = useTranslation();
@@ -85,7 +86,12 @@ function AppLayout() {
     }
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <RegisterConsentModal />
+    </>
+  );
 }
 
 export const Route = createFileRoute("/app")({

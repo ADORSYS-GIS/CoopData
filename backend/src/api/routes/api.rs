@@ -27,7 +27,17 @@ use crate::AppState;
 
 /// Public routes that don't require authentication.
 fn public_routes() -> Router<AppState> {
-    Router::new().route("/health", get(handlers::health_check))
+    Router::new()
+        .route("/health", get(handlers::health_check))
+        // Public legal documents — readable without authentication
+        .route(
+            "/legal/policies",
+            get(crate::api::handlers::legal_policy::list_policies),
+        )
+        .route(
+            "/legal/policies/{id}",
+            get(crate::api::handlers::legal_policy::get_policy_by_slug),
+        )
 }
 
 /// Ministry-level routes (Level 1).
@@ -172,6 +182,9 @@ pub fn create_app(state: AppState) -> Router {
 
     let protected = Router::new()
         .merge(shared_routes())
+        .merge(crate::api::routes::shared::legal_admin_routes().layer(
+            axum::middleware::from_fn(role_guard_layer(&[roles::MINISTRY, roles::FEDERATION])),
+        ))
         .merge(crate::api::routes::shared::sensitive_auth_routes().layer(
             axum::middleware::from_fn_with_state(
                 state.clone(),
