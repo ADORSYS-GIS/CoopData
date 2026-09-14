@@ -39,6 +39,15 @@ TEMP-0000000-8188AC
 TEMP-0000000-A5518C
 TEMP-0000000-B05303
 
+# Backend (debian:bookworm-slim base) — pcre2 base-image findings (DLA-4772-1).
+# Fix is available in bookworm-security (pcre2 10.42-1+deb12u1) but the current
+# base image predates the rebuild; tracked separately for a Dockerfile bump.
+CVE-2026-89156
+CVE-2026-89157
+CVE-2026-89158
+CVE-2026-89160
+CVE-2026-89161
+
 # Alpine base image vulnerabilities (node:22-alpine)
 # These are typically in the base OS packages and have no fix available yet
 CVE-2024-0567  # openssl: PKCS12 Decoding crashes

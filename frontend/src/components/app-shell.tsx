@@ -310,7 +310,7 @@ function Sidebar({
                   {user?.name ?? t("common.unknown")}
                 </p>
                 <p className="text-xs text-sidebar-foreground/75 truncate">
-                  {t(`roles.${currentRole.id}`)}
+                  {getLabel(currentRole.id, "label", t(`roles.${currentRole.id}`))}
                 </p>
                 {userContextLabel}
               </div>

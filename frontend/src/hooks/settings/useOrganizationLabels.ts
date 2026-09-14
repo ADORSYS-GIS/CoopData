@@ -1,9 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import type { components } from "@/openapi-client/api";
 import { runMutation } from "@/services/shared/syncQueueService";
 
 const LABELS_KEY = "organization-labels";
+
+type OrganizationLabelRow = components["schemas"]["OrganizationLabelResponse"];
 
 function extractErrorMessage(err: unknown): string {
   if (err && typeof err === "object") {
@@ -57,22 +60,51 @@ export const DEFAULT_ORGANIZATION_LABELS = [
   },
 ];
 
-/** List all organization level labels */
+/** List all organization level labels.
+ *
+ * IMPORTANT: This hook must NOT silently swallow API errors and return
+ * `DEFAULT_ORGANIZATION_LABELS`. Doing so causes the offline cache to store
+ * the hardcoded defaults as if they were real data, which means non-ministry
+ * users (federation / apex / cooperative) never see the labels configured by
+ * the ministry — they keep seeing the defaults forever (until the IDB cache
+ * is cleared manually).
+ *
+ * Instead, we let errors propagate to `useOfflineQuery`, which will:
+ *   1. serve the previously cached labels if any, OR
+ *   2. fall back to `fallbackData` (the hardcoded defaults) as a last resort.
+ *
+ * The fallback is only used when there is no cache AND the fetch fails — it
+ * is never written back to the cache, so a transient failure cannot poison
+ * the cache for every subsequent user.
+ */
 export const useOrganizationLabels = () =>
   useOfflineQuery({
     queryKey: [LABELS_KEY],
     cacheTable: "analytics",
     cacheKey: "organization-labels-list",
+    // Terminology changes made by ministry must reach other users quickly.
+    // The payload is tiny and Redis-cached server-side (5 min TTL), so a short
+    // staleness window is cheap and keeps every role's UI in sync.
+    staleTime: 30 * 1000,
+    // The defaults are static UI fallbacks without DB timestamps; consumers
+    // only read the label fields, so the missing created_at/updated_at are
+    // irrelevant here.
+    fallbackData: DEFAULT_ORGANIZATION_LABELS as unknown as OrganizationLabelRow[],
     queryFn: async () => {
-      try {
-        const { data, error } = await apiClient.GET("/api/v1/settings/organization-labels");
-        if (error || !data || data.length === 0) {
-          return DEFAULT_ORGANIZATION_LABELS;
-        }
-        return data;
-      } catch {
-        return DEFAULT_ORGANIZATION_LABELS;
+      const { data, error, response } = await apiClient.GET("/api/v1/settings/organization-labels");
+      if (error || !data) {
+        // Surface a real error so useOfflineQuery can decide between
+        // serving the cache or the fallback. Include status code for debugging.
+        const status = (response as { status?: number } | undefined)?.status ?? "unknown";
+        throw new Error(`Failed to load organization labels (status: ${status})`);
       }
+      if (data.length === 0) {
+        // Empty payload is also a problem — the backend should always seed
+        // the four default rows. Treat as an error so we don't cache an
+        // empty array and break the UI.
+        throw new Error("Organization labels response was empty");
+      }
+      return data;
     },
   });
 

@@ -427,6 +427,11 @@ export function getUserProfile(): UserProfile | null {
   };
 }
 
+/** Synchronously read the cached profile — safe to call before Keycloak init completes. */
+export function getCachedProfileSync(): UserProfile | null {
+  return loadCachedProfileSync();
+}
+
 export function hasRole(role: Role): boolean {
   const profile = getUserProfile();
   return profile?.role === role;
