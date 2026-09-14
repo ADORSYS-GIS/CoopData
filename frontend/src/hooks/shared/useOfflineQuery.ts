@@ -89,7 +89,9 @@ export function useOfflineQuery<T>({
           `[useOfflineQuery] Fetch failed for ${cacheKey}, falling back to IndexedDB:`,
           err,
         );
-        toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
+        if (!navigator.onLine || isOfflineModeActive()) {
+          toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
+        }
         // 3. On fetch failure (offline / network error), serve cached data ignoring TTL
         const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
         if (cached !== null) return cached;

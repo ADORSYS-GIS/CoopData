@@ -82,10 +82,9 @@ export const useOrganizationLabels = () =>
     queryKey: [LABELS_KEY],
     cacheTable: "analytics",
     cacheKey: "organization-labels-list",
-    // Terminology changes made by ministry must reach other users quickly.
-    // The payload is tiny and Redis-cached server-side (5 min TTL), so a short
-    // staleness window is cheap and keeps every role's UI in sync.
-    staleTime: 30 * 1000,
+    // Terminology changes made by ministry must reach other users immediately on login.
+    // Setting staleTime to 0 ensures fresh labels are always fetched on mount when online.
+    staleTime: 0,
     // The defaults are static UI fallbacks without DB timestamps; consumers
     // only read the label fields, so the missing created_at/updated_at are
     // irrelevant here.

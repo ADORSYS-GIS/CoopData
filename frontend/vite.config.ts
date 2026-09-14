@@ -99,7 +99,7 @@ export default defineConfig(({ mode }) => {
           ],
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: "classic",
           navigateFallback: "/index.html",
           suppressWarnings: true,

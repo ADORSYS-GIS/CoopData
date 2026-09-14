@@ -151,7 +151,7 @@
                             <div class="form-actions">
                                 <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
                                 <button tabindex="6" class="btn-primary" name="login" id="kc-login" type="submit">
-                                    Sign in
+                                    ${msg("doLogInButton")}
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
                                     </svg>
@@ -159,7 +159,7 @@
                             </div>
 
                             <p class="form-disclaimer">
-                                By signing in you acknowledge this is the official CoopData platform for the Ministry of Commerce & Cooperative Development.
+                                ${msg("signInDisclaimer")}
                             </p>
                         </form>
                     </#if>
