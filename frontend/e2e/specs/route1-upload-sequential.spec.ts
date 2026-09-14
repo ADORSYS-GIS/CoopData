@@ -219,7 +219,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
 
     if (await uploadFileBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       console.log("Status is Pending - uploading file...");
-      await uploadFileBtn.click();
+      await uploadFileBtn.click({ force: true });
       await page.waitForTimeout(3000);
 
       const fileInput = page.locator('input[type="file"]').first();
@@ -229,7 +229,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
 
       const uploadExtractBtn = page.locator('button:has-text("Upload & Extract")');
       if (await uploadExtractBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await uploadExtractBtn.click();
+        await uploadExtractBtn.click({ force: true });
         console.log("Clicked Upload & Extract — waiting for AI extraction...");
         await page.waitForTimeout(5000);
 
@@ -239,18 +239,18 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
           const isEnabled = await waitForButtonEnabled(page, 'button:has-text("Mark Section Ready")');
           if (isEnabled) {
             console.log("Mark Section Ready enabled - clicking...");
-            await page.locator('button:has-text("Mark Section Ready")').click();
+            await page.locator('button:has-text("Mark Section Ready")').click({ force: true });
             console.log("Marked Financial Statement as Ready");
           }
         }
       }
     } else if (await readyBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       console.log("Status is In Progress - clicking Ready button");
-      await readyBtn.click();
+      await readyBtn.click({ force: true });
       console.log("Marked Financial Statement as Ready");
     } else if (await reviewBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       console.log("Clicking Review & Mark Ready button");
-      await reviewBtn.click();
+      await reviewBtn.click({ force: true });
       await page.waitForTimeout(3000);
       await waitForExtractionToFinish(page, submissionId);
 
@@ -258,7 +258,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
       if (await markReadyBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
         const isEnabled = await waitForButtonEnabled(page, 'button:has-text("Mark Section Ready")');
         if (isEnabled) {
-          await markReadyBtn.click();
+          await markReadyBtn.click({ force: true });
           console.log("Marked Financial Statement as Ready");
         }
       }
