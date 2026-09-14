@@ -207,4 +207,32 @@ See [Apex-Initiated Submissions Design](apex-initiated-submissions.md) for the c
 
 ---
 
+## 13. Strong Password Policy
+
+Enforce strong passwords across all credential-setting paths. Keycloak is the IdP and owns hashing (Argon2id), so the policy is enforced at the realm level; the frontend mirrors it for immediate UX feedback.
+
+### Policy
+
+```
+length(8) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1) and notUsername and hashAlgorithm(argon2)
+```
+
+- Min 8 chars, ≥1 uppercase, ≥1 lowercase, ≥1 digit, ≥1 special char
+- `notUsername`: password must not equal the username (equality only; usernames equal emails here)
+- Argon2id hashing (Keycloak-native, not the Rust `argon2` crate)
+
+### Enforcement layers
+
+1. **Realm** — `keycloak/realm-coopdata.json` + idempotent `keycloak/provision.sh` step (authoritative).
+2. **Frontend (React)** — `src/lib/passwordPolicy.ts` validation + `PasswordRequirements` checklist on the self-service change-password form (`ProfilePage`).
+3. **Keycloak theme** — static criteria notice on `login-update-password.ftl` (invite initial password + reset).
+
+### Acceptance
+
+- `password123` and `12345678` rejected at every path.
+- Registration remains admin-invite only (`registrationAllowed: false`).
+- Password reset and self-service change enforce the policy.
+
+---
+
 **Reference:** Full architecture details in `docs/architecture/RBAC_AND_AUTH_SYSTEM.md`

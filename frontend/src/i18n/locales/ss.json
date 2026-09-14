@@ -312,6 +312,15 @@
         "apexScope": "Umkhawulo wepheksi",
         "ownCoopOnly": "Ikhopharethi yakho kuphela"
       }
+    },
+    "passwordPolicyViolation": "Liphasiwedi lensha alihambisani nemibandzela yekuvikeleka ledingekako.",
+    "passwordRule": {
+      "minLength": "Kumele kube netinhlamvu letingu-8 noma ngetulu",
+      "uppercase": "Kumele kube nencwadzana yekucala lenkhulu",
+      "lowercase": "Kumele kube nencwadzana yekucala lencane",
+      "digit": "Kumele kube nenombolo yinye",
+      "special": "Kumele kube nesibonakaliso lesikhetsekile sinye",
+      "notUsername": "Akumele kufane nelibito lakho lelisebentisi"
     }
   },
   "landing": {
@@ -650,6 +659,11 @@
     "coop": {
       "title": "Indzawo Yekusebenta Yekhopharethi",
       "subtitleSuffix": "Layisha data, landzela imibiko, buka luhlatiyo",
+      "profileTitle": "Iphrofayili",
+      "profileSub": "Ulwazi nekufakwa lwekhopharethi kurejhistara",
+      "profileDetails": "Imininingwane Yekhopharethi",
+      "profileRegion": "Sifundza",
+      "profileInstitutionType": "Uhlobo Lwesikhungo",
       "totalSubmissions": "Imibiko Yonke",
       "allDataReturns": "Yonke imibiko yedata",
       "totalSubmissionsInfo": "Inani lesilinganiselwe lemibiko yedata ledaliwe kuwo wonke emaphesenti esikhatsi.",
@@ -1360,6 +1374,7 @@
     "goBack": "Buyela Emuva",
     "sectionIndicator": "Isigaba {{section}} sa {{total}}: {{title}}",
     "saved": "Kugciniwe",
+    "draftSavedLocally": "Idrafti ligciniwe kule divayisi",
     "saving": "Kuyagcina…",
     "failedSave": "Kwehlulekile kugcina",
     "populateTestData": "🧪 Gcwalisa Data Yekuhlola",
@@ -1425,7 +1440,9 @@
     "placeholderMemberId": "MEM-001",
     "placeholderLoanId": "LN-001",
     "placeholderDepositId": "FD-001",
-    "placeholderSavingsId": "SAV-001"
+    "placeholderSavingsId": "SAV-001",
+    "draftSavedLocally": "Draft saved locally on this device",
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
   },
   "financial": {
     "liquidAssets": "Imphahla Enyakazayo",
@@ -4716,5 +4733,9 @@
     "matrixSubtitle": "Kuhlukaniswa lokunetulu kwatimethrikhi temibuto kanye nenhloso lekhetsiwe",
     "loadErrorTitle": "Kwehluleka Kulayisha Datha Yekuhlukanisa",
     "loadErrorDesc": "Kwenteka liphutsa ngesikhatsi kulayishwa kuhlukanisa kwekusebenta kwemibuto. Sicela utame futsi."
+  },
+  "errors": {
+    "rateLimited": "Imizamo leminyenti. Sicela uphindze emva kwemizuzwana {{seconds}}.",
+    "rateLimitedTitle": "Cala kancane"
   }
 }

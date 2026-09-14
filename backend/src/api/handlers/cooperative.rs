@@ -658,6 +658,7 @@ pub async fn delete_cooperative(
 pub async fn add_cooperative_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<crate::api::middleware::AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<AddMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -701,6 +702,28 @@ pub async fn add_cooperative_member(
         user_id = %user.id,
         "Member added to cooperative"
     );
+
+    // Audit: member added to cooperative
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "ADD_MEMBER",
+            "cooperative_member",
+            Some(&user.id),
+            Some(serde_json::json!({
+                "email": &body.email,
+                "first_name": &body.first_name,
+                "last_name": &body.last_name,
+                "cooperative_id": &id,
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
 
     let status = derive_status_from_user(user.email_verified, &user.required_actions).to_string();
     Ok((

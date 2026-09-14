@@ -12,6 +12,8 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./api";
 import { getAccessToken } from "@/services/shared/authService";
+import i18n from "i18next";
+import { toast } from "sonner";
 
 // Production: empty baseUrl means requests go to the same origin (nginx proxies /api to backend)
 // Development: VITE_API_BASE_URL should be set to http://localhost:3000
@@ -32,6 +34,43 @@ export const apiClient = createClient<paths>({
   },
 });
 
+const RATE_LIMIT_TOAST_ID = "rate-limit-429";
+let rateLimitTimer: number | null = null;
+
+/**
+ * Shows a persistent toast with a live countdown when the backend returns 429.
+ * The countdown is driven by the `Retry-After` header (seconds).
+ * Any previously running countdown is cancelled first so repeated 429s don't
+ * spawn overlapping intervals.
+ */
+function showRateLimitToast(retryAfterSecs: number) {
+  if (rateLimitTimer !== null) {
+    window.clearInterval(rateLimitTimer);
+    rateLimitTimer = null;
+  }
+
+  const total = Math.max(1, Math.floor(retryAfterSecs));
+  let remaining = total;
+
+  const render = () =>
+    toast.warning(i18n.t("errors.rateLimited", { seconds: remaining }), {
+      id: RATE_LIMIT_TOAST_ID,
+      duration: Infinity,
+    });
+
+  render();
+  rateLimitTimer = window.setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      window.clearInterval(rateLimitTimer!);
+      rateLimitTimer = null;
+      toast.dismiss(RATE_LIMIT_TOAST_ID);
+    } else {
+      render();
+    }
+  }, 1000);
+}
+
 apiClient.use({
   async onRequest({ request }) {
     try {
@@ -45,6 +84,11 @@ apiClient.use({
     return request;
   },
   onResponse({ response }) {
+    // Rate limited: surface a friendly countdown instead of a generic error.
+    if (response.status === 429) {
+      const retryAfter = Number(response.headers.get("Retry-After")) || 60;
+      showRateLimitToast(retryAfter);
+    }
     // Only redirect to login on 401 if we're not already on an app page.
     // When the backend is misconfigured (wrong JWT issuer, etc.) it returns 401
     // even for authenticated users — we should NOT kick them out in that case.

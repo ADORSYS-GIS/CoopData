@@ -185,16 +185,19 @@ describe("useOfflineQuery", () => {
     expect(offlineCache.cacheSet).not.toHaveBeenCalled();
   });
 
-  it("respects offline mode flag from auth service", async () => {
+  it("fetches fresh data when offline-mode flag is set but browser is online", async () => {
+    // The auth-service offline flag can flip on while the browser is online
+    // (Keycloak hiccup). In that case we must still try the network instead of
+    // serving stale cache forever.
     vi.mocked(authService.isOfflineModeActive).mockReturnValue(true);
-    const mockData = { id: "1", name: "Offline Mode" };
-    vi.mocked(offlineCache.cacheGet).mockResolvedValue(mockData);
+    vi.mocked(offlineCache.cacheGet).mockResolvedValue({ id: "1", name: "Stale cache" });
+    const queryFn = vi.fn().mockResolvedValue({ id: "1", name: "Fresh" });
 
     const { result } = renderHook(
       () =>
         useOfflineQuery({
           queryKey: ["test"],
-          queryFn: vi.fn().mockResolvedValue({ id: "fresh" }),
+          queryFn,
           cacheTable: "submissions",
           cacheKey: "test:1",
         }),
@@ -202,7 +205,8 @@ describe("useOfflineQuery", () => {
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual(mockData);
+    expect(result.current.data).toEqual({ id: "1", name: "Fresh" });
+    expect(queryFn).toHaveBeenCalled();
   });
 
   it("sets networkMode to offlineFirst", async () => {

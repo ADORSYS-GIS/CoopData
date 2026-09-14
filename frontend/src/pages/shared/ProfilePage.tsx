@@ -10,11 +10,13 @@ import { MfaSetupDialog } from "@/components/shared/MfaSetupDialog";
 import { ReEnableMfaDialog } from "@/components/shared/ReEnableMfaDialog";
 import { DisableMfaDialog } from "@/components/shared/DisableMfaDialog";
 import { ResetMfaDialog } from "@/components/shared/ResetMfaDialog";
+import { PasswordRequirements } from "@/components/shared/PasswordRequirements";
 import { Spinner } from "@/components/ui/spinner";
+import { isPasswordValid } from "@/lib/passwordPolicy";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-function ChangePasswordCard() {
+function ChangePasswordCard({ username }: { username: string }) {
   const { t } = useOrganizationLabelsContext();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -33,8 +35,8 @@ function ChangePasswordCard() {
       toast.error(t("profile.passwordsNoMatch"));
       return;
     }
-    if (next.length < 8) {
-      toast.error(t("profile.passwordTooShort"));
+    if (!isPasswordValid(next, username)) {
+      toast.error(t("profile.passwordPolicyViolation"));
       return;
     }
 
@@ -105,6 +107,7 @@ function ChangePasswordCard() {
             setShowCo(!showCo),
           )}
         </div>
+        <PasswordRequirements password={next} username={username} />
         <div className="flex justify-end">
           <button
             type="button"
@@ -437,7 +440,7 @@ export const ProfilePage: React.FC = () => {
               </div>
             </Card>
 
-            <ChangePasswordCard />
+            <ChangePasswordCard username={user.email} />
           </div>
         </div>
       </div>

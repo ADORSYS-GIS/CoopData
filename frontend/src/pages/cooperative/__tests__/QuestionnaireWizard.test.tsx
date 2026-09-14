@@ -4,35 +4,43 @@ import { toast } from "sonner";
 import { QuestionnaireWizard, type TemplateSection } from "../QuestionnaireWizard";
 
 // ── Shared mock values (must be hoisted above the vi.mock factories) ─────────
-const { TEST_SECTIONS, mutateAsync, navigate } = vi.hoisted(() => {
-  // NOTE: the fields below deliberately do NOT set `required: true` — the wizard
-  // must treat every field as mandatory regardless of the template flag.
-  const sections: TemplateSection[] = [
-    {
-      id: "sec-1",
-      title: "General Info",
-      icon: "Building2",
-      fields: [
-        { key: "coop_name", label: "Cooperative Name", type: "text" },
-        { key: "members", label: "Members", type: "number" },
-      ],
-    },
-    {
-      id: "sec-2",
-      title: "Details",
-      icon: "Users",
-      fields: [
-        { key: "region", label: "Region", type: "select", options: ["Manzini", "Hhohho"] },
-        { key: "notes", label: "Notes", type: "textarea" },
-      ],
-    },
-  ];
-  return {
-    TEST_SECTIONS: sections,
-    mutateAsync: vi.fn().mockResolvedValue({ id: "resp-1" }),
-    navigate: vi.fn(),
-  };
-});
+const { TEST_SECTIONS, mutateAsync, draftMutateAsync, loadDraft, clearDraft, navigate } =
+  vi.hoisted(() => {
+    // NOTE: the fields below deliberately do NOT set `required: true` — the wizard
+    // must treat every field as mandatory regardless of the template flag.
+    const sections: TemplateSection[] = [
+      {
+        id: "sec-1",
+        title: "General Info",
+        icon: "Building2",
+        fields: [
+          { key: "coop_name", label: "Cooperative Name", type: "text" },
+          { key: "members", label: "Members", type: "number" },
+        ],
+      },
+      {
+        id: "sec-2",
+        title: "Details",
+        icon: "Users",
+        fields: [
+          { key: "region", label: "Region", type: "select", options: ["Manzini", "Hhohho"] },
+          { key: "notes", label: "Notes", type: "textarea" },
+        ],
+      },
+    ];
+    return {
+      TEST_SECTIONS: sections,
+      // Server-side save (final "Complete" only)
+      mutateAsync: vi.fn().mockResolvedValue({ id: "resp-1" }),
+      // Local IndexedDB draft save (Save Draft / Save & Next)
+      draftMutateAsync: vi.fn().mockResolvedValue({ saved_at: new Date().toISOString() }),
+      loadDraft: vi
+        .fn<(submissionId: string, type?: string) => Promise<unknown>>()
+        .mockResolvedValue(null),
+      clearDraft: vi.fn().mockResolvedValue(undefined),
+      navigate: vi.fn(),
+    };
+  });
 
 vi.mock("@/hooks/submissions/useQuestionnaire", () => ({
   useQuestionnaire: () => ({ data: null, isLoading: false }),
@@ -41,6 +49,13 @@ vi.mock("@/hooks/submissions/useQuestionnaire", () => ({
     isPending: false,
     isError: false,
   }),
+  useSaveLocalDraft: () => ({
+    mutateAsync: draftMutateAsync,
+    isPending: false,
+    isError: false,
+  }),
+  loadLocalQuestionnaireDraft: loadDraft,
+  clearLocalQuestionnaireDraft: clearDraft,
   useActiveTemplate: () => ({
     data: {
       id: "tpl-1",
@@ -80,6 +95,7 @@ vi.mock("react-i18next", () => {
     "questionnaire.saveNext": "Save & Next",
     "questionnaire.complete": "Complete",
     "questionnaire.saved": "Saved",
+    "questionnaire.draftSavedLocally": "Draft saved to this device",
     "questionnaire.saving": "Saving…",
     "questionnaire.failedSave": "Failed to save",
     "questionnaire.noQuestionnaireFound": "No active questionnaire found",
@@ -108,6 +124,7 @@ const renderWizard = () =>
 describe("QuestionnaireWizard field validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    loadDraft.mockResolvedValue(null);
   });
 
   it("blocks Save & Next, toasts and focuses the first missing field when a field is omitted", () => {
@@ -138,7 +155,7 @@ describe("QuestionnaireWizard field validation", () => {
     expect(nameInput).not.toHaveClass("border-danger/60");
   });
 
-  it("advances to the next section after Save & Next when every field is filled", async () => {
+  it("advances to the next section after Save & Next, saving the draft locally (never the backend)", async () => {
     renderWizard();
 
     fireEvent.change(screen.getByLabelText(/Cooperative Name/), {
@@ -149,17 +166,76 @@ describe("QuestionnaireWizard field validation", () => {
     fireEvent.click(screen.getByRole("button", { name: /Save & Next/i }));
 
     await waitFor(() => {
-      expect(mutateAsync).toHaveBeenCalledWith({
-        questionnaire_type: "financial",
-        answers: { coop_name: "Unity Coop", members: 120 },
+      expect(draftMutateAsync).toHaveBeenCalledWith({
+        coop_name: "Unity Coop",
+        members: 120,
       });
     });
+    // Server must NOT be written by intermediate section saves
+    expect(mutateAsync).not.toHaveBeenCalled();
     // Next section is now rendered
     expect(screen.getByLabelText(/Region/)).toBeInTheDocument();
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it("jumps to the section with the first missing field when completing the questionnaire", async () => {
+  it("Save Draft stores locally without hitting the backend", async () => {
+    renderWizard();
+
+    fireEvent.change(screen.getByLabelText(/Cooperative Name/), {
+      target: { value: "Unity Coop" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Save Draft/i }));
+
+    await waitFor(() => expect(draftMutateAsync).toHaveBeenCalled());
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("restores a locally saved draft on mount (refresh / navigation recovery)", async () => {
+    loadDraft.mockResolvedValue({
+      answers: { coop_name: "Draft Coop" },
+      saved_at: new Date().toISOString(),
+    });
+
+    renderWizard();
+
+    await waitFor(() => {
+      const nameInput = document.getElementById("field-coop_name") as HTMLInputElement;
+      expect(nameInput.value).toBe("Draft Coop");
+    });
+  });
+
+  it("sends the final answers to the backend only when completing the questionnaire", async () => {
+    renderWizard();
+
+    // Fill section 1 fully
+    fireEvent.change(screen.getByLabelText(/Cooperative Name/), {
+      target: { value: "Unity Coop" },
+    });
+    fireEvent.change(screen.getByLabelText(/Members/), { target: { value: "120" } });
+    fireEvent.click(screen.getByRole("button", { name: /Save & Next/i }));
+    await waitFor(() => expect(screen.getByLabelText(/Region/)).toBeInTheDocument());
+
+    // Fill section 2 fully and Complete
+    fireEvent.change(screen.getByLabelText(/Region/), { target: { value: "Manzini" } });
+    fireEvent.change(screen.getByLabelText(/Notes/), { target: { value: "Some notes" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Complete$/i }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({
+        questionnaire_type: "financial",
+        answers: {
+          coop_name: "Unity Coop",
+          members: 120,
+          region: "Manzini",
+          notes: "Some notes",
+        },
+      });
+    });
+    // Local draft is cleared once the server holds the data
+    expect(clearDraft).toHaveBeenCalledWith("sub-1", "financial");
+  });
+
+  it("jumps to the section with the first missing field and does not contact the backend when completing with gaps", async () => {
     renderWizard();
 
     // Fill section 1 fully
@@ -178,6 +254,6 @@ describe("QuestionnaireWizard field validation", () => {
     await waitFor(() => {
       expect(document.getElementById("field-region")).toHaveFocus();
     });
-    expect(mutateAsync).toHaveBeenCalledTimes(1); // only the section save, not a full submit
+    expect(mutateAsync).not.toHaveBeenCalled(); // validation failed — no server write
   });
 });

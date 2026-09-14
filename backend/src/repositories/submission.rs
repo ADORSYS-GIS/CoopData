@@ -29,6 +29,29 @@ impl SubmissionRepository {
         .await
     }
 
+    /// Fetch a submission only if it belongs to one of the provided cooperative IDs.
+    /// Returns `None` if not found OR if the cooperative does not match —
+    /// callers receive an identical response for both cases, preventing enumeration attacks.
+    /// This is the preferred method for cooperative-scoped reads; prefer it over
+    /// `find_by_id` + a manual ownership check wherever possible.
+    pub async fn find_by_id_for_cooperatives(
+        &self,
+        id: Uuid,
+        cooperative_ids: &[Uuid],
+    ) -> AppResult<Option<submission::Model>> {
+        if cooperative_ids.is_empty() {
+            return Ok(None);
+        }
+        db_query("submission", "find_by_id_for_cooperatives", async {
+            Entity::find_by_id(id)
+                .filter(Column::CooperativeId.is_in(cooperative_ids.to_vec()))
+                .one(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
+    }
+
     pub async fn find_by_cooperative(
         &self,
         cooperative_id: Uuid,
@@ -392,5 +415,24 @@ impl SubmissionRepository {
         active.current_tier = Set(tier);
         active.updated_at = Set(chrono::Utc::now());
         active.update(&self.db).await.map_err(Into::into)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The empty-cooperative guard must short-circuit to `None` without touching
+    /// the database. This is the DB-free guarantee that a caller with no
+    /// cooperatives in scope can never resolve a submission — a key tenant
+    /// isolation invariant (prevents `is_in([])` from matching anything).
+    #[tokio::test]
+    async fn find_by_id_for_cooperatives_empty_scope_returns_none() {
+        let repo = SubmissionRepository::new(DatabaseConnection::default());
+        let result = repo
+            .find_by_id_for_cooperatives(Uuid::new_v4(), &[])
+            .await
+            .expect("empty scope must not error");
+        assert!(result.is_none());
     }
 }

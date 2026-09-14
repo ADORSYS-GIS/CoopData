@@ -5,6 +5,7 @@ import { Upload, FileText, CheckCircle2, AlertCircle, X, AlertTriangle } from "l
 import { toast } from "sonner";
 import { useUploadFinancialStatement } from "@/hooks/submissions/useUpload";
 import { useExtractionJob } from "@/hooks/submissions/useExtractionJob";
+import { useNetworkStatus } from "@/hooks/shared/useNetworkStatus";
 import { useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -34,6 +35,7 @@ export const UploadFinancialStatementWidget: React.FC<{
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isOnline } = useNetworkStatus();
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
@@ -205,7 +207,7 @@ export const UploadFinancialStatementWidget: React.FC<{
       )}
 
       {/* Extraction progress */}
-      {jobId && job && !isTerminal && (
+      {jobId && job?.status && !isTerminal && (
         <div className="flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
           <Spinner size="sm" className="text-accent shrink-0" />
           <div>
@@ -239,7 +241,7 @@ export const UploadFinancialStatementWidget: React.FC<{
       {/* File dropzone */}
       {!jobId && (
         <>
-          {!navigator.onLine && (
+          {!isOnline && (
             <div className="flex items-center gap-3 rounded-xl border border-warning/30/20 bg-warning/5 px-4 py-3 text-warning mb-4">
               <AlertCircle className="size-4 shrink-0" />
               <p className="text-sm font-medium">
@@ -253,21 +255,21 @@ export const UploadFinancialStatementWidget: React.FC<{
 
           <div
             onDragOver={(e) => {
-              if (!navigator.onLine) return;
+              if (!isOnline) return;
               e.preventDefault();
               setDragOver(true);
             }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
-              if (!navigator.onLine) return;
+              if (!isOnline) return;
               handleDrop(e);
             }}
             onClick={() => {
-              if (!navigator.onLine) return;
+              if (!isOnline) return;
               inputRef.current?.click();
             }}
             className={`relative rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
-              !navigator.onLine
+              !isOnline
                 ? "border-border/50 bg-muted/10 cursor-not-allowed opacity-50"
                 : dragOver
                   ? "border-primary bg-primary/5 cursor-pointer"
@@ -280,7 +282,7 @@ export const UploadFinancialStatementWidget: React.FC<{
               accept={ACCEPTED_EXT}
               multiple
               className="sr-only"
-              disabled={!navigator.onLine}
+              disabled={!isOnline}
               onChange={(e) => {
                 if (e.target.files && e.target.files.length > 0) {
                   handleFiles(e.target.files);
@@ -318,7 +320,7 @@ export const UploadFinancialStatementWidget: React.FC<{
                           </p>
                         </div>
                         <button
-                          disabled={!navigator.onLine}
+                          disabled={!isOnline}
                           onClick={(e) => {
                             e.stopPropagation();
                             removeFile(key);
@@ -350,9 +352,9 @@ export const UploadFinancialStatementWidget: React.FC<{
           <div className="flex items-center gap-3 mt-4">
             <button
               onClick={handleSubmit}
-              disabled={files.length === 0 || upload.isPending || !navigator.onLine}
+              disabled={files.length === 0 || upload.isPending || !isOnline}
               title={
-                !navigator.onLine
+                !isOnline
                   ? t(
                       "uploadFinancial.uploadDisabledOffline",
                       "File upload is disabled when offline",

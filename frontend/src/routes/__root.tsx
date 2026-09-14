@@ -9,7 +9,7 @@ import { KeycloakAuthProvider } from "../context/AuthContext";
 import { ThemeProvider } from "../lib/theme";
 import { useTranslation } from "react-i18next";
 import { OfflineStatusBanner } from "@/components/shared/OfflineStatusBanner";
-import { getUserProfile } from "@/services/shared/authService";
+import { getCachedProfileSync, getUserProfile } from "@/services/shared/authService";
 
 import { flushSyncQueue } from "@/services/shared/syncQueueService";
 
@@ -156,7 +156,16 @@ function RootComponent() {
             // Bust the cache when app version OR logged-in user changes.
             // This prevents a ministry user from loading federation-role queries
             // from a previous session, which would cause 403 errors on re-fetch.
-            buster: `${import.meta.env.VITE_APP_VERSION ?? "v1"}_${getUserProfile()?.id ?? "anon"}_${getUserProfile()?.role ?? "none"}`,
+            //
+            // NOTE: getCachedProfileSync() (localStorage mirror, written on every
+            // token refresh) is used INSTEAD of getUserProfile(). During app
+            // startup, getUserProfile() returns null until Keycloak init
+            // completes, which would bucket every load into the shared
+            // "anon_none" cache — mixing users' snapshots. The localStorage
+            // mirror is synchronous and already populated on reloads.
+            buster: `${import.meta.env.VITE_APP_VERSION ?? "v1"}_${
+              getCachedProfileSync()?.id ?? getUserProfile()?.id ?? "anon"
+            }_${getCachedProfileSync()?.role ?? getUserProfile()?.role ?? "none"}`,
             // Never persist queries that errored (avoids persisting 403 forbidden results)
             dehydrateOptions: {
               shouldDehydrateQuery: (query) => query.state.status !== "error",

@@ -459,6 +459,7 @@ pub async fn delete_apex(
 pub async fn add_apex_member(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
+    Extension(audit_ctx): Extension<crate::api::middleware::AuditContext>,
     Path(id): Path<String>,
     Json(body): Json<AddMemberRequest>,
 ) -> AppResult<impl IntoResponse> {
@@ -495,6 +496,30 @@ pub async fn add_apex_member(
     let user_id = user.id.clone();
 
     tracing::info!(group_id = %id, email = %body.email, role = %body.role, "Member added to apex");
+
+    // Audit: member added to apex
+    if let Err(e) = state
+        .audit
+        .log(
+            &claims,
+            "ADD_MEMBER",
+            "apex_member",
+            Some(&user_id),
+            Some(serde_json::json!({
+                "email": &body.email,
+                "first_name": &body.first_name,
+                "last_name": &body.last_name,
+                "role": &body.role,
+                "apex_id": &id,
+            })),
+            audit_ctx.ip_address.as_deref(),
+            audit_ctx.user_agent.as_deref(),
+        )
+        .await
+    {
+        tracing::error!("Failed to log audit: {}", e);
+    }
+
     let status = derive_status_from_user(user.email_verified, &user.required_actions).to_string();
     Ok((
         StatusCode::CREATED,

@@ -312,6 +312,15 @@
         "apexScope": "Âmbito do apex",
         "ownCoopOnly": "Apenas a própria cooperativa"
       }
+    },
+    "passwordPolicyViolation": "A nova palavra-passe não cumpre os critérios de segurança exigidos.",
+    "passwordRule": {
+      "minLength": "Pelo menos 8 caracteres",
+      "uppercase": "Pelo menos uma letra maiúscula",
+      "lowercase": "Pelo menos uma letra minúscula",
+      "digit": "Pelo menos um número",
+      "special": "Pelo menos um caráter especial",
+      "notUsername": "Não pode ser igual ao seu nome de utilizador"
     }
   },
   "landing": {
@@ -650,6 +659,11 @@
     "coop": {
       "title": "Espaço de Trabalho da Cooperativa",
       "subtitleSuffix": "Carregar dados, acompanhar submissões, ver análises",
+      "profileTitle": "Perfil",
+      "profileSub": "Identidade e resumo de registo da cooperativa",
+      "profileDetails": "Detalhes da Cooperativa",
+      "profileRegion": "Região",
+      "profileInstitutionType": "Tipo de Instituição",
       "totalSubmissions": "Total de Submissões",
       "allDataReturns": "Todos os retornos de dados",
       "totalSubmissionsInfo": "O número total de submissões de dados criadas em todos os períodos.",
@@ -1360,6 +1374,7 @@
     "goBack": "Voltar",
     "sectionIndicator": "Secção {{section}} de {{total}}: {{title}}",
     "saved": "Guardado",
+    "draftSavedLocally": "Rascunho guardado neste dispositivo",
     "saving": "A guardar…",
     "failedSave": "Falha ao guardar",
     "populateTestData": "🧪 Preencher Dados de Teste",
@@ -1425,7 +1440,9 @@
     "placeholderMemberId": "MEM-001",
     "placeholderLoanId": "LN-001",
     "placeholderDepositId": "FD-001",
-    "placeholderSavingsId": "SAV-001"
+    "placeholderSavingsId": "SAV-001",
+    "draftSavedLocally": "Draft saved locally on this device",
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
   },
   "financial": {
     "liquidAssets": "Ativos Líquidos",
@@ -4716,5 +4733,9 @@
     "matrixSubtitle": "Comparação detalhada de cada métrica do questionário com o alvo selecionado",
     "loadErrorTitle": "Não foi possível carregar os dados de benchmarking",
     "loadErrorDesc": "Ocorreu um erro ao carregar o benchmarking por questionário. Tente novamente."
+  },
+  "errors": {
+    "rateLimited": "Muitas tentativas. Tente novamente em {{seconds}}s.",
+    "rateLimitedTitle": "Devagar"
   }
 }

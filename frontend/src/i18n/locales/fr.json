@@ -312,6 +312,15 @@
         "apexScope": "Portée apex",
         "ownCoopOnly": "Sa propre coopérative uniquement"
       }
+    },
+    "passwordPolicyViolation": "Le nouveau mot de passe ne respecte pas les critères de sécurité requis.",
+    "passwordRule": {
+      "minLength": "Au moins 8 caractères",
+      "uppercase": "Au moins une lettre majuscule",
+      "lowercase": "Au moins une lettre minuscule",
+      "digit": "Au moins un chiffre",
+      "special": "Au moins un caractère spécial",
+      "notUsername": "Ne doit pas être identique à votre nom d'utilisateur"
     }
   },
   "landing": {
@@ -650,6 +659,11 @@
     "coop": {
       "title": "Espace de travail de la coopérative",
       "subtitleSuffix": "Téléverser des données, suivre les soumissions, voir l'analytique",
+      "profileTitle": "Profil",
+      "profileSub": "Identité et résumé d'enregistrement de la coopérative",
+      "profileDetails": "Détails de la coopérative",
+      "profileRegion": "Région",
+      "profileInstitutionType": "Type d'institution",
       "totalSubmissions": "Total des soumissions",
       "allDataReturns": "Tous les retours de données",
       "totalSubmissionsInfo": "Le nombre total de soumissions de données créées sur toutes les périodes.",
@@ -1366,6 +1380,7 @@
     "goBack": "Retour",
     "sectionIndicator": "Section {{section}} sur {{total}} : {{title}}",
     "saved": "Enregistré",
+    "draftSavedLocally": "Brouillon enregistré sur cet appareil",
     "saving": "Enregistrement…",
     "failedSave": "Échec de l'enregistrement",
     "populateTestData": "🧪 Peupler les données de test",
@@ -1431,7 +1446,9 @@
     "placeholderMemberId": "MEM-001",
     "placeholderLoanId": "LN-001",
     "placeholderDepositId": "FD-001",
-    "placeholderSavingsId": "SAV-001"
+    "placeholderSavingsId": "SAV-001",
+    "draftSavedLocally": "Draft saved locally on this device",
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
   },
   "financial": {
     "liquidAssets": "Actifs liquides",
@@ -4722,5 +4739,9 @@
     "matrixSubtitle": "Comparaison détaillée de chaque métrique du questionnaire avec la cible sélectionnée",
     "loadErrorTitle": "Impossible de charger les données de comparaison",
     "loadErrorDesc": "Une erreur est survenue lors du chargement du benchmarking par questionnaire. Veuillez réessayer."
+  },
+  "errors": {
+    "rateLimited": "Trop de tentatives. Réessayez dans {{seconds}}s.",
+    "rateLimitedTitle": "Ralentissez"
   }
 }

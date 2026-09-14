@@ -15,9 +15,13 @@ pub struct AuditContext {
 /// and stores them in request extensions as `AuditContext`.
 ///
 /// IP resolution order:
-/// 1. `X-Forwarded-For` header (first IP in the chain)
+/// 1. `X-Forwarded-For` header (LAST IP in the chain — the trusted proxy
+///    appends the real client IP last via `$proxy_add_x_forwarded_for`)
 /// 2. `X-Real-IP` header
 /// 3. `ConnectInfo<SocketAddr>` extension (direct connection)
+///
+/// The LAST X-Forwarded-For entry is used (not the first) so a client cannot
+/// spoof the rate-limit / audit key by prepending a fake `X-Forwarded-For`.
 pub async fn audit_context_layer(mut req: Request<Body>, next: Next) -> Response {
     let ip_address = extract_ip(&req);
     let user_agent = extract_user_agent(&req);
@@ -33,11 +37,13 @@ pub async fn audit_context_layer(mut req: Request<Body>, next: Next) -> Response
 fn extract_ip(req: &HttpRequest<Body>) -> Option<String> {
     if let Some(xff) = req.headers().get("x-forwarded-for") {
         if let Ok(val) = xff.to_str() {
-            if let Some(first) = val.split(',').next() {
-                let trimmed = first.trim();
-                if !trimmed.is_empty() {
-                    return Some(trimmed.to_string());
-                }
+            let ips: Vec<&str> = val
+                .split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .collect();
+            if let Some(last) = ips.last() {
+                return Some(last.to_string());
             }
         }
     }
@@ -138,4 +144,43 @@ pub async fn idempotency_middleware(
     }
 
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::Request;
+
+    fn req_with_xff(xff: &str) -> HttpRequest<Body> {
+        Request::builder()
+            .uri("/")
+            .header("x-forwarded-for", xff)
+            .body(Body::empty())
+            .unwrap()
+    }
+
+    #[test]
+    fn extract_ip_uses_last_xff_entry() {
+        // nginx appends the real client IP last; a spoofed first entry must be ignored.
+        let req = req_with_xff("1.2.3.4, 203.0.113.7");
+        assert_eq!(extract_ip(&req).as_deref(), Some("203.0.113.7"));
+    }
+
+    #[test]
+    fn extract_ip_handles_single_xff_entry() {
+        let req = req_with_xff("203.0.113.7");
+        assert_eq!(extract_ip(&req).as_deref(), Some("203.0.113.7"));
+    }
+
+    #[test]
+    fn extract_ip_ignores_empty_trailing_entries() {
+        let req = req_with_xff("1.2.3.4, 203.0.113.7, ");
+        assert_eq!(extract_ip(&req).as_deref(), Some("203.0.113.7"));
+    }
+
+    #[test]
+    fn extract_ip_returns_none_without_headers() {
+        let req = Request::builder().uri("/").body(Body::empty()).unwrap();
+        assert_eq!(extract_ip(&req), None);
+    }
 }

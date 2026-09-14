@@ -260,6 +260,15 @@
     "fillAllFields": "Please fill in all password fields.",
     "passwordsNoMatch": "New passwords do not match.",
     "passwordTooShort": "New password must be at least 8 characters.",
+    "passwordPolicyViolation": "New password does not meet the required security criteria.",
+    "passwordRule": {
+      "minLength": "At least 8 characters",
+      "uppercase": "At least one uppercase letter",
+      "lowercase": "At least one lowercase letter",
+      "digit": "At least one number",
+      "special": "At least one special character",
+      "notUsername": "Must not be the same as your username"
+    },
     "passwordUpdated": "Password updated successfully!",
     "unexpectedError": "Unexpected error.",
     "loadingSecurity": "Loading security settings…",
@@ -650,6 +659,11 @@
     "coop": {
       "title": "Cooperative Workspace",
       "subtitleSuffix": "Upload data, track submissions, view analytics",
+      "profileTitle": "Profile",
+      "profileSub": "Cooperative identity and registry summary",
+      "profileDetails": "Cooperative Details",
+      "profileRegion": "Region",
+      "profileInstitutionType": "Institution Type",
       "totalSubmissions": "Total Submissions",
       "allDataReturns": "All data returns",
       "totalSubmissionsInfo": "The total number of data submissions created across all time periods.",
@@ -1366,6 +1380,7 @@
     "goBack": "Go Back",
     "sectionIndicator": "Section {{section}} of {{total}}: {{title}}",
     "saved": "Saved",
+    "draftSavedLocally": "Draft saved to this device",
     "saving": "Saving…",
     "failedSave": "Failed to save",
     "populateTestData": "🧪 Populate Test Data",
@@ -1431,7 +1446,9 @@
     "placeholderMemberId": "MEM-001",
     "placeholderLoanId": "LN-001",
     "placeholderDepositId": "FD-001",
-    "placeholderSavingsId": "SAV-001"
+    "placeholderSavingsId": "SAV-001",
+    "draftSavedLocally": "Draft saved locally on this device",
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
   },
   "financial": {
     "liquidAssets": "Liquid Assets",
@@ -4755,5 +4772,9 @@
     "matrixSubtitle": "Detailed comparison of every questionnaire metric against the selected target",
     "loadErrorTitle": "Couldn't Load Benchmark Data",
     "loadErrorDesc": "Something went wrong while loading the questionnaire benchmark. Please try again."
+  },
+  "errors": {
+    "rateLimited": "Too many attempts. Please try again in {{seconds}}s.",
+    "rateLimitedTitle": "Slow down"
   }
 }

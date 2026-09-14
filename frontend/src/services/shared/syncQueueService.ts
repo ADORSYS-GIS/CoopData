@@ -1,6 +1,10 @@
 import { offlineDb, type SyncQueueItem } from "./offlineDb";
 import { getAccessToken, isOfflineModeActive, getUserProfile } from "./authService";
 
+interface SyncManagerLike {
+  register(tag: string): Promise<void>;
+}
+
 export async function enqueue(
   item: Omit<SyncQueueItem, "id" | "correlationId" | "createdAt" | "retryCount" | "status">,
 ): Promise<string> {
@@ -15,7 +19,7 @@ export async function enqueue(
 
   if ("serviceWorker" in navigator && "SyncManager" in window) {
     navigator.serviceWorker.ready
-      .then((sw) => (sw as any).sync.register("coopdata-sync"))
+      .then((sw) => (sw as unknown as { sync: SyncManagerLike }).sync.register("coopdata-sync"))
       .catch((e) => console.warn("[syncQueue] Could not register background sync:", e));
   }
 
@@ -42,7 +46,7 @@ export async function retryFailed(): Promise<void> {
 
   if ("serviceWorker" in navigator && "SyncManager" in window) {
     navigator.serviceWorker.ready
-      .then((sw) => (sw as any).sync.register("coopdata-sync"))
+      .then((sw) => (sw as unknown as { sync: SyncManagerLike }).sync.register("coopdata-sync"))
       .catch(() => {});
   }
 }
