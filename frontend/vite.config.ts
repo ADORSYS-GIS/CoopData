@@ -12,6 +12,9 @@ if (!(global as Record<string, unknown>).crypto) {
   (global as Record<string, unknown>).crypto = crypto;
 }
 if (!globalThis.crypto) {
+  // SAFETY: Node 18 build environments lack a global `crypto`; `node:crypto` exposes the
+  // `getRandomValues`/`randomUUID` surface that serialize-javascript/terser require. The
+  // assignment only runs when `globalThis.crypto` is absent, so it never shadows a native impl.
   // @ts-expect-error - assign crypto polyfill to globalThis for Node 18 builds
   globalThis.crypto = crypto;
 }

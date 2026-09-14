@@ -28,6 +28,7 @@ import {
   clearManualEntryDraft,
   hasManualEntryDraft,
 } from "./manualEntryDraftService";
+import { offlineDb } from "./offlineDb";
 
 describe("manualEntryDraftService", () => {
   beforeEach(() => {
@@ -72,5 +73,25 @@ describe("manualEntryDraftService", () => {
     await saveManualEntryDraft("sub-1", "financial", { v: 2 });
     expect(await loadManualEntryDraft("sub-1", "financial")).toEqual({ v: 2 });
     expect(mockDraftsStore).toHaveLength(1);
+  });
+
+  it("does not throw when saving fails", async () => {
+    vi.mocked(offlineDb.drafts.put).mockRejectedValueOnce(new Error("quota exceeded"));
+    await expect(saveManualEntryDraft("sub-1", "financial", { a: 1 })).resolves.toBeUndefined();
+  });
+
+  it("returns null when loading fails", async () => {
+    vi.mocked(offlineDb.drafts.get).mockRejectedValueOnce(new Error("database closed"));
+    await expect(loadManualEntryDraft("sub-1", "financial")).resolves.toBeNull();
+  });
+
+  it("does not throw when clearing fails", async () => {
+    vi.mocked(offlineDb.drafts.delete).mockRejectedValueOnce(new Error("database closed"));
+    await expect(clearManualEntryDraft("sub-1", "financial")).resolves.toBeUndefined();
+  });
+
+  it("returns false when the existence check fails", async () => {
+    vi.mocked(offlineDb.drafts.get).mockRejectedValueOnce(new Error("database closed"));
+    await expect(hasManualEntryDraft("sub-1", "financial")).resolves.toBe(false);
   });
 });

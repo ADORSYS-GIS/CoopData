@@ -103,7 +103,7 @@ function hasDraftData(d: ManualEntryDraftState): boolean {
       const months = d.financialData[Number(code)];
       if (!months) continue;
       for (const m of Object.keys(months)) {
-        if (months[Number(m)]) return true;
+        if (months[Number(m)] !== undefined) return true;
       }
     }
   }
@@ -158,7 +158,7 @@ export function ManualEntryWizard() {
   const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
     "YEARLY",
   );
-  const [periodValue, setPeriodValue] = useState<string>("2026");
+  const [periodValue, setPeriodValue] = useState<string>(String(new Date().getFullYear()));
 
   useEffect(() => {
     if (submission?.period_type) {
@@ -187,6 +187,17 @@ export function ManualEntryWizard() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [hasLocalDraft, setHasLocalDraft] = useState(false);
   const draftAppliedRef = useRef(false);
+  // Once the user edits anything, server/cache data must never overwrite their work.
+  const userEditedRef = useRef(false);
+  // Each section's server data is applied at most once, before any user edit.
+  const serverDataAppliedRef = useRef({
+    financial: false,
+    members: false,
+    savings: false,
+    loans: false,
+    deposits: false,
+    farm: false,
+  });
 
   // Restore a previously saved local draft (if any) once on mount.
   useEffect(() => {
@@ -321,7 +332,8 @@ export function ManualEntryWizard() {
 
   // ── Load state logic via useEffects ──
   useEffect(() => {
-    if (draftAppliedRef.current) return;
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.financial)
+      return;
     if (existingLineItems) {
       const grid = createEmptyFinancialGrid();
       for (const item of existingLineItems) {
@@ -330,11 +342,13 @@ export function ManualEntryWizard() {
         }
       }
       setFinancialData(grid);
+      serverDataAppliedRef.current.financial = true;
     }
   }, [existingLineItems]);
 
   useEffect(() => {
-    if (draftAppliedRef.current) return;
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.members)
+      return;
     const list = existingMembers?.data;
     if (list) {
       setMembers(
@@ -356,11 +370,13 @@ export function ManualEntryWizard() {
               : parseFloat(String(m.share_balance || 0)) || 0,
         })),
       );
+      serverDataAppliedRef.current.members = true;
     }
   }, [existingMembers]);
 
   useEffect(() => {
-    if (draftAppliedRef.current) return;
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.savings)
+      return;
     const list = existingSavings?.data;
     if (list) {
       // SavingsAccountResponse.member_id is a UUID (DB FK), but memberBusinessId
@@ -389,11 +405,13 @@ export function ManualEntryWizard() {
           balance: Number(s.balance) || 0,
         })),
       );
+      serverDataAppliedRef.current.savings = true;
     }
   }, [existingSavings, existingMembers]);
 
   useEffect(() => {
-    if (draftAppliedRef.current) return;
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.loans)
+      return;
     const list = existingLoans?.data;
     if (list) {
       const uuidToKey: Record<string, string> = {};
@@ -427,11 +445,13 @@ export function ManualEntryWizard() {
           loanAmount: Number(l.loan_amount) || 0,
         })),
       );
+      serverDataAppliedRef.current.loans = true;
     }
   }, [existingLoans, existingMembers]);
 
   useEffect(() => {
-    if (draftAppliedRef.current) return;
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.deposits)
+      return;
     const list = existingDeposits?.data;
     if (list) {
       const uuidToKey: Record<string, string> = {};
@@ -458,11 +478,13 @@ export function ManualEntryWizard() {
           balance: Number(f.balance) || 0,
         })),
       );
+      serverDataAppliedRef.current.deposits = true;
     }
   }, [existingDeposits, existingMembers]);
 
   useEffect(() => {
-    if (draftAppliedRef.current) return;
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.farm)
+      return;
     const list = existingFarm?.data;
     if (list?.[0]) {
       const f = list[0];
@@ -490,6 +512,7 @@ export function ManualEntryWizard() {
         irrigationAccess: f.irrigation_access,
         climateMitigationPractices: f.climate_mitigation_practices,
       });
+      serverDataAppliedRef.current.farm = true;
     }
   }, [existingFarm]);
 
@@ -563,6 +586,7 @@ export function ManualEntryWizard() {
   );
 
   const handleFinancialCellChange = useCallback((code: number, monthNum: number, value: number) => {
+    userEditedRef.current = true;
     setFinancialData((prev) => ({
       ...prev,
       [code]: {
@@ -574,6 +598,7 @@ export function ManualEntryWizard() {
 
   // ── Members ──
   const addMember = () => {
+    userEditedRef.current = true;
     setMembers((prev) => [
       ...prev,
       {
@@ -593,17 +618,20 @@ export function ManualEntryWizard() {
 
   const updateMember = useCallback(
     (key: string, field: keyof MemberRecord, value: string | boolean | number) => {
+      userEditedRef.current = true;
       setMembers((prev) => prev.map((m) => (m._rowKey === key ? { ...m, [field]: value } : m)));
     },
     [],
   );
 
   const removeMember = useCallback((key: string) => {
+    userEditedRef.current = true;
     setMembers((prev) => prev.filter((m) => m._rowKey !== key));
   }, []);
 
   // ── Savings ──
   const addSavings = () => {
+    userEditedRef.current = true;
     setSavings((prev) => [
       ...prev,
       {
@@ -628,15 +656,18 @@ export function ManualEntryWizard() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateSavings = useCallback((key: string, field: keyof WizardSavings, value: any) => {
+    userEditedRef.current = true;
     setSavings((prev) => prev.map((s) => (s._rowKey === key ? { ...s, [field]: value } : s)));
   }, []);
 
   const removeSavings = useCallback((key: string) => {
+    userEditedRef.current = true;
     setSavings((prev) => prev.filter((s) => s._rowKey !== key));
   }, []);
 
   // ── Loans ──
   const addLoan = () => {
+    userEditedRef.current = true;
     setLoans((prev) => [
       ...prev,
       {
@@ -668,15 +699,18 @@ export function ManualEntryWizard() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateLoan = useCallback((key: string, field: keyof WizardLoan, value: any) => {
+    userEditedRef.current = true;
     setLoans((prev) => prev.map((l) => (l._rowKey === key ? { ...l, [field]: value } : l)));
   }, []);
 
   const removeLoan = useCallback((key: string) => {
+    userEditedRef.current = true;
     setLoans((prev) => prev.filter((l) => l._rowKey !== key));
   }, []);
 
   // ── Fixed Deposits ──
   const addFixedDeposit = () => {
+    userEditedRef.current = true;
     setFixedDeposits((prev) => [
       ...prev,
       {
@@ -691,18 +725,19 @@ export function ManualEntryWizard() {
         originalTenureSelected: "12 Months",
         earlyWithdrawalFlag: false,
         rolloverAtMaturityFlag: false,
-        number_of_renewals: 0,
+        numberOfRenewals: 0,
         changeInTenureAtRenewal: false,
         singleDepositorDependencyFlag: false,
         interestRate: 0.05,
         balance: 0,
-      } as unknown as WizardFixedDeposit,
+      },
     ]);
   };
 
   const updateFixedDeposit = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (key: string, field: keyof WizardFixedDeposit, value: any) => {
+      userEditedRef.current = true;
       setFixedDeposits((prev) =>
         prev.map((f) => (f._rowKey === key ? { ...f, [field]: value } : f)),
       );
@@ -711,12 +746,14 @@ export function ManualEntryWizard() {
   );
 
   const removeFixedDeposit = useCallback((key: string) => {
+    userEditedRef.current = true;
     setFixedDeposits((prev) => prev.filter((f) => f._rowKey !== key));
   }, []);
 
   // ── Farm Coop ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateFarmCoop = useCallback((field: keyof WizardFarmCoop, value: any) => {
+    userEditedRef.current = true;
     setFarmCoop((prev) => ({ ...prev, [field]: value }));
   }, []);
 
