@@ -106,6 +106,7 @@ async function doInitKeycloak(): Promise<boolean> {
     console.log("[auth] Keycloak init complete, authenticated:", authenticated);
 
     if (authenticated) {
+      offlineModeActive = false;
       await persistTokens();
       try {
         await keycloak.updateToken(REFRESH_THRESHOLD_SECONDS);
@@ -113,8 +114,8 @@ async function doInitKeycloak(): Promise<boolean> {
         console.log("[auth] Token refreshed successfully");
       } catch (e) {
         console.warn("[auth] Token refresh failed:", e);
-        if (cachedTokens && isOfflineTokenValid(cachedTokens)) {
-          console.log("[auth] Falling back to offline mode following token refresh error");
+        if (!navigator.onLine && cachedTokens && isOfflineTokenValid(cachedTokens)) {
+          console.log("[auth] Falling back to offline mode following token refresh error while offline");
           offlineModeActive = true;
           return true;
         }
@@ -130,10 +131,10 @@ async function doInitKeycloak(): Promise<boolean> {
       return true;
     } else {
       // Keycloak check-sso returned false (e.g. silent iframe check failed or session ended)
-      // If we have a valid offline token, activate offline recovery so user stays logged in
-      if (cachedTokens && isOfflineTokenValid(cachedTokens)) {
+      // Only activate offline recovery if browser is offline
+      if (!navigator.onLine && cachedTokens && isOfflineTokenValid(cachedTokens)) {
         console.log(
-          "[auth] Keycloak check-sso returned false, but valid offline token exists — activating offline mode",
+          "[auth] Keycloak check-sso returned false while offline, but valid offline token exists — activating offline mode",
         );
         offlineModeActive = true;
         return true;
@@ -155,15 +156,19 @@ async function doInitKeycloak(): Promise<boolean> {
 
     if (alreadyInited) {
       console.log("[auth] Recovering from double-init — authenticated via existing instance");
+      offlineModeActive = false;
       await persistTokens();
       return true;
     }
 
     // ── OFFLINE / CACHED TOKEN RECOVERY ─────────────────────────────────────────
-    // If Keycloak init failed or throws an error (e.g. postMessage iframe error, network timeout),
-    // activate offline mode with cached token if valid.
-    if (cachedTokens && isOfflineTokenValid(cachedTokens)) {
-      console.log("[auth] Keycloak init error — activating offline mode with cached token");
+    // If Keycloak init failed or throws a network error, activate offline mode with cached token if valid.
+    const isNetworkErr =
+      !navigator.onLine ||
+      (error instanceof Error &&
+        (error.message.includes("fetch") || error.message.includes("NetworkError")));
+    if (isNetworkErr && cachedTokens && isOfflineTokenValid(cachedTokens)) {
+      console.log("[auth] Keycloak init network error — activating offline mode with cached token");
       offlineModeActive = true;
       return true;
     }

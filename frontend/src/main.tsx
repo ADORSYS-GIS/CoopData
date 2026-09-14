@@ -8,8 +8,10 @@ import { registerSW } from "virtual:pwa-register";
 import { getRouter } from "./router";
 import "./styles.css";
 
-// Register Service Worker for instant offline app shell caching in dev & prod
-registerSW({ immediate: true });
+// Register Service Worker for instant offline app shell caching in production
+if (import.meta.env.PROD) {
+  registerSW({ immediate: true });
+}
 
 const router = getRouter();
 
