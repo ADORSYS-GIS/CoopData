@@ -77,7 +77,7 @@ export const DEFAULT_ORGANIZATION_LABELS = [
  * is never written back to the cache, so a transient failure cannot poison
  * the cache for every subsequent user.
  */
-export const useOrganizationLabels = () =>
+export const useOrganizationLabels = (enabled = true) =>
   useOfflineQuery({
     queryKey: [LABELS_KEY],
     cacheTable: "analytics",
@@ -85,6 +85,7 @@ export const useOrganizationLabels = () =>
     // Terminology changes made by ministry must reach other users immediately on login.
     // Setting staleTime to 0 ensures fresh labels are always fetched on mount when online.
     staleTime: 0,
+    enabled,
     // The defaults are static UI fallbacks without DB timestamps; consumers
     // only read the label fields, so the missing created_at/updated_at are
     // irrelevant here.

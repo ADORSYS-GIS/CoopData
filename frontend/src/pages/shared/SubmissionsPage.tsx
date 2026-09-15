@@ -711,6 +711,7 @@ import { DeleteConfirmationDialog } from "@/components/shared/DeleteConfirmation
 import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function SubmissionTable({
   submissions,
@@ -811,15 +812,15 @@ function SubmissionTable({
           </thead>
           <tbody className="divide-y divide-border/60">
             {isLoading ? (
-              <tr>
-                <td
-                  colSpan={showCoopColumn ? 8 : 7}
-                  className="py-16 text-center text-muted-foreground"
-                >
-                  <Spinner size="md" className="mx-auto mb-3 text-accent/50" />
-                  <p className="text-xs font-medium">{t("submissions.loading")}</p>
-                </td>
-              </tr>
+              Array.from({ length: 6 }).map((_, i) => (
+                <tr key={i} className="border-b border-border/60">
+                  {Array.from({ length: showCoopColumn ? 8 : 7 }).map((_, c) => (
+                    <td key={c} className="px-5 py-4">
+                      <Skeleton className="h-4 w-full" />
+                    </td>
+                  ))}
+                </tr>
+              ))
             ) : isError ? (
               <tr>
                 <td

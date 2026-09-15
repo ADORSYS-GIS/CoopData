@@ -26,6 +26,8 @@ import type { components } from "@/openapi-client/api";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { KpiScorecard } from "@/components/analytics/KpiScorecard";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PanelSkeleton } from "@/components/ui/skeletons";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
@@ -298,8 +300,19 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
   return (
     <div className="space-y-6">
       {kpisLoading ? (
-        <div className="flex items-center gap-2 text-muted-foreground text-sm p-4">
-          <Spinner size="sm" /> {t("cooperativeAnalytics.loadingKpis")}
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PanelSkeleton />
+            <PanelSkeleton />
+          </div>
         </div>
       ) : null}
 
