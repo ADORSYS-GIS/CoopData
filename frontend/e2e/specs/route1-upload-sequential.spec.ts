@@ -123,7 +123,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
   async function markAllNonFinancialSectionsReady(page: any) {
     console.log("Checking for Non-Financial 'Mark Ready' buttons...");
     let attempts = 0;
-    const maxAttempts = 120;
+    const maxAttempts = 60; // Reduced from 120 to 60 seconds
 
     while (attempts < maxAttempts) {
       const markReadyBtns = page.locator('button:has-text("Mark Ready")');
@@ -135,7 +135,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
         if (await btn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await btn.click({ force: true });
           console.log("Clicked Mark Ready button");
-          await page.waitForTimeout(3000);
+          await page.waitForTimeout(1500); // Reduced from 3000 to 1500
           attempts = 0;
         } else {
           console.log("Button found but not enabled, waiting...");
@@ -152,16 +152,16 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
         attempts++;
         await page.waitForTimeout(1000);
 
-        if (attempts % 15 === 0) {
+        if (attempts % 10 === 0) { // Changed from 15 to 10
           console.log(`Waiting for tables to appear or buttons to become visible (${attempts}s)...`);
-          if (attempts === 30 || attempts === 60) {
+          if (attempts === 20) { // Only reload once at 20s instead of 30 and 60
             console.log("Reloading page to un-freeze React Query...");
             await page.goto(`/app/submissions/${submissionId}`);
             await page.waitForLoadState("domcontentloaded");
-            await page.waitForTimeout(3000);
+            await page.waitForTimeout(2000); // Reduced from 3000
             console.log("Re-switching to Non-Financial tab after reload...");
             await page.locator('button[role="tab"]:has-text("Non-Financial")').click();
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(1500); // Reduced from 2000
           }
         }
       }
@@ -286,7 +286,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
     await page.waitForTimeout(2000);
 
     // Check if data is already uploaded
-    const hasData = await page.locator('button:has-text("Clear Databases"), button:has-text("Effacer")').isVisible({ timeout: 3000 }).catch(() => false);
+    const hasData = await page.locator('button:has-text("Clear Databases"), button:has-text("Effacer"), text=Ready, table').first().isVisible({ timeout: 3000 }).catch(() => false);
 
     if (!hasData) {
       console.log("No Non-Financial data found - uploading full workbook...");
