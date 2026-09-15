@@ -27,6 +27,21 @@ use crate::repositories::submission_section::VALID_STATUSES;
 use crate::services::verification_token::VerificationTokenService;
 use crate::AppState;
 
+/// Maximum attempts to generate a unique submission reference before giving up.
+const MAX_REFERENCE_RETRIES: u32 = 5;
+
+/// Returns true when the error is a unique-constraint violation on the
+/// `submissions_reference_key` column, i.e. the generated reference collided
+/// with an existing one (e.g. under concurrent creation).
+fn is_reference_conflict(err: &AppError) -> bool {
+    if let AppError::DatabaseError(db_err) = err {
+        if let Some(sea_orm::SqlErr::UniqueConstraintViolation(msg)) = db_err.sql_err() {
+            return msg.contains("submissions_reference_key");
+        }
+    }
+    false
+}
+
 /// Resolve a federation's PostgreSQL tracking record by its Keycloak org ID,
 /// auto-backfilling a row if one is missing so Keycloak and PG never diverge.
 pub(crate) async fn resolve_federation_record(
@@ -114,13 +129,6 @@ pub async fn create_submission(
         });
     }
 
-    let seq = state
-        .submission_repo
-        .count_by_reporting_year(body.reporting_year)
-        .await? as u32
-        + 1;
-    let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
-
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
     let submission_method_val = if coop.tier == "basic" {
@@ -134,9 +142,9 @@ pub async fn create_submission(
         .clone()
         .or_else(|| claims.preferred_username.clone());
 
-    let model = ActiveModel {
+    let mut model = ActiveModel {
         id: Set(body.id.unwrap_or_else(Uuid::new_v4)),
-        reference: Set(Some(reference)),
+        reference: Set(None),
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),
         period_type: Set(period_type),
@@ -161,7 +169,29 @@ pub async fn create_submission(
         edited_by_name: Set(creator_name),
     };
 
-    let submission = state.submission_repo.create(model).await?;
+    let submission = {
+        let mut retries = 0u32;
+        loop {
+            let seq = state
+                .submission_repo
+                .next_reference_seq(body.reporting_year)
+                .await?;
+            let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
+            model.reference = Set(Some(reference.clone()));
+            match state.submission_repo.create(model.clone()).await {
+                Ok(s) => break s,
+                Err(e) if is_reference_conflict(&e) && retries < MAX_REFERENCE_RETRIES => {
+                    retries += 1;
+                    tracing::warn!(
+                        reporting_year = body.reporting_year,
+                        attempt = retries,
+                        "Submission reference collision, retrying with next sequence"
+                    );
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    };
 
     let section_models =
         crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
@@ -2455,13 +2485,6 @@ pub async fn create_apex_submission(
         });
     }
 
-    let seq = state
-        .submission_repo
-        .count_by_reporting_year(body.reporting_year)
-        .await? as u32
-        + 1;
-    let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
-
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
     let creator_name = claims
         .name
@@ -2474,9 +2497,9 @@ pub async fn create_apex_submission(
         body.submission_method.clone()
     };
 
-    let model = ActiveModel {
+    let mut model = ActiveModel {
         id: Set(Uuid::new_v4()),
-        reference: Set(Some(reference)),
+        reference: Set(None),
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),
         period_type: Set(period_type),
@@ -2501,7 +2524,29 @@ pub async fn create_apex_submission(
         edited_by_name: Set(creator_name),
     };
 
-    let submission = state.submission_repo.create(model).await?;
+    let submission = {
+        let mut retries = 0u32;
+        loop {
+            let seq = state
+                .submission_repo
+                .next_reference_seq(body.reporting_year)
+                .await?;
+            let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
+            model.reference = Set(Some(reference.clone()));
+            match state.submission_repo.create(model.clone()).await {
+                Ok(s) => break s,
+                Err(e) if is_reference_conflict(&e) && retries < MAX_REFERENCE_RETRIES => {
+                    retries += 1;
+                    tracing::warn!(
+                        reporting_year = body.reporting_year,
+                        attempt = retries,
+                        "Submission reference collision, retrying with next sequence"
+                    );
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    };
 
     let section_models =
         crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
