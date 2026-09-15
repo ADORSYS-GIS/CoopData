@@ -1,9 +1,8 @@
 import type { Page } from "@playwright/test";
 
 /**
- * Synthetic local-demo credentials for E2E testing.
- * These users authenticate via Keycloak with real credentials in the local environment.
- * Do NOT use real accounts here.
+ * Real user credentials for E2E testing.
+ * These users authenticate via Keycloak with real credentials. localhost
  */
 export const TEST_USERS = {
   ministry: {
