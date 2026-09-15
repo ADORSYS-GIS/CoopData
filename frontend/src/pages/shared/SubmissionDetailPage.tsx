@@ -74,6 +74,8 @@ import { getAccessToken } from "@/services/shared/authService";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/skeletons";
 import {
   SubmissionMethodModal,
   type SubmissionMethod,
@@ -538,8 +540,23 @@ export const SubmissionDetailPage: React.FC = () => {
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center py-24 text-muted-foreground">
-          <Spinner size="md" className="mr-2" /> {t("submissions.detail.loading")}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-9 rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-64" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            ))}
+          </div>
+          <TableSkeleton rows={6} columns={4} />
         </div>
       )}
 

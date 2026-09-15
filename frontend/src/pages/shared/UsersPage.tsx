@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { Link } from "@tanstack/react-router";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/skeletons";
 
 // ─── Federation / Ministry view: list apexes → drill into apex members ───────
 
@@ -14,7 +16,7 @@ function ApexList() {
   const { t } = useOrganizationLabelsContext();
   const { data: apexes, isLoading, error } = useApexes();
 
-  if (isLoading) return <CenteredSpinner />;
+  if (isLoading) return <UsersSkeleton />;
   if (error) return <ErrorBlock message={String(error)} label={t("users.failedLoadApexes")} />;
 
   const list = apexes ?? [];
@@ -110,7 +112,7 @@ function CooperativeList() {
   const { data: rawData, isLoading, error } = useCooperatives();
   const coops = (rawData as CoopItem[]) ?? [];
 
-  if (isLoading) return <CenteredSpinner />;
+  if (isLoading) return <UsersSkeleton />;
   if (error) return <ErrorBlock message={String(error)} label={t("users.failedLoadCoops")} />;
 
   return (
@@ -185,10 +187,19 @@ function CooperativeList() {
 
 // ─── Shared primitives ───────────────────────────────────────────────────────
 
-function CenteredSpinner() {
+function UsersSkeleton() {
   return (
-    <div className="flex min-h-[40dvh] items-center justify-center">
-      <Spinner size="md" className="text-muted-foreground" />
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        ))}
+      </div>
+      <TableSkeleton rows={6} columns={4} />
     </div>
   );
 }

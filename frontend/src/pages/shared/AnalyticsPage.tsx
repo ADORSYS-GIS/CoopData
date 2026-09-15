@@ -14,6 +14,8 @@
  */
 import React, { useState, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PanelSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import { useUserRole } from "@/lib/auth";
 import type { DateRange } from "@/components/analytics/date-range-picker";
 import { AnalyticsFilterBar } from "../analytics/AnalyticsFilterBar";
@@ -221,15 +223,15 @@ export const AnalyticsPage: React.FC = () => {
   );
 
   // Fetch cooperatives list scoped to current filters (for cooperative dropdown + tabs)
-  const { data: overview } = useNationalOverview(
+  const { data: overview, isLoading: overviewLoading } = useNationalOverview(
     filterParams,
     role !== "cooperative" && role !== undefined,
   );
 
-  const { data: federations } = useFederations(role === "ministry");
+  const { data: federations, isLoading: federationsLoading } = useFederations(role === "ministry");
   // federation role: use federation endpoint; ministry/superadmin: use ministry endpoint
-  const { data: apexes } = useApexes(role === "federation");
-  const { data: ministryApexes } = useMinistryApexes(
+  const { data: apexes, isLoading: apexesLoading } = useApexes(role === "federation");
+  const { data: ministryApexes, isLoading: ministryApexesLoading } = useMinistryApexes(
     filterValues.federationId !== "all" ? filterValues.federationId : undefined,
     role === "ministry",
   );
@@ -295,6 +297,34 @@ export const AnalyticsPage: React.FC = () => {
   ]);
 
   if (!role) return null;
+
+  const pageLoading =
+    role !== "cooperative" &&
+    (overviewLoading || federationsLoading || apexesLoading || ministryApexesLoading);
+
+  if (pageLoading) {
+    return (
+      <AppShell
+        title={replaceOrgTerms(titleByRole[role])}
+        subtitle={replaceOrgTerms(subtitleByRole[role])}
+      >
+        <div className="space-y-6">
+          <Skeleton className="h-6 w-24" />
+          <div className="flex flex-wrap gap-3">
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PanelSkeleton />
+            <PanelSkeleton />
+          </div>
+          <TableSkeleton rows={5} columns={4} />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
