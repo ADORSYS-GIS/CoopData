@@ -109,6 +109,7 @@ const MEMBERS_HEADERS: &[&str] = &[
     "agm_attendance",
     "leadership_role",
     "voting_exercised",
+    "share_balance",
 ];
 
 const SAVINGS_HEADERS: &[&str] = &[
