@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import { useOrganizationLabels } from "@/hooks/settings/useOrganizationLabels";
+import { useAuth } from "@/context/AuthContext";
 
 export interface OrganizationLabelTranslation {
   label?: string;
@@ -79,7 +80,13 @@ const DEFAULT_LABELS: Record<string, { label: string; short_label: string; plura
   };
 
 export function OrganizationLabelsProvider({ children }: { children: ReactNode }) {
-  const { data: labels, isLoading } = useOrganizationLabels();
+  // Only fetch labels once the auth token is ready. Firing the query before
+  // Keycloak init completes sends an unauthenticated request (401), which
+  // falls back to the default labels and only corrects itself on a later
+  // refresh. Gating on auth readiness makes the configured labels load
+  // immediately after login.
+  const { isAuthenticated } = useAuth();
+  const { data: labels, isLoading } = useOrganizationLabels(isAuthenticated);
   const { t: baseT } = useTranslation();
 
   const getLabel = useMemo(() => {
