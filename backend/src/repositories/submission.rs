@@ -151,6 +151,29 @@ impl SubmissionRepository {
         .await
     }
 
+    /// Returns the next available reference sequence number for a reporting year,
+    /// derived from the highest existing `SUB-{year}-{seq}` reference (not the row
+    /// count). Rows with a NULL reference (e.g. seeded submissions) are ignored, so
+    /// the sequence never collides with them. Returns 1 when no references exist yet.
+    pub async fn next_reference_seq(&self, reporting_year: i32) -> AppResult<u32> {
+        db_query("submission", "next_reference_seq", async {
+            let stmt = Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "SELECT COALESCE(MAX(CAST(SUBSTRING(reference FROM 'SUB-[0-9]+-([0-9]+)') AS INTEGER)), 0) + 1 AS next_seq FROM submissions WHERE reporting_year = $1 AND reference LIKE 'SUB-%'",
+                vec![sea_orm::Value::Int(Some(reporting_year))],
+            );
+            let next_seq: i64 = self
+                .db
+                .query_one(stmt)
+                .await
+                .map_err(crate::error::AppError::from)?
+                .and_then(|r| r.try_get_by_index(0).ok())
+                .unwrap_or(1);
+            Ok(next_seq as u32)
+        })
+        .await
+    }
+
     pub async fn find_by_cooperative_ids(
         &self,
         cooperative_ids: Vec<Uuid>,

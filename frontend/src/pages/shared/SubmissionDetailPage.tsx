@@ -131,7 +131,7 @@ function sectionStatusLabel(status: string, t: TFunction) {
 const isValueFilled = (val: unknown): boolean => {
   if (val === undefined || val === null) return false;
   if (typeof val === "string") return val.trim().length > 0;
-  if (typeof val === "number") return val !== 0;
+  if (typeof val === "number") return !Number.isNaN(val);
   if (typeof val === "boolean") return true;
   if (Array.isArray(val)) return val.length > 0;
   if (typeof val === "object") return Object.keys(val).length > 0;
