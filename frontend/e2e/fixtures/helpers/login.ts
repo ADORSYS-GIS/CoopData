@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 
 /**
  * Real user credentials for E2E testing.
- * These users authenticate via Keycloak with real credentials.
+ * These users authenticate via Keycloak with real credentials. localhost
  */
 export const TEST_USERS = {
   ministry: {
