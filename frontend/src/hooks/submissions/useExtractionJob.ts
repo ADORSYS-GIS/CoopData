@@ -26,7 +26,7 @@ export const useExtractionJob = (jobId: string | null) => {
       if (status && TERMINAL.includes(status)) return false;
       return 2000;
     },
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: import.meta.env.VITE_E2E_MOCK_AUTH === "1",
     // When extraction completes, refresh submission and line items so FS editor appears
     select: (data) => {
       if (data?.status && TERMINAL.includes(data.status)) {

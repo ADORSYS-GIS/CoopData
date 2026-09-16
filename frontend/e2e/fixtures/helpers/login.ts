@@ -1,25 +1,26 @@
 import type { Page } from "@playwright/test";
 
 /**
- * Real user credentials for E2E testing.
- * These users authenticate via Keycloak with real credentials.
+ * Synthetic local-demo credentials for E2E testing.
+ * These users authenticate via Keycloak with real credentials in the local environment.
+ * Do NOT use real accounts here.
  */
 export const TEST_USERS = {
   ministry: {
-    email: "admin@ministry.gov",
-    password: "password",
+    email: process.env.E2E_MINISTRY_EMAIL || "admin@ministry.gov",
+    password: process.env.E2E_MINISTRY_PASSWORD || "password",
   },
   federation: {
-    email: "yejami7300@ebflyai.com",
-    password: "password",
+    email: process.env.E2E_FEDERATION_EMAIL || "yejami7300@ebflyai.com",
+    password: process.env.E2E_FEDERATION_PASSWORD || "password",
   },
   apex: {
-    email: "apex@gmail.com",
-    password: "password",
+    email: process.env.E2E_APEX_EMAIL || "apex@gmail.com",
+    password: process.env.E2E_APEX_PASSWORD || "password",
   },
   cooperative: {
-    email: "coopadmin@gmail.com",
-    password: "password",
+    email: process.env.E2E_COOP_EMAIL || "coopadmin@gmail.com",
+    password: process.env.E2E_COOP_PASSWORD || "password",
   },
 } as const;
 

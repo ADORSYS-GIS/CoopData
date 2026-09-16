@@ -109,3 +109,9 @@ frontend/playwright-report/*
 frontend/test-results/*
 frontend/playwright-report/
 frontend/e2e/fixtures/test-data/*
+
+# Test coverage reports
+coverage/
+frontend/coverage/
+*.tsx.html
+*.ts.html

@@ -89,15 +89,7 @@ export async function approveAsApex(
       await page.waitForTimeout(3000);
       console.log("[E2E] Apex: Clicked submission row");
     } else {
-      // Fallback: click the first row in the table
-      console.log("[E2E] Apex: Submission row not found by ID, clicking first row...");
-      const firstRow = page.locator('tbody tr').first();
-      if (await firstRow.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await firstRow.click({ force: true });
-        await page.waitForTimeout(3000);
-      } else {
-        throw new Error("No submission rows found in table");
-      }
+      throw new Error(`Submission row not found in table for ID: ${submissionId}`);
     }
   }
 
@@ -202,14 +194,7 @@ export async function approveAsFederation(page: Page, submissionId: string) {
       await page.waitForTimeout(3000);
       console.log("[E2E] Federation: Clicked submission row");
     } else {
-      console.log("[E2E] Federation: Submission row not found by ID, clicking first row...");
-      const firstRow = page.locator('tbody tr').first();
-      if (await firstRow.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await firstRow.click({ force: true });
-        await page.waitForTimeout(3000);
-      } else {
-        throw new Error("No submission rows found in table");
-      }
+      throw new Error(`Submission row not found in table for ID: ${submissionId}`);
     }
   }
 
@@ -307,14 +292,7 @@ export async function approveAsMinistry(page: Page, submissionId: string) {
       await page.waitForTimeout(3000);
       console.log("[E2E] Ministry: Clicked submission row");
     } else {
-      console.log("[E2E] Ministry: Submission row not found by ID, clicking first row...");
-      const firstRow = page.locator('tbody tr').first();
-      if (await firstRow.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await firstRow.click({ force: true });
-        await page.waitForTimeout(3000);
-      } else {
-        throw new Error("No submission rows found in table");
-      }
+      throw new Error(`Submission row not found in table for ID: ${submissionId}`);
     }
   }
 
