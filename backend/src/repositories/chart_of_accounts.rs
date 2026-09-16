@@ -1,4 +1,5 @@
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
+use crate::database::Database;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
 use crate::entities::chart_of_account::{Column, Entity, Model};
 use crate::entities::chart_of_accounts_coop_type as coa_ct;
@@ -7,12 +8,12 @@ use crate::error::AppResult;
 
 #[derive(Clone)]
 pub struct ChartOfAccountsRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl ChartOfAccountsRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_all(&self) -> AppResult<Vec<Model>> {

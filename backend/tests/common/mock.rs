@@ -14,7 +14,7 @@ use coop_data_backend::{
     SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
     UploadedFileRepository, UserRepository,
 };
-use sea_orm::DatabaseConnection;
+use sea_orm::DatabaseConnection as SeaConnection;
 
 /// A test application with a disconnected database, an offline Redis client
 /// (never contacted in DB-free tests), a no-op Keycloak client, and a permissive
@@ -25,8 +25,28 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let config = test_config();
-        let db = DatabaseConnection::default();
+        Self::with_db(SeaConnection::default()).await
+    }
+
+    /// Build a TestApp around a caller-supplied database connection (e.g. a
+    /// SeaORM `MockDatabase` connection) without touching real infrastructure.
+    pub async fn with_db(db: SeaConnection) -> Self {
+        Self::build_with(coop_data_backend::Database::new(db), None).await
+    }
+
+    /// Like [`TestApp::with_db`] but points the Keycloak client at a test server.
+    pub async fn with_db_and_keycloak_url(db: SeaConnection, keycloak_url: String) -> Self {
+        Self::build_with(coop_data_backend::Database::new(db), Some(keycloak_url)).await
+    }
+
+    pub(crate) async fn build_with(
+        db: coop_data_backend::Database,
+        keycloak_url: Option<String>,
+    ) -> Self {
+        let mut config = test_config();
+        if let Some(keycloak_url) = keycloak_url {
+            config.keycloak_url = keycloak_url;
+        }
         let cache = CacheService::new("memory://")
             .await
             .expect("Failed to create cache service");
@@ -126,6 +146,14 @@ impl TestApp {
 
 /// Build an `AppConfig` populated with dummy-but-valid values for tests.
 /// No environment variables are required.
+/// Build an `AppConfig` with an overridden Keycloak URL (for the in-process
+/// mock Keycloak server used by scope tests).
+pub fn test_config_with_keycloak(keycloak_url: String) -> AppConfig {
+    let mut config = test_config();
+    config.keycloak_url = keycloak_url;
+    config
+}
+
 pub fn test_config() -> AppConfig {
     AppConfig {
         host: "0.0.0.0".to_string(),

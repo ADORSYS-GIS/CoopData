@@ -2,6 +2,7 @@ use metrics::counter;
 use uuid::Uuid;
 
 use crate::auth::claims::Claims;
+use crate::database::Database;
 use crate::entities::enums::{ReviewAction, ReviewTier, SubmissionCreatedByRole, SubmissionStatus};
 use crate::entities::submission_review::ActiveModel as ReviewModel;
 use crate::error::{AppError, AppResult};
@@ -20,7 +21,7 @@ pub struct SubmissionWorkflow {
     pub fs_repo: FinancialStatementRepository,
     pub line_item_repo: BalanceSheetLineItemRepository,
     pub kpi_record_repo: KpiRecordRepository,
-    pub db: sea_orm::DatabaseConnection,
+    pub db: Database,
 }
 
 impl SubmissionWorkflow {
@@ -33,7 +34,7 @@ impl SubmissionWorkflow {
         fs_repo: FinancialStatementRepository,
         line_item_repo: BalanceSheetLineItemRepository,
         kpi_record_repo: KpiRecordRepository,
-        db: sea_orm::DatabaseConnection,
+        db: impl Into<Database>,
     ) -> Self {
         Self {
             submission_repo,
@@ -43,7 +44,7 @@ impl SubmissionWorkflow {
             fs_repo,
             line_item_repo,
             kpi_record_repo,
-            db,
+            db: db.into(),
         }
     }
 

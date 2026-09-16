@@ -12,7 +12,18 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
-      exclude: ["node_modules/", "src/test/", "**/*.d.ts", "**/*.config.*", "src/routeTree.gen.ts"],
+      include: ["src/**"],
+      exclude: [
+        "node_modules/",
+        "src/test/",
+        "src/routeTree.gen.ts",
+        "src/main.tsx",
+        "src/router.tsx",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "src/components/ui/**",
+        "src/i18n/**",
+      ],
     },
   },
 });

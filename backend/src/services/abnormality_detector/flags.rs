@@ -924,3 +924,228 @@ pub fn run_special_flags(v: &ValuesMap) -> Vec<FlagOutput> {
 
     f
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn values(pairs: &[(i32, i64)]) -> ValuesMap {
+        pairs.iter().map(|(c, v)| (*c, Decimal::from(*v))).collect()
+    }
+
+    fn rule_ids(flags: &[FlagOutput]) -> Vec<String> {
+        flags.iter().map(|f| f.rule_id.clone()).collect()
+    }
+
+    // ===================== check_missing_required =====================
+
+    #[test]
+    fn missing_required_flags_each_absent_code_as_high() {
+        let flags = check_missing_required(&[1101, 2101], &values(&[(1101, 100)]));
+        assert_eq!(rule_ids(&flags), vec!["REQ-2101".to_string()]);
+        assert_eq!(flags[0].severity, "high");
+        assert_eq!(flags[0].field_ref, Some("2101".to_string()));
+    }
+
+    #[test]
+    fn missing_required_no_flags_when_all_present() {
+        let flags = check_missing_required(&[1101, 2101], &values(&[(1101, 1), (2101, 2)]));
+        assert!(flags.is_empty());
+    }
+
+    #[test]
+    fn missing_required_empty_requirements_yields_no_flags() {
+        assert!(check_missing_required(&[], &ValuesMap::new()).is_empty());
+    }
+
+    // ===================== run_critical_flags =====================
+
+    #[test]
+    fn crit_001_fires_when_accounting_equation_does_not_balance() {
+        let v = values(&[(1999, 10_000), (2999, 4_000), (3999, 4_000)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(ids.contains(&"CRIT-001".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_001_silent_when_books_balance() {
+        let v = values(&[(1999, 10_000), (2999, 6_000), (3999, 4_000)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(!ids.contains(&"CRIT-001".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_001_silent_within_tolerance() {
+        let v = values(&[(1999, 10_400), (2999, 6_000), (3999, 4_000)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(!ids.contains(&"CRIT-001".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_002_fires_when_assets_total_mismatches_subcategories() {
+        let v = values(&[(1999, 10_000), (1101, 1_000), (1201, 1_000), (1301, 1_000)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(ids.contains(&"CRIT-002".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_003_fires_when_liabilities_total_mismatches_subcategories() {
+        let v = values(&[(2999, 9_000), (2101, 1_000), (2201, 1_000), (2301, 1_000)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(ids.contains(&"CRIT-003".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_005_fires_on_negative_total_assets() {
+        let v = values(&[(1999, -1)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(ids.contains(&"CRIT-005".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_007_fires_on_zero_total_assets() {
+        let v = values(&[(1999, 0)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(ids.contains(&"CRIT-007".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_008_fires_when_total_assets_missing() {
+        let ids = rule_ids(&run_critical_flags(&values(&[])));
+        assert!(ids.contains(&"CRIT-008".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_009_fires_when_total_liabilities_missing() {
+        let ids = rule_ids(&run_critical_flags(&values(&[])));
+        assert!(ids.contains(&"CRIT-009".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_006_fires_on_negative_explicit_equity() {
+        let v = values(&[(1999, 1_000), (2999, 2_000), (3999, -500)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(ids.contains(&"CRIT-006".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn crit_010_fires_when_equity_missing_but_computable() {
+        let v = values(&[(1999, 1_000), (2999, 600), (3101, 400)]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(ids.contains(&"CRIT-010".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn clean_balanced_sheet_produces_no_critical_flags() {
+        let v = values(&[
+            (1999, 10_000),
+            (2999, 6_000),
+            (3999, 4_000),
+            (1101, 4_000),
+            (1201, 6_000),
+            (2101, 6_000),
+            (3101, 4_000),
+        ]);
+        let ids = rule_ids(&run_critical_flags(&v));
+        assert!(ids.is_empty(), "got {ids:?}");
+    }
+
+    // ===================== run_high_flags =====================
+
+    #[test]
+    fn high_001_fires_when_npl_above_10_pct() {
+        let v = values(&[(1201, 500), (1205, 200)]);
+        let ids = rule_ids(&run_high_flags(&v));
+        assert!(ids.contains(&"HIGH-001".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn high_001_silent_at_exactly_10_pct() {
+        let v = values(&[(1201, 900), (1205, 100)]);
+        let ids = rule_ids(&run_high_flags(&v));
+        assert!(!ids.contains(&"HIGH-001".to_string()), "got {ids:?}");
+    }
+
+    // ===================== run_medium_flags =====================
+
+    #[test]
+    fn med_001_fires_when_npl_between_5_and_10_pct() {
+        let v = values(&[(1201, 900), (1205, 100)]);
+        let ids = rule_ids(&run_medium_flags(&v));
+        assert!(ids.contains(&"MED-001".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn med_001_silent_below_5_pct() {
+        let v = values(&[(1201, 960), (1205, 40)]);
+        let ids = rule_ids(&run_medium_flags(&v));
+        assert!(!ids.contains(&"MED-001".to_string()), "got {ids:?}");
+    }
+
+    // ===================== run_low_flags =====================
+
+    #[test]
+    fn low_001_flags_each_missing_optional_code() {
+        let flags = run_low_flags(&values(&[]));
+        let ids = rule_ids(&flags);
+        assert_eq!(ids.iter().filter(|id| *id == "LOW-001").count(), 11);
+    }
+
+    #[test]
+    fn low_001_silent_when_all_optional_codes_present() {
+        let optional: Vec<(i32, i64)> = [
+            1103, 1104, 1202, 1203, 1204, 1305, 2202, 2303, 3102, 3202, 3203,
+        ]
+        .iter()
+        .map(|&c| (c, 1))
+        .collect();
+        let flags = run_low_flags(&values(&optional));
+        assert!(!rule_ids(&flags).contains(&"LOW-001".to_string()));
+    }
+
+    #[test]
+    fn low_005_fires_only_on_completely_empty_statement() {
+        let empty = run_low_flags(&values(&[]));
+        assert!(rule_ids(&empty).contains(&"LOW-005".to_string()));
+
+        let non_empty = run_low_flags(&values(&[(1101, 1)]));
+        assert!(!rule_ids(&non_empty).contains(&"LOW-005".to_string()));
+    }
+
+    // ===================== run_special_flags =====================
+
+    #[test]
+    fn spec_002_fires_on_profit_reversal() {
+        let v = values(&[(3301, 1_000), (3302, -100)]);
+        let ids = rule_ids(&run_special_flags(&v));
+        assert!(ids.contains(&"SPEC-002".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn spec_003_fires_on_recovery() {
+        let v = values(&[(3301, -1_000), (3302, 100)]);
+        let ids = rule_ids(&run_special_flags(&v));
+        assert!(ids.contains(&"SPEC-003".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn spec_008_fires_on_accumulated_deficit() {
+        let v = values(&[(3301, -1_000)]);
+        let ids = rule_ids(&run_special_flags(&v));
+        assert!(ids.contains(&"SPEC-008".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn spec_006_fires_when_interest_income_share_low() {
+        let v = values(&[(4101, 100), (4102, 900)]);
+        let ids = rule_ids(&run_special_flags(&v));
+        assert!(ids.contains(&"SPEC-006".to_string()), "got {ids:?}");
+    }
+
+    #[test]
+    fn special_flags_silent_on_neutral_input() {
+        let v = values(&[(3301, 500), (3302, 100), (4101, 900), (4102, 100)]);
+        let ids = rule_ids(&run_special_flags(&v));
+        assert!(ids.is_empty(), "got {ids:?}");
+    }
+}

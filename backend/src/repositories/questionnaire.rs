@@ -1,20 +1,19 @@
+use crate::database::Database;
 use crate::entities::enums::SubmissionStatus;
 use crate::entities::submission;
 use crate::entities::{questionnaire_response, QuestionnaireResponseColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, RelationTrait,
-};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect, RelationTrait};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct QuestionnaireRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl QuestionnaireRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_submission(
