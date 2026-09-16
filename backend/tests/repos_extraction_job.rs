@@ -1,6 +1,8 @@
 mod common;
 
-use common::mock_db::{mock_recording_postgres, mock_recording_postgres_failing, RecordingMock, where_clause};
+use common::mock_db::{
+    mock_recording_postgres, mock_recording_postgres_failing, where_clause, RecordingMock,
+};
 use coop_data_backend::error::AppError;
 use uuid::Uuid;
 

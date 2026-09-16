@@ -24,9 +24,7 @@ async fn get_financial_statement_no_auth_returns_401() {
         .oneshot(
             Request::builder()
                 .method(Method::GET)
-                .uri(format!(
-                    "/api/v1/cooperative/financial-statements/{id}"
-                ))
+                .uri(format!("/api/v1/cooperative/financial-statements/{id}"))
                 .body(Body::empty())
                 .unwrap(),
         )

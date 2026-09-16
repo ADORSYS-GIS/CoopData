@@ -1,6 +1,6 @@
 mod common;
 
-use common::mock_db::{mock_recording_postgres, RecordingMock, where_clause};
+use common::mock_db::{mock_recording_postgres, where_clause, RecordingMock};
 use coop_data_backend::error::AppError;
 use uuid::Uuid;
 
@@ -125,11 +125,10 @@ async fn section_new_section_models_questionnaire_creates_single_section() {
     use sea_orm::ActiveValue;
 
     let sub_id = Uuid::new_v4();
-    let models =
-        coop_data_backend::repositories::SubmissionSectionRepository::new_section_models(
-            sub_id,
-            "questionnaire",
-        );
+    let models = coop_data_backend::repositories::SubmissionSectionRepository::new_section_models(
+        sub_id,
+        "questionnaire",
+    );
 
     assert_eq!(models.len(), 1, "questionnaire method = one section only");
     if let ActiveValue::Set(ref name) = models[0].section {
@@ -144,10 +143,9 @@ async fn section_new_section_models_upload_creates_six_sections() {
     use sea_orm::ActiveValue;
 
     let sub_id = Uuid::new_v4();
-    let models =
-        coop_data_backend::repositories::SubmissionSectionRepository::new_section_models(
-            sub_id, "upload",
-        );
+    let models = coop_data_backend::repositories::SubmissionSectionRepository::new_section_models(
+        sub_id, "upload",
+    );
 
     assert_eq!(models.len(), 6, "upload method = 6 sections");
     let names: Vec<String> = models
@@ -170,10 +168,9 @@ async fn section_new_section_models_all_start_as_pending() {
     use sea_orm::ActiveValue;
 
     let sub_id = Uuid::new_v4();
-    let models =
-        coop_data_backend::repositories::SubmissionSectionRepository::new_section_models(
-            sub_id, "upload",
-        );
+    let models = coop_data_backend::repositories::SubmissionSectionRepository::new_section_models(
+        sub_id, "upload",
+    );
 
     for model in &models {
         if let ActiveValue::Set(ref status) = model.status {

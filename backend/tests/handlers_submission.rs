@@ -9,7 +9,9 @@ use coop_data_backend::api::dto::submission::{
     CreateSubmissionRequest, SubmissionPeriodRequest, SubmissionResponse, SubmissionSectionResponse,
 };
 use coop_data_backend::api::routes::api::create_app;
-use coop_data_backend::entities::enums::{PeriodType, ReviewTier, SubmissionCreatedByRole, SubmissionStatus};
+use coop_data_backend::entities::enums::{
+    PeriodType, ReviewTier, SubmissionCreatedByRole, SubmissionStatus,
+};
 use tower::util::ServiceExt;
 use uuid::Uuid;
 
@@ -101,7 +103,9 @@ async fn update_section_status_no_auth_returns_401() {
         .oneshot(
             Request::builder()
                 .method(Method::PATCH)
-                .uri(format!("/api/v1/cooperative/submissions/{id}/sections/financial"))
+                .uri(format!(
+                    "/api/v1/cooperative/submissions/{id}/sections/financial"
+                ))
                 .header("Content-Type", "application/json")
                 .body(Body::from(r#"{"status":"ready"}"#))
                 .unwrap(),
@@ -190,7 +194,12 @@ async fn submission_response_from_model_maps_all_required_fields() {
     let id = Uuid::new_v4();
     let coop_id = Uuid::new_v4();
 
-    let model = common::mock_db::submission_row(id, coop_id, SubmissionStatus::Draft, ReviewTier::Cooperative);
+    let model = common::mock_db::submission_row(
+        id,
+        coop_id,
+        SubmissionStatus::Draft,
+        ReviewTier::Cooperative,
+    );
 
     let resp = SubmissionResponse::from(model);
 
@@ -209,7 +218,12 @@ async fn submission_response_from_model_maps_all_required_fields() {
 async fn submission_response_with_fs_sets_financial_ids() {
     let id = Uuid::new_v4();
     let coop_id = Uuid::new_v4();
-    let model = common::mock_db::submission_row(id, coop_id, SubmissionStatus::Draft, ReviewTier::Cooperative);
+    let model = common::mock_db::submission_row(
+        id,
+        coop_id,
+        SubmissionStatus::Draft,
+        ReviewTier::Cooperative,
+    );
 
     let fs_id = Uuid::new_v4();
     let job_id = Uuid::new_v4();
@@ -227,7 +241,12 @@ async fn submission_response_with_fs_sets_financial_ids() {
 async fn submission_response_with_sections_adds_sections() {
     let id = Uuid::new_v4();
     let coop_id = Uuid::new_v4();
-    let model = common::mock_db::submission_row(id, coop_id, SubmissionStatus::Draft, ReviewTier::Cooperative);
+    let model = common::mock_db::submission_row(
+        id,
+        coop_id,
+        SubmissionStatus::Draft,
+        ReviewTier::Cooperative,
+    );
 
     let section = coop_data_backend::entities::submission_section::Model {
         id: Uuid::new_v4(),

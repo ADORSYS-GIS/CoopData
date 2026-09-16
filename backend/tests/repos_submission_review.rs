@@ -1,6 +1,6 @@
 mod common;
 
-use common::mock_db::{RecordingMock, where_clause};
+use common::mock_db::{where_clause, RecordingMock};
 use coop_data_backend::entities::enums::{ReviewAction, ReviewTier};
 use uuid::Uuid;
 
@@ -25,7 +25,12 @@ fn review_row(
 #[tokio::test]
 async fn review_find_by_submission_scopes_to_submission_id() {
     let sub_id = Uuid::new_v4();
-    let row = review_row(Uuid::new_v4(), sub_id, ReviewTier::Apex, ReviewAction::Approve);
+    let row = review_row(
+        Uuid::new_v4(),
+        sub_id,
+        ReviewTier::Apex,
+        ReviewAction::Approve,
+    );
 
     let rm = RecordingMock::postgres().query_rows(vec![row]).build();
     let app = rm.app().await;
