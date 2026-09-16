@@ -45,7 +45,11 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
   /**
    * Waits for AI extraction to finish by polling the backend API directly.
    */
-  async function waitForExtractionToFinish(page: Page, submissionId: string, totalTimeout = 300000) {
+  async function waitForExtractionToFinish(
+    page: Page,
+    submissionId: string,
+    totalTimeout = 300000,
+  ) {
     const start = Date.now();
     console.log("Waiting for AI extraction to finish (polling backend directly)...");
 
