@@ -17,9 +17,15 @@ import {
  * 5. Apex approves
  * 6. Federation approves
  * 7. Ministry gives final approval
+ *
+ * NOTE: These tests require a real backend + Keycloak instance.
+ * They are skipped in CI (where only mock-based smoke tests run).
+ * Run locally with: npm run test:e2e:route3
  */
 
 test.describe.serial("Route 3: Questionnaire Method - Sequential Flow", () => {
+  test.skip(!!process.env.CI, "Sequential tests require real backend + Keycloak - skipped in CI");
+
   let submissionId: string;
 
   // ═══════════════════════════════════════════════════════════════

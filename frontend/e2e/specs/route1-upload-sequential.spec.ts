@@ -20,9 +20,15 @@ import {
  *
  * Uses describe.serial() to ensure tests run in order and stop if one fails.
  * This makes debugging easier - when a test fails, we know exactly which step failed.
+ *
+ * NOTE: These tests require a real backend + Keycloak instance.
+ * They are skipped in CI (where only mock-based smoke tests run).
+ * Run locally with: npm run test:e2e:route1
  */
 
 test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
+  test.skip(!!process.env.CI, "Sequential tests require real backend + Keycloak - skipped in CI");
+
   let submissionId: string;
 
   /**
