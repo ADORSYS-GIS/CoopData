@@ -92,9 +92,30 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-backend-
 
-      - name: Run tests
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin --locked
+
+      - name: Run tests with coverage
         working-directory: ./backend
-        run: cargo test --workspace --all-targets --all-features
+        run: >
+          cargo tarpaulin
+          --workspace
+          --all-features
+          --out Xml
+          --output-dir ./coverage
+          --skip-clean
+          --timeout 120
+          --exclude-files "src/main.rs"
+          --fail-under 70
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage/cobertura.xml
+          retention-days: 30
+
 
   backend_docs:
     name: Backend Docs

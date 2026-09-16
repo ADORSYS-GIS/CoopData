@@ -23,7 +23,19 @@ export default defineConfig({
         "**/*.config.*",
         "src/components/ui/**",
         "src/i18n/**",
+        "src/openapi-client/**",
       ],
+      // Thresholds set just below the measured baseline (lines: 11.15%, functions: 69.55%,
+      // branches: 47.78%). Raise these incrementally as coverage grows toward 80%.
+      // perFile: false ensures thresholds apply to the global aggregate only,
+      // so untested files don't block the build.
+      thresholds: {
+        lines: 10,
+        functions: 40,
+        branches: 45,
+        statements: 10,
+        perFile: false,
+      },
     },
   },
 });

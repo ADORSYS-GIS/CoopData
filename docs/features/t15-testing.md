@@ -1,7 +1,7 @@
 # T15: Unit, Integration & E2E Tests
 
-> **Status:** 🔄 In Progress  
-> **Ticket:** T15  
+> **Status:** 🔄 In Progress (Phase 1 & E2E Route 1 Complete)
+> **Ticket:** T15
 > **Goal:** Comprehensive test coverage across backend, frontend, and E2E
 
 ---
@@ -477,152 +477,111 @@ describe('SubmissionsPage', () => {
 
 | Spec File | Tests | Status | Notes |
 |-----------|-------|--------|-------|
-| `login.spec.ts` | 5 | ✅ Written | Need browser install |
-| `ministry.spec.ts` | 16 | ✅ Written | Need browser install |
-| `federation.spec.ts` | 18 | ✅ Written | Need browser install |
-| `apex.spec.ts` | 16 | ✅ Written | Need browser install |
-| `cooperative.spec.ts` | 21 | ✅ Written | Need browser install |
-| `role-redirect.spec.ts` | 7 | ✅ Written | Need browser install |
-| `unauthorized.spec.ts` | 20 | ✅ Written | Need browser install |
-| **TOTAL** | **99** | ⚠️ Written | **Need: `npx playwright install`** |
+| `route1-upload-sequential.spec.ts` | 7 | ✅ Passing | Full upload + approval chain (sequential) |
+| `route2-manual-sequential.spec.ts` | 7 | ✅ Passing | Manual entry via "Populate Test Data" + approval chain |
+| `route3-questionnaire-sequential.spec.ts` | 7 | ✅ Passing | Questionnaire via "Edit Answers" + approval chain |
+| **TOTAL** | **21** | ✅ Passing | **Real Keycloak auth, real backend API** |
+
+### Test Coverage
+
+All three sequential test files cover the complete submission flow for each route:
+
+| Step | Description | Route 1 | Route 2 | Route 3 |
+|------|-------------|---------|---------|---------|
+| Step 1 | Create submission | ✅ | ✅ | ✅ |
+| Step 2 | Fill Financial data | Upload PNG (AI extraction) | "Populate Test Data" | "Edit Answers" + "Populate Test Data" |
+| Step 3 | Fill Non-Financial data | Upload full workbook | "Populate Test Databases" | "Edit Answers" + "Populate Test Data" |
+| Step 4 | Submit for review | ✅ | ✅ | ✅ |
+| Step 5 | Apex approval | ✅ | ✅ | ✅ |
+| Step 6 | Federation approval | ✅ | ✅ | ✅ |
+| Step 7 | Ministry final approval | ✅ | ✅ | ✅ |
+
+**Note:** Route 3 uses period **2023** (instead of 2024) to avoid duplicate submission conflicts with Routes 1 & 2.
+
+### Test Architecture
+
+- **Real Keycloak authentication** (not mocked) - tests against actual Keycloak realm
+- **Real backend API** - tests against actual backend services
+- **Sequential execution** using `describe.serial()` - stops at first failure for easy debugging
+- **UI mode support** - can run with `--ui` flag for visual debugging
+- **Force clicks** - bypass modal overlays that intercept pointer events
+- **DOM content loaded** - avoids networkidle issues with React Query polling
+
+### Test Users (Real Keycloak)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Cooperative | coopadmin@gmail.com | password |
+| Apex | apex@gmail.com | password |
+| Federation | yejami7300@ebflyai.com | password |
+| Ministry | admin@ministry.gov | password |
+
+### Test Data Files
+
+| File | Purpose |
+|------|---------|
+| `e2e/fixtures/test-data/financial/yearly-financial.png` | AI-extracted financial statement |
+| `e2e/fixtures/test-data/non-financial/coopdatafullworkbook.xlsx` | Full non-financial workbook (all sections) |
+| `e2e/fixtures/test-data/non-financial/yearly-members.xlsx` | Membership data |
+| `e2e/fixtures/test-data/non-financial/yearly-fixdeposit.xlsx` | Fixed deposits data |
+
+### Helpers
+
+| File | Purpose |
+|------|---------|
+| `e2e/fixtures/helpers/login.ts` | Real Keycloak login with storage clearing and retry logic |
+| `e2e/fixtures/helpers/approval.ts` | Approval chain helpers (Apex/Federation/Ministry) with cooperative grid navigation |
+
+### Running the Test
+
+```bash
+# Run full sequential test with UI mode
+npm run test:e2e -- --ui --grep "Route 1: Upload Method - Sequential Flow" --timeout=600000
+
+# Run specific step
+npm run test:e2e -- --ui --grep "Step 5: Apex approval" --timeout=600000
+```
 
 ### What's Missing
 
-#### 1. Form Submission E2E Tests (HIGH PRIORITY)
+#### 1. Reject/Return Flow E2E Tests (MEDIUM PRIORITY)
 
-**Why:** Critical user flows need E2E coverage.
-
-```typescript
-// frontend/e2e/form-submission.spec.ts
-import { test, expect } from '@playwright/test';
-import { loginAs, TEST_USERS } from './fixtures/auth';
-
-test.describe('Form Submission Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAs(page, 'cooperative');
-    await page.goto('/app/submissions');
-  });
-  
-  test('should create new submission via wizard', async ({ page }) => {
-    // Click new submission button
-    await page.getByRole('button', { name: /new submission/i }).click();
-    
-    // Step 1: Select reporting year
-    await page.getByLabel(/reporting year/i).selectOption('2026');
-    await page.getByRole('button', { name: /next/i }).click();
-    
-    // Step 2: Select submission method
-    await page.getByLabel(/submission method/i).selectOption('manual');
-    await page.getByRole('button', { name: /next/i }).click();
-    
-    // Step 3: Review and submit
-    await page.getByRole('button', { name: /submit/i }).click();
-    
-    // Verify success
-    await expect(page.getByText(/submission created/i)).toBeVisible();
-  });
-  
-  test('should validate required fields', async ({ page }) => {
-    await page.getByRole('button', { name: /new submission/i }).click();
-    
-    // Try to proceed without selecting year
-    await page.getByRole('button', { name: /next/i }).click();
-    
-    // Should show validation error
-    await expect(page.getByText(/reporting year is required/i)).toBeVisible();
-  });
-  
-  test('should save draft and continue later', async ({ page }) => {
-    await page.getByRole('button', { name: /new submission/i }).click();
-    
-    await page.getByLabel(/reporting year/i).selectOption('2026');
-    await page.getByRole('button', { name: /save draft/i }).click();
-    
-    // Should see draft in list
-    await expect(page.getByText(/draft/i)).toBeInTheDocument();
-  });
-});
-```
-
-#### 2. Data Entry E2E Tests (HIGH PRIORITY)
+**Why:** The current tests only cover the happy path (approve). We need to test rejection and return-for-correction flows.
 
 ```typescript
-// frontend/e2e/data-entry.spec.ts
-test.describe('Data Entry Flow', () => {
-  test('should enter financial data via grid', async ({ page }) => {
-    // Navigate to submission
-    await page.goto('/app/submissions/sub-123/data-entry');
-    
-    // Enter value in grid cell
-    const cell = page.getByRole('gridcell', { name: /total assets/i });
-    await cell.fill('1000000');
-    
-    // Verify value saved
-    await expect(cell).toHaveValue('1,000,000');
-  });
-  
-  test('should calculate totals automatically', async ({ page }) => {
-    await page.goto('/app/submissions/sub-123/data-entry');
-    
-    // Enter line items
-    await page.getByRole('gridcell', { name: /cash/i }).fill('10000');
-    await page.getByRole('gridcell', { name: /deposits/i }).fill('50000');
-    
-    // Total should auto-calculate
-    const totalCell = page.getByRole('gridcell', { name: /total assets/i });
-    await expect(totalCell).toHaveValue('60,000');
-  });
-  
-  test('should validate numeric input', async ({ page }) => {
-    await page.goto('/app/submissions/sub-123/data-entry');
-    
-    const cell = page.getByRole('gridcell', { name: /total assets/i });
-    await cell.fill('abc');
-    
-    // Should show validation error
-    await expect(page.getByText(/must be a number/i)).toBeVisible();
-  });
-});
-```
-
-#### 3. Submission Workflow E2E Tests (HIGH PRIORITY)
-
-```typescript
-// frontend/e2e/submission-workflow.spec.ts
-test.describe('Submission Workflow', () => {
-  test('should submit for review', async ({ page }) => {
-    // Create and complete submission
-    await createCompletedSubmission(page);
-    
-    // Submit for review
-    await page.getByRole('button', { name: /submit for review/i }).click();
-    
-    // Confirm submission
-    await page.getByRole('button', { name: /confirm/i }).click();
-    
-    // Verify status changed
-    await expect(page.getByText(/submitted/i)).toBeVisible();
-  });
-  
-  test('should see submission in apex review queue', async ({ page }) => {
+// frontend/e2e/specs/reject-return-flow.spec.ts
+test.describe("Reject/Return Flow", () => {
+  test("Apex should be able to return submission for changes", async ({ page }) => {
     // Login as apex
-    await loginAs(page, 'apex');
-    await page.goto('/app/apex/review-queue');
-    
-    // Should see submitted submission
-    await expect(page.getByText(/sub-123/i)).toBeInTheDocument();
+    // Navigate to submitted submission
+    // Click "Request Changes" button
+    // Fill return reason
+    // Verify submission returned to cooperative
   });
   
-  test('should approve submission as apex', async ({ page }) => {
-    await loginAs(page, 'apex');
-    await page.goto('/app/apex/review-queue/sub-123');
-    
-    await page.getByRole('button', { name: /approve/i }).click();
-    await page.getByLabel(/comment/i }).fill('Looks good');
-    await page.getByRole('button', { name: /confirm approval/i }).click();
-    
-    // Verify approved
-    await expect(page.getByText(/approved by apex/i)).toBeVisible();
+  test("Ministry should be able to reject submission", async ({ page }) => {
+    // Login as ministry
+    // Navigate to submitted submission
+    // Click "Reject" button
+    // Fill rejection reason
+    // Verify submission rejected
+  });
+});
+```
+
+#### 3. Offline-First E2E Tests (MEDIUM PRIORITY)
+
+**Why:** App supports offline mode with sync queue - needs E2E coverage.
+
+```typescript
+// frontend/e2e/specs/offline-sync.spec.ts
+test.describe("Offline Sync", () => {
+  test("should queue actions when offline and sync when online", async ({ page }) => {
+    // Go offline
+    // Create submission
+    // Verify queued in IndexedDB
+    // Go online
+    // Verify synced to backend
   });
 });
 ```
@@ -630,36 +589,26 @@ test.describe('Submission Workflow', () => {
 #### 4. Audit Log E2E Tests (MEDIUM PRIORITY)
 
 ```typescript
-// frontend/e2e/audit-log.spec.ts
-test.describe('Audit Log', () => {
-  test('should show recent audit entries', async ({ page }) => {
+// frontend/e2e/specs/audit-log.spec.ts
+test.describe("Audit Log", () => {
+  test("should show recent audit entries", async ({ page }) => {
     await loginAs(page, 'ministry');
     await page.goto('/app/audit-logs');
-    
-    // Should see audit entries
     await expect(page.getByText(/submission created/i)).toBeVisible();
   });
   
-  test('should filter by action type', async ({ page }) => {
+  test("should filter by action type", async ({ page }) => {
     await loginAs(page, 'ministry');
     await page.goto('/app/audit-logs');
-    
-    // Filter by create action
     await page.getByLabel(/action type/i).selectOption('create');
-    
-    // Should only show create actions
     const rows = page.getByRole('row').filter({ hasText: /create/i });
     await expect(rows).toHaveCount(await rows.count());
   });
   
-  test('should show actor information', async ({ page }) => {
+  test("should show actor information", async ({ page }) => {
     await loginAs(page, 'ministry');
     await page.goto('/app/audit-logs');
-    
-    // Click on audit entry
     await page.getByRole('row').first().click();
-    
-    // Should show details panel
     await expect(page.getByText(/actor:/i)).toBeVisible();
     await expect(page.getByText(/timestamp:/i)).toBeVisible();
   });
@@ -739,8 +688,8 @@ export const mockApiError = (message: string) => {
 # Run all tests
 cargo test
 
-# Run with coverage
-cargo tarpaulin --out lcov
+# Run with coverage (CI uses --fail-under 70)
+cargo tarpaulin --workspace --all-features --out Xml --output-dir ./coverage --skip-clean --timeout 120 --exclude-files "src/main.rs" --fail-under 70
 
 # Run specific test file
 cargo test --test handlers_audit
@@ -758,8 +707,8 @@ RUST_LOG=debug cargo test
 # Run all unit tests
 npm run test:unit
 
-# Run with coverage
-npm run test:unit -- --coverage
+# Run with coverage (CI enforces thresholds from vitest.config.ts)
+npm run coverage
 
 # Run specific file
 npm run test:unit -- src/hooks/submissions/useSubmissions.test.ts
@@ -775,6 +724,15 @@ npm run test:e2e:ui
 
 # Run E2E headed (see browser)
 npm run test:e2e:headed
+
+# Run full sequential workflow test (Route 1)
+npm run test:e2e:workflow
+
+# Run sequential workflow with UI
+npm run test:e2e:workflow:ui
+
+# Run sequential workflow headed
+npm run test:e2e:workflow:headed
 ```
 
 ---
@@ -795,10 +753,13 @@ npm run test:e2e:headed
 
 ## Part 7: Implementation Plan
 
-### Phase 1: Fix E2E Environment (Day 1)
-- [ ] Run `npx playwright install`
-- [ ] Verify E2E tests run
-- [ ] Fix any broken tests
+### Phase 1: Fix E2E Environment (Day 1) ✅ COMPLETE
+- [x] Run `npx playwright install`
+- [x] Verify E2E tests run
+- [x] Fix any broken tests
+- [x] Implement real Keycloak auth (not mock)
+- [x] Implement sequential test structure with `describe.serial()`
+- [x] Implement approval chain helpers (Apex/Federation/Ministry)
 
 ### Phase 2: Backend Repository Tests (Day 2)
 - [ ] Add submission repository tests
@@ -812,9 +773,11 @@ npm run test:e2e:headed
 - [ ] Add useUsers tests
 
 ### Phase 4: E2E Form Tests (Day 4)
-- [ ] Add form submission E2E tests
-- [ ] Add data entry E2E tests
-- [ ] Add submission workflow E2E tests
+- [x] Add upload submission E2E tests (Route 1 - Upload Method)
+- [x] Add manual entry E2E tests (Route 2)
+- [x] Add questionnaire E2E tests (Route 3)
+- [ ] Add reject/return flow E2E tests
+- [ ] Add offline sync E2E tests
 
 ### Phase 5: Component Tests (Day 5)
 - [ ] Add SubmissionTable tests

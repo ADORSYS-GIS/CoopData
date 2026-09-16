@@ -1236,7 +1236,7 @@ All previously identified gaps have been addressed:
 
 ### E2E Mock Auth
 
-E2E tests use a Vite plugin (`e2e-mock-auth.ts`) that replaces `keycloak-js` with a mock when `VITE_E2E_MOCK_AUTH=1`. See `docs/knowledge/frontend/e2e-mock-auth.md` for full architecture.
+E2E tests use a Vite plugin (`e2e-mock-auth.ts`) that replaces `keycloak-js` with a mock when `VITE_E2E_MOCK_AUTH=1`. See `docs/knowledge/frontend/e2e-smoke-tests-mock-auth.md` for full architecture.
 
 ### Keycloak Test Realm Seed
 
@@ -1269,10 +1269,20 @@ npm run test:e2e:headed
 
 # E2E tests with Playwright UI
 npm run test:e2e:ui
+
+# Full sequential workflow tests (Routes 1, 2, 3 — real Keycloak)
+npm run test:e2e:route1
+npm run test:e2e:route2
+npm run test:e2e:route3
+
+# Sequential workflow with UI
+npm run test:e2e:route1:ui
+npm run test:e2e:route2:ui
+npm run test:e2e:route3:ui
 ```
 
 ### Test Documentation
 
 - `docs/knowledge/frontend/testing.md` — Full testing guide with patterns and config
-- `docs/knowledge/frontend/rbac-testing.md` — RBAC-specific test guide with route access matrix
-- `docs/knowledge/frontend/e2e-mock-auth.md` — E2E mock auth architecture deep-dive
+- `docs/knowledge/frontend/rbac-smoke-testing.md` — RBAC-specific test guide with route access matrix
+- `docs/knowledge/frontend/e2e-smoke-tests-mock-auth.md` — E2E mock auth architecture deep-dive

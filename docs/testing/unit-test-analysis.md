@@ -1,6 +1,6 @@
 # Unit Test Deep Dive — CoopData Project
 
-> **Date:** September 1, 2026
+> **Date:** September 16, 2026 (re-audit) — previous audit September 1, 2026
 > **Status:** Current state analysis + prioritized implementation roadmap
 > **Issue:** GitHub #109 — Improve Unit Test Coverage Across Frontend and Backend
 
@@ -18,28 +18,101 @@ This document is the living reference for Issue #109. It maps every untested mod
 
 | Dimension | Frontend | Backend |
 |---|---|---|
-| **Source files** | ~200 components/hooks/lib | 155 `.rs` files |
-| **Test files** | 24 | 8 integration + 31 inline modules |
-| **Total tests** | 369 | 275 |
+| **Source files** | ~200 components/hooks/lib | 158 `.rs` files |
+| **Test files** | 31 | 19 integration + 38 inline modules |
+| **Total tests** | 465 (verified green) | 586 (verified green: 356 inline + 230 integration) |
 | **Framework** | Vitest + Testing Library | tokio::test + tower |
-| **Coverage tool** | `@vitest/coverage-v8` (configured) | **None** |
-| **Coverage enforced in CI** | No | No |
-| **Vitest config status** | ✅ Correct (`["text", "html", "lcov"]`) | N/A |
-| **Backend coverage tool** | N/A | ❌ Not installed |
+| **Coverage tool** | `@vitest/coverage-v8` (configured, `src/**` only) | `cargo-tarpaulin` (installed in CI) |
+| **Coverage enforced in CI** | ✅ Yes (thresholds: lines 10, functions 40, branches 45, statements 10, `perFile: false`) | ✅ Yes (`--fail-under 70`) |
+| **Coverage baseline** | 11.15% lines (measured Sept 16) | Measured in CI (baseline TBD) |
+| **Backend coverage tool** | N/A | ✅ Installed |
 
 ### What's Changed Since Last Review
 
-- **Phase 2 completed**: 3 new FE test files (useOfflineQuery, useNetworkStatus, OrganizationLabelsContext), 2 new BE inline modules (object_storage, pdf_templates)
-- **FE test count**: 369 passing (was 236, +133 new tests)
-- **BE test count**: 275 passing (was 22 baseline, +253 new inline tests)
-- **tempfile crate added** to backend dev-dependencies for object_storage tests
-- **Key fixes**: LocalFileStorage::delete now returns Ok for missing files; useNetworkStatus uses vi.hoisted with relative path mocks; useOfflineQuery wrapper fixed to proper QueryClientProvider pattern
+**Re-audit (Sept 16, 2026) — verified by running both suites:**
+
+- **FE test count**: 401 passing across 28 files (was 369 / 24 files, +32 tests)
+- **BE test count**: 371 passing total — 289 inline unit + 82 integration (was 275)
+- **FE coverage baseline fixed**: `vitest.config.ts` was counting `dist/`, `dev-dist/`, `e2e/`, and `playwright-report/` as source, diluting the number. Added `include: ["src/**"]` plus excludes for `main.tsx`, `router.tsx`, `components/ui/` (shadcn), and `i18n/` locales. True baseline: **10.2% lines (5,539/54,166)** — the earlier 9.12% figure was noise-diluted, the real number is dominated by untested pages/components.
+- **New test files since last audit**: `useSecuritySettings.test.tsx`, `ResetMfaDialog.test.tsx`, `DeleteConfirmationDialog.test.tsx`, `QuestionnaireWizard.test.tsx` (cooperative)
+
+**E2E Full-Stack Tests (Sept 16, 2026) — all 3 routes complete:**
+
+- **Route 1 (Upload Method)**: `route1-upload-sequential.spec.ts` — 7 sequential tests, all passing. Uses real Keycloak auth, AI extraction polling, full approval chain.
+- **Route 2 (Manual Entry)**: `route2-manual-sequential.spec.ts` — 7 sequential tests, all passing. Uses "Populate Test Data" buttons for fast data entry.
+- **Route 3 (Questionnaire)**: `route3-questionnaire-sequential.spec.ts` — 7 sequential tests, all passing. Uses "Edit Answers" + "Populate Test Data" workflow.
+- **Total**: 21 E2E tests covering all 3 submission methods end-to-end with real backend + real Keycloak.
+- See `docs/testing/full-stack-e2e-testing-plan.md` for full details.
+
+**Sprint 1 + Sprint 2 completed (Sept 16, 2026):**
+
+- **Sprint 1 — pure-logic quick wins (+131 tests)**: `abnormality_detector/` (67 BE inline tests: calculations 30, flags 28, sum_checks 9), `contentLocalization.ts` (30), `report-export.ts` (27), `nf-parse-errors.ts` (7).
+- **Sprint 2 — security & state machine (+28 tests)**: new SeaORM `MockDatabase` infrastructure (`tests/common/mock_db.rs`) with an in-process mock Keycloak (axum) so `resolve_group` walks work offline. `tenant_isolation.rs` (9 tests: 4-tier access matrix, NotFound-for-coops to prevent enumeration, Forbidden-for-apex/federation), `submission_workflow.rs` (19 tests: submit guards, tier routing incl. apex-created return paths, terminal approve/reject).
+- **⚠️ Architectural change required by Sprint 2**: SeaORM's `mock` feature removes `Clone` from `DatabaseConnection` (`#[cfg_attr(not(feature = "mock"), derive(Clone))]`). The shared handle is now the `Database` newtype (`src/database.rs`) — an `Arc<DatabaseConnection>` wrapper implementing `ConnectionTrait`/`TransactionTrait`/`Deref`, with `impl Into<Database>` repo constructors so call sites are unchanged. Repos previously cloned the raw connection; behavior is identical (pool clone shared the same pool anyway).
+- **Counts after both sprints**: FE 465 / 31 files, BE 466 (356 inline + 110 integration). `cargo clippy -D warnings` and `tsc --noEmit` clean.
+- **Sprint 3 — repository layer (+58 tests, Sept 16, 2026)**: statement-recording `RecordingMock` added to `mock_db.rs` (wraps `MockDatabaseTrait`, captures every statement's SQL + bind values). Four new test files — `repos_submission.rs` (17), `repos_orgs.rs` (12), `repos_people.rs` (11), `repos_financials.rs` (16) — assert on **generated SQL** (tenant `IN` filters, the approved↔submitted OR special case, ORDER BY) and **bind values**, plus guards (empty-vec never queries, dedup before insert) and mock-row round-trips. **Counts after Sprint 3: BE 522 total.** `cargo clippy -D warnings` clean.
+
+**Sprint 4 — Priority 1 integration tests + CI coverage gates (Sept 16, 2026):**
+
+- **Handler integration tests (+41 tests across 5 files)**:
+  - `handlers_submission.rs` (19): auth guards for all submission endpoints, DTO conversions (`SubmissionResponse::from`, `with_fs`, `with_sections`), period validation (yearly/quarterly/monthly), enum serde roundtrips
+  - `handlers_financial.rs` (10): auth guards for financial statement, upload, extraction, questionnaire endpoints + DTO conversions
+  - `handlers_extraction.rs` (4): extraction job auth guards + terminal status logic
+  - `handlers_questionnaire.rs` (2): questionnaire auth guards
+  - `handlers_upload.rs` (6): upload auth guards + `UploadResponse` DTO serialization
+- **Repository tests (+23 tests across 4 files)**:
+  - `repos_submission_review.rs` (4): scope, empty, ordering, tier filter
+  - `repos_submission_section.rs` (7): empty guard, scope, update, not-found, section models (questionnaire=1, upload=6)
+  - `repos_extraction_job.rs` (6): scope, empty, update, not-found, DB failure
+  - `repos_uploaded_file.rs` (6): scope, delegation, empty, find_by_id, DB failure
+- **CI coverage gates**:
+  - **Backend**: `cargo-tarpaulin` installed in CI with `--fail-under 70` (70% line coverage gate)
+  - **Frontend**: `vitest.config.ts` thresholds set just below baseline (lines: 10, functions: 40, branches: 45, statements: 10) with `perFile: false` so untested files don't block the build
+  - Both upload coverage reports as artifacts (retention: 30 days)
+- **Counts after Sprint 4**: BE 586 total (356 inline + 230 integration). `cargo clippy -D warnings` clean.
+
+### Verified State Snapshot (Sept 16, 2026)
+
+| Dimension | Frontend | Backend |
+|---|---|---|
+| **Tests passing** | 465 / 31 files (vitest run: green) | 586 (`cargo test`: 356 inline + 230 integration, green) |
+| **Measured coverage** | 11.15% lines (v8, `src/**` only) | Measured via `cargo-tarpaulin` in CI |
+| **Coverage enforced in CI** | ✅ Yes — `vitest.config.ts` thresholds (lines: 10, functions: 40, branches: 45, statements: 10, `perFile: false`) | ✅ Yes — `cargo-tarpaulin --fail-under 70` |
+| **CI config** | `.github/workflows/ci-frontend.yml` L131 (`npm run coverage`) | `.github/workflows/ci-backend.yml` L95 (`cargo tarpaulin --fail-under 70`) |
+
+### Frontend Coverage by Area (measured, lowest first)
+
+| Area | Line % | Lines hit/total | Notes |
+|---|---|---|---|
+| `src/routes` | 0.0% | 0/924 | TanStack Router route files — thin wrappers, low unit-test value (covered by Playwright) |
+| `src/pages` | 2.2% | 518/23,973 | Only SettingsPage, QuestionnaireWizard tested |
+| `src/hooks` | 5.4% | 292/5,449 | ~50 hooks, 7 tested |
+| `src/components` | 12.0% | 2,295/19,091 | Excludes shadcn `ui/`; analytics has 3 test files |
+| `src/lib` | 43.3% | 1,213/2,802 | Gaps: `report-export.ts` (538 L), `contentLocalization.ts` (158 L), `nf-parse-errors.ts` (92 L) |
+| `src/services/shared` | 51.7% | 662/1,281 | `offlineSeeder.ts` untested |
+| `src/context` | 85.9% | 354/412 | `AuthContext.inactivity` tested; theme/lib not isolated |
+| `src/constants` | 100% | 168/168 | roles.ts fully covered |
+
+### Backend Untested Critical Files (verified line counts)
+
+| File | Lines | Tests | Risk |
+|---|---|---|---|
+| `services/report_narrative.rs` | 2,876 | 0 | 🔴 AI narrative generation |
+| `services/submission_workflow.rs` | 1,266 | 0 | 🔴 State machine: submit/approve/reject — core business flow |
+| `services/export_generator.rs` | 1,059 | 0 | 🔴 Excel/PDF compliance output |
+| `services/extraction_pipeline.rs` | 453 | 0 | 🔴 AI extraction orchestration |
+| `services/abnormality_detector/flags.rs` | 926 | 0 | 🟡 Anomaly detection (calculations.rs + sum_checks.rs also 0) |
+| `services/audit.rs` | 79 | 0 | 🟡 Audit write path |
+| `auth/tenant_isolation.rs` | 128 | 0 | 🔴 Multi-tenant data isolation — security-critical |
+| `repositories/*` | 31 files | 1 (submission has a single test) | 🔴 Entire data layer; integration TestApp uses a disconnected DB, so repos are never really exercised |
+
+**Note:** the backend `TestApp` (`tests/common/mock.rs`) historically built with a disconnected `DatabaseConnection` — the original integration tests were DB-free (auth/RBAC/validation paths only). Since Sept 16, `TestApp::with_db` accepts any connection and `tests/common/mock_db.rs` provides a SeaORM `MockDatabase`-backed `AppState` (+ mock Keycloak), so repository query sequences and the submission workflow's transitions are now executed by `tests/tenant_isolation.rs` and `tests/submission_workflow.rs`. Real-Postgres coverage (actual SQL correctness) still requires a testcontainer-based suite.
 
 ---
 
 ## Frontend — Coverage Map
 
-### ✅ Well Tested (21 files)
+### ✅ Well Tested (28 test files, 401 tests)
 
 | File | Tests | Coverage |
 |---|---|---|
@@ -71,13 +144,14 @@ These are **pure functions** — no mocking needed, just input/output assertions
 
 | File | Lines | Why It Matters | Effort |
 |---|---|---|---|
-| `src/lib/utils.ts` | 6 | `cn()` used everywhere for class merging | ⭐ Trivial |
-| `src/lib/kpi-calculations.ts` | 887 | All dashboard KPIs computed here — silent breakage = wrong numbers | ⭐⭐⭐ High |
-| `src/lib/financial-data.ts` | 17,717 | Balance sheet calculations, loan portfolio, deposits | ⭐⭐⭐ High |
-| `src/lib/report-export.ts` | 19,223 | Excel/PDF export — broken export = compliance failure | ⭐⭐⭐ High |
-| `src/lib/contentLocalization.ts` | 5,095 | i18n string lookups — broken = wrong language | ⭐⭐ Medium |
+| `src/lib/utils.ts` | 6 | `cn()` used everywhere for class merging — ✅ done (13 tests) | ⭐ Trivial |
+| `src/lib/kpi-calculations.ts` | 887 | All dashboard KPIs computed here — silent breakage = wrong numbers — ✅ done (52 tests) | ⭐⭐⭐ High |
+| `src/lib/financial-data.ts` | 17,717 | Balance sheet calculations, loan portfolio, deposits — ✅ done (37 tests) | ⭐⭐⭐ High |
+| `src/lib/report-export.ts` | 538 | Excel/PDF export — broken export = compliance failure | ⭐⭐⭐ High |
+| `src/lib/contentLocalization.ts` | 158 | i18n string lookups — broken = wrong language | ⭐⭐ Medium |
+| `src/lib/nf-parse-errors.ts` | 92 | Parse error mapping for NF uploads | ⭐ Easy |
 | `src/lib/theme.tsx` | 2,517 | Theme configuration | ⭐⭐ Medium |
-| `src/lib/mock-data.ts` | 28,401 | Test data factory — used by all tests | ⭐⭐ Medium |
+| `src/lib/mock-data.ts` | 1,134 | Test data factory — low value to unit test directly | ⭐ Skip |
 
 #### 🔴 Phase 2 — Core Hooks (Offline-First Backbone)
 
@@ -350,6 +424,12 @@ cargo install cargo-llvm-cov
 
 ## Prioritized Implementation Roadmap
 
+> **How to tackle it (agreed approach):** work top-down by risk, not for coverage percentage. Order of attack:
+> 1. **Security & correctness first** — `tenant_isolation.rs`, `submission_workflow.rs`, `abnormality_detector/` (backend); `report-export.ts`, `contentLocalization.ts` (frontend lib).
+> 2. **Then the data layer** — pick repo strategy (MockDatabase vs real test DB), cover top 10 repositories.
+> 3. **Then breadth** — high-usage hooks (submissions, analytics), then components/pages as E2E safety nets grow.
+> 4. **Ratchet CI in parallel** — after each phase, raise the coverage threshold so numbers can only go up.
+
 ### 🔴 Phase 1: Quick Wins (1-2 days)
 
 **Goal:** Build momentum with easy, high-value tests. No mocking needed.
@@ -357,41 +437,42 @@ cargo install cargo-llvm-cov
 - [x] **Frontend:** Write tests for `src/lib/utils.ts` — `cn()` function (trivial, 13 tests) ✅
 - [x] **Frontend:** Write tests for `src/lib/kpi-calculations.ts` — KPI calculation functions (52 tests) ✅
 - [x] **Frontend:** Write tests for `src/lib/financial-data.ts` — Balance sheet calculations (37 tests) ✅
-- [ ] **Frontend:** Write tests for `src/lib/contentLocalization.ts` — i18n lookups (medium, 10-20 tests)
-- [ ] **Frontend:** Write tests for `src/lib/report-export.ts` — Export logic (high impact, 20-30 tests)
+- [x] **Frontend:** Write tests for `src/lib/contentLocalization.ts` — i18n lookups (30 tests) ✅ (Sept 16)
+- [x] **Frontend:** Write tests for `src/lib/report-export.ts` — Export logic (27 tests) ✅ (Sept 16)
+- [x] **Frontend:** Write tests for `src/lib/nf-parse-errors.ts` — parse error mapping (7 tests) ✅ (Sept 16)
 - [x] **Backend:** Write unit tests for `src/services/cache.rs` — Cache service with `memory://` backend (14 tests) ✅
-- [ ] **Backend:** Add `cargo-llvm-cov` to CI pipeline
-- [ ] **Frontend:** Add coverage thresholds to `vitest.config.ts`
-- [ ] **Frontend:** Add coverage gate to CI pipeline
+- [x] **Frontend:** Fix vitest coverage `include`/`exclude` so reports measure `src/**` only ✅ (Sept 16)
+- [ ] **Frontend:** Add coverage thresholds to `vitest.config.ts` (start at current baseline +2%, ratchet up)
+- [ ] **Backend:** Add `cargo-llvm-cov` to CI pipeline + record a baseline number
 
 ### 🔴 Phase 2: Core Business Logic (3-5 days)
 
 **Goal:** Cover the highest-risk business logic in both frontend and backend.
 
-- [ ] **Frontend:** Write tests for `useOfflineQuery` — online, offline, cache-hit, cache-miss, sync scenarios (critical, 15-20 tests)
-- [ ] **Frontend:** Write tests for `useNetworkStatus` — online/offline detection (medium, 5-10 tests)
-- [ ] **Frontend:** Write tests for `OrganizationLabelsContext` — shared state management (medium, 10-15 tests)
-- [ ] **Backend:** Write unit tests for `src/services/submission_workflow.rs` — submit, approve, reject, flag state machine (critical, 20-30 tests)
+- [x] **Frontend:** Write tests for `useOfflineQuery` — online, offline, cache-hit, cache-miss, sync scenarios (critical, 15-20 tests) ✅
+- [x] **Frontend:** Write tests for `useNetworkStatus` — online/offline detection (medium, 5-10 tests) ✅
+- [x] **Frontend:** Write tests for `OrganizationLabelsContext` — shared state management (medium, 10-15 tests) ✅
+- [x] **Backend:** Write unit tests for `src/auth/tenant_isolation.rs` — **security-critical, done** (9 tests via MockDatabase + mock Keycloak) ✅ (Sept 16)
+- [x] **Backend:** Write unit tests for `src/services/submission_workflow.rs` — submit, approve, reject, flag state machine (19 tests incl. illegal-transition guards) ✅ (Sept 16)
+- [x] **Backend:** Write unit tests for `src/services/abnormality_detector/` — calculations, flags, sum_checks (67 tests) ✅ (Sept 16)
 - [ ] **Backend:** Write unit tests for `src/services/export_generator.rs` — report generation (high impact, 15-20 tests)
-- [ ] **Backend:** Write unit tests for `src/services/object_storage.rs` — S3/local storage (medium, 10-15 tests)
-- [ ] **Backend:** Write unit tests for `src/services/pdf_templates.rs` — PDF templates (medium, 5-10 tests)
-- [ ] **Backend:** Expand tests for `src/services/nf_excel_parser.rs` — Excel parsing (high impact, 20+ tests)
+- [x] **Backend:** Write unit tests for `src/services/object_storage.rs` — S3/local storage (medium, 10-15 tests) ✅
+- [x] **Backend:** Write unit tests for `src/services/pdf_templates.rs` — PDF templates (medium, 5-10 tests) ✅
+- [ ] **Backend:** Expand tests for `src/services/nf_excel_parser.rs` — Excel parsing (15 tests today, target 30+)
 
 ### 🟡 Phase 3: Repository & Handler Coverage (1-2 weeks)
 
 **Goal:** Systematic coverage of the data layer and API endpoints.
 
-- [ ] **Backend:** Write unit tests for top 10 repositories using SeaORM `MockDatabase`:
-  1. `submission.rs`
-  2. `cooperative.rs`
-  3. `member.rs`
-  4. `financial_statement.rs`
-  5. `user.rs`
-  6. `federation.rs`
-  7. `apex.rs`
-  8. `balance_sheet_line_item.rs`
-  9. `loan.rs`
-  10. `savings_account.rs`
+> **Reality check (Sept 16):** the shared `TestApp` uses a disconnected DB, so integration tests can never exercise repositories. **Decision (Sept 16):** use **SeaORM `MockDatabase`** — the Sprint 2 `Database` newtype made the mock feature usable, and a statement-recording wrapper lets tests assert on the *generated SQL* (filters, tenant scoping, ORDER BY) plus bind values. Real-Postgres smoke tests fold into Phase 5/CI work later. Implementation notes live in `backend/tests/common/mock_db.rs`.
+
+- [x] **Decide** repo test strategy — **MockDatabase + statement recording**, documented in `tests/common/mock_db.rs` ✅ (Sept 16)
+- [x] **Backend:** Write unit tests for top 10 repositories (58 tests, SQL + bind assertions): ✅ (Sept 16)
+  1. `submission.rs` → `tests/repos_submission.rs` (17 tests: tenant filter in SQL, `find_by_status` approved↔submitted OR, empty-vec guards never query)
+  2. `cooperative.rs`, `federation.rs`, `apex.rs` → `tests/repos_orgs.rs` (12 tests)
+  3. `member.rs`, `user.rs` → `tests/repos_people.rs` (11 tests: stats buckets, `bulk_upsert` dedup, metadata merge)
+  4. `financial_statement.rs`, `balance_sheet_line_item.rs`, `loan.rs`, `savings_account.rs` → `tests/repos_financials.rs` (16 tests: validation-errors JSON bind, DPD portfolio mapping, dedup, deletes)
+  5. `user.rs` covered in `repos_people.rs`
 - [ ] **Backend:** Add integration tests for `handlers_federation.rs`
 - [ ] **Backend:** Add integration tests for `handlers_apex.rs`
 - [ ] **Backend:** Add integration tests for `handlers_submission.rs`
