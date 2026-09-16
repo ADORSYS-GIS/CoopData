@@ -32,7 +32,7 @@ const FRONTEND_URL = "http://localhost:5173"; // Must match registered redirect 
 
 /**
  * Login helper for full-stack E2E tests using real Keycloak authentication.
- * 
+ *
  * Flow:
  * 1. Navigate directly to Keycloak auth URL
  * 2. Keycloak shows login form

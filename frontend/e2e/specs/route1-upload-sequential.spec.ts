@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/helpers/login";
-import { approveAsApex, approveAsFederation, approveAsMinistry } from "../fixtures/helpers/approval";
+import {
+  approveAsApex,
+  approveAsFederation,
+  approveAsMinistry,
+} from "../fixtures/helpers/approval";
 
 /**
  * Route 1: Upload Method - Sequential Flow Tests
@@ -143,7 +147,10 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
           await page.waitForTimeout(1000);
         }
       } else {
-        const hasData = await page.locator('button:has-text("Clear Databases"), button:has-text("Effacer")').isVisible({ timeout: 1000 }).catch(() => false);
+        const hasData = await page
+          .locator('button:has-text("Clear Databases"), button:has-text("Effacer")')
+          .isVisible({ timeout: 1000 })
+          .catch(() => false);
         if (hasData) {
           console.log("All non-financial sections are marked ready!");
           return;
@@ -152,9 +159,13 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
         attempts++;
         await page.waitForTimeout(1000);
 
-        if (attempts % 10 === 0) { // Changed from 15 to 10
-          console.log(`Waiting for tables to appear or buttons to become visible (${attempts}s)...`);
-          if (attempts === 20) { // Only reload once at 20s instead of 30 and 60
+        if (attempts % 10 === 0) {
+          // Changed from 15 to 10
+          console.log(
+            `Waiting for tables to appear or buttons to become visible (${attempts}s)...`,
+          );
+          if (attempts === 20) {
+            // Only reload once at 20s instead of 30 and 60
             console.log("Reloading page to un-freeze React Query...");
             await page.goto(`/app/submissions/${submissionId}`);
             await page.waitForLoadState("domcontentloaded");
@@ -199,12 +210,14 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
     await expect(page.getByText("Submission Detail")).toBeVisible();
 
     // Get submission ID from URL and store it for next tests
-    submissionId = page.url().split('/').pop()!;
+    submissionId = page.url().split("/").pop()!;
     console.log(`Created submission: ${submissionId}`);
 
     // Check for Upload Method Dialog
     await page.waitForTimeout(2000);
-    const uploadMethodBtn = page.locator('button:has-text("Upload Method"), button:has-text("Upload Documents")');
+    const uploadMethodBtn = page.locator(
+      'button:has-text("Upload Method"), button:has-text("Upload Documents")',
+    );
     if (await uploadMethodBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await uploadMethodBtn.click();
       console.log("Selected Upload Method from dialog");
@@ -223,7 +236,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
       await page.waitForTimeout(3000);
 
       const fileInput = page.locator('input[type="file"]').first();
-      await fileInput.setInputFiles('./e2e/fixtures/test-data/financial/yearly-financial.png');
+      await fileInput.setInputFiles("./e2e/fixtures/test-data/financial/yearly-financial.png");
       console.log("Financial statement file selected");
       await page.waitForTimeout(3000);
 
@@ -236,7 +249,10 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
         const extractionDone = await waitForExtractionToFinish(page, submissionId);
 
         if (extractionDone) {
-          const isEnabled = await waitForButtonEnabled(page, 'button:has-text("Mark Section Ready")');
+          const isEnabled = await waitForButtonEnabled(
+            page,
+            'button:has-text("Mark Section Ready")',
+          );
           if (isEnabled) {
             console.log("Mark Section Ready enabled - clicking...");
             await page.locator('button:has-text("Mark Section Ready")').click({ force: true });
@@ -286,7 +302,11 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
     await page.waitForTimeout(2000);
 
     // Check if data is already uploaded
-    const hasData = await page.locator('button:has-text("Clear Databases"), button:has-text("Effacer"), text=Ready, table').first().isVisible({ timeout: 3000 }).catch(() => false);
+    const hasData = await page
+      .locator('button:has-text("Clear Databases"), button:has-text("Effacer"), text=Ready, table')
+      .first()
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
 
     if (!hasData) {
       console.log("No Non-Financial data found - uploading full workbook...");
@@ -297,7 +317,9 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
 
       // Upload the full workbook
       const nfFileInput = page.locator('input[type="file"]').last();
-      await nfFileInput.setInputFiles('./e2e/fixtures/test-data/non-financial/coopdatafullworkbook.xlsx');
+      await nfFileInput.setInputFiles(
+        "./e2e/fixtures/test-data/non-financial/coopdatafullworkbook.xlsx",
+      );
       console.log("Full workbook selected");
       await page.waitForTimeout(2000);
 
@@ -355,7 +377,11 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
     await page.waitForTimeout(2000);
 
     // Check if Submit button is enabled
-    const submitBtn = page.locator('button:has-text("Submit to FSFASA"), button:has-text("Submit to Apex"), button:has-text("Submit")').first();
+    const submitBtn = page
+      .locator(
+        'button:has-text("Submit to FSFASA"), button:has-text("Submit to Apex"), button:has-text("Submit")',
+      )
+      .first();
 
     if (await submitBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       const isEnabled = await submitBtn.isEnabled({ timeout: 2000 }).catch(() => false);
@@ -368,7 +394,9 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
 
         await page.waitForTimeout(2000);
 
-        const confirmSubmit = page.locator('button:has-text("Submit"), button:has-text("Confirm")').first();
+        const confirmSubmit = page
+          .locator('button:has-text("Submit"), button:has-text("Confirm")')
+          .first();
         if (await confirmSubmit.isVisible({ timeout: 3000 }).catch(() => false)) {
           await confirmSubmit.click({ force: true });
           console.log("Clicked confirm button in dialog");

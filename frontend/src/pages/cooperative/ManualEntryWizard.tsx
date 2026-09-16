@@ -1019,11 +1019,16 @@ export function ManualEntryWizard() {
       }
     }
 
-    const mappedPeriodType = 
-      periodType === "YEARLY" ? "Yearly" : 
-      periodType === "QUARTERLY" ? "Quarterly" : 
-      periodType === "MONTHLY" ? "Monthly" : 
-      periodType === "SEMI_ANNUAL" ? "SemiAnnual" : periodType;
+    const mappedPeriodType =
+      periodType === "YEARLY"
+        ? "Yearly"
+        : periodType === "QUARTERLY"
+          ? "Quarterly"
+          : periodType === "MONTHLY"
+            ? "Monthly"
+            : periodType === "SEMI_ANNUAL"
+              ? "SemiAnnual"
+              : periodType;
 
     await submitFinancialStatement.mutateAsync({
       accounting_year: accountingYear,

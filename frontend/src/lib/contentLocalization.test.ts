@@ -133,7 +133,9 @@ describe("setSectionTranslation", () => {
 
   it("preserves existing section fields when patching title only", () => {
     const base: QuestionnaireTranslations = {
-      fr: { sections: { s1: { title: "Old", description: "Desc", fields: { f: { label: "L" } } } } },
+      fr: {
+        sections: { s1: { title: "Old", description: "Desc", fields: { f: { label: "L" } } } },
+      },
     };
     const result = setSectionTranslation(base, "fr", "s1", { title: "New" });
     expect(result.fr?.sections?.s1?.description).toBe("Desc");

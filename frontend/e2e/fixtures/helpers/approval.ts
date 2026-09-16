@@ -66,7 +66,7 @@ export async function approveAsApex(
 
     // Step 4: Click on the first cooperative card
     // The cooperative cards are buttons with the cooperative name
-    const coopCards = page.locator('button:has(p.text-sm.font-bold)');
+    const coopCards = page.locator("button:has(p.text-sm.font-bold)");
     const cardCount = await coopCards.count().catch(() => 0);
     console.log(`[E2E] Apex: Found ${cardCount} cooperative card(s)`);
 
@@ -81,7 +81,9 @@ export async function approveAsApex(
 
     // Step 5: Click on the specific submission row
     // The submission rows are in a table - click the row containing the submission ID
-    const submissionRow = page.locator(`tr:has-text("${submissionId}"), tr:has(a[href*="${submissionId}"])`).first();
+    const submissionRow = page
+      .locator(`tr:has-text("${submissionId}"), tr:has(a[href*="${submissionId}"])`)
+      .first();
     const rowVisible = await submissionRow.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (rowVisible) {
@@ -103,14 +105,18 @@ export async function approveAsApex(
   console.log("[E2E] Apex: Clicked Approve button");
 
   // Step 8: Fill comments (optional)
-  const commentsArea = page.locator('textarea[name="comments"], textarea[placeholder*="comment" i], textarea').first();
+  const commentsArea = page
+    .locator('textarea[name="comments"], textarea[placeholder*="comment" i], textarea')
+    .first();
   if (await commentsArea.isVisible({ timeout: 5000 }).catch(() => false)) {
     await commentsArea.fill(comment);
     console.log("[E2E] Apex: Filled comments");
   }
 
   // Step 9: Click Confirm Approval
-  const confirmBtn = page.locator('button:has-text("Confirm Approval"), button:has-text("Confirm")').first();
+  const confirmBtn = page
+    .locator('button:has-text("Confirm Approval"), button:has-text("Confirm")')
+    .first();
   if (await confirmBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
     await confirmBtn.click({ force: true });
     console.log("[E2E] Apex: Clicked Confirm Approval");
@@ -173,7 +179,7 @@ export async function approveAsFederation(page: Page, submissionId: string) {
     await page.waitForTimeout(3000);
 
     // Step 4: Click on the first cooperative card
-    const coopCards = page.locator('button:has(p.text-sm.font-bold)');
+    const coopCards = page.locator("button:has(p.text-sm.font-bold)");
     const cardCount = await coopCards.count().catch(() => 0);
     console.log(`[E2E] Federation: Found ${cardCount} cooperative card(s)`);
 
@@ -186,7 +192,9 @@ export async function approveAsFederation(page: Page, submissionId: string) {
     }
 
     // Step 5: Click on the specific submission row
-    const submissionRow = page.locator(`tr:has-text("${submissionId}"), tr:has(a[href*="${submissionId}"])`).first();
+    const submissionRow = page
+      .locator(`tr:has-text("${submissionId}"), tr:has(a[href*="${submissionId}"])`)
+      .first();
     const rowVisible = await submissionRow.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (rowVisible) {
@@ -208,7 +216,9 @@ export async function approveAsFederation(page: Page, submissionId: string) {
   console.log("[E2E] Federation: Clicked Approve button");
 
   // Step 8: Click Confirm Approval
-  const confirmBtn = page.locator('button:has-text("Confirm Approval"), button:has-text("Confirm")').first();
+  const confirmBtn = page
+    .locator('button:has-text("Confirm Approval"), button:has-text("Confirm")')
+    .first();
   if (await confirmBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
     await confirmBtn.click({ force: true });
     console.log("[E2E] Federation: Clicked Confirm Approval");
@@ -271,7 +281,7 @@ export async function approveAsMinistry(page: Page, submissionId: string) {
     await page.waitForTimeout(3000);
 
     // Step 4: Click on the first cooperative card
-    const coopCards = page.locator('button:has(p.text-sm.font-bold)');
+    const coopCards = page.locator("button:has(p.text-sm.font-bold)");
     const cardCount = await coopCards.count().catch(() => 0);
     console.log(`[E2E] Ministry: Found ${cardCount} cooperative card(s)`);
 
@@ -284,7 +294,9 @@ export async function approveAsMinistry(page: Page, submissionId: string) {
     }
 
     // Step 5: Click on the specific submission row
-    const submissionRow = page.locator(`tr:has-text("${submissionId}"), tr:has(a[href*="${submissionId}"])`).first();
+    const submissionRow = page
+      .locator(`tr:has-text("${submissionId}"), tr:has(a[href*="${submissionId}"])`)
+      .first();
     const rowVisible = await submissionRow.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (rowVisible) {
@@ -306,7 +318,9 @@ export async function approveAsMinistry(page: Page, submissionId: string) {
   console.log("[E2E] Ministry: Clicked Approve button");
 
   // Step 8: Click Confirm Approval
-  const confirmBtn = page.locator('button:has-text("Confirm Approval"), button:has-text("Confirm")').first();
+  const confirmBtn = page
+    .locator('button:has-text("Confirm Approval"), button:has-text("Confirm")')
+    .first();
   if (await confirmBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
     await confirmBtn.click({ force: true });
     console.log("[E2E] Ministry: Clicked Confirm Approval");

@@ -9,11 +9,7 @@ import {
   generatePDFContent,
 } from "./report-export";
 import type { BalanceSheet } from "./financial-data";
-import type {
-  FinancialKPIs,
-  LoanKPIs,
-  MembershipKPIs,
-} from "./kpi-calculations";
+import type { FinancialKPIs, LoanKPIs, MembershipKPIs } from "./kpi-calculations";
 import type { ReportData } from "./report-export";
 
 // ============================================================================
@@ -238,9 +234,7 @@ describe("generateCSV", () => {
   });
 
   it("includes financial KPI rows when provided", () => {
-    const csv = generateCSV(
-      makeReportData({ financialKPIs: makeFinancialKPIs() }),
-    );
+    const csv = generateCSV(makeReportData({ financialKPIs: makeFinancialKPIs() }));
     expect(csv).toContain("=== FINANCIAL KPIs ===");
     expect(csv).toContain("Total Assets,$10K,USD");
     expect(csv).toContain("PAR 30,4.0%,%,green,5");
@@ -248,9 +242,7 @@ describe("generateCSV", () => {
   });
 
   it("includes membership KPI rows when provided", () => {
-    const csv = generateCSV(
-      makeReportData({ membershipKPIs: makeMembershipKPIs() }),
-    );
+    const csv = generateCSV(makeReportData({ membershipKPIs: makeMembershipKPIs() }));
     expect(csv).toContain("=== MEMBERSHIP KPIs ===");
     expect(csv).toContain("Total Members,1,200,members");
     expect(csv).toContain("Dormancy Rate,8.0%,%,amber,5");
@@ -264,9 +256,7 @@ describe("generateCSV", () => {
   });
 
   it("omits sections that are null", () => {
-    const csv = generateCSV(
-      makeReportData({ financialKPIs: makeFinancialKPIs() }),
-    );
+    const csv = generateCSV(makeReportData({ financialKPIs: makeFinancialKPIs() }));
     expect(csv).not.toContain("MEMBERSHIP KPIs");
     expect(csv).not.toContain("LOAN KPIs");
   });
@@ -304,9 +294,7 @@ describe("generatePDFContent", () => {
   });
 
   it("renders financial KPI cards when provided", () => {
-    const html = generatePDFContent(
-      makeReportData({ financialKPIs: makeFinancialKPIs() }),
-    );
+    const html = generatePDFContent(makeReportData({ financialKPIs: makeFinancialKPIs() }));
     expect(html).toContain("<h2>Financial KPIs</h2>");
     expect(html).toContain("$10K");
     expect(html).toContain("status-green");
@@ -335,9 +323,7 @@ describe("generatePDFContent", () => {
   });
 
   it("renders membership section when provided", () => {
-    const html = generatePDFContent(
-      makeReportData({ membershipKPIs: makeMembershipKPIs() }),
-    );
+    const html = generatePDFContent(makeReportData({ membershipKPIs: makeMembershipKPIs() }));
     expect(html).toContain("<h2>Membership KPIs</h2>");
     expect(html).toContain("1,200");
   });

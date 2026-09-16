@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { mockKeycloak, mockKeycloakAuthenticated, mockBackendApi, dismissErrorOverlay } from "./fixtures/auth";
+import {
+  mockKeycloak,
+  mockKeycloakAuthenticated,
+  mockBackendApi,
+  dismissErrorOverlay,
+} from "./fixtures/auth";
 
 test.describe("Login flow via Keycloak", () => {
   test("should redirect to Keycloak login when unauthenticated", async ({ page }) => {
