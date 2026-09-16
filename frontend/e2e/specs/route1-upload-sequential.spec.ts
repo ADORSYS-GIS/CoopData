@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import { loginAs } from "../fixtures/helpers/login";
 import {
   approveAsApex,
@@ -28,7 +28,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
   /**
    * Helper function to wait for button to be enabled
    */
-  async function waitForButtonEnabled(page: any, selector: string, timeout: number = 120000) {
+  async function waitForButtonEnabled(page: Page, selector: string, timeout: number = 120000) {
     const startTime = Date.now();
     while (Date.now() - startTime < timeout) {
       const btn = page.locator(selector);
@@ -45,7 +45,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
   /**
    * Waits for AI extraction to finish by polling the backend API directly.
    */
-  async function waitForExtractionToFinish(page: any, submissionId: string, totalTimeout = 300000) {
+  async function waitForExtractionToFinish(page: Page, submissionId: string, totalTimeout = 300000) {
     const start = Date.now();
     console.log("Waiting for AI extraction to finish (polling backend directly)...");
 
@@ -124,7 +124,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
   /**
    * Helper function to mark all non-financial sections ready
    */
-  async function markAllNonFinancialSectionsReady(page: any) {
+  async function markAllNonFinancialSectionsReady(page: Page) {
     console.log("Checking for Non-Financial 'Mark Ready' buttons...");
     let attempts = 0;
     const maxAttempts = 60; // Reduced from 120 to 60 seconds
