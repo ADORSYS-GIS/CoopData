@@ -213,7 +213,7 @@ test.describe.serial("Route 3: Questionnaire Method - Sequential Flow", () => {
     // Submit submission to Apex
     const submitBtn = page
       .locator(
-        'button:has-text("Submit to FSFASA"), button:has-text("Submit to Apex"), button:has-text("Submit to Apex Officer")',
+        'button:has-text("Submit to FSFASA"), button:has-text("Submit to Apex"), button:has-text("Submit to Apex Officer"), button:has-text("Submit to apx")',
       )
       .first();
 
