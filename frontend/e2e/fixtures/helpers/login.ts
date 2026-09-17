@@ -4,22 +4,33 @@ import type { Page } from "@playwright/test";
  * Real user credentials for E2E testing.
  * These users authenticate via Keycloak with real credentials. localhost
  */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable ${name}. ` +
+        `Set it in .env or your CI environment before running E2E tests.`,
+    );
+  }
+  return value;
+}
+
 export const TEST_USERS = {
   ministry: {
-    email: process.env.E2E_MINISTRY_EMAIL || "admin@ministry.gov",
-    password: process.env.E2E_MINISTRY_PASSWORD || "password",
+    email: requireEnv("E2E_MINISTRY_EMAIL"),
+    password: requireEnv("E2E_MINISTRY_PASSWORD"),
   },
   federation: {
-    email: process.env.E2E_FEDERATION_EMAIL || "yejami7300@ebflyai.com",
-    password: process.env.E2E_FEDERATION_PASSWORD || "password",
+    email: requireEnv("E2E_FEDERATION_EMAIL"),
+    password: requireEnv("E2E_FEDERATION_PASSWORD"),
   },
   apex: {
-    email: process.env.E2E_APEX_EMAIL || "apex@gmail.com",
-    password: process.env.E2E_APEX_PASSWORD || "password",
+    email: requireEnv("E2E_APEX_EMAIL"),
+    password: requireEnv("E2E_APEX_PASSWORD"),
   },
   cooperative: {
-    email: process.env.E2E_COOP_EMAIL || "coopadmin@gmail.com",
-    password: process.env.E2E_COOP_PASSWORD || "password",
+    email: requireEnv("E2E_COOP_EMAIL"),
+    password: requireEnv("E2E_COOP_PASSWORD"),
   },
 } as const;
 
