@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -42,7 +43,7 @@ describe("useFederations", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: [{ id: "fed-1" }],
       error: undefined,
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useFederations(), { wrapper: createWrapper() });
 
@@ -54,7 +55,7 @@ describe("useFederations", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useFederations(), { wrapper: createWrapper() });
 

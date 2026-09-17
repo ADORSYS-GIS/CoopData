@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -39,9 +40,9 @@ describe("useComparativeStatements", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: { mock: true },
       error: undefined,
-    } as unknown as Response);
+    } as any);
 
-    const { result } = renderHook(() => useComparativeStatements("c1"), {
+    const { result } = renderHook(() => useComparativeStatements({ cooperativeIds: "c1" }), {
       wrapper: createWrapper(),
     });
 
@@ -53,9 +54,9 @@ describe("useComparativeStatements", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as unknown as Response);
+    } as any);
 
-    const { result } = renderHook(() => useComparativeStatements("c1"), {
+    const { result } = renderHook(() => useComparativeStatements({ cooperativeIds: "c1" }), {
       wrapper: createWrapper(),
     });
 

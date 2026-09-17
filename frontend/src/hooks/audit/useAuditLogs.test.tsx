@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -42,7 +43,7 @@ describe("useAuditLogs", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: { logs: [{ id: "log-1" }], total: 1 },
       error: undefined,
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useAuditLogs({}), { wrapper: createWrapper() });
 
@@ -54,7 +55,7 @@ describe("useAuditLogs", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useAuditLogs({}), { wrapper: createWrapper() });
 

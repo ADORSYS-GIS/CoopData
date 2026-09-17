@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -29,7 +30,7 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ mock: true }),
-  } as unknown as Response),
+  } as any),
 );
 
 function createWrapper() {
@@ -51,7 +52,7 @@ describe("useSubmissionNarratives", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: { mock: true },
       error: undefined,
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useSubmissionNarratives("sub-1"), {
       wrapper: createWrapper(),
@@ -66,7 +67,7 @@ describe("useSubmissionNarratives", () => {
       ok: false,
       status: 500,
       json: () => Promise.resolve({ message: "Failed to fetch" }),
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useSubmissionNarratives("sub-1"), {
       wrapper: createWrapper(),

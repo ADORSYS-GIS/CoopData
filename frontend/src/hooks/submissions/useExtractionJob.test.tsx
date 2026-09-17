@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -42,7 +43,7 @@ describe("useExtractionJob", () => {
       data: mockJob,
       error: undefined,
       response: { status: 200 } as Response,
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useExtractionJob("job-1"), { wrapper: createWrapper() });
 
@@ -60,7 +61,7 @@ describe("useExtractionJob", () => {
       data: undefined,
       error: { message: "Not found" },
       response: { status: 404 } as Response,
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useExtractionJob("job-1"), { wrapper: createWrapper() });
 

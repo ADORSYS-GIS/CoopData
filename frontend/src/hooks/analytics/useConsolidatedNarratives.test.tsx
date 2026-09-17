@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -24,7 +25,7 @@ vi.mock("@/services/shared/authService", () => ({
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve([{ mock: true }]),
-    } as unknown as Response),
+    } as any),
   ),
 }));
 
@@ -32,7 +33,7 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ mock: true }),
-  } as unknown as Response),
+  } as any),
 );
 
 function createWrapper() {
@@ -54,7 +55,7 @@ describe("useMinistryNarratives", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: { mock: true },
       error: undefined,
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useMinistryNarratives(2025), { wrapper: createWrapper() });
 
@@ -67,7 +68,7 @@ describe("useMinistryNarratives", () => {
       ok: false,
       status: 500,
       json: () => Promise.resolve({ message: "Failed to fetch" }),
-    } as unknown as Response);
+    } as any);
 
     const { result } = renderHook(() => useMinistryNarratives(2025), { wrapper: createWrapper() });
 

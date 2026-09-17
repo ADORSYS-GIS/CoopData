@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -39,9 +40,11 @@ describe("useBenchmark", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: { mock: true },
       error: undefined,
-    } as unknown as Response);
+    } as any);
 
-    const { result } = renderHook(() => useBenchmark("b1"), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useBenchmark({ cooperativeId: "b1" }), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
@@ -51,9 +54,11 @@ describe("useBenchmark", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as unknown as Response);
+    } as any);
 
-    const { result } = renderHook(() => useBenchmark("b1"), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useBenchmark({ cooperativeId: "b1" }), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
