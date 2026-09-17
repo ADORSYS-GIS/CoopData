@@ -162,7 +162,17 @@ export function ManualEntryWizard() {
 
   useEffect(() => {
     if (submission?.period_type) {
-      setPeriodType(submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
+      const normalizedPeriodType =
+        submission.period_type === "Yearly"
+          ? "YEARLY"
+          : submission.period_type === "Quarterly"
+            ? "QUARTERLY"
+            : submission.period_type === "Monthly"
+              ? "MONTHLY"
+              : submission.period_type === "SemiAnnual"
+                ? "SEMI_ANNUAL"
+                : (submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
+      setPeriodType(normalizedPeriodType);
     }
     if (submission?.period_value) {
       setPeriodValue(submission.period_value);
