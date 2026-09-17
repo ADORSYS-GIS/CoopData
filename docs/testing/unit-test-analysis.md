@@ -475,13 +475,11 @@ cargo install cargo-llvm-cov
 
 ### 🟡 Phase 4: Remaining Coverage (ongoing)
 
-- [ ] **Backend:** Write unit tests for remaining 21 repositories
-- [ ] **Backend:** Write unit tests for `src/services/report_narrative.rs`
-- [ ] **Backend:** Write unit tests for `src/services/ai_extraction.rs`
-- [ ] **Backend:** Write unit tests for `src/services/extraction_pipeline.rs`
-- [ ] **Backend:** Write unit tests for `src/services/abnormality_detector/`
-- [ ] **Frontend:** Write tests for remaining hooks (50+ hooks, prioritize by usage)
-- [ ] **Frontend:** Write tests for untested pages
+- [ ] **Backend:** Write unit tests for the remaining 21 repositories (using `MockDatabase` + `RecordingMock`).
+- [ ] **Backend:** Complete missing integration tests for `handlers_federation.rs`, `handlers_apex.rs`, `handlers_export.rs`, `handlers_questionnaire.rs`, and `handlers_financial_statement.rs`.
+- [ ] **Frontend & Backend:** Complete Phase 5 (Coverage Enforcement) by enabling strict `fail-under` gates in GitHub Actions CI using `cargo-llvm-cov` and `vitest`.
+
+*(Note: We have explicitly removed the UI/Pages, the AI/Extraction pipeline, and the PDF/Export services from this backlog as they are handled by E2E tests and manual QA.)*
 
 ### 🟢 Phase 5: Coverage Enforcement (ongoing)
 
