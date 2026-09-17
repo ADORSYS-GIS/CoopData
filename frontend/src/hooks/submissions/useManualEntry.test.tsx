@@ -48,12 +48,12 @@ describe("useManualEntry Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: mockResponse,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useSubmitManualFinancialStatement("sub-1"), {
         wrapper: createWrapper(),
       });
-      result.current.mutate({ cash: 1000 } as any);
+      result.current.mutate({ cash: 1000 } as unknown as Response);
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);
@@ -67,12 +67,12 @@ describe("useManualEntry Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: undefined,
         error: { message: "Validation error" },
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useSubmitManualFinancialStatement("sub-1"), {
         wrapper: createWrapper(),
       });
-      result.current.mutate({ cash: 1000 } as any);
+      result.current.mutate({ cash: 1000 } as unknown as Response);
 
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.error?.message).toBe("Validation error");
@@ -84,12 +84,12 @@ describe("useManualEntry Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: undefined,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useSubmitManualMembers("sub-1"), {
         wrapper: createWrapper(),
       });
-      result.current.mutate({ total_members: 50 } as any);
+      result.current.mutate({ total_members: 50 } as unknown as Response);
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(apiClient.POST).toHaveBeenCalledWith(
@@ -103,7 +103,7 @@ describe("useManualEntry Hooks", () => {
     it("deletes statement", async () => {
       vi.mocked(apiClient.DELETE).mockResolvedValueOnce({
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useDeleteManualFinancialStatement("sub-1"), {
         wrapper: createWrapper(),
@@ -122,7 +122,7 @@ describe("useManualEntry Hooks", () => {
     it("deletes non-financial data", async () => {
       vi.mocked(apiClient.DELETE).mockResolvedValueOnce({
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useDeleteManualNonFinancialData("sub-1"), {
         wrapper: createWrapper(),

@@ -42,7 +42,7 @@ describe("useAuditLogs", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: { logs: [{ id: "log-1" }], total: 1 },
       error: undefined,
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useAuditLogs({}), { wrapper: createWrapper() });
 
@@ -54,7 +54,7 @@ describe("useAuditLogs", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useAuditLogs({}), { wrapper: createWrapper() });
 

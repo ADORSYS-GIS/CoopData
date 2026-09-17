@@ -42,7 +42,7 @@ describe("useUsers", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: [{ id: "user-1" }],
       error: undefined,
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useUsers(), { wrapper: createWrapper() });
 
@@ -54,7 +54,7 @@ describe("useUsers", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useUsers(), { wrapper: createWrapper() });
 

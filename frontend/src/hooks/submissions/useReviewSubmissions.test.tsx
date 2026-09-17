@@ -57,7 +57,7 @@ describe("useReviewSubmissions Hooks", () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: mockData,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useSubmissionFlags("sub-1"), {
         wrapper: createWrapper(),
@@ -70,7 +70,7 @@ describe("useReviewSubmissions Hooks", () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: undefined,
         error: { message: "Not found" },
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useSubmissionFlags("sub-1"), {
         wrapper: createWrapper(),
@@ -85,7 +85,7 @@ describe("useReviewSubmissions Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: mockResponse,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useApexApprove(), { wrapper: createWrapper() });
       result.current.mutate({ id: "sub-1", comment: "Looks good" });
@@ -106,7 +106,7 @@ describe("useReviewSubmissions Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: mockResponse,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useMinistryReject(), { wrapper: createWrapper() });
       result.current.mutate({ id: "sub-1", comment: "Needs work" });

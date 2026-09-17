@@ -42,7 +42,7 @@ describe("useFederations", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: [{ id: "fed-1" }],
       error: undefined,
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useFederations(), { wrapper: createWrapper() });
 
@@ -54,7 +54,7 @@ describe("useFederations", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useFederations(), { wrapper: createWrapper() });
 

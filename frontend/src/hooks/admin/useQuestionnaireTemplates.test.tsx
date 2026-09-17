@@ -27,7 +27,7 @@ vi.mock("@/services/shared/authService", () => ({
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve([{ mock: true }]),
-    } as any),
+    } as unknown as Response),
   ),
 }));
 
@@ -58,7 +58,7 @@ describe("useQuestionnaireTemplates", () => {
       ok: false,
       status: 500,
       json: () => Promise.resolve({ message: "Failed to fetch" }),
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useQuestionnaireTemplates(), { wrapper: createWrapper() });
 

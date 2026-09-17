@@ -62,7 +62,7 @@ describe("useSubmissions Hooks", () => {
         data: mockData,
         error: undefined,
         response: { status: 200 } as Response,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useCooperativeSubmissions(), {
         wrapper: createWrapper(),
@@ -79,7 +79,7 @@ describe("useSubmissions Hooks", () => {
         data: undefined,
         error: { message: "Internal Error" },
         response: { status: 500 } as Response,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useCooperativeSubmissions(), {
         wrapper: createWrapper(),
@@ -95,7 +95,7 @@ describe("useSubmissions Hooks", () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: mockData,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useSubmission("sub-1", "cooperative"), {
         wrapper: createWrapper(),
@@ -115,11 +115,11 @@ describe("useSubmissions Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: mockResponse,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useCreateSubmission(), { wrapper: createWrapper() });
 
-      result.current.mutate({ cooperative_id: "coop-1", reporting_year: 2025 } as any);
+      result.current.mutate({ cooperative_id: "coop-1", reporting_year: 2025 } as unknown as Response);
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);
@@ -133,10 +133,10 @@ describe("useSubmissions Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: undefined,
         error: { message: "Duplicate", submission_id: "existing-sub-1" },
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useCreateSubmission(), { wrapper: createWrapper() });
-      result.current.mutate({ cooperative_id: "coop-1", reporting_year: 2025 } as any);
+      result.current.mutate({ cooperative_id: "coop-1", reporting_year: 2025 } as unknown as Response);
 
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.error).toBeInstanceOf(DuplicateSubmissionError);
@@ -152,7 +152,7 @@ describe("useSubmissions Hooks", () => {
       vi.mocked(apiClient.PATCH).mockResolvedValueOnce({
         data: mockResponse,
         error: undefined,
-      } as any);
+      } as unknown as Response);
       vi.mocked(cacheGet).mockResolvedValueOnce(null);
 
       const { result } = renderHook(() => useUpdateSubmissionMethod(), {
@@ -173,7 +173,7 @@ describe("useSubmissions Hooks", () => {
     it("deletes a submission and purges cache", async () => {
       vi.mocked(apiClient.DELETE).mockResolvedValueOnce({
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useDeleteSubmission(), { wrapper: createWrapper() });
       result.current.mutate({ id: "sub-1", verificationToken: "1234" });

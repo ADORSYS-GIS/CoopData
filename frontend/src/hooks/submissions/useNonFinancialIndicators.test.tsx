@@ -62,7 +62,7 @@ describe("useNonFinancialIndicators Hooks", () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: mockData,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useIndicatorCatalog(), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -73,7 +73,7 @@ describe("useNonFinancialIndicators Hooks", () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: undefined,
         error: { message: "Server error" },
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useIndicatorCatalog(), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.isError).toBe(true));
@@ -86,7 +86,7 @@ describe("useNonFinancialIndicators Hooks", () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: mockData,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useSubmissionEntries("sub-1"), {
         wrapper: createWrapper(),
@@ -102,7 +102,7 @@ describe("useNonFinancialIndicators Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: mockResponse,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useSaveSubmissionEntries("sub-1"), {
         wrapper: createWrapper(),
@@ -124,10 +124,10 @@ describe("useNonFinancialIndicators Hooks", () => {
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: mockResponse,
         error: undefined,
-      } as any);
+      } as unknown as Response);
 
       const { result } = renderHook(() => useCreateCatalogItem(), { wrapper: createWrapper() });
-      result.current.mutate({ name: "test", type: "number", target: "cooperative" } as any);
+      result.current.mutate({ name: "test", type: "number", target: "cooperative" } as unknown as Response);
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);

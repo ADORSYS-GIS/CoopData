@@ -42,7 +42,7 @@ describe("useExtractionJob", () => {
       data: mockJob,
       error: undefined,
       response: { status: 200 } as Response,
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useExtractionJob("job-1"), { wrapper: createWrapper() });
 
@@ -60,7 +60,7 @@ describe("useExtractionJob", () => {
       data: undefined,
       error: { message: "Not found" },
       response: { status: 404 } as Response,
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useExtractionJob("job-1"), { wrapper: createWrapper() });
 

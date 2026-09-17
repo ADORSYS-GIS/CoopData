@@ -39,7 +39,7 @@ describe("useBasicBenchmark", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: { mock: true },
       error: undefined,
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useBasicBenchmark(), { wrapper: createWrapper() });
 
@@ -51,7 +51,7 @@ describe("useBasicBenchmark", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useBasicBenchmark(), { wrapper: createWrapper() });
 

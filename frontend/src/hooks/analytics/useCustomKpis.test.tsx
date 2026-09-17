@@ -24,7 +24,7 @@ vi.mock("@/services/shared/authService", () => ({
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve([{ mock: true }]),
-    } as any),
+    } as unknown as Response),
   ),
 }));
 
@@ -32,7 +32,7 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ mock: true }),
-  } as any),
+  } as unknown as Response),
 );
 
 function createWrapper() {
@@ -53,7 +53,7 @@ describe("useCustomKpis", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: { mock: true },
       error: undefined,
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useCustomKpis(), { wrapper: createWrapper() });
 
@@ -65,7 +65,7 @@ describe("useCustomKpis", () => {
     vi.mocked(apiClient.GET).mockResolvedValueOnce({
       data: undefined,
       error: { message: "Failed to fetch" },
-    } as any);
+    } as unknown as Response);
 
     const { result } = renderHook(() => useCustomKpis(), { wrapper: createWrapper() });
 
