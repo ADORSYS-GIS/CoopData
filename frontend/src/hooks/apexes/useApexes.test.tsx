@@ -45,7 +45,7 @@ describe("useApexes", () => {
     } as any);
 
     const { result } = renderHook(() => useApexes(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
   });
@@ -57,7 +57,7 @@ describe("useApexes", () => {
     } as any);
 
     const { result } = renderHook(() => useApexes(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

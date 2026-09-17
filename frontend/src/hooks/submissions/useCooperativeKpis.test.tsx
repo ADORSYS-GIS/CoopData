@@ -27,7 +27,7 @@ vi.mock("@/services/shared/authService", () => ({
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve([{ mock: true }]),
-    } as any)
+    } as any),
   ),
 }));
 
@@ -35,7 +35,7 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ mock: true }),
-  } as any)
+  } as any),
 );
 
 function createWrapper() {
@@ -60,7 +60,7 @@ describe("useCooperativeKpis", () => {
     } as any);
 
     const { result } = renderHook(() => useCooperativeKpis("sub-1"), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
   });
@@ -73,7 +73,7 @@ describe("useCooperativeKpis", () => {
     } as any);
 
     const { result } = renderHook(() => useCooperativeKpis("sub-1"), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

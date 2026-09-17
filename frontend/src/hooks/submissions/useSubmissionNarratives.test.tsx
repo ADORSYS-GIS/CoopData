@@ -29,7 +29,7 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ mock: true }),
-  } as any)
+  } as any),
 );
 
 function createWrapper() {
@@ -53,8 +53,10 @@ describe("useSubmissionNarratives", () => {
       error: undefined,
     } as any);
 
-    const { result } = renderHook(() => useSubmissionNarratives("sub-1"), { wrapper: createWrapper() });
-    
+    const { result } = renderHook(() => useSubmissionNarratives("sub-1"), {
+      wrapper: createWrapper(),
+    });
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
   });
@@ -66,8 +68,10 @@ describe("useSubmissionNarratives", () => {
       json: () => Promise.resolve({ message: "Failed to fetch" }),
     } as any);
 
-    const { result } = renderHook(() => useSubmissionNarratives("sub-1"), { wrapper: createWrapper() });
-    
+    const { result } = renderHook(() => useSubmissionNarratives("sub-1"), {
+      wrapper: createWrapper(),
+    });
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

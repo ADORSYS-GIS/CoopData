@@ -45,7 +45,7 @@ describe("useFederations", () => {
     } as any);
 
     const { result } = renderHook(() => useFederations(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
   });
@@ -57,7 +57,7 @@ describe("useFederations", () => {
     } as any);
 
     const { result } = renderHook(() => useFederations(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

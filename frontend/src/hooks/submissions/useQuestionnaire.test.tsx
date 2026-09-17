@@ -56,7 +56,9 @@ describe("useQuestionnaire Hooks", () => {
         json: async () => mockData,
       } as Response);
 
-      const { result } = renderHook(() => useQuestionnaire("sub-1", "annual"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useQuestionnaire("sub-1", "annual"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockData);
     });
@@ -65,11 +67,13 @@ describe("useQuestionnaire Hooks", () => {
       vi.mocked(fetchWithAuth).mockResolvedValueOnce({
         status: 404,
       } as Response);
-      
+
       const draft = { answers: { q1: "draft-yes" }, saved_at: "2024-01-01" };
       vi.mocked(cacheGet).mockResolvedValueOnce(draft);
 
-      const { result } = renderHook(() => useQuestionnaire("sub-1", "annual"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useQuestionnaire("sub-1", "annual"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data?.answers).toEqual(draft.answers);
       expect(result.current.data?.id).toBe("local-draft-sub-1");
@@ -81,7 +85,9 @@ describe("useQuestionnaire Hooks", () => {
         json: async () => ({ message: "API Failed" }),
       } as Response);
 
-      const { result } = renderHook(() => useQuestionnaire("sub-1", "annual"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useQuestionnaire("sub-1", "annual"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isError).toBe(true));
     });
   });
@@ -89,8 +95,10 @@ describe("useQuestionnaire Hooks", () => {
   describe("useSaveLocalDraft", () => {
     it("saves draft locally and invalidates queries", async () => {
       vi.mocked(cacheSet).mockResolvedValueOnce(undefined);
-      
-      const { result } = renderHook(() => useSaveLocalDraft("sub-1", "annual"), { wrapper: createWrapper() });
+
+      const { result } = renderHook(() => useSaveLocalDraft("sub-1", "annual"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate({ q1: "draft" });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -98,7 +106,7 @@ describe("useQuestionnaire Hooks", () => {
         "submissions",
         "questionnaire-draft-sub-1-annual",
         "user-123",
-        expect.objectContaining({ answers: { q1: "draft" } })
+        expect.objectContaining({ answers: { q1: "draft" } }),
       );
     });
   });
@@ -111,7 +119,9 @@ describe("useQuestionnaire Hooks", () => {
         json: async () => mockResponse,
       } as Response);
 
-      const { result } = renderHook(() => useSaveQuestionnaire("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSaveQuestionnaire("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate({ questionnaire_type: "annual", answers: { q1: "final" } });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -129,7 +139,9 @@ describe("useQuestionnaire Hooks", () => {
         json: async () => mockTemplate,
       } as Response);
 
-      const { result } = renderHook(() => useActiveTemplate("annual"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useActiveTemplate("annual"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockTemplate);
     });
@@ -143,7 +155,9 @@ describe("useQuestionnaire Hooks", () => {
         json: async () => mockData,
       } as Response);
 
-      const { result } = renderHook(() => useQuestionnaireAnalytics({ region: "R1" }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useQuestionnaireAnalytics({ region: "R1" }), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockData);
       expect(fetchWithAuth).toHaveBeenCalledWith(expect.stringContaining("region=R1"));

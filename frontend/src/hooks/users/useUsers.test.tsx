@@ -45,7 +45,7 @@ describe("useUsers", () => {
     } as any);
 
     const { result } = renderHook(() => useUsers(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
   });
@@ -57,7 +57,7 @@ describe("useUsers", () => {
     } as any);
 
     const { result } = renderHook(() => useUsers(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

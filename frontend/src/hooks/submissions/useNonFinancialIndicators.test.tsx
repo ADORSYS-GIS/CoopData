@@ -88,7 +88,9 @@ describe("useNonFinancialIndicators Hooks", () => {
         error: undefined,
       } as any);
 
-      const { result } = renderHook(() => useSubmissionEntries("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmissionEntries("sub-1"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockData);
     });
@@ -102,12 +104,17 @@ describe("useNonFinancialIndicators Hooks", () => {
         error: undefined,
       } as any);
 
-      const { result } = renderHook(() => useSaveSubmissionEntries("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSaveSubmissionEntries("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate([{ indicator_name: "test", value: "10", comment: null }]);
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);
-      expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/cooperative/submissions/{id}/non-financial-indicators", expect.any(Object));
+      expect(apiClient.POST).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions/{id}/non-financial-indicators",
+        expect.any(Object),
+      );
     });
   });
 

@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  useUploadFinancialStatement,
-  useSubmissionFiles,
-  useDeleteSingleFile,
-} from "./useUpload";
+import { useUploadFinancialStatement, useSubmissionFiles, useDeleteSingleFile } from "./useUpload";
 import { getAccessToken } from "@/services/shared/authService";
 
 vi.mock("@/services/shared/authService", () => ({
@@ -40,9 +36,11 @@ describe("useUpload Hooks", () => {
         json: async () => mockResponse,
       } as Response);
 
-      const { result } = renderHook(() => useUploadFinancialStatement("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useUploadFinancialStatement("sub-1"), {
+        wrapper: createWrapper(),
+      });
       const file = new File(["dummy content"], "test.pdf", { type: "application/pdf" });
-      
+
       result.current.mutate({ files: [file] });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -52,7 +50,7 @@ describe("useUpload Hooks", () => {
         expect.objectContaining({
           method: "POST",
           headers: { Authorization: "Bearer mock-token" },
-        })
+        }),
       );
     });
 
@@ -63,9 +61,11 @@ describe("useUpload Hooks", () => {
         json: async () => ({ message: "Invalid file type" }),
       } as Response);
 
-      const { result } = renderHook(() => useUploadFinancialStatement("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useUploadFinancialStatement("sub-1"), {
+        wrapper: createWrapper(),
+      });
       const file = new File(["dummy"], "test.exe");
-      
+
       result.current.mutate({ files: [file] });
 
       await waitFor(() => expect(result.current.isError).toBe(true));
@@ -81,13 +81,17 @@ describe("useUpload Hooks", () => {
         json: async () => mockFiles,
       } as Response);
 
-      const { result } = renderHook(() => useSubmissionFiles("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmissionFiles("sub-1"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockFiles);
     });
 
     it("returns empty array when submissionId is undefined", async () => {
-      const { result } = renderHook(() => useSubmissionFiles(undefined), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmissionFiles(undefined), {
+        wrapper: createWrapper(),
+      });
       expect(result.current.data).toBeUndefined(); // disabled query
       expect(global.fetch).not.toHaveBeenCalled();
     });
@@ -100,13 +104,15 @@ describe("useUpload Hooks", () => {
         json: async () => ({}),
       } as Response);
 
-      const { result } = renderHook(() => useDeleteSingleFile("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useDeleteSingleFile("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate({ submissionId: "sub-1", fileId: "file-1" });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/v1/cooperative/submissions/sub-1/files/file-1"),
-        expect.objectContaining({ method: "DELETE" })
+        expect.objectContaining({ method: "DELETE" }),
       );
     });
 
@@ -117,7 +123,9 @@ describe("useUpload Hooks", () => {
         json: async () => ({ message: "Cannot delete" }),
       } as Response);
 
-      const { result } = renderHook(() => useDeleteSingleFile("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useDeleteSingleFile("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate({ submissionId: "sub-1", fileId: "file-1" });
 
       await waitFor(() => expect(result.current.isError).toBe(true));

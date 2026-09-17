@@ -42,7 +42,7 @@ describe("useNfTrend", () => {
     } as any);
 
     const { result } = renderHook(() => useNfTrend("kpi1"), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
   });
@@ -54,7 +54,7 @@ describe("useNfTrend", () => {
     } as any);
 
     const { result } = renderHook(() => useNfTrend("kpi1"), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

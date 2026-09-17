@@ -44,8 +44,10 @@ describe("useSubmissionSections", () => {
       error: undefined,
     } as any);
 
-    const { result } = renderHook(() => useSubmissionSections("sub-1"), { wrapper: createWrapper() });
-    
+    const { result } = renderHook(() => useSubmissionSections("sub-1"), {
+      wrapper: createWrapper(),
+    });
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
   });
@@ -56,8 +58,10 @@ describe("useSubmissionSections", () => {
       error: { message: "Failed to fetch" },
     } as any);
 
-    const { result } = renderHook(() => useSubmissionSections("sub-1"), { wrapper: createWrapper() });
-    
+    const { result } = renderHook(() => useSubmissionSections("sub-1"), {
+      wrapper: createWrapper(),
+    });
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

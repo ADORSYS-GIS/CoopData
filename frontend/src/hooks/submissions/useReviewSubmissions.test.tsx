@@ -59,7 +59,9 @@ describe("useReviewSubmissions Hooks", () => {
         error: undefined,
       } as any);
 
-      const { result } = renderHook(() => useSubmissionFlags("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmissionFlags("sub-1"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockData);
     });
@@ -70,7 +72,9 @@ describe("useReviewSubmissions Hooks", () => {
         error: { message: "Not found" },
       } as any);
 
-      const { result } = renderHook(() => useSubmissionFlags("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmissionFlags("sub-1"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isError).toBe(true));
     });
   });
@@ -88,7 +92,10 @@ describe("useReviewSubmissions Hooks", () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);
-      expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/apex/submissions/{id}/approve", expect.any(Object));
+      expect(apiClient.POST).toHaveBeenCalledWith(
+        "/api/v1/apex/submissions/{id}/approve",
+        expect.any(Object),
+      );
       expect(cacheSet).toHaveBeenCalled(); // via updateCachedSubmissionStatus
     });
   });
@@ -106,7 +113,10 @@ describe("useReviewSubmissions Hooks", () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);
-      expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/ministry/submissions/{id}/reject", expect.any(Object));
+      expect(apiClient.POST).toHaveBeenCalledWith(
+        "/api/v1/ministry/submissions/{id}/reject",
+        expect.any(Object),
+      );
     });
   });
 });

@@ -50,12 +50,17 @@ describe("useManualEntry Hooks", () => {
         error: undefined,
       } as any);
 
-      const { result } = renderHook(() => useSubmitManualFinancialStatement("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmitManualFinancialStatement("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate({ cash: 1000 } as any);
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);
-      expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/cooperative/submissions/{id}/manual-financial-statement", expect.any(Object));
+      expect(apiClient.POST).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions/{id}/manual-financial-statement",
+        expect.any(Object),
+      );
     });
 
     it("handles error", async () => {
@@ -64,7 +69,9 @@ describe("useManualEntry Hooks", () => {
         error: { message: "Validation error" },
       } as any);
 
-      const { result } = renderHook(() => useSubmitManualFinancialStatement("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmitManualFinancialStatement("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate({ cash: 1000 } as any);
 
       await waitFor(() => expect(result.current.isError).toBe(true));
@@ -79,11 +86,16 @@ describe("useManualEntry Hooks", () => {
         error: undefined,
       } as any);
 
-      const { result } = renderHook(() => useSubmitManualMembers("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmitManualMembers("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate({ total_members: 50 } as any);
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/cooperative/submissions/{id}/manual-members", expect.any(Object));
+      expect(apiClient.POST).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions/{id}/manual-members",
+        expect.any(Object),
+      );
     });
   });
 
@@ -93,11 +105,16 @@ describe("useManualEntry Hooks", () => {
         error: undefined,
       } as any);
 
-      const { result } = renderHook(() => useDeleteManualFinancialStatement("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useDeleteManualFinancialStatement("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate();
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(apiClient.DELETE).toHaveBeenCalledWith("/api/v1/cooperative/submissions/{id}/financial-statement", expect.any(Object));
+      expect(apiClient.DELETE).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions/{id}/financial-statement",
+        expect.any(Object),
+      );
     });
   });
 
@@ -107,11 +124,16 @@ describe("useManualEntry Hooks", () => {
         error: undefined,
       } as any);
 
-      const { result } = renderHook(() => useDeleteManualNonFinancialData("sub-1"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useDeleteManualNonFinancialData("sub-1"), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate();
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(apiClient.DELETE).toHaveBeenCalledWith("/api/v1/cooperative/submissions/{id}/non-financial", expect.any(Object));
+      expect(apiClient.DELETE).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions/{id}/non-financial",
+        expect.any(Object),
+      );
     });
   });
 });

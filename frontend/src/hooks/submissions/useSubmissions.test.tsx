@@ -64,7 +64,9 @@ describe("useSubmissions Hooks", () => {
         response: { status: 200 } as Response,
       } as any);
 
-      const { result } = renderHook(() => useCooperativeSubmissions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useCooperativeSubmissions(), {
+        wrapper: createWrapper(),
+      });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockData);
@@ -79,7 +81,9 @@ describe("useSubmissions Hooks", () => {
         response: { status: 500 } as Response,
       } as any);
 
-      const { result } = renderHook(() => useCooperativeSubmissions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useCooperativeSubmissions(), {
+        wrapper: createWrapper(),
+      });
 
       await waitFor(() => expect(result.current.isError).toBe(true));
     });
@@ -93,10 +97,15 @@ describe("useSubmissions Hooks", () => {
         error: undefined,
       } as any);
 
-      const { result } = renderHook(() => useSubmission("sub-1", "cooperative"), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useSubmission("sub-1", "cooperative"), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockData);
-      expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/cooperative/submissions/{id}", expect.any(Object));
+      expect(apiClient.GET).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions/{id}",
+        expect.any(Object),
+      );
     });
   });
 
@@ -114,7 +123,10 @@ describe("useSubmissions Hooks", () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);
-      expect(apiClient.POST).toHaveBeenCalledWith("/api/v1/cooperative/submissions", expect.any(Object));
+      expect(apiClient.POST).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions",
+        expect.any(Object),
+      );
     });
 
     it("handles 409 duplicate submission error", async () => {
@@ -128,7 +140,9 @@ describe("useSubmissions Hooks", () => {
 
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect(result.current.error).toBeInstanceOf(DuplicateSubmissionError);
-      expect((result.current.error as DuplicateSubmissionError).submissionId).toBe("existing-sub-1");
+      expect((result.current.error as DuplicateSubmissionError).submissionId).toBe(
+        "existing-sub-1",
+      );
     });
   });
 
@@ -141,12 +155,17 @@ describe("useSubmissions Hooks", () => {
       } as any);
       vi.mocked(cacheGet).mockResolvedValueOnce(null);
 
-      const { result } = renderHook(() => useUpdateSubmissionMethod(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useUpdateSubmissionMethod(), {
+        wrapper: createWrapper(),
+      });
       result.current.mutate({ id: "sub-1", submissionMethod: "upload" });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data).toEqual(mockResponse);
-      expect(apiClient.PATCH).toHaveBeenCalledWith("/api/v1/cooperative/submissions/{id}/method", expect.any(Object));
+      expect(apiClient.PATCH).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions/{id}/method",
+        expect.any(Object),
+      );
     });
   });
 
@@ -155,12 +174,15 @@ describe("useSubmissions Hooks", () => {
       vi.mocked(apiClient.DELETE).mockResolvedValueOnce({
         error: undefined,
       } as any);
-      
+
       const { result } = renderHook(() => useDeleteSubmission(), { wrapper: createWrapper() });
       result.current.mutate({ id: "sub-1", verificationToken: "1234" });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(apiClient.DELETE).toHaveBeenCalledWith("/api/v1/cooperative/submissions/{id}", expect.any(Object));
+      expect(apiClient.DELETE).toHaveBeenCalledWith(
+        "/api/v1/cooperative/submissions/{id}",
+        expect.any(Object),
+      );
       expect(cacheDelete).toHaveBeenCalledWith("submissions", "submission-sub-1");
     });
   });

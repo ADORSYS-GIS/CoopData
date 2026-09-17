@@ -24,7 +24,7 @@ vi.mock("@/services/shared/authService", () => ({
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve([{ mock: true }]),
-    } as any)
+    } as any),
   ),
 }));
 
@@ -32,7 +32,7 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ mock: true }),
-  } as any)
+  } as any),
 );
 
 function createWrapper() {
@@ -56,7 +56,7 @@ describe("useCustomKpis", () => {
     } as any);
 
     const { result } = renderHook(() => useCustomKpis(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.kpis).toBeDefined();
   });
@@ -68,7 +68,7 @@ describe("useCustomKpis", () => {
     } as any);
 
     const { result } = renderHook(() => useCustomKpis(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isLoading).toBe(false));
   });
 });

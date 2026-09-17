@@ -50,7 +50,7 @@ describe("useExtractionJob", () => {
     expect(result.current.data).toEqual(mockJob);
     expect(apiClient.GET).toHaveBeenCalledWith(
       "/api/v1/cooperative/extraction-jobs/{id}",
-      expect.objectContaining({ params: { path: { id: "job-1" } } })
+      expect.objectContaining({ params: { path: { id: "job-1" } } }),
     );
     expect(cacheSet).toHaveBeenCalled();
   });

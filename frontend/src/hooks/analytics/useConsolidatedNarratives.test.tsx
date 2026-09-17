@@ -24,7 +24,7 @@ vi.mock("@/services/shared/authService", () => ({
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve([{ mock: true }]),
-    } as any)
+    } as any),
   ),
 }));
 
@@ -32,7 +32,7 @@ global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ mock: true }),
-  } as any)
+  } as any),
 );
 
 function createWrapper() {
@@ -57,7 +57,7 @@ describe("useMinistryNarratives", () => {
     } as any);
 
     const { result } = renderHook(() => useMinistryNarratives(2025), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toBeDefined();
   });
@@ -70,7 +70,7 @@ describe("useMinistryNarratives", () => {
     } as any);
 
     const { result } = renderHook(() => useMinistryNarratives(2025), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });

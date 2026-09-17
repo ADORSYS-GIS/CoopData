@@ -27,7 +27,7 @@ vi.mock("@/services/shared/authService", () => ({
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve([{ mock: true }]),
-    } as any)
+    } as any),
   ),
 }));
 
@@ -47,7 +47,7 @@ describe("useQuestionnaireTemplates", () => {
 
   it("fetches data successfully", async () => {
     const { result } = renderHook(() => useQuestionnaireTemplates(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 3000 });
     expect(result.current.data).toBeDefined();
   });
@@ -61,7 +61,7 @@ describe("useQuestionnaireTemplates", () => {
     } as any);
 
     const { result } = renderHook(() => useQuestionnaireTemplates(), { wrapper: createWrapper() });
-    
+
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
 });
