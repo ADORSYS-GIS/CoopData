@@ -296,10 +296,10 @@ The non-financial section uses a **SINGLE Excel workbook** (`coopdatafullworkboo
 # From the frontend/ directory
 
 # Interactive UI mode (recommended for debugging)
-npm run test:e2e:ui -- e2e/specs/route1-upload-sequential.spec.ts
+npm run test:e2e:route1:ui
 
 # Headless mode (CI / fast run)
-npm run test:e2e -- e2e/specs/route1-upload-sequential.spec.ts
+npm run test:e2e:route1
 ```
 
 > **Tip**: In the Playwright UI, click the Play ▶ button next to the **parent describe group** (not individual steps) to run all 7 steps automatically in sequence without manual intervention.
@@ -539,10 +539,10 @@ async function waitForExtractionToFinish(page: Page, submissionId: string, total
 # From the frontend/ directory
 
 # Interactive UI mode (recommended for debugging)
-npm run test:e2e:ui -- e2e/specs/route2-manual-sequential.spec.ts
+npm run test:e2e:route2:ui
 
 # Headless mode (CI / fast run)
-npm run test:e2e -- e2e/specs/route2-manual-sequential.spec.ts
+npm run test:e2e:route2
 ```
 
 > **Tip**: In the Playwright UI, click the Play ▶ button next to the **parent describe group** (not individual steps) to run all 7 steps automatically in sequence without manual intervention.
@@ -645,10 +645,10 @@ test.describe.serial("Route 2: Manual Entry Method - Sequential Flow", () => {
 # From the frontend/ directory
 
 # Interactive UI mode (recommended for debugging)
-npm run test:e2e:ui -- e2e/specs/route3-questionnaire-sequential.spec.ts
+npm run test:e2e:route3:ui
 
 # Headless mode (CI / fast run)
-npm run test:e2e -- e2e/specs/route3-questionnaire-sequential.spec.ts
+npm run test:e2e:route3
 ```
 
 > **Tip**: In the Playwright UI, click the Play ▶ button next to the **parent describe group** (not individual steps) to run all 7 steps automatically in sequence without manual intervention.
