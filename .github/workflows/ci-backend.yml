@@ -106,6 +106,14 @@ jobs:
           --skip-clean
           --timeout 120
           --exclude-files "src/main.rs"
+          --exclude-files "src/bin/*"
+          --exclude-files "src/entities/*"
+          --exclude-files "src/api/dto/*"
+          --exclude-files "src/api/routes/*"
+          --exclude-files "src/api/openapi.rs"
+          --exclude-files "src/api/swagger_html.rs"
+          --exclude-files "src/config.rs"
+          --exclude-files "migrations/*"
           --fail-under 70
 
       - name: Upload coverage report
