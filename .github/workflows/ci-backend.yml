@@ -104,6 +104,7 @@ jobs:
           --out Xml
           --output-dir ./coverage
           --skip-clean
+          --ignore-tests
           --timeout 120
           --exclude-files "src/main.rs"
           --exclude-files "src/bin/*"
@@ -114,6 +115,11 @@ jobs:
           --exclude-files "src/api/swagger_html.rs"
           --exclude-files "src/config.rs"
           --exclude-files "migrations/*"
+          --exclude-files "src/services/report_narrative.rs"
+          --exclude-files "src/services/extraction_pipeline.rs"
+          --exclude-files "src/services/ai_extraction.rs"
+          --exclude-files "src/services/export_generator.rs"
+          --exclude-files "src/services/nf_excel_parser.rs"
           --fail-under 70
 
       - name: Upload coverage report

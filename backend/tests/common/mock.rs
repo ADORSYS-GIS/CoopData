@@ -189,3 +189,146 @@ pub fn test_config() -> AppConfig {
         rate_limit_auth_window_secs: 60,
     }
 }
+
+use axum::{body::Body, http::{Method, Request}};
+use tower::util::ServiceExt;
+
+/// Cooperative group path embedded in coop-admin test tokens. Must match the
+/// path the `MockKeycloak` stub resolves (apex "test-apex", coop "test-coop").
+pub const COOP_GROUP_PATH: &str = "/test-apex/test-coop";
+
+/// Mints a structurally valid (unsigned-check) HS256 JWT carrying `roles`.
+/// The permissive `JwtValidator::new_for_testing` accepts any signature but
+/// still requires `iss == ""` (its test issuer) and `aud == "test-audience"`.
+fn mint_test_token(roles: &[&str]) -> String {
+    mint_token_with_claims(roles, None)
+}
+
+/// Same as [`mint_test_token`] but with an optional `cooperation` claim
+/// (group paths), required by handlers that resolve the caller's cooperative.
+fn mint_token_with_claims(roles: &[&str], cooperation: Option<Vec<String>>) -> String {
+    use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+
+    let claims = serde_json::json!({
+        "sub": uuid::Uuid::new_v4().to_string(),
+        "exp": 9999999999usize,
+        "iat": 0usize,
+        "iss": "",
+        "aud": "test-audience",
+        "preferred_username": "test-user",
+        "email": "user@test.example",
+        "realm_access": { "roles": roles },
+        "cooperation": cooperation.unwrap_or_default(),
+    });
+    encode(
+        &Header::new(Algorithm::HS256),
+        &claims,
+        &EncodingKey::from_secret(b"test-secret"),
+    )
+    .expect("mint test JWT")
+}
+
+pub struct TestRequestBuilder {
+    app: axum::Router,
+    method: Method,
+    uri: String,
+    body: Body,
+    headers: Vec<(String, String)>,
+    auth: Option<String>,
+}
+
+pub struct TestResponse {
+    status: u16,
+    body: axum::body::Bytes,
+}
+
+impl TestApp {
+    pub fn request(&self) -> TestRequestBuilder {
+        TestRequestBuilder {
+            app: coop_data_backend::api::routes::api::create_app(self.state.clone()),
+            method: Method::GET,
+            uri: "/".to_string(),
+            body: Body::empty(),
+            headers: vec![],
+            auth: None,
+        }
+    }
+}
+
+impl TestRequestBuilder {
+    pub fn method(mut self, method: Method) -> Self {
+        self.method = method;
+        self
+    }
+    
+    pub fn uri(mut self, uri: impl Into<String>) -> Self {
+        self.uri = uri.into();
+        self
+    }
+    
+    pub fn json<T: serde::Serialize>(mut self, payload: &T) -> Self {
+        self.headers.push(("Content-Type".to_string(), "application/json".to_string()));
+        self.body = Body::from(serde_json::to_vec(payload).unwrap());
+        self
+    }
+    
+    pub fn with_ministry_auth(mut self) -> Self {
+        self.auth = Some(format!("Bearer {}", mint_test_token(&["ministry"])));
+        self
+    }
+    
+    pub fn with_coop_admin_auth(mut self) -> Self {
+        self.auth = Some(format!(
+            "Bearer {}",
+            mint_token_with_claims(&["cooperative"], Some(vec![COOP_GROUP_PATH.into()]))
+        ));
+        self
+    }
+    
+    pub fn with_coop_group(mut self, path: &str) -> Self {
+        self.auth = Some(format!(
+            "Bearer {}",
+            mint_token_with_claims(&["cooperative"], Some(vec![path.into()]))
+        ));
+        self
+    }
+    
+    pub async fn send(self) -> TestResponse {
+        let mut req = Request::builder()
+            .method(self.method)
+            .uri(self.uri);
+            
+        for (k, v) in self.headers {
+            req = req.header(k, v);
+        }
+        
+        if let Some(auth) = self.auth {
+            req = req.header("Authorization", auth);
+        }
+        
+        let request = req.body(self.body).unwrap();
+        
+        let response = self.app.oneshot(request).await.unwrap();
+        let status = response.status().as_u16();
+        
+        // Use axum body extraction
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        
+        TestResponse { status, body }
+    }
+}
+
+impl TestResponse {
+    pub fn assert_status(self, expected: u16) -> Self {
+        assert_eq!(
+            self.status, expected,
+            "Status code mismatch: expected {}, got {}",
+            expected, self.status
+        );
+        self
+    }
+    
+    pub async fn json<T: serde::de::DeserializeOwned>(self) -> T {
+        serde_json::from_slice(&self.body).expect("Failed to deserialize response body as JSON")
+    }
+}

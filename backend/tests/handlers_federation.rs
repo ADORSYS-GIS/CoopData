@@ -14,18 +14,91 @@ async fn app() -> axum::Router {
     create_app(test.state)
 }
 
-// ─── Auth guard: file upload ──────────────────────────────────────────────────
+// ─── Auth guard: federation profile ──────────────────────────────────────────
 
 #[tokio::test]
-async fn upload_financial_statement_cooperative_no_auth_returns_401() {
+async fn get_federation_profile_no_auth_returns_401() {
+    let response = app()
+        .await
+        .oneshot(
+            Request::builder()
+                .method(Method::GET)
+                .uri("/api/v1/federation/profile")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn patch_federation_profile_no_auth_returns_401() {
+    let response = app()
+        .await
+        .oneshot(
+            Request::builder()
+                .method(Method::PATCH)
+                .uri("/api/v1/federation/profile")
+                .header("Content-Type", "application/json")
+                .body(Body::from(r#"{}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+// ─── Auth guard: federation stats ────────────────────────────────────────────
+
+#[tokio::test]
+async fn get_federation_stats_no_auth_returns_401() {
+    let response = app()
+        .await
+        .oneshot(
+            Request::builder()
+                .method(Method::GET)
+                .uri("/api/v1/federation/stats")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+// ─── Auth guard: federation apexes ───────────────────────────────────────────
+
+#[tokio::test]
+async fn list_federation_apexes_no_auth_returns_401() {
+    let response = app()
+        .await
+        .oneshot(
+            Request::builder()
+                .method(Method::GET)
+                .uri("/api/v1/federation/apexes")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn create_federation_apex_no_auth_returns_401() {
     let response = app()
         .await
         .oneshot(
             Request::builder()
                 .method(Method::POST)
-                .uri("/api/v1/cooperative/financial-statement/upload")
-                .header("Content-Type", "multipart/form-data; boundary=----boundary")
-                .body(Body::empty())
+                .uri("/api/v1/federation/apexes")
+                .header("Content-Type", "application/json")
+                .body(Body::from(r#"{"name":"New Apex"}"#))
                 .unwrap(),
         )
         .await
@@ -35,34 +108,14 @@ async fn upload_financial_statement_cooperative_no_auth_returns_401() {
 }
 
 #[tokio::test]
-async fn upload_financial_statement_apex_no_auth_returns_401() {
-    let response = app()
-        .await
-        .oneshot(
-            Request::builder()
-                .method(Method::POST)
-                .uri("/api/v1/apex/financial-statement/upload")
-                .header("Content-Type", "multipart/form-data; boundary=----boundary")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-}
-
-// ─── Auth guard: list/serve uploaded files ────────────────────────────────────
-
-#[tokio::test]
-async fn list_uploaded_files_cooperative_no_auth_returns_401() {
+async fn get_federation_apex_no_auth_returns_401() {
     let id = Uuid::new_v4();
     let response = app()
         .await
         .oneshot(
             Request::builder()
                 .method(Method::GET)
-                .uri(format!("/api/v1/cooperative/submissions/{id}/files"))
+                .uri(format!("/api/v1/federation/apexes/{id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -73,119 +126,14 @@ async fn list_uploaded_files_cooperative_no_auth_returns_401() {
 }
 
 #[tokio::test]
-async fn list_uploaded_files_apex_no_auth_returns_401() {
-    let id = Uuid::new_v4();
-    let response = app()
-        .await
-        .oneshot(
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/api/v1/apex/submissions/{id}/files"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-}
-
-#[tokio::test]
-async fn list_uploaded_files_federation_no_auth_returns_401() {
-    let id = Uuid::new_v4();
-    let response = app()
-        .await
-        .oneshot(
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!("/api/v1/federation/submissions/{id}/files"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-}
-
-// ─── Auth guard: serve single file ────────────────────────────────────────────
-
-#[tokio::test]
-async fn serve_uploaded_file_cooperative_no_auth_returns_401() {
-    let sub_id = Uuid::new_v4();
-    let file_id = Uuid::new_v4();
-    let response = app()
-        .await
-        .oneshot(
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!(
-                    "/api/v1/cooperative/submissions/{sub_id}/files/{file_id}"
-                ))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-}
-
-#[tokio::test]
-async fn serve_uploaded_file_apex_no_auth_returns_401() {
-    let sub_id = Uuid::new_v4();
-    let file_id = Uuid::new_v4();
-    let response = app()
-        .await
-        .oneshot(
-            Request::builder()
-                .method(Method::GET)
-                .uri(format!(
-                    "/api/v1/apex/submissions/{sub_id}/files/{file_id}"
-                ))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-}
-
-// ─── Auth guard: delete file ──────────────────────────────────────────────────
-
-#[tokio::test]
-async fn delete_uploaded_file_cooperative_no_auth_returns_401() {
-    let sub_id = Uuid::new_v4();
-    let file_id = Uuid::new_v4();
-    let response = app()
-        .await
-        .oneshot(
-            Request::builder()
-                .method(Method::DELETE)
-                .uri(format!(
-                    "/api/v1/cooperative/submissions/{sub_id}/files/{file_id}"
-                ))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-}
-
-#[tokio::test]
-async fn delete_financial_statement_cooperative_no_auth_returns_401() {
+async fn delete_federation_apex_no_auth_returns_401() {
     let id = Uuid::new_v4();
     let response = app()
         .await
         .oneshot(
             Request::builder()
                 .method(Method::DELETE)
-                .uri(format!(
-                    "/api/v1/cooperative/submissions/{id}/financial-statement"
-                ))
+                .uri(format!("/api/v1/federation/apexes/{id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -195,17 +143,16 @@ async fn delete_financial_statement_cooperative_no_auth_returns_401() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-// ─── Auth guard: non-financial upload ────────────────────────────────────────
+// ─── Auth guard: federation submissions ──────────────────────────────────────
 
 #[tokio::test]
-async fn upload_non_financial_cooperative_no_auth_returns_401() {
+async fn list_federation_submissions_no_auth_returns_401() {
     let response = app()
         .await
         .oneshot(
             Request::builder()
-                .method(Method::POST)
-                .uri("/api/v1/cooperative/non-financial/upload")
-                .header("Content-Type", "multipart/form-data; boundary=----boundary")
+                .method(Method::GET)
+                .uri("/api/v1/federation/submissions")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -216,14 +163,69 @@ async fn upload_non_financial_cooperative_no_auth_returns_401() {
 }
 
 #[tokio::test]
-async fn upload_non_financial_apex_no_auth_returns_401() {
+async fn get_federation_submission_no_auth_returns_401() {
+    let id = Uuid::new_v4();
+    let response = app()
+        .await
+        .oneshot(
+            Request::builder()
+                .method(Method::GET)
+                .uri(format!("/api/v1/federation/submissions/{id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn approve_federation_submission_no_auth_returns_401() {
+    let id = Uuid::new_v4();
     let response = app()
         .await
         .oneshot(
             Request::builder()
                 .method(Method::POST)
-                .uri("/api/v1/apex/non-financial/upload")
-                .header("Content-Type", "multipart/form-data; boundary=----boundary")
+                .uri(format!("/api/v1/federation/submissions/{id}/approve"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn return_federation_submission_no_auth_returns_401() {
+    let id = Uuid::new_v4();
+    let response = app()
+        .await
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri(format!("/api/v1/federation/submissions/{id}/return"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+// ─── Auth guard: federation bulk export ──────────────────────────────────────
+
+#[tokio::test]
+async fn export_federation_no_auth_returns_401() {
+    let response = app()
+        .await
+        .oneshot(
+            Request::builder()
+                .method(Method::GET)
+                .uri("/api/v1/federation/export")
                 .body(Body::empty())
                 .unwrap(),
         )

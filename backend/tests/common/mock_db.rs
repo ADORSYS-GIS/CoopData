@@ -149,6 +149,28 @@ impl MockKeycloak {
                         }
                     }
                 }),
+            )
+            // Keycloak user + credentials lookups (MFA status in `/me/security`).
+            // No OTP credential, no `mfa_enabled` attribute, no pending
+            // CONFIGURE_TOTP → both `mfa_enabled` and `mfa_configured` are false.
+            .route(
+                "/admin/realms/test-realm/users/{id}",
+                axum::routing::get(
+                    |axum::extract::Path(id): axum::extract::Path<String>| async move {
+                        axum::Json(serde_json::json!({
+                            "id": id,
+                            "username": "test-user",
+                            "email": "user@test.example",
+                            "enabled": true,
+                            "requiredActions": [],
+                            "attributes": {},
+                        }))
+                    },
+                ),
+            )
+            .route(
+                "/admin/realms/test-realm/users/{id}/credentials",
+                axum::routing::get(|| async { axum::Json(serde_json::json!([])) }),
             );
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
