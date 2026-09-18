@@ -323,9 +323,8 @@ async fn test_audit_service_initialization() {
 #[tokio::test]
 async fn test_audit_service_log_function_exists() {
     use coop_data_backend::services::AuditService;
-    use sea_orm::DatabaseConnection;
 
-    let db = DatabaseConnection::default();
+    let db = coop_data_backend::Database::default();
     let user_repo = coop_data_backend::UserRepository::new(db.clone());
     let audit_repo = coop_data_backend::AuditLogRepository::new(db.clone());
     let _service = AuditService::new(audit_repo, user_repo.clone());

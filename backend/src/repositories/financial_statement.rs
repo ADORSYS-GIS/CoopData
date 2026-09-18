@@ -1,6 +1,5 @@
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-};
+use crate::database::Database;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use uuid::Uuid;
 
 use crate::entities::financial_statement::{self, ActiveModel, Column, Entity};
@@ -9,12 +8,12 @@ use crate::repositories::db_query;
 
 #[derive(Clone)]
 pub struct FinancialStatementRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl FinancialStatementRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<financial_statement::Model>> {

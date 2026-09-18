@@ -162,7 +162,17 @@ export function ManualEntryWizard() {
 
   useEffect(() => {
     if (submission?.period_type) {
-      setPeriodType(submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
+      const normalizedPeriodType =
+        submission.period_type === "Yearly"
+          ? "YEARLY"
+          : submission.period_type === "Quarterly"
+            ? "QUARTERLY"
+            : submission.period_type === "Monthly"
+              ? "MONTHLY"
+              : submission.period_type === "SemiAnnual"
+                ? "SEMI_ANNUAL"
+                : (submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
+      setPeriodType(normalizedPeriodType);
     }
     if (submission?.period_value) {
       setPeriodValue(submission.period_value);
@@ -1019,10 +1029,21 @@ export function ManualEntryWizard() {
       }
     }
 
+    const mappedPeriodType =
+      periodType === "YEARLY"
+        ? "Yearly"
+        : periodType === "QUARTERLY"
+          ? "Quarterly"
+          : periodType === "MONTHLY"
+            ? "Monthly"
+            : periodType === "SEMI_ANNUAL"
+              ? "SemiAnnual"
+              : periodType;
+
     await submitFinancialStatement.mutateAsync({
       accounting_year: accountingYear,
       currency,
-      period_type: periodType,
+      period_type: mappedPeriodType,
       period_value: periodValue,
       line_items: lineItems,
     });

@@ -1,18 +1,19 @@
+use crate::database::Database;
 use crate::entities::{audit_log, AuditLogColumn};
 use crate::error::{AppError, AppResult};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect,
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    QuerySelect,
 };
 
 #[derive(Clone)]
 pub struct AuditLogRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl AuditLogRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn create(&self, model: audit_log::ActiveModel) -> AppResult<audit_log::Model> {

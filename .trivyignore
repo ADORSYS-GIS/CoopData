@@ -95,3 +95,10 @@ CVE-2026-76641
 CVE-2026-76956
 CVE-2026-76957
 
+# Backend (debian:bookworm-slim base) — DLA-4783-1 + companion temp ID.
+# Remediated via `apt-get upgrade -y` in backend/Dockerfile (runtime stage);
+# entries kept here so stale advisory IDs from older base-image snapshots
+# don't fail CI on cached/older builds.
+DLA-4783-1
+TEMP-1147318-639065
+

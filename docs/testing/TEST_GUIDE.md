@@ -2,8 +2,8 @@
 
 > **Purpose:** Complete reference for every developer on the CoopData project. This document tells you what tests exist, what each test verifies, why it exists, how to run them, and how to write new ones.
 >
-> **Last Updated:** September 2026
-> **Status:** 369 FE tests, 275 BE tests — all passing
+> **Last Updated:** September 18, 2026
+> **Status:** 573 FE tests, 752 BE tests (358 lib + 394 integration) — all passing. Zero real DB / external services in the test suite.
 
 ---
 
@@ -1142,7 +1142,11 @@ mod tests {
 | Redis | Use `memory://` URL | `CacheService::new("memory://")` |
 | File storage | `tempfile::TempDir` | `let temp = TempDir::new()` |
 | Database | SeaORM `MockDatabase` | `MockDatabase::new(...)` |
+| Keycloak (groups/users/MFA) | `MockKeycloak` in-process Axum stub | `MockKeycloak::start("test-apex", "test-apex", "test-coop").await` |
+| Auth tokens | Minted HS256 JWTs via fluent builder | `.with_ministry_auth()` / `.with_coop_admin_auth()` |
 | External APIs | `mockall` crate | `#[mockable]` trait with mock impl |
+
+**Rule: integration tests never touch a real database.** Handler tests that need DB access build the app on a `MockDatabase` (`TestApp::with_db(...)`) with query results queued in the exact pop order the handler issues them. Repo tests use `RecordingMock` to additionally assert on generated SQL and bind values (see `tests/common/mock_db.rs`).
 
 ---
 
@@ -1239,8 +1243,8 @@ cargo test --lib my_service::tests
 
 | Side | Tests | Coverage Tool | Threshold |
 |------|-------|-------------|----------|
-| Frontend | 369 | `@vitest/coverage-v8` (configured) | Not yet enforced |
-| Backend | 275 | None (Phase 4) | Not yet enforced |
+| Frontend | 573 (65 files) | `@vitest/coverage-v8` (configured) | Thresholds enforced in CI (see `unit-test-analysis.md` for current values) |
+| Backend | 752 (358 lib + 394 integration) | `cargo llvm-cov` (Phase 4) | Not yet enforced |
 
 ### Frontend Coverage Configuration
 

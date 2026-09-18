@@ -1,6 +1,7 @@
+use crate::database::Database;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection,
-    EntityTrait, QueryFilter, QueryOrder, Set, Statement,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, EntityTrait, QueryFilter,
+    QueryOrder, Set, Statement,
 };
 use uuid::Uuid;
 
@@ -11,12 +12,12 @@ use crate::repositories::db_query;
 
 #[derive(Clone)]
 pub struct SubmissionRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl SubmissionRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<submission::Model>> {
@@ -457,7 +458,7 @@ mod tests {
     /// isolation invariant (prevents `is_in([])` from matching anything).
     #[tokio::test]
     async fn find_by_id_for_cooperatives_empty_scope_returns_none() {
-        let repo = SubmissionRepository::new(DatabaseConnection::default());
+        let repo = SubmissionRepository::new(Database::default());
         let result = repo
             .find_by_id_for_cooperatives(Uuid::new_v4(), &[])
             .await

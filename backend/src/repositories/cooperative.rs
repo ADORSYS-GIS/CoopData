@@ -1,19 +1,18 @@
+use crate::database::Database;
 use crate::entities::{cooperative, CooperativeColumn};
 use crate::error::{AppError, AppResult};
 use crate::repositories::db_query;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct CooperativeRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl CooperativeRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_keycloak_id(&self, kc_id: &str) -> AppResult<Option<cooperative::Model>> {

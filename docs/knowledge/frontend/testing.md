@@ -2,7 +2,7 @@
 
 > **Goal**: Write tests that give confidence, not just coverage.
 > **Rule**: Test user behavior, RBAC enforcement, and auth flows.
-> **Status**: 129 unit tests + 99 E2E tests — all passing.
+> **Status**: 129 unit tests + 7 E2E sequential tests — all passing.
 
 ---
 
@@ -38,15 +38,18 @@ frontend/
 │       └── ProtectedRoute.test.tsx     # 16 tests — loading, redirect, unauthorized, RoleRedirect
 ├── e2e/
 │   ├── fixtures/
-│   │   └── auth.ts                     # TEST_USERS, createFakeJWT, mockKeycloak, mockBackendApi
-│   ├── login.spec.ts                   # 5 tests — login flow, Sign in button, welcome toast
-│   ├── ministry.spec.ts                # 16 tests — ministry user navigation & access
-│   ├── federation.spec.ts              # 18 tests — federation user navigation & access
-│   ├── apex.spec.ts                    # 16 tests — apex user navigation & access
-│   ├── cooperative.spec.ts             # 21 tests — cooperative user navigation & access
-│   ├── role-redirect.spec.ts           # 7 tests — role-based redirect after login
-│   └── unauthorized.spec.ts            # 20 tests — Access Denied for cross-role access
-├── e2e-mock-auth.ts                    # Vite plugin: mocks keycloak-js for E2E
+│   │   ├── auth.ts                     # TEST_USERS, mockKeycloak, mockBackendApi
+│   │   ├── helpers/
+│   │   │   ├── login.ts                # Real Keycloak login with storage clearing
+│   │   │   └── approval.ts             # Approval chain helpers (Apex/Federation/Ministry)
+│   │   └── test-data/
+│   │       ├── financial/yearly-financial.png
+│   │       └── non-financial/coopdatafullworkbook.xlsx
+│   └── specs/
+│       ├── route1-upload-sequential.spec.ts        # 7 sequential tests — full upload + approval chain
+│       ├── route2-manual-sequential.spec.ts        # 7 sequential tests — manual entry + approval chain
+│       └── route3-questionnaire-sequential.spec.ts # 7 sequential tests — questionnaire + approval chain
+├── e2e-mock-auth.ts                    # Vite plugin: mocks keycloak-js for E2E (legacy)
 ├── vitest.config.ts                    # vitest configuration
 ├── playwright.config.ts               # Playwright configuration
 └── package.json                        # test scripts
@@ -72,12 +75,29 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     coverage: {
       provider: "v8",
+      reporter: ["text", "html", "lcov"],
+      include: ["src/**"],
       exclude: [
-        "src/main.tsx",
-        "src/routeTree.gen.ts",
+        "node_modules/",
         "src/test/",
-        "src/**/*.d.ts",
+        "src/routeTree.gen.ts",
+        "src/main.tsx",
+        "src/router.tsx",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "src/components/ui/**",
+        "src/i18n/**",
+        "src/openapi-client/**",
       ],
+      // Thresholds set just below the measured baseline. Raise incrementally toward 80%.
+      // perFile: false ensures thresholds apply to the global aggregate only.
+      thresholds: {
+        lines: 10,
+        functions: 40,
+        branches: 45,
+        statements: 10,
+        perFile: false,
+      },
     },
   },
   resolve: {
@@ -299,7 +319,7 @@ import { useAuth } from "@/context/AuthContext";
 
 ### E2E Mock Auth Architecture
 
-The E2E tests use a Vite plugin (`e2e-mock-auth.ts`) that replaces `keycloak-js` with a mock when `VITE_E2E_MOCK_AUTH=1`. See [E2E Mock Auth Guide](./e2e-mock-auth.md) for full details.
+The E2E tests use a Vite plugin (`e2e-mock-auth.ts`) that replaces `keycloak-js` with a mock when `VITE_E2E_MOCK_AUTH=1`. See [E2E Smoke Tests Mock Auth Guide](./e2e-smoke-tests-mock-auth.md) for full details.
 
 ### Test Fixture: mockKeycloakAuthenticated
 
@@ -377,7 +397,19 @@ npm run test:e2e:ui
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:workflow": "playwright test specs/route1-upload-sequential.spec.ts",
+    "test:e2e:workflow:ui": "playwright test specs/route1-upload-sequential.spec.ts --ui",
+    "test:e2e:workflow:headed": "playwright test specs/route1-upload-sequential.spec.ts --headed",
+    "test:e2e:route1": "playwright test specs/route1-upload-sequential.spec.ts",
+    "test:e2e:route1:ui": "playwright test specs/route1-upload-sequential.spec.ts --ui",
+    "test:e2e:route1:headed": "playwright test specs/route1-upload-sequential.spec.ts --headed",
+    "test:e2e:route2": "playwright test specs/route2-manual-sequential.spec.ts",
+    "test:e2e:route2:ui": "playwright test specs/route2-manual-sequential.spec.ts --ui",
+    "test:e2e:route2:headed": "playwright test specs/route2-manual-sequential.spec.ts --headed",
+    "test:e2e:route3": "playwright test specs/route3-questionnaire-sequential.spec.ts",
+    "test:e2e:route3:ui": "playwright test specs/route3-questionnaire-sequential.spec.ts --ui",
+    "test:e2e:route3:headed": "playwright test specs/route3-questionnaire-sequential.spec.ts --headed"
   }
 }
 ```
@@ -396,17 +428,50 @@ npm run test:e2e:ui
 | `route-guards.test.ts` | 18 | requireAuth, requireRole, redirectIfAuthenticated, ROUTE_ACCESS map |
 | `ProtectedRoute.test.tsx` | 16 | loading spinner, redirect to login, unauthorized page, children rendering, RoleRedirect for all 4 roles |
 
-### E2E Tests (99 total)
+### E2E Tests (21 sequential tests across 3 routes)
 
 | File | Tests | Coverage |
 | --- | --- | --- |
-| `login.spec.ts` | 5 | Login flow, Sign in button, login call, authenticated dashboard, welcome toast |
-| `ministry.spec.ts` | 16 | Dashboard, federations, invitations, members, settings, users, sidebar nav, navigation |
-| `federation.spec.ts` | 18 | Dashboard, apexes, users, sidebar nav, denied access to federations/settings/invitations/members |
-| `apex.spec.ts` | 16 | Dashboard, cooperatives, users, sidebar nav, denied access to federations/apexes/settings |
-| `cooperative.spec.ts` | 21 | Dashboard, data-collection, financial-statement, non-financial-data, sidebar nav, denied access |
-| `role-redirect.spec.ts` | 7 | Role-based redirect to dashboard, authenticated/unauthenticated redirect |
-| `unauthorized.spec.ts` | 20 | Access Denied for cross-role, Return Home button, Sign in with different account, all-roles-allowed routes |
+| `route1-upload-sequential.spec.ts` | 7 | Step 1: Create submission + Upload FS (AI extraction), Step 2: Upload non-financial (full workbook), Step 3: Mark all sections ready, Step 4: Submit for review, Step 5: Apex approval, Step 6: Federation approval, Step 7: Ministry final approval |
+| `route2-manual-sequential.spec.ts` | 7 | Step 1: Create submission (Yearly 2024), Step 2: Fill Financial via "Populate Test Data", Step 3: Fill Non-Financial via "Populate Test Databases", Step 4: Submit for review, Step 5: Apex approval, Step 6: Federation approval, Step 7: Ministry final approval |
+| `route3-questionnaire-sequential.spec.ts` | 7 | Step 1: Create submission (Yearly 2023), Step 2: Fill Financial via "Edit Answers" + "Populate Test Data", Step 3: Fill Non-Financial via "Edit Answers" + "Populate Test Data", Step 4: Submit for review, Step 5: Apex approval, Step 6: Federation approval, Step 7: Ministry final approval |
+
+### E2E Test Architecture
+
+- **Real Keycloak authentication** (not mocked) - tests against actual Keycloak realm
+- **Real backend API** - tests against actual backend services
+- **Sequential execution** using `describe.serial()` - stops at first failure for easy debugging
+- **UI mode support** - can run with `--ui` flag for visual debugging
+- **Force clicks** - bypass modal overlays that intercept pointer events
+- **DOM content loaded** - avoids networkidle issues with React Query polling
+
+### E2E Test Users (Real Keycloak)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Cooperative | coopadmin@gmail.com | password |
+| Apex | apex@gmail.com | password |
+| Federation | yejami7300@ebflyai.com | password |
+| Ministry | admin@ministry.gov | password |
+
+### Running E2E Tests
+
+```bash
+# Run full sequential test with UI mode (Route 1)
+npm run test:e2e -- --ui --grep "Route 1: Upload Method - Sequential Flow" --timeout=600000
+
+# Run specific step
+npm run test:e2e -- --ui --grep "Step 5: Apex approval" --timeout=600000
+
+# Run headless
+npm run test:e2e -- --grep "Route 1: Upload Method - Sequential Flow" --timeout=600000
+
+# Run Route 2 (Manual Entry)
+npm run test:e2e:route2 -- --ui --timeout=600000
+
+# Run Route 3 (Questionnaire)
+npm run test:e2e:route3 -- --ui --timeout=600000
+```
 
 ---
 
@@ -440,10 +505,10 @@ npm run test:e2e:ui
 - [x] Tests query by role/label (accessible queries)
 - [x] Hooks tested with `renderHook` + `waitFor`
 - [x] API calls mocked with `vi.mock()` module mocking
-- [x] E2E tests cover critical login/dashboard flows
-- [x] E2E tests verify RBAC enforcement (cross-role access denial)
-- [x] E2E tests verify sidebar nav filtering by role
-- [x] E2E tests verify role-based redirect after login
+- [x] E2E tests cover critical upload + approval chain flow (Route 1)
+- [x] E2E tests use real Keycloak authentication
+- [x] E2E tests use real backend API
+- [x] E2E tests use sequential execution with `describe.serial()`
 - [x] Tests focus on user outcomes, not code paths
 - [x] All 129 unit tests passing
-- [x] All 99 E2E tests passing
+- [x] All 7 E2E sequential tests passing

@@ -108,10 +108,10 @@ Reference documentation for developers. Organized by technology.
 | [`data-types.md`](knowledge/frontend/data-types.md) | Type patterns |
 | [`security.md`](knowledge/frontend/security.md) | Security best practices |
 | [`testing.md`](knowledge/frontend/testing.md) | Frontend testing strategy |
-| [`rbac-testing.md`](knowledge/frontend/rbac-testing.md) | RBAC testing patterns |
+| [`rbac-smoke-testing.md`](knowledge/frontend/rbac-smoke-testing.md) | RBAC smoke testing patterns |
 | [`sync-manager.md`](knowledge/frontend/sync-manager.md) | Sync manager patterns |
 | [`offline-sync-conflict.md`](knowledge/frontend/offline-sync-conflict.md) | Offline sync conflict resolution |
-| [`e2e-mock-auth.md`](knowledge/frontend/e2e-mock-auth.md) | E2E mock auth setup |
+| [`e2e-smoke-tests-mock-auth.md`](knowledge/frontend/e2e-smoke-tests-mock-auth.md) | E2E smoke tests mock auth setup |
 | [`user_manual.md`](knowledge/frontend/user_manual.md) | User manual |
 | [`database.md`](knowledge/frontend/database.md) | Frontend database (Dexie/IndexedDB) |
 

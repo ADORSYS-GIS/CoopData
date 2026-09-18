@@ -180,7 +180,7 @@ impl JwtValidator {
             validation,
             issuer: String::new(),
             issuer_aliases: vec![],
-            valid_audiences: HashSet::new(),
+            valid_audiences: HashSet::from(["test-audience".to_string()]),
         }
     }
 
