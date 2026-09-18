@@ -151,13 +151,27 @@ jobs:
           ignore-unfixed: true
           trivyignores: .trivyignore
 
+      - name: Collect SARIF files
+        id: sarif-files
+        if: always()
+        run: |
+          files=""
+          for f in trivy-frontend-results.sarif trivy-backend-results.sarif; do
+            if [ -f "$f" ]; then
+              files="${files}${f}"$'\n'
+            fi
+          done
+          {
+            echo "files<<EOF"
+            echo -n "$files"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Upload Trivy results
-        if: steps.changes.outputs.frontend == 'true' || steps.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        if: always() && steps.sarif-files.outputs.files != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: |
-            ${{ (steps.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') && 'trivy-frontend-results.sarif' || '' }}
-            ${{ (steps.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') && 'trivy-backend-results.sarif' || '' }}
+          sarif_file: ${{ steps.sarif-files.outputs.files }}
           category: trivy-results
         continue-on-error: true
 
