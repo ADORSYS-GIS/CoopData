@@ -1,7 +1,9 @@
-# E2E Mock Auth Architecture
+# E2E Smoke Tests — Mock Auth Architecture
 
-> **Goal**: Mock Keycloak authentication for Playwright E2E tests without a running Keycloak instance.
+> **Goal**: Mock Keycloak authentication for Playwright E2E **smoke tests** without a running Keycloak instance.
 > **Approach**: Vite plugin that replaces `keycloak-js` with a mock module when `VITE_E2E_MOCK_AUTH=1`.
+>
+> **Scope**: This document covers the **mock-based smoke tests** (fast, isolated, no real backend). For **full-stack integration tests** using real Keycloak, see `frontend/e2e/fixtures/helpers/login.ts` and `docs/testing/full-stack-e2e-testing-plan.md`.
 
 ---
 

@@ -1,7 +1,9 @@
-# RBAC Testing Guide
+# RBAC Smoke Testing Guide
 
-> **Goal**: Comprehensive testing of the Role-Based Access Control system.
-> **Coverage**: 129 unit tests + 99 E2E tests verifying role enforcement, navigation filtering, and access denial.
+> **Goal**: Comprehensive testing of the Role-Based Access Control system using **mock auth** (fast smoke tests).
+> **Coverage**: 129 unit tests + 99 E2E smoke tests verifying role enforcement, navigation filtering, and access denial.
+>
+> **Scope**: This document covers **mock-based smoke tests**. For full-stack RBAC verification with real Keycloak, see `docs/testing/full-stack-e2e-testing-plan.md`.
 
 ---
 

@@ -67,3 +67,111 @@ pub fn run_sum_checks(coa: &[chart_of_account::Model], values: &ValuesMap) -> Ve
 
     flags
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::entities::enums::AccountCategory;
+
+    fn coa(code: i32, name: &str, formula: Option<&str>) -> chart_of_account::Model {
+        chart_of_account::Model {
+            account_code: code,
+            account_name: name.to_string(),
+            account_category: AccountCategory::Assets,
+            account_subcategory: None,
+            is_total: false,
+            is_section_header: false,
+            parent_code: None,
+            formula: formula.map(|f| f.to_string()),
+            display_order: 0,
+            baseline_active: true,
+            description: None,
+        }
+    }
+
+    fn values(pairs: &[(i32, i64)]) -> ValuesMap {
+        pairs.iter().map(|(c, v)| (*c, Decimal::from(*v))).collect()
+    }
+
+    #[test]
+    fn sum_check_passes_when_children_match_parent() {
+        let coa = vec![coa(1999, "Total Assets", Some("1101+1102"))];
+        let v = values(&[(1999, 300), (1101, 100), (1102, 200)]);
+        assert!(run_sum_checks(&coa, &v).is_empty());
+    }
+
+    #[test]
+    fn sum_check_within_tolerance_pct_passes() {
+        let coa = vec![coa(1999, "Total Assets", Some("1101+1102"))];
+        let v = values(&[(1999, 310), (1101, 100), (1102, 200)]);
+        assert!(run_sum_checks(&coa, &v).is_empty());
+    }
+
+    #[test]
+    fn sum_check_fails_beyond_tolerance() {
+        let coa = vec![coa(1999, "Total Assets", Some("1101+1102"))];
+        let v = values(&[(1999, 500), (1101, 100), (1102, 200)]);
+        let flags = run_sum_checks(&coa, &v);
+        assert_eq!(flags.len(), 1);
+        assert_eq!(flags[0].rule_id, "SUM-1999");
+        assert_eq!(flags[0].severity, "medium");
+        assert_eq!(flags[0].field_ref, Some("1999".to_string()));
+    }
+
+    #[test]
+    fn sum_check_prefers_signed_comparison_when_it_fits() {
+        let coa = vec![coa(1300, "Fixed Assets", Some("1301-1304"))];
+        let v = values(&[(1300, 800), (1301, 1000), (1304, 200)]);
+        assert!(run_sum_checks(&coa, &v).is_empty());
+    }
+
+    #[test]
+    fn sum_check_partial_when_some_children_missing() {
+        let coa = vec![coa(1999, "Total Assets", Some("1101+1102+1103"))];
+        let v = values(&[(1999, 500), (1101, 100), (1102, 200)]);
+        let flags = run_sum_checks(&coa, &v);
+        assert_eq!(flags.len(), 1);
+        assert!(flags[0].message.contains("partial check"));
+    }
+
+    #[test]
+    fn sum_check_skips_parent_missing_from_values() {
+        let coa = vec![coa(1999, "Total Assets", Some("1101+1102"))];
+        let v = values(&[(1101, 100), (1102, 200)]);
+        assert!(run_sum_checks(&coa, &v).is_empty());
+    }
+
+    #[test]
+    fn sum_check_skips_when_no_children_present() {
+        let coa = vec![coa(1999, "Total Assets", Some("1101+1102"))];
+        let v = values(&[(1999, 100)]);
+        assert!(run_sum_checks(&coa, &v).is_empty());
+    }
+
+    #[test]
+    fn entries_without_formula_are_ignored() {
+        let coa = vec![coa(1999, "Total Assets", None)];
+        let v = values(&[(1999, 500), (1101, 100), (1102, 200)]);
+        assert!(run_sum_checks(&coa, &v).is_empty());
+    }
+
+    #[test]
+    fn multiple_coa_entries_produce_multiple_flags() {
+        let coa = vec![
+            coa(1999, "Total Assets", Some("1101+1102")),
+            coa(2999, "Total Liabilities", Some("2101+2102")),
+        ];
+        let v = values(&[
+            (1999, 500),
+            (1101, 100),
+            (1102, 200),
+            (2999, 900),
+            (2101, 100),
+            (2102, 200),
+        ]);
+        let flags = run_sum_checks(&coa, &v);
+        assert_eq!(flags.len(), 2);
+        assert_eq!(flags[0].rule_id, "SUM-1999");
+        assert_eq!(flags[1].rule_id, "SUM-2999");
+    }
+}

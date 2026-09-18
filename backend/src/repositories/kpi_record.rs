@@ -1,16 +1,17 @@
+use crate::database::Database;
 use crate::entities::kpi_record;
 use crate::error::AppResult;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct KpiRecordRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl KpiRecordRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn create_many(&self, records: Vec<kpi_record::ActiveModel>) -> AppResult<()> {

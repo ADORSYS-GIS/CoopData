@@ -1,7 +1,6 @@
+use crate::database::Database;
 use rust_decimal::Decimal;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use uuid::Uuid;
 
 use crate::entities::balance_sheet_line_item::{self, ActiveModel, Column, Entity};
@@ -9,12 +8,12 @@ use crate::error::{AppError, AppResult};
 
 #[derive(Clone)]
 pub struct BalanceSheetLineItemRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl BalanceSheetLineItemRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_financial_statement(
