@@ -162,7 +162,7 @@ impl SubmissionRepository {
                 "SELECT COALESCE(MAX(CAST(SUBSTRING(reference FROM 'SUB-[0-9]+-([0-9]+)') AS INTEGER)), 0) + 1 AS next_seq FROM submissions WHERE reporting_year = $1 AND reference LIKE 'SUB-%'",
                 vec![sea_orm::Value::Int(Some(reporting_year))],
             );
-            let next_seq: i64 = self
+            let next_seq: i32 = self
                 .db
                 .query_one(stmt)
                 .await
