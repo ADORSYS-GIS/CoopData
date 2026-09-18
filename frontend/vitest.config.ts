@@ -23,6 +23,8 @@ export default defineConfig({
         "coverage/",
         "src/test/",
         "src/openapi-client/",
+        // Pages and routes are covered by the Playwright e2e suite (frontend/e2e/),
+        // not by unit tests, so they are excluded from unit coverage.
         "src/pages/**",
         "src/routes/**",
         "**/*.d.ts",
