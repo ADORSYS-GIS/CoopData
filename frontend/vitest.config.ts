@@ -32,7 +32,6 @@ export default defineConfig({
         "**/*.d.ts",
         "**/*.config.*",
         "src/routeTree.gen.ts",
-
       ],
       // Global coverage thresholds set to realistic levels based on current coverage
       // perFile: false ensures thresholds apply to the global aggregate only,
