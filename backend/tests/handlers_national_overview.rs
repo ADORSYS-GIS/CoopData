@@ -1,7 +1,7 @@
 mod common;
 
-use common::mock::TestApp;
 use axum::http::Method;
+use common::mock::TestApp;
 use sea_orm::{DatabaseBackend, MockDatabase};
 
 /// Empty-DB mock: the unconditional SELECTs the analytics handlers issue
@@ -13,12 +13,10 @@ async fn empty_analytics_app() -> TestApp {
             Vec::<coop_data_backend::entities::cooperative::Model>::new(),
             Vec::<coop_data_backend::entities::cooperative::Model>::new(),
         ])
-        .append_query_results(vec![
-            Vec::<coop_data_backend::entities::apex::Model>::new(),
-        ])
-        .append_query_results(vec![
-            Vec::<coop_data_backend::entities::non_financial_indicator_catalog::Model>::new(),
-        ])
+        .append_query_results(vec![Vec::<coop_data_backend::entities::apex::Model>::new()])
+        .append_query_results(vec![Vec::<
+            coop_data_backend::entities::non_financial_indicator_catalog::Model,
+        >::new()])
         .append_query_results(vec![
             Vec::<coop_data_backend::entities::custom_kpi::Model>::new(),
         ]);

@@ -46,25 +46,13 @@ async fn audit_log_find_by_filters_no_filters_issues_select_ordered_by_created_a
 
 #[tokio::test]
 async fn audit_log_find_by_filters_action_filter_adds_where_clause() {
-    let rm = RecordingMock::postgres()
-        .count(0)
-        .query_empty()
-        .build();
+    let rm = RecordingMock::postgres().count(0).query_empty().build();
     let app = rm.app().await;
 
     app.state
         .audit
         .repo()
-        .find_by_filters(
-            Some("login"),
-            None,
-            None,
-            None,
-            None,
-            None,
-            1,
-            10,
-        )
+        .find_by_filters(Some("login"), None, None, None, None, None, 1, 10)
         .await
         .expect("query ok");
 
@@ -75,38 +63,35 @@ async fn audit_log_find_by_filters_action_filter_adds_where_clause() {
         select_sql.contains("action"),
         "action filter missing: {select_sql}"
     );
-    let binds: Vec<String> = rm.statements().iter().flat_map(|s| {
-        use sea_orm::sea_query::Value;
-        let Some(v) = &s.values else { return vec![] };
-        v.0.iter().filter_map(|v| match v {
-            Value::String(Some(s)) => Some(s.to_string()),
-            _ => None,
-        }).collect::<Vec<_>>()
-    }).collect();
-    assert!(binds.contains(&"login".to_string()), "action bound: {binds:?}");
+    let binds: Vec<String> = rm
+        .statements()
+        .iter()
+        .flat_map(|s| {
+            use sea_orm::sea_query::Value;
+            let Some(v) = &s.values else { return vec![] };
+            v.0.iter()
+                .filter_map(|v| match v {
+                    Value::String(Some(s)) => Some(s.to_string()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    assert!(
+        binds.contains(&"login".to_string()),
+        "action bound: {binds:?}"
+    );
 }
 
 #[tokio::test]
 async fn audit_log_find_by_filters_resource_type_filter_binds_type() {
-    let rm = RecordingMock::postgres()
-        .count(0)
-        .query_empty()
-        .build();
+    let rm = RecordingMock::postgres().count(0).query_empty().build();
     let app = rm.app().await;
 
     app.state
         .audit
         .repo()
-        .find_by_filters(
-            None,
-            Some("cooperative"),
-            None,
-            None,
-            None,
-            None,
-            1,
-            10,
-        )
+        .find_by_filters(None, Some("cooperative"), None, None, None, None, 1, 10)
         .await
         .expect("query ok");
 
@@ -121,10 +106,7 @@ async fn audit_log_find_by_filters_resource_type_filter_binds_type() {
 #[tokio::test]
 async fn audit_log_find_by_filters_pagination_applies_offset() {
     // page 3, 5 per page → offset = (3-1) * 5 = 10
-    let rm = RecordingMock::postgres()
-        .count(20)
-        .query_empty()
-        .build();
+    let rm = RecordingMock::postgres().count(20).query_empty().build();
     let app = rm.app().await;
 
     app.state
@@ -135,7 +117,10 @@ async fn audit_log_find_by_filters_pagination_applies_offset() {
         .expect("query ok");
 
     let sqls = rm.sql();
-    let paginated_sql = sqls.iter().find(|s| s.contains("limit") || s.contains("offset")).expect("paginated SQL");
+    let paginated_sql = sqls
+        .iter()
+        .find(|s| s.contains("limit") || s.contains("offset"))
+        .expect("paginated SQL");
     assert!(
         paginated_sql.contains("limit"),
         "limit clause missing: {paginated_sql}"
@@ -162,7 +147,10 @@ async fn farm_coop_find_by_id_issues_select_by_pk() {
 
     let sql = &rm.sql()[0];
     assert!(sql.contains("select"), "must SELECT: {sql}");
-    assert!(sql.contains("farm_coop"), "must target farm_coop table: {sql}");
+    assert!(
+        sql.contains("farm_coop"),
+        "must target farm_coop table: {sql}"
+    );
     assert!(
         rm.binds(0).contains(&id.to_string()),
         "id bound: {:?}",
@@ -187,10 +175,7 @@ async fn farm_coop_find_by_id_returns_none_on_empty() {
 
 #[tokio::test]
 async fn farm_coop_find_by_cooperative_id_filters_on_cooperative_id() {
-    let rm = RecordingMock::postgres()
-        .count(0)
-        .query_empty()
-        .build();
+    let rm = RecordingMock::postgres().count(0).query_empty().build();
     let app = rm.app().await;
     let coop_id = Uuid::new_v4();
 
@@ -221,10 +206,7 @@ async fn farm_coop_find_by_cooperative_id_filters_on_cooperative_id() {
 
 #[tokio::test]
 async fn farm_coop_find_by_cooperative_id_with_submission_adds_submission_filter() {
-    let rm = RecordingMock::postgres()
-        .count(0)
-        .query_empty()
-        .build();
+    let rm = RecordingMock::postgres().count(0).query_empty().build();
     let app = rm.app().await;
     let coop_id = Uuid::new_v4();
     let sub_id = Uuid::new_v4();
@@ -256,7 +238,10 @@ async fn farm_coop_delete_issues_delete_by_id() {
 
     let sql = &rm.sql()[0];
     assert!(sql.contains("delete"), "must DELETE: {sql}");
-    assert!(sql.contains("farm_coop"), "must target farm_coop table: {sql}");
+    assert!(
+        sql.contains("farm_coop"),
+        "must target farm_coop table: {sql}"
+    );
 }
 
 #[tokio::test]

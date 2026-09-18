@@ -1,8 +1,8 @@
 mod common;
 
+use axum::http::Method;
 use common::mock::TestApp;
 use coop_data_backend::api::dto::{CreateOrganizationRequest, UpdateOrganizationLabelRequest};
-use axum::http::Method;
 use sea_orm::{DatabaseBackend, MockDatabase};
 use uuid::Uuid;
 
@@ -45,9 +45,10 @@ fn audit_row() -> audit_log::Model {
 
 #[tokio::test]
 async fn list_organization_labels_success() {
-    let mock = MockDatabase::new(DatabaseBackend::Postgres).append_query_results(vec![Vec::<
-        coop_data_backend::entities::organization_label::Model,
-    >::new()]);
+    let mock = MockDatabase::new(DatabaseBackend::Postgres)
+        .append_query_results(vec![Vec::<
+            coop_data_backend::entities::organization_label::Model,
+        >::new()]);
     let app = TestApp::with_db(mock.into_connection()).await;
     let response = app
         .request()
@@ -108,9 +109,10 @@ async fn update_organization_label_invalid_key() {
 
 #[tokio::test]
 async fn update_organization_label_not_found() {
-    let mock = MockDatabase::new(DatabaseBackend::Postgres).append_query_results(vec![Vec::<
-        coop_data_backend::entities::organization_label::Model,
-    >::new()]);
+    let mock = MockDatabase::new(DatabaseBackend::Postgres)
+        .append_query_results(vec![Vec::<
+            coop_data_backend::entities::organization_label::Model,
+        >::new()]);
     let app = TestApp::with_db(mock.into_connection()).await;
     let payload = UpdateOrganizationLabelRequest {
         label: "Updated".into(),
@@ -135,9 +137,8 @@ async fn update_organization_label_not_found() {
 
 #[tokio::test]
 async fn list_organizations_success() {
-    let mock = MockDatabase::new(DatabaseBackend::Postgres).append_query_results(vec![Vec::<
-        organization::Model,
-    >::new()]);
+    let mock = MockDatabase::new(DatabaseBackend::Postgres)
+        .append_query_results(vec![Vec::<organization::Model>::new()]);
     let app = TestApp::with_db(mock.into_connection()).await;
     let response = app
         .request()

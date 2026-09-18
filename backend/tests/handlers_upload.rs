@@ -140,9 +140,7 @@ async fn serve_uploaded_file_apex_no_auth_returns_401() {
         .oneshot(
             Request::builder()
                 .method(Method::GET)
-                .uri(format!(
-                    "/api/v1/apex/submissions/{sub_id}/files/{file_id}"
-                ))
+                .uri(format!("/api/v1/apex/submissions/{sub_id}/files/{file_id}"))
                 .body(Body::empty())
                 .unwrap(),
         )

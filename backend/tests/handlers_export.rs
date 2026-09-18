@@ -1,7 +1,7 @@
 mod common;
 
-use common::mock::TestApp;
 use axum::http::Method;
+use common::mock::TestApp;
 use uuid::Uuid;
 
 #[tokio::test]
@@ -9,7 +9,10 @@ async fn export_single_submission_requires_auth() {
     let app = TestApp::new().await;
     app.request()
         .method(Method::GET)
-        .uri(format!("/api/v1/cooperative/submissions/{}/export", Uuid::new_v4()))
+        .uri(format!(
+            "/api/v1/cooperative/submissions/{}/export",
+            Uuid::new_v4()
+        ))
         .send()
         .await
         .assert_status(401);
@@ -31,7 +34,10 @@ async fn get_submission_narratives_requires_auth() {
     let app = TestApp::new().await;
     app.request()
         .method(Method::GET)
-        .uri(format!("/api/v1/cooperative/submissions/{}/narratives", Uuid::new_v4()))
+        .uri(format!(
+            "/api/v1/cooperative/submissions/{}/narratives",
+            Uuid::new_v4()
+        ))
         .send()
         .await
         .assert_status(401);
@@ -42,7 +48,10 @@ async fn generate_submission_narratives_requires_ministry() {
     let app = TestApp::new().await;
     app.request()
         .method(Method::POST)
-        .uri(format!("/api/v1/cooperative/submissions/{}/narratives", Uuid::new_v4()))
+        .uri(format!(
+            "/api/v1/cooperative/submissions/{}/narratives",
+            Uuid::new_v4()
+        ))
         .with_coop_admin_auth() // not ministry
         .send()
         .await

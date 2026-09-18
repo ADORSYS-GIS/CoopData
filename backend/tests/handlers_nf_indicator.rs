@@ -1,8 +1,8 @@
 mod common;
 
+use axum::http::Method;
 use common::mock::TestApp;
 use common::mock_db::MockKeycloak;
-use axum::http::Method;
 use sea_orm::{DatabaseBackend, MockDatabase};
 use uuid::Uuid;
 
@@ -122,9 +122,10 @@ async fn list_catalog_requires_auth() {
 
 #[tokio::test]
 async fn list_catalog_success() {
-    let mock = MockDatabase::new(DatabaseBackend::Postgres).append_query_results(vec![Vec::<
-        coop_data_backend::entities::non_financial_indicator_catalog::Model,
-    >::new()]);
+    let mock = MockDatabase::new(DatabaseBackend::Postgres)
+        .append_query_results(vec![Vec::<
+            coop_data_backend::entities::non_financial_indicator_catalog::Model,
+        >::new()]);
     let app = TestApp::with_db(mock.into_connection()).await;
     let res = app
         .request()

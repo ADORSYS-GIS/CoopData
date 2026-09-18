@@ -158,7 +158,11 @@ async fn org_find_all_issues_select_with_order() {
     let rm = RecordingMock::postgres().query_empty().build();
     let app = rm.app().await;
 
-    app.state.organization_repo.find_all().await.expect("query ok");
+    app.state
+        .organization_repo
+        .find_all()
+        .await
+        .expect("query ok");
 
     let sql = &rm.sql()[0];
     assert!(sql.contains("order by"), "must order by name: {sql}");

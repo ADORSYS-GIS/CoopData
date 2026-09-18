@@ -34,7 +34,10 @@ async fn kpi_record_find_by_submission_issues_select_with_filter() {
 
     let sql = &rm.sql()[0];
     assert!(sql.contains("select"), "must SELECT: {sql}");
-    assert!(sql.contains("kpi_record"), "must target kpi_record table: {sql}");
+    assert!(
+        sql.contains("kpi_record"),
+        "must target kpi_record table: {sql}"
+    );
     assert!(sql.contains("submission_id"), "filter missing: {sql}");
     assert!(rm.binds(0).contains(&sub_id.to_string()));
 }
@@ -69,10 +72,7 @@ async fn kpi_record_find_by_cooperative_ids_issues_in_clause() {
 
     let sql = &rm.sql()[0];
     assert!(sql.contains("cooperative_id"), "filter missing: {sql}");
-    assert!(
-        sql.contains("in ("),
-        "missing IN clause: {sql}"
-    );
+    assert!(sql.contains("in ("), "missing IN clause: {sql}");
 }
 
 #[tokio::test]

@@ -1,8 +1,8 @@
 mod common;
 
+use axum::http::Method;
 use common::mock::TestApp;
 use common::mock_db::MockKeycloak;
-use axum::http::Method;
 use sea_orm::DatabaseConnection;
 
 #[tokio::test]

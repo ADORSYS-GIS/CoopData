@@ -138,15 +138,17 @@ mod tests {
 
         let claims = test_claims();
 
-        let result = service.log(
-            &claims,
-            "TEST_ACTION",
-            "test_resource",
-            Some("resource-123"),
-            None,
-            Some("127.0.0.1"),
-            Some("test-agent"),
-        ).await;
+        let result = service
+            .log(
+                &claims,
+                "TEST_ACTION",
+                "test_resource",
+                Some("resource-123"),
+                None,
+                Some("127.0.0.1"),
+                Some("test-agent"),
+            )
+            .await;
 
         assert!(result.is_ok());
         let log = result.unwrap();
@@ -171,14 +173,16 @@ mod tests {
             user_agent: Some("curl/7.68.0".into()),
         };
 
-        let result = service.log_with_context(
-            &ctx,
-            &claims,
-            "TEST_CTX",
-            "ctx_resource",
-            None,
-            Some(serde_json::json!({"key": "value"})),
-        ).await;
+        let result = service
+            .log_with_context(
+                &ctx,
+                &claims,
+                "TEST_CTX",
+                "ctx_resource",
+                None,
+                Some(serde_json::json!({"key": "value"})),
+            )
+            .await;
 
         assert!(result.is_ok());
         let log = result.unwrap();

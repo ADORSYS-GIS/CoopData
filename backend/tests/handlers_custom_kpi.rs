@@ -1,11 +1,11 @@
 mod common;
 
+use axum::http::Method;
 use common::mock::TestApp;
 use coop_data_backend::api::dto::custom_kpi::{
     CreateCustomKpiRequest, CustomKpiDto, EvaluateKpiRequest, UpdateCustomKpiRequest,
 };
 use coop_data_backend::entities::{audit_log, custom_kpi, non_financial_indicator_catalog, user};
-use axum::http::Method;
 use sea_orm::{DatabaseBackend, MockDatabase};
 
 /// Mock-backed app: 1 user lookup miss, then the KPI INSERT…RETURNING row,
@@ -175,7 +175,10 @@ async fn update_custom_kpi_requires_auth() {
 
     app.request()
         .method(Method::PUT)
-        .uri(format!("/api/v1/ministry/custom-kpis/{}", uuid::Uuid::new_v4()))
+        .uri(format!(
+            "/api/v1/ministry/custom-kpis/{}",
+            uuid::Uuid::new_v4()
+        ))
         .json(&payload)
         .send()
         .await
@@ -196,7 +199,10 @@ async fn update_custom_kpi_not_found() {
 
     app.request()
         .method(Method::PUT)
-        .uri(format!("/api/v1/ministry/custom-kpis/{}", uuid::Uuid::new_v4()))
+        .uri(format!(
+            "/api/v1/ministry/custom-kpis/{}",
+            uuid::Uuid::new_v4()
+        ))
         .with_ministry_auth()
         .json(&payload)
         .send()
@@ -211,7 +217,10 @@ async fn delete_custom_kpi_requires_auth() {
     let app = TestApp::new().await;
     app.request()
         .method(Method::DELETE)
-        .uri(format!("/api/v1/ministry/custom-kpis/{}", uuid::Uuid::new_v4()))
+        .uri(format!(
+            "/api/v1/ministry/custom-kpis/{}",
+            uuid::Uuid::new_v4()
+        ))
         .send()
         .await
         .assert_status(401);

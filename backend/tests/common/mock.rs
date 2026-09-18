@@ -190,7 +190,10 @@ pub fn test_config() -> AppConfig {
     }
 }
 
-use axum::{body::Body, http::{Method, Request}};
+use axum::{
+    body::Body,
+    http::{Method, Request},
+};
 use tower::util::ServiceExt;
 
 /// Cooperative group path embedded in coop-admin test tokens. Must match the
@@ -260,23 +263,24 @@ impl TestRequestBuilder {
         self.method = method;
         self
     }
-    
+
     pub fn uri(mut self, uri: impl Into<String>) -> Self {
         self.uri = uri.into();
         self
     }
-    
+
     pub fn json<T: serde::Serialize>(mut self, payload: &T) -> Self {
-        self.headers.push(("Content-Type".to_string(), "application/json".to_string()));
+        self.headers
+            .push(("Content-Type".to_string(), "application/json".to_string()));
         self.body = Body::from(serde_json::to_vec(payload).unwrap());
         self
     }
-    
+
     pub fn with_ministry_auth(mut self) -> Self {
         self.auth = Some(format!("Bearer {}", mint_test_token(&["ministry"])));
         self
     }
-    
+
     pub fn with_coop_admin_auth(mut self) -> Self {
         self.auth = Some(format!(
             "Bearer {}",
@@ -284,7 +288,7 @@ impl TestRequestBuilder {
         ));
         self
     }
-    
+
     pub fn with_coop_group(mut self, path: &str) -> Self {
         self.auth = Some(format!(
             "Bearer {}",
@@ -292,28 +296,28 @@ impl TestRequestBuilder {
         ));
         self
     }
-    
+
     pub async fn send(self) -> TestResponse {
-        let mut req = Request::builder()
-            .method(self.method)
-            .uri(self.uri);
-            
+        let mut req = Request::builder().method(self.method).uri(self.uri);
+
         for (k, v) in self.headers {
             req = req.header(k, v);
         }
-        
+
         if let Some(auth) = self.auth {
             req = req.header("Authorization", auth);
         }
-        
+
         let request = req.body(self.body).unwrap();
-        
+
         let response = self.app.oneshot(request).await.unwrap();
         let status = response.status().as_u16();
-        
+
         // Use axum body extraction
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+
         TestResponse { status, body }
     }
 }
@@ -327,7 +331,7 @@ impl TestResponse {
         );
         self
     }
-    
+
     pub async fn json<T: serde::de::DeserializeOwned>(self) -> T {
         serde_json::from_slice(&self.body).expect("Failed to deserialize response body as JSON")
     }

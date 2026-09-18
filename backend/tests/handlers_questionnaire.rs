@@ -255,7 +255,10 @@ async fn questionnaire_template_repo_find_active_filters_by_type_and_active_flag
         sql.contains("questionnaire_type"),
         "type filter missing: {sql}"
     );
-    assert!(sql.contains("is_active"), "active flag filter missing: {sql}");
+    assert!(
+        sql.contains("is_active"),
+        "active flag filter missing: {sql}"
+    );
     let binds = rm.binds(0);
     assert!(
         binds.contains(&"governance".to_string()),
@@ -298,4 +301,3 @@ async fn questionnaire_template_repo_delete_missing_returns_not_found() {
 
     assert!(matches!(err, AppError::NotFound(_)));
 }
-

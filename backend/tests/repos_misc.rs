@@ -21,9 +21,7 @@ async fn assessment_find_by_id_issues_select() {
     let rm = RecordingMock::postgres().query_empty().build();
     let repo = AssessmentRepository::new(rm.db.clone());
 
-    repo.find_by_id(Uuid::new_v4())
-        .await
-        .expect("query ok");
+    repo.find_by_id(Uuid::new_v4()).await.expect("query ok");
 
     let sql = &rm.sql()[0];
     assert!(sql.contains("select"), "must SELECT: {sql}");
@@ -50,18 +48,17 @@ async fn chart_of_accounts_find_all_issues_select_ordered() {
     let rm = RecordingMock::postgres().query_empty().build();
     let app = rm.app().await;
 
-    app.state
-        .coa_repo
-        .find_all()
-        .await
-        .expect("query ok");
+    app.state.coa_repo.find_all().await.expect("query ok");
 
     let sql = &rm.sql()[0];
     assert!(
         sql.contains("order by"),
         "must order by display_order: {sql}"
     );
-    assert!(sql.contains("chart_of_accounts"), "must target table: {sql}");
+    assert!(
+        sql.contains("chart_of_accounts"),
+        "must target table: {sql}"
+    );
 }
 
 #[tokio::test]
@@ -128,7 +125,10 @@ async fn flag_find_by_submission_issues_select() {
         .expect("query ok");
 
     let sql = &rm.sql()[0];
-    assert!(sql.contains("submission_id"), "must filter by submission: {sql}");
+    assert!(
+        sql.contains("submission_id"),
+        "must filter by submission: {sql}"
+    );
 }
 
 #[tokio::test]
