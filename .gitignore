@@ -84,6 +84,9 @@ terraform-ec2/*.tfvars
 # k6 test results (large JSON files)
 results/
 
+# Test coverage output
+frontend/coverage/
+
 # Graphify-out
 graphify-out/
 
