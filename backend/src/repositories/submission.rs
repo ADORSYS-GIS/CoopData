@@ -169,7 +169,9 @@ impl SubmissionRepository {
                 .map_err(crate::error::AppError::from)?;
             let next_seq: i32 = row
                 .ok_or_else(|| {
-                    crate::error::AppError::NotFound("next_reference_seq returned no row".into())
+                    crate::error::AppError::InternalServerError(
+                        "next_reference_seq returned no row".into(),
+                    )
                 })?
                 .try_get_by_index(0)
                 .map_err(crate::error::AppError::from)?;
@@ -463,8 +465,10 @@ mod tests {
         assert!(result.is_none());
     }
 
-    /// Regression test for the reference-sequence decode bug: `next_reference_seq`
-    /// must return the highest existing `SUB-{year}-{seq}` + 1, not a hardcoded 1.
+    /// Verifies the aggregate behaviour of `next_reference_seq`: it must return the
+    /// highest existing `SUB-{year}-{seq}` + 1, not a hardcoded 1. This guards the
+    /// MAX+1 aggregation, not the int4→i32 column decode (which cannot be exercised
+    /// without a live Postgres returning an int4 column).
     ///
     /// Requires a live Postgres with the schema applied. Skipped by default (CI has
     /// no database). Run with:
@@ -472,7 +476,7 @@ mod tests {
     ///     cargo test --bin coop-data-backend next_reference_seq -- --ignored
     #[tokio::test]
     #[ignore]
-    async fn next_reference_seq_advances_past_existing_reference() {
+    async fn next_reference_seq_returns_highest_existing_plus_one() {
         use sea_orm::ConnectionTrait;
 
         let url = std::env::var("DATABASE_URL")

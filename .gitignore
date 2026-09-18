@@ -86,7 +86,6 @@ results/
 
 # Test coverage output
 frontend/coverage/
-backend/tarpaulin.toml
 
 # Graphify-out
 graphify-out/
