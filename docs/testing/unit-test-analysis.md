@@ -25,8 +25,8 @@ This document is the living reference for Issue #109. It maps every untested mod
 | Dimension | Frontend | Backend |
 |---|---|---|
 | **Source files** | ~200 components/hooks/lib | 158 `.rs` files |
-| **Test files** | 64 | 19 integration + 38 inline modules |
-| **Total tests** | 565 (verified green) | 586 (verified green: 356 inline + 230 integration) |
+| **Test files** | 65 | 37 integration + 38 inline modules |
+| **Total tests** | 573 (verified green) | 752 (verified green: 358 inline + 394 integration) |
 | **Framework** | Vitest + Testing Library | tokio::test + tower |
 | **Coverage tool** | `@vitest/coverage-v8` (configured, `src/**` only) | `cargo-tarpaulin` (installed in CI) |
 | **Coverage enforced in CI** | ✅ Yes (thresholds: lines 14, functions 55, branches 65, statements 14, `perFile: false`) | ✅ Yes (`--fail-under 70`) |
@@ -77,11 +77,11 @@ This document is the living reference for Issue #109. It maps every untested mod
   - Both upload coverage reports as artifacts (retention: 30 days)
 - **Counts after Sprint 4**: BE 586 total (356 inline + 230 integration). `cargo clippy -D warnings` clean.
 
-### Verified State Snapshot (Sept 17, 2026)
+### Verified State Snapshot (Sept 18, 2026)
 
 | Dimension | Frontend | Backend |
 |---|---|---|
-| **Tests passing** | 565 / 64 files (vitest run: green) | 586 (`cargo test`: 356 inline + 230 integration, green) |
+| **Tests passing** | 573 / 65 files (vitest run: green) | 752 (`cargo test`: 358 inline + 394 integration, green) |
 | **Measured coverage** | 14.73% lines (v8, `src/**` only) | 17.24% lines (cargo-tarpaulin) |
 | **Coverage enforced in CI** | ✅ Yes — `vitest.config.ts` thresholds (lines: 14, functions: 55, branches: 65, statements: 14, `perFile: false`) | ✅ Yes — `cargo-tarpaulin --fail-under 70` |
 | **CI config** | `.github/workflows/ci-frontend.yml` L131 (`npm run coverage`) | `.github/workflows/ci-backend.yml` L95 (`cargo tarpaulin --fail-under 70`) |
@@ -554,13 +554,23 @@ async fn submission_repo_find_by_id_returns_none_when_not_found() {
 
 ```rust
 // tests/handlers_submission.rs — follow existing pattern in tests/common/mock.rs
+use tower::util::ServiceExt;
+
 #[tokio::test]
 async fn create_submission_requires_auth() {
-    let app = TestApp::build().await;
-    let response = app.post("/api/submissions").json(&body).send().await;
+    let app = TestApp::new().await; // no DB calls expected
+    let response = app
+        .request()
+        .method(axum::http::Method::POST)
+        .uri("/api/v1/submissions")
+        .json(&body)
+        .send()
+        .await;
     response.assert_status(StatusCode::UNAUTHORIZED);
 }
 ```
+
+> For handler tests that hit the database, use `TestApp::with_db(...)` (SeaORM `MockDatabase`) and queue results in the exact pop order the handler issues them — integration tests never touch a real DB. See `tests/common/mock.rs` and the backend mocking table in `TEST_GUIDE.md` §6.
 
 ---
 
