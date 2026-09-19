@@ -184,7 +184,10 @@ impl CacheService {
                     Ok(c) => c,
                     Err(_) => return false,
                 };
-                redis::cmd("PING").query_async::<String>(&mut conn).await.is_ok()
+                redis::cmd("PING")
+                    .query_async::<String>(&mut conn)
+                    .await
+                    .is_ok()
             }
             CacheBackend::Memory(_) => true,
         }
