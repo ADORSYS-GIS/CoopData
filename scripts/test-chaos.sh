@@ -46,6 +46,12 @@ done
 
 PASS=true
 
+# Always clean up chaos-test rows, even if the script aborts mid-way.
+cleanup() {
+    "${PG[@]}" -c "DELETE FROM audit_logs WHERE actor_keycloak_id='chaos-test';" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
 # ── Helpers ────────────────────────────────────────────────────────────────
 # Returns the "status" field from the health endpoint (healthy|degraded).
 health_status() {
@@ -66,7 +72,18 @@ wait_for_health() {
     for i in $(seq 1 60); do
         local st
         st=$(health_status)
-        if [[ "$st" == "$want" ]]; then
+        local dep_state
+        dep_state=$(health_check "$dep")
+        # For "healthy", the aggregate status must be healthy. For "degraded",
+        # the specific dependency must be down (not just any check failing).
+        if [[ "$want" == "healthy" && "$st" == "healthy" ]]; then
+            return 0
+        fi
+        if [[ "$want" == "degraded" && "$dep_state" == "down" ]]; then
+            return 0
+        fi
+        # For "recovered", the specific dependency must be back to ok.
+        if [[ "$want" == "recovered" && "$dep_state" == "ok" ]]; then
             return 0
         fi
         [[ $i -eq 60 ]] && return 1
@@ -136,7 +153,7 @@ info "Restoring postgres..."
 "${COMPOSE[@]}" start postgres
 
 info "Waiting for backend to recover..."
-if wait_for_health "healthy" "database"; then
+if wait_for_health "recovered" "database"; then
     ok "Backend recovered automatically after DB restore (database=ok)"
 else
     fail "Backend did not recover after DB restore"
@@ -158,7 +175,7 @@ fi
 
 # 2. Atomicity: a rolled-back transaction must leave no trace.
 info "Testing atomicity (rollback leaves no trace)..."
-"${PG[@]}" -c "BEGIN; INSERT INTO audit_logs (actor_keycloak_id, action, resource_type) VALUES ('chaos-test','rollback','chaos'); ROLLBACK;" >/dev/null 2>&1
+"${PG[@]}" -c "BEGIN; INSERT INTO audit_logs (actor_keycloak_id, action, resource_type) VALUES ('chaos-test','rollback','chaos'); ROLLBACK;" >/dev/null 2>&1 || true
 ROLLBACK_ROWS=$("${PG[@]}" -c "SELECT count(*) FROM audit_logs WHERE actor_keycloak_id='chaos-test';" 2>/dev/null | tr -d '[:space:]')
 if [[ "$ROLLBACK_ROWS" == "0" ]]; then
     ok "Rolled-back transaction left no trace (0 rows)"
@@ -169,7 +186,7 @@ fi
 
 # 3. A committed transaction must persist (write path works after recovery).
 info "Testing commit persists after recovery..."
-"${PG[@]}" -c "BEGIN; INSERT INTO audit_logs (actor_keycloak_id, action, resource_type) VALUES ('chaos-test','commit','chaos'); COMMIT;" >/dev/null 2>&1
+"${PG[@]}" -c "BEGIN; INSERT INTO audit_logs (actor_keycloak_id, action, resource_type) VALUES ('chaos-test','commit','chaos'); COMMIT;" >/dev/null 2>&1 || true
 COMMIT_ROWS=$("${PG[@]}" -c "SELECT count(*) FROM audit_logs WHERE actor_keycloak_id='chaos-test';" 2>/dev/null | tr -d '[:space:]')
 if [[ "$COMMIT_ROWS" == "1" ]]; then
     ok "Committed transaction persisted (1 row)"
@@ -178,9 +195,7 @@ else
     PASS=false
 fi
 
-# Clean up the test row so we leave the DB as we found it.
-"${PG[@]}" -c "DELETE FROM audit_logs WHERE actor_keycloak_id='chaos-test';" >/dev/null 2>&1
-info "Cleaned up test rows"
+# Test rows are removed by the cleanup trap on exit.
 
 # ── Scenario 2: Redis failure ──────────────────────────────────────────────
 header "SCENARIO 2 - Redis failure"
@@ -199,7 +214,7 @@ info "Restoring redis..."
 "${COMPOSE[@]}" start redis
 
 info "Waiting for backend to recover..."
-if wait_for_health "healthy" "redis"; then
+if wait_for_health "recovered" "redis"; then
     ok "Backend recovered automatically after Redis restore (redis=ok)"
 else
     fail "Backend did not recover after Redis restore"
@@ -224,7 +239,7 @@ if [[ "$TEST_KEYCLOAK" == "1" ]]; then
     "${COMPOSE[@]}" start keycloak
 
     info "Waiting for backend to recover..."
-    if wait_for_health "healthy" "keycloak"; then
+    if wait_for_health "recovered" "keycloak"; then
         ok "Backend recovered automatically after Keycloak restore (keycloak=ok)"
     else
         fail "Backend did not recover after Keycloak restore"

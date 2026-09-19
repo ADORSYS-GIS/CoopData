@@ -112,12 +112,19 @@ macro_rules! check_response {
 
 impl KeycloakService {
     pub fn new(config: &AppConfig) -> Self {
+        // Builder failure is effectively impossible with fixed valid timeouts,
+        // but avoid a hard panic per repo error-handling rules. Fall back to a
+        // default client (no timeout) and log a warning if it ever happens.
+        let client = Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .timeout(std::time::Duration::from_secs(15))
+            .build()
+            .unwrap_or_else(|e| {
+                warn!(error = %e, "Failed to build Keycloak HTTP client with timeouts; using default client");
+                Client::new()
+            });
         Self {
-            client: Client::builder()
-                .connect_timeout(std::time::Duration::from_secs(5))
-                .timeout(std::time::Duration::from_secs(15))
-                .build()
-                .expect("failed to build Keycloak HTTP client"),
+            client,
             base_url: config.keycloak_url.clone(),
             realm: config.keycloak_realm.clone(),
             client_id: config.keycloak_client_id.clone(),
