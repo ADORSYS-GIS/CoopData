@@ -53,20 +53,24 @@ impl CacheService {
         let entity = key.split(':').next().unwrap_or("unknown");
         let result = match &self.backend {
             CacheBackend::Redis(client) => {
-                let mut conn = client.get_multiplexed_async_connection().await?;
-                let result: Option<String> = conn.get(key).await?;
-                match result {
-                    Some(json) => {
-                        let value = serde_json::from_str(&json).map_err(|e| {
-                            redis::RedisError::from((
-                                redis::ErrorKind::TypeError,
-                                "deserialization error",
-                                e.to_string(),
-                            ))
-                        })?;
-                        Ok(Some(value))
+                let conn = client.get_multiplexed_async_connection().await;
+                match conn {
+                    Err(e) => Err(e),
+                    Ok(mut conn) => {
+                        let fetched: Result<Option<String>, redis::RedisError> =
+                            conn.get(key).await;
+                        match fetched {
+                            Ok(Some(json)) => serde_json::from_str(&json).map(Some).map_err(|e| {
+                                redis::RedisError::from((
+                                    redis::ErrorKind::TypeError,
+                                    "deserialization error",
+                                    e.to_string(),
+                                ))
+                            }),
+                            Ok(None) => Ok(None),
+                            Err(e) => Err(e),
+                        }
                     }
-                    None => Ok(None),
                 }
             }
             CacheBackend::Memory(map) => {
@@ -95,7 +99,10 @@ impl CacheService {
                 counter!("coopdata_cache_misses_total", "entity" => entity.to_string())
                     .increment(1);
             }
-            Err(_) => {}
+            Err(_) => {
+                counter!("coopdata_cache_errors_total", "entity" => entity.to_string())
+                    .increment(1);
+            }
         }
 
         result
@@ -165,6 +172,24 @@ impl CacheService {
                 let lock = map.lock().unwrap();
                 Ok(lock.contains_key(key))
             }
+        }
+    }
+
+    /// Liveness probe for the cache backend. Returns `true` when the backing
+    /// store is reachable. For the in-memory backend this is always true.
+    pub async fn ping(&self) -> bool {
+        match &self.backend {
+            CacheBackend::Redis(client) => {
+                let mut conn = match client.get_multiplexed_async_connection().await {
+                    Ok(c) => c,
+                    Err(_) => return false,
+                };
+                redis::cmd("PING")
+                    .query_async::<String>(&mut conn)
+                    .await
+                    .is_ok()
+            }
+            CacheBackend::Memory(_) => true,
         }
     }
 
