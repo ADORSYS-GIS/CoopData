@@ -8,6 +8,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: coopdata-postgres
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -28,6 +29,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: coopdata-redis
+    restart: unless-stopped
     ports:
       - "6385:6379"
     volumes:
@@ -60,6 +62,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.4.6
     container_name: coopdata-keycloak
+    restart: unless-stopped
     command: start-dev --import-realm --features=organization
     env_file:
       - .env
@@ -136,6 +139,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: coopdata-backend
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -192,6 +196,7 @@ services:
         VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
         VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
     container_name: coopdata-frontend
+    restart: unless-stopped
     ports:
       - "5174:80"
     depends_on:
@@ -200,6 +205,7 @@ services:
   minio:
     image: minio/minio:latest
     container_name: coopdata-minio
+    restart: unless-stopped
     command: server /data --console-address ":9001"
     env_file:
       - .env

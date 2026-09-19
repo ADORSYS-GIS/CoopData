@@ -53,7 +53,14 @@ impl CacheService {
         let entity = key.split(':').next().unwrap_or("unknown");
         let result = match &self.backend {
             CacheBackend::Redis(client) => {
-                let mut conn = client.get_multiplexed_async_connection().await?;
+                let mut conn = match client.get_multiplexed_async_connection().await {
+                    Ok(c) => c,
+                    Err(e) => {
+                        counter!("coopdata_cache_errors_total", "entity" => entity.to_string())
+                            .increment(1);
+                        return Err(e);
+                    }
+                };
                 let result: Option<String> = conn.get(key).await?;
                 match result {
                     Some(json) => {
@@ -165,6 +172,21 @@ impl CacheService {
                 let lock = map.lock().unwrap();
                 Ok(lock.contains_key(key))
             }
+        }
+    }
+
+    /// Liveness probe for the cache backend. Returns `true` when the backing
+    /// store is reachable. For the in-memory backend this is always true.
+    pub async fn ping(&self) -> bool {
+        match &self.backend {
+            CacheBackend::Redis(client) => {
+                let mut conn = match client.get_multiplexed_async_connection().await {
+                    Ok(c) => c,
+                    Err(_) => return false,
+                };
+                redis::cmd("PING").query_async::<String>(&mut conn).await.is_ok()
+            }
+            CacheBackend::Memory(_) => true,
         }
     }
 
