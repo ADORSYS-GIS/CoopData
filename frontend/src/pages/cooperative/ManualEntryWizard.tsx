@@ -526,8 +526,32 @@ export function ManualEntryWizard() {
     }
   }, [existingFarm]);
 
+  // Months (or the single annual period 0) that belong to the selected reporting
+  // period. Mirrors the column logic of FinancialExcelGrid so only in-period
+  // data is submitted instead of all 12 months.
+  const activeMonths = useMemo(() => {
+    if (periodType === "YEARLY") return [0];
+    const seq: number[] = [];
+    const start =
+      typeof startMonth === "number" && startMonth >= 1 && startMonth <= 12 ? startMonth : 1;
+    for (let i = 0; i < 12; i++) seq.push(((start - 1 + i) % 12) + 1);
+    if (periodType === "QUARTERLY") {
+      const qIdx =
+        periodValue === "Q2" ? 1 : periodValue === "Q3" ? 2 : periodValue === "Q4" ? 3 : 0;
+      return seq.slice(qIdx * 3, qIdx * 3 + 3);
+    }
+    if (periodType === "SEMI_ANNUAL") {
+      return periodValue === "H2" ? seq.slice(6, 12) : seq.slice(0, 6);
+    }
+    if (periodType === "MONTHLY" && periodValue && periodValue !== "FULL_YEAR") {
+      const m = Number(periodValue);
+      if (!isNaN(m) && m >= 1 && m <= 12) return [m];
+    }
+    return seq;
+  }, [periodType, periodValue, startMonth]);
+
   // Snapshot computations for the final month or annual total (num: 0) of the period
-  const finalMonth = periodType === "YEARLY" ? 0 : accountingYear === "fiscal" ? 6 : 12;
+  const finalMonth = activeMonths[activeMonths.length - 1];
   const getVal = useCallback(
     (code: number, m?: number) => {
       const targetMonth = m !== undefined ? m : finalMonth;
@@ -593,6 +617,34 @@ export function ManualEntryWizard() {
       }
     },
     [members, savings, loans, fixedDeposits, farmCoop],
+  );
+
+  // A step is complete only when its required data has been fully entered.
+  // The financial step requires every active account cell of the period to be filled.
+  const isStepComplete = useCallback(
+    (stepId: WizardStep): boolean => {
+      switch (stepId) {
+        case "financial":
+          return activeMonths.every((m) =>
+            ACTIVE_ACCOUNT_CODES.every((code) => financialData[code]?.[m] !== undefined),
+          );
+        case "members":
+          return members.length > 0;
+        case "savings":
+          return savings.length > 0;
+        case "loans":
+          return loans.length > 0;
+        case "deposits":
+          return fixedDeposits.length > 0;
+        case "farm":
+          return !!farmCoop.cooperativeType;
+        case "review":
+          return true;
+        default:
+          return false;
+      }
+    },
+    [activeMonths, financialData, members, savings, loans, fixedDeposits, farmCoop],
   );
 
   const handleFinancialCellChange = useCallback((code: number, monthNum: number, value: number) => {
@@ -810,13 +862,30 @@ export function ManualEntryWizard() {
 
   // ── Submit handlers ──
   const doSubmitFinancial = async () => {
+    const missingCells = activeMonths.reduce(
+      (acc, m) =>
+        acc + ACTIVE_ACCOUNT_CODES.filter((code) => financialData[code]?.[m] === undefined).length,
+      0,
+    );
+    if (missingCells > 0) {
+      throw new Error(t("manualEntry.financialIncomplete", { count: missingCells }));
+    }
+    const hasAnyValue = activeMonths.some((m) =>
+      Object.keys(financialData).some(
+        (codeStr) => (financialData[Number(codeStr)]?.[m] ?? 0) !== 0,
+      ),
+    );
+    if (!hasAnyValue) {
+      throw new Error(t("manualEntry.toastEmptyError"));
+    }
+
     const lineItems: ManualLineItemRequest[] = [];
     const getValLocal = (code: number, m: number) => financialData[code]?.[m] || 0;
 
     // 1. Map editable base accounts
     for (const code of ACTIVE_ACCOUNT_CODES) {
       const meta = ACCOUNT_METADATA[code];
-      for (let m = 1; m <= 12; m++) {
+      for (const m of activeMonths) {
         const val = getValLocal(code, m);
         lineItems.push({
           account_code: code,
@@ -1016,7 +1085,7 @@ export function ManualEntryWizard() {
 
     for (const [codeStr, meta] of Object.entries(rollupMetadata)) {
       const code = Number(codeStr);
-      for (let m = 1; m <= 12; m++) {
+      for (const m of activeMonths) {
         const val = meta.formula(m);
         lineItems.push({
           account_code: code,
@@ -1284,7 +1353,17 @@ export function ManualEntryWizard() {
               return (
                 <div key={sItem.id} className="flex items-center flex-shrink-0">
                   <div
-                    onClick={() => setStep(sItem.id)}
+                    onClick={() => {
+                      const targetIdx = steps.findIndex((s) => s.id === sItem.id);
+                      const curIdx = steps.findIndex((s) => s.id === step);
+                      for (let i = curIdx; i < targetIdx; i++) {
+                        if (!isStepComplete(steps[i].id)) {
+                          toast.error(t("manualEntry.stepIncomplete"));
+                          return;
+                        }
+                      }
+                      setStep(sItem.id);
+                    }}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 ${
                       active
                         ? "bg-primary text-primary-foreground shadow-sm cursor-default"
@@ -1706,6 +1785,10 @@ export function ManualEntryWizard() {
           {step !== "review" && (
             <button
               onClick={() => {
+                if (!isStepComplete(step)) {
+                  toast.error(t("manualEntry.stepIncomplete"));
+                  return;
+                }
                 if (step === "financial") {
                   if (totalAssets === 0 && totalLiabilities === 0 && totalEquity === 0) {
                     toast.error(t("manualEntry.toastEmptyError"));

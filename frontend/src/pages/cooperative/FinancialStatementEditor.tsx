@@ -447,6 +447,7 @@ export const FinancialStatementEditor: React.FC<{
     : COA_OPTIONS;
 
   const periodType = (submission?.period_type || "MONTHLY").toUpperCase();
+  const periodValue = submission?.period_value || "";
   const startMonth = fs?.start_month || submission?.start_month || 1;
 
   // Build dynamic month/period headers based on period_type and start_month
@@ -466,15 +467,38 @@ export const FinancialStatementEditor: React.FC<{
     t("financialStatementEditor.months.dec"),
   ];
 
+  // Months of the year in statement order (starting at startMonth)
+  const orderedMonths: number[] = Array.from(
+    { length: 12 },
+    (_, i) => ((startMonth - 1 + i) % 12) + 1,
+  );
+
   const MONTH_HEADERS = isYearly
     ? [{ month: 0, label: t("financialStatementEditor.months.annual", "Annual Total") }]
-    : [
-        { month: 0, label: t("financialStatementEditor.months.decPrev") },
-        ...Array.from({ length: 12 }, (_, i) => {
-          const mIdx = (startMonth - 1 + i) % 12;
-          return { month: i + 1, label: MONTH_NAMES[mIdx] };
-        }),
-      ];
+    : (() => {
+        const headersFor = (months: number[]) => [
+          { month: 0, label: t("financialStatementEditor.months.decPrev") },
+          ...months.map((m, i) => ({ month: m, label: MONTH_NAMES[(m - 1) % 12] })),
+        ];
+        if (periodType === "QUARTERLY") {
+          const qIdx =
+            periodValue === "Q2" ? 1 : periodValue === "Q3" ? 2 : periodValue === "Q4" ? 3 : 0;
+          return headersFor(orderedMonths.slice(qIdx * 3, qIdx * 3 + 3));
+        }
+        if (periodType === "SEMI_ANNUAL") {
+          return headersFor(
+            periodValue === "H2" ? orderedMonths.slice(6, 12) : orderedMonths.slice(0, 6),
+          );
+        }
+        if (periodType === "MONTHLY" && periodValue && periodValue !== "FULL_YEAR") {
+          const m = Number(periodValue);
+          if (!isNaN(m) && m >= 1 && m <= 12) return headersFor([m]);
+        }
+        return [
+          { month: 0, label: t("financialStatementEditor.months.decPrev") },
+          ...orderedMonths.map((m) => ({ month: m, label: MONTH_NAMES[(m - 1) % 12] })),
+        ];
+      })();
 
   interface MatrixRow {
     key: string;
