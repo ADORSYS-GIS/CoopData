@@ -2364,6 +2364,7 @@ pub async fn create_manual_members(
                 .on_conflict(
                     OnConflict::columns([
                         savings_account::Column::SubmissionId,
+                        savings_account::Column::MemberId,
                         savings_account::Column::SavingsAccountId,
                     ])
                     .update_columns([

@@ -22,7 +22,7 @@ function extractErrorMessage(err: unknown): string {
   return String(err);
 }
 
-async function fetchFixedDeposits(
+export async function fetchFixedDeposits(
   params?: NfListParams,
 ): Promise<PaginatedResponse<FixedDepositResponse>> {
   const token = await getAccessToken();

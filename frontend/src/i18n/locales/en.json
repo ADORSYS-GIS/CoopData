@@ -1409,6 +1409,8 @@
     "previous": "Previous",
     "next": "Next",
     "toastEmptyError": "Please enter data in at least one section before submitting.",
+    "stepIncomplete": "Please complete this step before proceeding to the next one.",
+    "financialIncomplete": "All fields must be filled before submitting. {{count}} field(s) still empty.",
     "toastSubmitFinancialSuccess": "Financial statement submitted successfully",
     "toastSubmitFinancialFailed": "Failed to submit financial data",
     "toastSubmitNonFinancialSuccess": "Non-Financial databases submitted successfully",
