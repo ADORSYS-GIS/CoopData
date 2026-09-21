@@ -123,12 +123,39 @@ impl SubmissionWorkflow {
             )));
         }
 
-        // Verify financial statement exists or financial questionnaire is filled
+        // Verify financial statement exists with actual data, or financial questionnaire is filled
         if sub.submission_method != "questionnaire" {
             let fs = self.fs_repo.find_by_submission(submission_id).await?;
-            if fs.is_none() && !has_financial_q {
+            if let Some(fs) = fs {
+                let items = self
+                    .line_item_repo
+                    .find_by_financial_statement(fs.id)
+                    .await?;
+                let has_financial_data = items.iter().any(|i| {
+                    i.value
+                        .map(|v| v != rust_decimal::Decimal::ZERO)
+                        .unwrap_or(false)
+                });
+                if !has_financial_data {
+                    return Err(AppError::BadRequest(
+                        "Financial statement has no data. Enter financial data before submitting."
+                            .into(),
+                    ));
+                }
+            } else if !has_financial_q {
                 return Err(AppError::BadRequest(
                     "A financial statement must be uploaded or financial questionnaire completed before submitting".into(),
+                ));
+            }
+        }
+
+        // Verify non-financial data exists (unless questionnaire method covers it)
+        if sub.submission_method != "questionnaire" && !has_non_financial_q {
+            let has_nf_data = self.has_non_financial_data(submission_id).await?;
+            if !has_nf_data {
+                return Err(AppError::BadRequest(
+                    "Non-financial data is empty. Enter at least one record before submitting."
+                        .into(),
                 ));
             }
         }
@@ -387,6 +414,50 @@ impl SubmissionWorkflow {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// True when at least one non-financial record exists for the submission.
+    async fn has_non_financial_data(&self, submission_id: Uuid) -> AppResult<bool> {
+        use crate::entities::{farm_coop, fixed_deposit, loan, member, savings_account};
+
+        let member_exists = member::Entity::find()
+            .filter(member::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        if member_exists {
+            return Ok(true);
+        }
+        let savings_exists = savings_account::Entity::find()
+            .filter(savings_account::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        if savings_exists {
+            return Ok(true);
+        }
+        let loan_exists = loan::Entity::find()
+            .filter(loan::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        if loan_exists {
+            return Ok(true);
+        }
+        let fd_exists = fixed_deposit::Entity::find()
+            .filter(fixed_deposit::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        if fd_exists {
+            return Ok(true);
+        }
+        let farm_exists = farm_coop::Entity::find()
+            .filter(farm_coop::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        Ok(farm_exists)
+    }
 
     #[allow(clippy::too_many_arguments)]
     async fn transition(

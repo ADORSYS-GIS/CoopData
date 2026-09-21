@@ -22,7 +22,9 @@ function extractErrorMessage(err: unknown): string {
   return String(err);
 }
 
-async function fetchFarmCoop(params?: NfListParams): Promise<PaginatedResponse<FarmCoopResponse>> {
+export async function fetchFarmCoop(
+  params?: NfListParams,
+): Promise<PaginatedResponse<FarmCoopResponse>> {
   const token = await getAccessToken();
   const query = new URLSearchParams();
   if (params?.submission_id) query.set("submission_id", params.submission_id);
