@@ -7,8 +7,11 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_API_BASE_URL=http://localhost:3000
-ARG VITE_KEYCLOAK_URL=http://localhost:8180
+# Leave the URL args empty by default: the app then falls back to
+# window.location.origin + "/auth" (prod) / relative /api, producing a
+# domain-agnostic image. NEVER bake an absolute host URL into the bundle.
+ARG VITE_API_BASE_URL=
+ARG VITE_KEYCLOAK_URL=
 ARG VITE_KEYCLOAK_REALM=coop-data
 ARG VITE_KEYCLOAK_CLIENT_ID=coopdata-frontend
 
