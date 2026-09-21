@@ -1,15 +1,16 @@
+use crate::database::Database;
 use crate::entities::ministry_report_narratives;
 use crate::error::{AppError, AppResult};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 #[derive(Clone)]
 pub struct MinistryReportNarrativesRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl MinistryReportNarrativesRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_year(

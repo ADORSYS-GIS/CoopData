@@ -84,6 +84,9 @@ terraform-ec2/*.tfvars
 # k6 test results (large JSON files)
 results/
 
+# Test coverage output
+frontend/coverage/
+
 # Graphify-out
 graphify-out/
 
@@ -104,3 +107,14 @@ terraform-ec2/
 id_rsa
 id_ed25519
 
+# Playwright test artifacts (generated, never commit)
+frontend/playwright-report/*
+frontend/test-results/*
+frontend/playwright-report/
+frontend/e2e/fixtures/test-data/*
+
+# Test coverage reports
+coverage/
+frontend/coverage/
+*.tsx.html
+*.ts.html

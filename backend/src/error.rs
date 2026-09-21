@@ -9,6 +9,24 @@ use thiserror::Error;
 
 pub type AppResult<T> = Result<T, AppError>;
 
+/// Convert a raw external-service error message into a safe, user-friendly
+/// message. The full detail is logged server-side but never leaked to the
+/// client (which could expose internal API responses / quota details).
+fn sanitize_external_error(msg: &str) -> String {
+    let lower = msg.to_lowercase();
+    if lower.contains("429")
+        || lower.contains("too many requests")
+        || lower.contains("quota")
+        || lower.contains("rate limit")
+        || lower.contains("resource_exhausted")
+    {
+        "The AI service is temporarily rate-limited or out of quota. Please try again in a moment."
+            .to_string()
+    } else {
+        "An external service error occurred. Please try again.".to_string()
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Bad request: {0}")]
@@ -193,7 +211,7 @@ impl IntoResponse for AppError {
                     StatusCode::BAD_GATEWAY,
                     ErrorResponse {
                         error: "external_service_error".to_string(),
-                        message: Some(msg.clone()),
+                        message: Some(sanitize_external_error(msg)),
                         required_roles: None,
                         submission_id: None,
                     },

@@ -18,6 +18,11 @@ pub trait NfHeaderMapper: Send + Sync {
         actual_headers: &[String],
         canonical_fields: &[&str],
     ) -> std::collections::HashMap<String, String>;
+
+    /// Classify a sheet into a canonical NF section (members/savings/loans/
+    /// fixed_deposits/farm) based on its name and column headers. Returns the
+    /// canonical section name, or None if the sheet is not an NF sheet.
+    async fn classify_sheet(&self, sheet_name: &str, headers: &[String]) -> Option<String>;
 }
 
 // ── Domain types ──────────────────────────────────────────────────────────────
@@ -1182,6 +1187,52 @@ No markdown, no explanation."#
             }
         }
     }
+
+    async fn classify_sheet(&self, sheet_name: &str, headers: &[String]) -> Option<String> {
+        let header_list = headers.join(", ");
+        let prompt = format!(
+            r#"You are classifying an Excel sheet in a cooperative financial data system.
+
+Sheet name: "{sheet_name}"
+Column headers: [{header_list}]
+
+Classify this sheet into exactly one of these categories:
+- "members" (membership register: member code/id, join date, gender, age group, region, share balance, etc.)
+- "savings" (savings accounts: member code, account code/type, open date, balance, etc.)
+- "loans" (loan accounts: member code, loan id, loan amount, interest rate, balance, etc.)
+- "fixed_deposits" (fixed deposit accounts: member code, deposit id, start/maturity date, balance, etc.)
+- "farm" (farm cooperative data: cooperative type, production, climate, etc.)
+
+Return ONLY the category name (e.g. "savings"). If the sheet is not any of these, return "none".
+No markdown, no explanation."#
+        );
+
+        let raw = match self.chat(&self.model, &prompt).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!(error = %e, sheet = sheet_name, "LLM sheet classification failed");
+                return None;
+            }
+        };
+
+        let cleaned = raw
+            .trim()
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim()
+            .to_lowercase();
+
+        match cleaned.as_str() {
+            "members" | "membership" | "member" => Some("members".to_string()),
+            "savings" | "saving" => Some("savings".to_string()),
+            "loans" | "loan" => Some("loans".to_string()),
+            "fixed_deposits" | "fixed_deposit" | "fixed" | "fd" => {
+                Some("fixed_deposits".to_string())
+            }
+            "farm" | "farm_coop" | "farmcoop" => Some("farm".to_string()),
+            _ => None,
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -1398,6 +1449,10 @@ impl NfHeaderMapper for MockExtractor {
         _canonical_fields: &[&str],
     ) -> std::collections::HashMap<String, String> {
         std::collections::HashMap::new()
+    }
+
+    async fn classify_sheet(&self, _sheet_name: &str, _headers: &[String]) -> Option<String> {
+        None
     }
 }
 

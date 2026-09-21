@@ -1,19 +1,19 @@
+use crate::database::Database;
 use crate::entities::{organization, OrganizationColumn};
 use crate::error::{AppError, AppResult};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
 };
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct OrganizationRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl OrganizationRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<organization::Model>> {

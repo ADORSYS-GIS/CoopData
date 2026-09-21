@@ -1,4 +1,5 @@
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use crate::database::Database;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::entities::extraction_job::{self, ActiveModel, Column, Entity};
@@ -6,12 +7,12 @@ use crate::error::{AppError, AppResult};
 
 #[derive(Clone)]
 pub struct ExtractionJobRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl ExtractionJobRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<extraction_job::Model>> {
