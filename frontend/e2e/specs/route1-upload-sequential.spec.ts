@@ -158,7 +158,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
         }
       } else {
         const hasData = await page
-          .locator('button:has-text("Clear Databases"), button:has-text("Effacer")')
+          .locator('button:has-text("Clear Databases"), button:has-text("Effacer"), :text("Upload Results"), :text("Résultats d\'importation")')
           .isVisible({ timeout: 1000 })
           .catch(() => false);
         if (hasData) {
@@ -313,7 +313,7 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
 
     // Check if data is already uploaded
     const hasData = await page
-      .locator('button:has-text("Clear Databases"), button:has-text("Effacer"), text=Ready, table')
+      .locator('button:has-text("Clear Databases"), button:has-text("Effacer"), :text("Upload Results"), :text("Résultats d\'importation")')
       .first()
       .isVisible({ timeout: 3000 })
       .catch(() => false);
@@ -338,8 +338,11 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
       await allParseBtn.click();
       console.log("Clicked Upload & Parse — waiting for parsing to complete...");
 
-      // Wait for parsing to complete
-      await page.waitForTimeout(8000);
+      // Wait for parsing to complete (can take 30-60s if AI mapping is invoked)
+      await expect(
+        page.locator('button:has-text("Clear Databases"), button:has-text("Effacer"), :text("Upload Results"), :text("Résultats d\'importation")').first()
+      ).toBeVisible({ timeout: 120000 });
+      console.log("Parsing completed and data is ready!");
     } else {
       console.log("Non-Financial data already exists! Skipping upload step.");
     }

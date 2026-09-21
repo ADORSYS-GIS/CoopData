@@ -330,9 +330,9 @@ export const ProfilePage: React.FC = () => {
                           ? t("profile.mfaDesc")
                           : mfaConfigured
                             ? t(
-                                "profile.mfaSoftDisabledDesc",
-                                "Disabled — your authenticator entry is preserved",
-                              )
+                              "profile.mfaSoftDisabledDesc",
+                              "Disabled — your authenticator entry is preserved",
+                            )
                             : t("profile.mfaDesc")}
                       </p>
                     </div>
@@ -343,14 +343,12 @@ export const ProfilePage: React.FC = () => {
                         role="switch"
                         aria-checked={mfaEnabled}
                         aria-label={t("profile.mfa")}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${
-                          mfaEnabled ? "bg-success border-success" : "bg-muted border-border"
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${mfaEnabled ? "bg-success border-success" : "bg-muted border-border"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <span
-                          className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform flex items-center justify-center ${
-                            mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
-                          }`}
+                          className={`pointer-events-none inline-block size-[18px] rounded-full bg-surface shadow-sm transition-transform flex items-center justify-center ${mfaEnabled ? "translate-x-[18px]" : "translate-x-0"
+                            }`}
                         />
                       </button>
                     </div>
