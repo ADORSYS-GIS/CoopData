@@ -1009,139 +1009,100 @@ pub async fn apex_approve_submission(
         );
     }
 
-    // Phase A: Trigger background export generation for the cooperative, Apex, Federation, and Ministry.
-    // Stagger tier launches by 65s in the background to avoid Gemini free-tier rate limits (5 req/min)
-    let state_clone = state.clone();
+    // Phase A: Queue background export generation for the cooperative, Apex,
+    // Federation, and Ministry. A single global worker serializes these and
+    // enforces the Gemini rate limit, so concurrent approvals cannot stack
+    // independent sleeping tasks.
+    use crate::services::export_generator::ExportJob;
+
     let cooperative_id = updated.cooperative_id;
     let reporting_year = updated.reporting_year;
-    tokio::spawn(async move {
-        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-            state_clone.clone(),
-            id,
-        );
 
-        // Fetch parent Coop
-        let coop = match state_clone
-            .cooperative_repo
-            .find_by_id(cooperative_id)
-            .await
-        {
-            Ok(Some(c)) => c,
-            Ok(None) => {
-                tracing::error!("Cooperative not found in background export thread");
-                return;
-            }
-            Err(e) => {
-                tracing::error!(
-                    "Failed to fetch cooperative in background export thread: {:?}",
-                    e
-                );
-                return;
-            }
-        };
+    let coop = state.cooperative_repo.find_by_id(cooperative_id).await?;
+    let apex = match &coop {
+        Some(c) => state.apex_repo.find_by_id(c.apex_id).await?,
+        None => None,
+    };
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-        crate::services::export_generator::ExportGenerator::trigger_apex_export(
-            state_clone.clone(),
-            coop.apex_id,
+    state
+        .export_queue
+        .enqueue(ExportJob::Cooperative { submission_id: id });
+    if let Some(c) = &coop {
+        state.export_queue.enqueue(ExportJob::Apex {
+            apex_id: c.apex_id,
             reporting_year,
-        );
-
-        // Fetch parent Apex
-        let apex = match state_clone.apex_repo.find_by_id(coop.apex_id).await {
-            Ok(Some(a)) => a,
-            Ok(None) => {
-                tracing::error!("Apex not found in background export thread");
-                return;
-            }
-            Err(e) => {
-                tracing::error!("Failed to fetch apex in background export thread: {:?}", e);
-                return;
-            }
-        };
-
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-        crate::services::export_generator::ExportGenerator::trigger_federation_export(
-            state_clone.clone(),
-            apex.federation_id,
+        });
+    }
+    if let Some(a) = &apex {
+        state.export_queue.enqueue(ExportJob::Federation {
+            federation_id: a.federation_id,
             reporting_year,
-        );
+        });
+    }
+    state
+        .export_queue
+        .enqueue(ExportJob::Ministry { reporting_year });
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-            state_clone.clone(),
-            reporting_year,
-        );
+    // Phase F: Invalidate stale exports for future-year submissions of the
+    // same cooperative and queue their regeneration.
+    if let Ok(subs) = state
+        .submission_repo
+        .find_by_cooperative(cooperative_id)
+        .await
+    {
+        let future_subs: Vec<_> = subs
+            .into_iter()
+            .filter(|s| {
+                s.reporting_year > reporting_year
+                    && s.id != id
+                    && s.status == crate::entities::enums::SubmissionStatus::Approved
+            })
+            .collect();
 
-        // Phase F: Invalidate stale exports for future-year submissions of the same cooperative.
-        match state_clone
-            .submission_repo
-            .find_by_cooperative(cooperative_id)
-            .await
-        {
-            Ok(subs) => {
-                let future_subs: Vec<_> = subs
-                    .into_iter()
-                    .filter(|s| {
-                        s.reporting_year > reporting_year
-                            && s.id != id
-                            && s.status == crate::entities::enums::SubmissionStatus::Approved
-                    })
-                    .collect();
+        if !future_subs.is_empty() {
+            tracing::info!(
+                cooperative_id = %cooperative_id,
+                current_year = reporting_year,
+                stale_count = future_subs.len(),
+                "Invalidating stale exports for future-year submissions"
+            );
 
-                if !future_subs.is_empty() {
-                    tracing::info!(
-                        cooperative_id = %cooperative_id,
-                        current_year = reporting_year,
-                        stale_count = future_subs.len(),
-                        "Invalidating stale exports for future-year submissions"
-                    );
+            for sub in future_subs {
+                // Delete stale cached PDF from object storage (best-effort)
+                let pdf_key =
+                    format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                let _ = state.storage.delete_object(&pdf_key).await;
 
-                    for sub in future_subs {
-                        // Delete stale cached PDF from object storage (best-effort)
-                        let pdf_key =
-                            format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
-                        let _ = state_clone.storage.delete_object(&pdf_key).await;
-
-                        // Trigger background regeneration so the next download gets fresh data
-                        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-                            state_clone.clone(),
-                            sub.id,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_apex_export(
-                            state_clone.clone(),
-                            coop.apex_id,
-                            sub.reporting_year,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_federation_export(
-                            state_clone.clone(),
-                            apex.federation_id,
-                            sub.reporting_year,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-                            state_clone.clone(),
-                            sub.reporting_year,
-                        );
-
-                        tracing::info!(
-                            stale_submission_id = %sub.id,
-                            stale_year = sub.reporting_year,
-                            "Queued re-generation of stale export"
-                        );
-                    }
+                // Queue background regeneration so the next download gets fresh data
+                state
+                    .export_queue
+                    .enqueue(ExportJob::Cooperative { submission_id: sub.id });
+                if let Some(c) = &coop {
+                    state.export_queue.enqueue(ExportJob::Apex {
+                        apex_id: c.apex_id,
+                        reporting_year: sub.reporting_year,
+                    });
                 }
-            }
-            Err(e) => {
-                tracing::error!(
-                    "Failed to fetch future submissions in background export thread: {:?}",
-                    e
+                if let Some(a) = &apex {
+                    state.export_queue.enqueue(ExportJob::Federation {
+                        federation_id: a.federation_id,
+                        reporting_year: sub.reporting_year,
+                    });
+                }
+                state
+                    .export_queue
+                    .enqueue(ExportJob::Ministry {
+                        reporting_year: sub.reporting_year,
+                    });
+
+                tracing::info!(
+                    stale_submission_id = %sub.id,
+                    stale_year = sub.reporting_year,
+                    "Queued re-generation of stale export"
                 );
             }
         }
-    });
+    }
 
     // Audit: submission approved by apex (final approval)
     if let Err(e) = state
@@ -1635,139 +1596,99 @@ pub async fn ministry_approve_submission(
         );
     }
 
-    // Phase A: Trigger background export generation for the cooperative, Apex, Federation, and Ministry.
-    // Stagger tier launches by 65s in the background to avoid Gemini free-tier rate limits (5 req/min)
-    let state_clone = state.clone();
+    // Phase A: Queue background export generation for the cooperative, Apex,
+    // Federation, and Ministry. A single global worker serializes these and
+    // enforces the Gemini rate limit.
+    use crate::services::export_generator::ExportJob;
+
     let cooperative_id = updated.cooperative_id;
     let reporting_year = updated.reporting_year;
-    tokio::spawn(async move {
-        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-            state_clone.clone(),
-            id,
-        );
 
-        // Fetch parent Coop
-        let coop = match state_clone
-            .cooperative_repo
-            .find_by_id(cooperative_id)
-            .await
-        {
-            Ok(Some(c)) => c,
-            Ok(None) => {
-                tracing::error!("Cooperative not found in background export thread");
-                return;
-            }
-            Err(e) => {
-                tracing::error!(
-                    "Failed to fetch cooperative in background export thread: {:?}",
-                    e
-                );
-                return;
-            }
-        };
+    let coop = state.cooperative_repo.find_by_id(cooperative_id).await?;
+    let apex = match &coop {
+        Some(c) => state.apex_repo.find_by_id(c.apex_id).await?,
+        None => None,
+    };
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-        crate::services::export_generator::ExportGenerator::trigger_apex_export(
-            state_clone.clone(),
-            coop.apex_id,
+    state
+        .export_queue
+        .enqueue(ExportJob::Cooperative { submission_id: id });
+    if let Some(c) = &coop {
+        state.export_queue.enqueue(ExportJob::Apex {
+            apex_id: c.apex_id,
             reporting_year,
-        );
-
-        // Fetch parent Apex
-        let apex = match state_clone.apex_repo.find_by_id(coop.apex_id).await {
-            Ok(Some(a)) => a,
-            Ok(None) => {
-                tracing::error!("Apex not found in background export thread");
-                return;
-            }
-            Err(e) => {
-                tracing::error!("Failed to fetch apex in background export thread: {:?}", e);
-                return;
-            }
-        };
-
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-        crate::services::export_generator::ExportGenerator::trigger_federation_export(
-            state_clone.clone(),
-            apex.federation_id,
+        });
+    }
+    if let Some(a) = &apex {
+        state.export_queue.enqueue(ExportJob::Federation {
+            federation_id: a.federation_id,
             reporting_year,
-        );
+        });
+    }
+    state
+        .export_queue
+        .enqueue(ExportJob::Ministry { reporting_year });
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-            state_clone.clone(),
-            reporting_year,
-        );
+    // Phase F: Invalidate stale exports for future-year submissions of the
+    // same cooperative and queue their regeneration.
+    if let Ok(subs) = state
+        .submission_repo
+        .find_by_cooperative(cooperative_id)
+        .await
+    {
+        let future_subs: Vec<_> = subs
+            .into_iter()
+            .filter(|s| {
+                s.reporting_year > reporting_year
+                    && s.id != id
+                    && s.status == crate::entities::enums::SubmissionStatus::Approved
+            })
+            .collect();
 
-        // Phase F: Invalidate stale exports for future-year submissions of the same cooperative.
-        match state_clone
-            .submission_repo
-            .find_by_cooperative(cooperative_id)
-            .await
-        {
-            Ok(subs) => {
-                let future_subs: Vec<_> = subs
-                    .into_iter()
-                    .filter(|s| {
-                        s.reporting_year > reporting_year
-                            && s.id != id
-                            && s.status == crate::entities::enums::SubmissionStatus::Approved
-                    })
-                    .collect();
+        if !future_subs.is_empty() {
+            tracing::info!(
+                cooperative_id = %cooperative_id,
+                current_year = reporting_year,
+                stale_count = future_subs.len(),
+                "Invalidating stale exports for future-year submissions"
+            );
 
-                if !future_subs.is_empty() {
-                    tracing::info!(
-                        cooperative_id = %cooperative_id,
-                        current_year = reporting_year,
-                        stale_count = future_subs.len(),
-                        "Invalidating stale exports for future-year submissions"
-                    );
+            for sub in future_subs {
+                // Delete stale cached PDF from object storage (best-effort)
+                let pdf_key =
+                    format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                let _ = state.storage.delete_object(&pdf_key).await;
 
-                    for sub in future_subs {
-                        // Delete stale cached PDF from object storage (best-effort)
-                        let pdf_key =
-                            format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
-                        let _ = state_clone.storage.delete_object(&pdf_key).await;
-
-                        // Trigger background regeneration so the next download gets fresh data
-                        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-                            state_clone.clone(),
-                            sub.id,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_apex_export(
-                            state_clone.clone(),
-                            coop.apex_id,
-                            sub.reporting_year,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_federation_export(
-                            state_clone.clone(),
-                            apex.federation_id,
-                            sub.reporting_year,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-                            state_clone.clone(),
-                            sub.reporting_year,
-                        );
-
-                        tracing::info!(
-                            stale_submission_id = %sub.id,
-                            stale_year = sub.reporting_year,
-                            "Queued re-generation of stale export"
-                        );
-                    }
+                // Queue background regeneration so the next download gets fresh data
+                state
+                    .export_queue
+                    .enqueue(ExportJob::Cooperative { submission_id: sub.id });
+                if let Some(c) = &coop {
+                    state.export_queue.enqueue(ExportJob::Apex {
+                        apex_id: c.apex_id,
+                        reporting_year: sub.reporting_year,
+                    });
                 }
-            }
-            Err(e) => {
-                tracing::error!(
-                    "Failed to fetch future submissions in background export thread: {:?}",
-                    e
+                if let Some(a) = &apex {
+                    state.export_queue.enqueue(ExportJob::Federation {
+                        federation_id: a.federation_id,
+                        reporting_year: sub.reporting_year,
+                    });
+                }
+                state
+                    .export_queue
+                    .enqueue(ExportJob::Ministry {
+                        reporting_year: sub.reporting_year,
+                    });
+
+                tracing::info!(
+                    stale_submission_id = %sub.id,
+                    stale_year = sub.reporting_year,
+                    "Queued re-generation of stale export"
                 );
             }
         }
-    });
+    }
 
     // Audit: submission approved by ministry (final approval)
     if let Err(e) = state
