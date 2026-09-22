@@ -28,7 +28,7 @@ During the debugging process, we uncovered and resolved three specific misconfig
 ### 3. Early Flow Exit (The "Alternative" Trap)
 * **Issue:** Even with the conditions set, Keycloak bypassed the MFA screen. This was because the `Username Password Form` was set to `Alternative`. Keycloak interpreted this as: *"The user completed an alternative step, so they satisfy this entire block. No need to evaluate the 2FA conditions below it!"*
 * **Fix (Working around the UI Bug):** Keycloak's UI often hides the requirement dropdown for child steps. To fix this, we:
-  1. Kept the parent block (`CoopData Forms`) set to `Alternative` (to allow SSO Cookies to work).
+  1. Set the parent block (`CoopData Forms`) to `Required`.
   2. Deleted the stuck `Username Password Form`.
   3. Re-added `Username Password Form`, which restored the dropdown.
   4. Set it to `Required`, forcing Keycloak to evaluate the Conditional 2FA block immediately after password entry.
@@ -40,7 +40,7 @@ To ensure that regular logins force an MFA check (if enabled), but Silent SSO (C
 ```text
 - Cookie (Alternative)
 - Identity Provider Redirector (Alternative)
-- CoopData Forms (Required )
+- CoopData Forms (Alternative)
     |
     |-- Username Password Form (Required)
     |

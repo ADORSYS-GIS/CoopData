@@ -1,10 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import { loginAs } from "../fixtures/helpers/login";
-import {
-  approveAsApex,
-  approveAsFederation,
-  approveAsMinistry,
-} from "../fixtures/helpers/approval";
+import { approveAsApex } from "../fixtures/helpers/approval";
 
 /**
  * Route 1: Upload Method - Sequential Flow Tests
@@ -158,7 +154,9 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
         }
       } else {
         const hasData = await page
-          .locator('button:has-text("Clear Databases"), button:has-text("Effacer")')
+          .locator(
+            'button:has-text("Clear Databases"), button:has-text("Effacer"), :text("Upload Results"), :text("Résultats d\'importation")',
+          )
           .isVisible({ timeout: 1000 })
           .catch(() => false);
         if (hasData) {
@@ -313,7 +311,9 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
 
     // Check if data is already uploaded
     const hasData = await page
-      .locator('button:has-text("Clear Databases"), button:has-text("Effacer"), text=Ready, table')
+      .locator(
+        'button:has-text("Clear Databases"), button:has-text("Effacer"), :text("Upload Results"), :text("Résultats d\'importation")',
+      )
       .first()
       .isVisible({ timeout: 3000 })
       .catch(() => false);
@@ -338,8 +338,15 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
       await allParseBtn.click();
       console.log("Clicked Upload & Parse — waiting for parsing to complete...");
 
-      // Wait for parsing to complete
-      await page.waitForTimeout(8000);
+      // Wait for parsing to complete (can take 30-60s if AI mapping is invoked)
+      await expect(
+        page
+          .locator(
+            'button:has-text("Clear Databases"), button:has-text("Effacer"), :text("Upload Results"), :text("Résultats d\'importation")',
+          )
+          .first(),
+      ).toBeVisible({ timeout: 120000 });
+      console.log("Parsing completed and data is ready!");
     } else {
       console.log("Non-Financial data already exists! Skipping upload step.");
     }
@@ -434,32 +441,6 @@ test.describe.serial("Route 1: Upload Method - Sequential Flow", () => {
 
     await approveAsApex(page, submissionId, "Data verified and accurate");
 
-    console.log("✓ STEP 5 COMPLETED");
-  });
-
-  // ═══════════════════════════════════════════════════════════════
-  // STEP 6: Federation approval
-  // ═══════════════════════════════════════════════════════════════
-  test("Step 6: Federation approval", async ({ page }) => {
-    test.setTimeout(180000); // 3 minutes
-    console.log("=== STEP 6: Federation approval ===");
-    console.log(`Using submission: ${submissionId}`);
-
-    await approveAsFederation(page, submissionId);
-
-    console.log("✓ STEP 6 COMPLETED");
-  });
-
-  // ═══════════════════════════════════════════════════════════════
-  // STEP 7: Ministry final approval
-  // ═══════════════════════════════════════════════════════════════
-  test("Step 7: Ministry final approval", async ({ page }) => {
-    test.setTimeout(180000); // 3 minutes
-    console.log("=== STEP 7: Ministry final approval ===");
-    console.log(`Using submission: ${submissionId}`);
-
-    await approveAsMinistry(page, submissionId);
-
-    console.log("✓ STEP 7 COMPLETED - All tests passed!");
+    console.log("✓ STEP 5 COMPLETED - Apex approval is final; submission fully approved");
   });
 });

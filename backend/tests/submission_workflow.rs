@@ -281,7 +281,7 @@ async fn submit_happy_path_routes_cooperative_tier_to_apex() {
 // ─── Apex tier transitions ──────────────────────────────────────────────────
 
 #[tokio::test]
-async fn apex_approve_moves_submitted_to_in_review_at_federation() {
+async fn apex_approve_moves_submitted_to_approved_at_apex() {
     let sub_id = Uuid::new_v4();
     let coop_id = Uuid::new_v4();
 
@@ -291,18 +291,18 @@ async fn apex_approve_moves_submitted_to_in_review_at_federation() {
         SubmissionStatus::Submitted,
         ReviewTier::Apex,
     );
-    let in_review = submission_row(
+    let approved = submission_row(
         sub_id,
         coop_id,
-        SubmissionStatus::InReview,
-        ReviewTier::Federation,
+        SubmissionStatus::Approved,
+        ReviewTier::Apex,
     );
 
     // transition: find, update_status (find + UPDATE RETURNING), INSERT review.
     let db = mock_postgres()
         .append_query_results(vec![vec![submitted.clone()]])
         .append_query_results(vec![vec![submitted]])
-        .append_query_results(vec![vec![in_review]])
+        .append_query_results(vec![vec![approved]])
         .append_query_results(vec![vec![review_row(sub_id)]]);
 
     let app = MockDbApp::new(db).await;

@@ -108,9 +108,6 @@ jobs:
           load: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
-          build-args: |
-            VITE_API_BASE_URL=
-            VITE_KEYCLOAK_URL=
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -126,6 +123,19 @@ jobs:
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Guard — no absolute host URLs baked into frontend bundle
+        if: steps.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+        run: |
+          set -euo pipefail
+          ID=$(docker images -q ${{ steps.images.outputs.frontend }} | head -1)
+          if docker run --rm "$ID" sh -c \
+            "grep -rhoE 'https?://[^\" ]*:(8180|3000|5173)' /usr/share/nginx/html/assets/*.js" \
+            | grep -q .; then
+            echo "::error::Frontend bundle contains a baked absolute host URL (Keycloak/API). VITE_KEYCLOAK_URL/VITE_API_BASE_URL must stay empty so the app uses window.location.origin fallbacks."
+            exit 1
+          fi
+          echo "OK: no absolute host URLs in frontend bundle"
 
       - name: Scan frontend with Trivy
         if: steps.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'release'
@@ -270,9 +280,6 @@ jobs:
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
-          build-args: |
-            VITE_API_BASE_URL=
-            VITE_KEYCLOAK_URL=
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

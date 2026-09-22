@@ -341,10 +341,10 @@ export async function approveAsMinistry(page: Page, submissionId: string) {
 }
 
 /**
- * Complete approval chain: Apex → Federation → Ministry
+ * Complete approval: Apex is the final level of approval.
+ * Once the Apex approves, the submission is fully approved — Federation and
+ * Ministry no longer take any action to finalize it.
  */
 export async function fullApprovalChain(page: Page, submissionId: string) {
   await approveAsApex(page, submissionId, "Data verified and accurate");
-  await approveAsFederation(page, submissionId);
-  await approveAsMinistry(page, submissionId);
 }
