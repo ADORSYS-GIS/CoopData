@@ -808,6 +808,37 @@
 
 ---
 
+### Phase 27: T18 Chaos & Resilience Testing ✅ Complete
+
+> **Goal**: Verify the platform recovers from infrastructure / dependency failures (Postgres, Redis, Keycloak) during active processing, without data corruption. Design: `docs/features/t18-chaos-resilience.md`.
+
+- [x] **27.1 Docker restart policies** — Added `restart: unless-stopped` to core services in `docker-compose.yml`:
+  - `postgres`, `redis`, `keycloak`, `backend`, `frontend`, `minio`
+  - `keycloak-provision` intentionally left without restart (one-shot job)
+- [x] **27.2 Dependency-aware health endpoint** — `backend/src/api/handlers/health.rs`:
+  - Probes `database` (db.ping), `redis` (cache.ping), `keycloak` (is_healthy)
+  - Returns `200 healthy` when all up, `503 degraded` with per-check breakdown when any down
+- [x] **27.3 Keycloak HTTP client timeout** — `backend/src/services/keycloak.rs`:
+  - `connect_timeout: 5s`, `timeout: 15s` (was `Client::new()` with no timeout)
+- [x] **27.4 Graceful cache degradation** — `backend/src/services/cache.rs`:
+  - Added `CacheService::ping()` liveness probe
+  - `get()` returns clean error + increments `coopdata_cache_errors_total` on connection failure (no panic)
+- [x] **27.5 Chaos test script** — `scripts/test-chaos.sh`:
+  - Scenario 1: stop/restore `postgres` → assert degraded → assert recovered
+  - Scenario 2: stop/restore `redis` → assert degraded → assert recovered
+  - Scenario 3: stop/restore `keycloak` → assert degraded → assert recovered (`--no-keycloak` to skip)
+  - Uses production compose file (no dev override)
+- [x] **27.6 Transaction integrity check** — added to Scenario 1:
+  - Baseline `submissions` count + checksum captured before outage; verified unchanged after (no corruption)
+  - Write txn attempted while DB down fails cleanly (no partial write)
+  - `BEGIN; INSERT; ROLLBACK` leaves 0 rows (atomicity)
+  - `BEGIN; INSERT; COMMIT` persists 1 row (write path restored)
+  - Test rows cleaned up
+- [x] **27.7 Verification** — `cargo build` ✅, `cargo clippy` clean ✅, `cargo test --lib` 358 passed ✅
+- [x] **27.8 Live E2E** — `scripts/test-chaos.sh` all scenarios passed; backend `Restarts=0` throughout; DB left clean (0 test rows, submissions=20)
+
+---
+
 ## Token Management Strategy
 
 - **STOP** after completing a Phase or a complex Feature.

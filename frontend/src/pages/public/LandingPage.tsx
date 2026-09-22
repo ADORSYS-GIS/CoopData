@@ -278,14 +278,9 @@ function MiniKpi({
 function TrustStrip() {
   const { t } = useTranslation();
   const partners = [
-    { src: "/partner-1.webp", alt: "Partner 1" },
-    { src: "/partner-2.webp", alt: "Partner 2" },
-    { src: "/partner-3.webp", alt: "Partner 3" },
-    { src: "/partner-4.png", alt: "Partner 4" },
-    { src: "/partner-5.png", alt: "Partner 5" },
-    { src: "/partner-7.png", alt: "Partner 7" },
+    { src: "/partner-1.png", alt: "Partner 1" },
+    { src: "/partner-2.png", alt: "Partner 2" },
     { src: "/partner-8.png", alt: "Partner 8" },
-    { src: "/partner-9.png", alt: "Partner 9" },
   ];
 
   return (
