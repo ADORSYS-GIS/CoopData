@@ -69,8 +69,6 @@ impl ExportGenerator {
         state: &AppState,
         submission_id: Uuid,
     ) -> AppResult<Vec<u8>> {
-        let token = state.keycloak.get_admin_token().await?;
-
         let narrative_params =
             match Self::generate_cooperative_narratives(state, submission_id).await {
                 Ok(result) => {
@@ -113,6 +111,7 @@ impl ExportGenerator {
             submission_id = %submission_id,
             "[export] 🔗 Building Gotenberg URL..."
         );
+        let token = state.keycloak.get_admin_token().await?;
         let print_url = format!(
             "{}/print/cooperative/{}?token={}{}",
             state.config.gotenberg_frontend_url, submission_id, token, narrative_params
