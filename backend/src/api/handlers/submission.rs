@@ -1298,13 +1298,16 @@ pub async fn list_federation_submissions(
             .filter(|s| s.status != crate::entities::enums::SubmissionStatus::Draft)
             .collect::<Vec<_>>()
     } else {
+        // The Apex is the final approval level, so submissions are never held at
+        // the Federation tier. The federation therefore sees every non-draft
+        // submission under its apexes (including those already approved by the apex).
         state
             .submission_repo
-            .find_by_cooperative_ids_and_tier(
-                coop_ids,
-                crate::entities::enums::ReviewTier::Federation,
-            )
+            .find_by_cooperative_ids(coop_ids)
             .await?
+            .into_iter()
+            .filter(|s| s.status != crate::entities::enums::SubmissionStatus::Draft)
+            .collect::<Vec<_>>()
     };
 
     let subs_mapped = subs
