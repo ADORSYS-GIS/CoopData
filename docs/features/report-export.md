@@ -84,7 +84,38 @@ A comprehensive nationwide master sheet with access to all datasets for oversigh
 
 ---
 
-## 2. Implementation Roadmap
+## 2. Report Generation Lifecycle & Cascading Updates
+
+Because the reports are computationally heavy (involving AI generation and headless browser PDF rendering), the system uses a background task queue (the "Minion") to pre-warm the cache rather than generating PDFs on-the-fly when a user clicks download.
+
+### Cascading Regeneration on Approval
+The moment a submission is approved (e.g., by the Ministry), the data across all higher-level reports instantly changes. To ensure that Apex, Federation, and Ministry users always download perfectly up-to-date reports, the system automatically triggers a cascading regeneration:
+
+1. **Individual Cooperative Export**: Generated immediately upon approval.
+2. **Apex Consolidated Export**: Regenerated immediately after the individual export.
+3. **Federation Consolidated Export**: Regenerated immediately after the Apex export.
+4. **Ministry Consolidated Export**: Regenerated immediately after the Federation report.
+
+All tiers launch back-to-back; concurrency is paced by the backend's AI and Gotenberg semaphores, and the LLM client's 429-aware retry logic absorbs any provider rate limits.
+
+### Report Generation Optimizations
+To ensure the export generation scales and performs efficiently, we have implemented one major optimization and planned two future optimizations:
+
+1. **Exact-Millisecond Capture via `window.isReady` (COMPLETED):**
+   - **Previous State:** Gotenberg was hardcoded to wait exactly 15 seconds (`waitDelay: "15s"`) before capturing the PDF, leading to massive wasted time or capturing loading spinners if the network was slow.
+   - **Optimization:** We added a `useEffect` in the React frontend that signals `window.isReady = true` the exact millisecond the charts finish drawing. Gotenberg now uses `waitForExpression: "window.isReady === true"`, acting as a sniper to capture the PDF instantly, drastically reducing generation latency.
+
+2. **Removing Artificial Timers (LLM Rate Limits):**
+   - **Current State:** To avoid free-tier Gemini API limits, the system manually pauses for 65 seconds between triggering each tier (Cooperative -> Apex -> Federation -> Ministry), leading to a ~4-5 minute total generation time.
+   - **Optimization:** By upgrading to a paid LLM tier with higher limits, we can completely delete the `tokio::time::sleep(65)` calls. Instead of forcing parallelization, we will simply rely on the system's already-built safety rails (`ai_semaphore`, `gotenberg_semaphore`, and 429 retries) to throttle requests naturally. This will reduce the total background processing time to roughly 1-2 minutes (bottlenecked primarily by Gotenberg's rendering speed).
+
+3. **Headless Mode for React (Planned - Skipping Animations):**
+   - **Current State:** The React app plays 1-second CSS and Framer Motion animations when mounting the charts, forcing Gotenberg to delay its snapshot to avoid capturing half-rendered graphs.
+   - **Optimization:** Pass a `?headless=true` parameter in the Gotenberg URL. The React app will detect this flag, disable all chart animations (`isAnimationActive={false}`), and instantly snap the charts to the screen, allowing Gotenberg to capture the PDF a full second faster for every single report.
+
+---
+
+## 3. Implementation Roadmap
 
 ```mermaid
 graph TD

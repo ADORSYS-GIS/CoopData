@@ -1487,7 +1487,7 @@ pub async fn ministry_approve_submission(
     }
 
     // Phase A: Trigger background export generation for the cooperative, Apex, Federation, and Ministry.
-    // Stagger tier launches by 65s in the background to avoid Gemini free-tier rate limits (5 req/min)
+    // Tiers launch back-to-back — the AI and Gotenberg semaphores pace the work.
     let state_clone = state.clone();
     let cooperative_id = updated.cooperative_id;
     let reporting_year = updated.reporting_year;
@@ -1517,7 +1517,6 @@ pub async fn ministry_approve_submission(
             }
         };
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
         crate::services::export_generator::ExportGenerator::trigger_apex_export(
             state_clone.clone(),
             coop.apex_id,
@@ -1537,14 +1536,12 @@ pub async fn ministry_approve_submission(
             }
         };
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
         crate::services::export_generator::ExportGenerator::trigger_federation_export(
             state_clone.clone(),
             apex.federation_id,
             reporting_year,
         );
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
         crate::services::export_generator::ExportGenerator::trigger_ministry_export(
             state_clone.clone(),
             reporting_year,
@@ -1585,19 +1582,16 @@ pub async fn ministry_approve_submission(
                             state_clone.clone(),
                             sub.id,
                         );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
                         crate::services::export_generator::ExportGenerator::trigger_apex_export(
                             state_clone.clone(),
                             coop.apex_id,
                             sub.reporting_year,
                         );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
                         crate::services::export_generator::ExportGenerator::trigger_federation_export(
                             state_clone.clone(),
                             apex.federation_id,
                             sub.reporting_year,
                         );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
                         crate::services::export_generator::ExportGenerator::trigger_ministry_export(
                             state_clone.clone(),
                             sub.reporting_year,

@@ -406,7 +406,7 @@ impl ExportGenerator {
 
             let form_clone = reqwest::multipart::Form::new()
                 .text("url", print_url.to_string())
-                .text("waitDelay", "15s")
+                .text("waitForExpression", "window.isReady === true")
                 .text("paperWidth", "8.27")
                 .text("paperHeight", "11.69")
                 .text("marginTop", "0.5")

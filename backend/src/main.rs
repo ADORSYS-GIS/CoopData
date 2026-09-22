@@ -143,7 +143,7 @@ async fn main() -> anyhow::Result<()> {
         storage,
         nf_excel_parser,
         gotenberg_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
-        ai_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
+        ai_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(18)),
         ministry_narratives_repo,
     };
 

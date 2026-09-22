@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   ComposedChart,
   Bar,
@@ -11,6 +11,7 @@ import {
   LabelList,
 } from "recharts";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
+import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
 import { CoopKpiRow } from "./types";
 import { useTranslation } from "react-i18next";
 import { AiInsightBox } from "./AiInsightBox";
@@ -85,11 +86,7 @@ export const FederationApexComparisonSheet: React.FC<FederationApexComparisonShe
     return val.toString();
   };
 
-  useEffect(() => {
-    setTimeout(() => {
-      (window as unknown as { isReady: boolean }).isReady = true;
-    }, 1500);
-  }, []);
+  useGotenbergReady(true);
 
   return (
     <>

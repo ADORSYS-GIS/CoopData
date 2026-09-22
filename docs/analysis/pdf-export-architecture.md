@@ -23,8 +23,9 @@ The generation of the PDF relies on a robust background worker pattern to ensure
 
 1. **Approval Trigger**: When an Apex or Ministry user approves a submission (`PUT /api/v1/cooperative/submissions/:id/status`), the handler updates the database.
 2. **The Minion (Tokio Task)**: The backend invokes `ExportGenerator::trigger_cooperative_export`. This spawns a detached background thread (`tokio::spawn`)—our "minion". The API immediately returns a `200 OK` to the user, while the minion begins the heavy lifting in the background.
-3. **Multi-Format Baking**: The minion asynchronously generates an Excel fallback (`.xlsx`), a Word document (`.docx`), and finally the PDF (`.pdf`).
-4. **Storage**: Once generated, the files are uploaded directly to the object storage bucket (e.g., S3/MinIO) under `exports/individual/{submission_id}/`.
+3. **Cascading Consolidated Regenerations**: Because approving a new submission alters the aggregated totals for the entire hierarchy, the minion doesn't stop at the Cooperative level. It immediately regenerates the **Apex Consolidated Report**, then the **Federation Report**, and finally the **Ministry Report** — back-to-back, paced by the backend's AI and Gotenberg semaphores (the LLM client's 429-aware retry logic absorbs any provider rate limits). This ensures that all higher-level PDF caches are kept perfectly up-to-date.
+4. **Multi-Format Baking**: The minion asynchronously generates an Excel fallback (`.xlsx`), a Word document (`.docx`), and finally the PDF (`.pdf`).
+5. **Storage**: Once generated, the files are uploaded directly to the object storage bucket (e.g., S3/MinIO) under `exports/individual/{submission_id}/` (or the respective tier folder).
 
 ## 3. How Gotenberg Works
 
@@ -81,4 +82,30 @@ As the Consolidated Reports matured, we made several critical fixes to ensure st
 
 - **Strict DB UUID Resolution for Claims**: We realized that `claims.get_apex_group_id()` often returns a human-readable name (e.g. "We" or "Eswa") rather than a strict UUID. We updated the backend (`export.rs`) to utilize `resolve_caller_apex_db_id_pub(&state, &claims)` to explicitly look up the actual DB UUID of the Apex or Federation before performing any bucket lookups or falling back to headless generation. This prevents Apex users from accidentally viewing Ministry-level fallbacks.
 - **Explicit Token Injection in Shared Hooks**: We updated `useNationalOverview.ts` to accept a `tokenOverride` string, explicitly bypassing the standard browser session cookie injection in `apiClient`. This ensures that Gotenberg (which operates completely stateless) can securely request data across the Apex, Federation, and Ministry print routes.
-- **Gotenberg Ready Signal (`window.isReady`)**: We added a strict `useEffect` block inside `ConsolidatedReportPrint.tsx` that signals `(window as any).isReady = true` after a 1000ms delay. This prevents Gotenberg from timing out (25s) and accidentally saving PDF snapshots of the loading spinner when generating heavy Apex/Federation level aggregations in the background.
+- **Gotenberg Ready Signal (`window.isReady`)**: All print pages use the shared `useGotenbergReady` hook (`frontend/src/hooks/print/useGotenbergReady.ts`), which signals `(window as any).isReady = true` deterministically — a double `requestAnimationFrame` plus a short settle delay once the data hooks finish loading. This prevents Gotenberg from accidentally saving PDF snapshots of the loading spinner or half-painted charts when generating heavy Apex/Federation level aggregations in the background.
+
+## 8. Report Generation Optimizations
+
+To ensure the export generation scales and performs efficiently, we have implemented one major optimization and planned two future optimizations:
+
+1. **Exact-Millisecond Capture via `window.isReady` (COMPLETED):**
+   - **Previous State:** Gotenberg was hardcoded to wait exactly 15 seconds (`waitDelay: "15s"`) before capturing the PDF, leading to massive wasted time or capturing loading spinners if the network was slow.
+   - **Optimization:** We added a `useEffect` in the React frontend that signals `window.isReady = true` the exact millisecond the charts finish drawing. Gotenberg now uses `waitForExpression: "window.isReady === true"`, acting as a sniper to capture the PDF instantly, drastically reducing generation latency.
+2. **Removing Artificial Timers (LLM Rate Limits):**
+   - **Current State:** To avoid free-tier Gemini API limits, the system manually pauses for 65 seconds between triggering each tier (Cooperative -> Apex -> Federation -> Ministry), leading to a ~4-5 minute total generation time.
+   - **Optimization:** By upgrading to a paid LLM tier with higher limits, we can completely delete the `tokio::time::sleep(65)` calls. Instead of forcing parallelization, we will simply rely on the system's already-built safety rails (`ai_semaphore`, `gotenberg_semaphore`, and 429 retries) to throttle requests naturally. This will reduce the total background processing time to roughly 1-2 minutes (bottlenecked primarily by Gotenberg's rendering speed).
+3. **Headless Mode for React (Planned - Skipping Animations):**
+   - **Current State:** The React app plays 1-second CSS and Framer Motion animations when mounting the charts, forcing Gotenberg to delay its snapshot to avoid capturing half-rendered graphs.
+   - **Optimization:** Pass a `?headless=true` parameter in the Gotenberg URL. The React app will detect this flag, disable all chart animations (`isAnimationActive={false}`), and instantly snap the charts to the screen, allowing Gotenberg to capture the PDF a full second faster for every single report.
+
+## 9. Hardware Scaling & Semaphore Tuning
+
+The backend relies on two critical semaphores (defined in `backend/src/main.rs`) to prevent the server from crashing under heavy concurrency:
+
+1. **`ai_semaphore`**: Controls how many isolated HTTP requests are actively sent to the AI API (Gemini) at any given time.
+2. **`gotenberg_semaphore`**: Controls how many concurrent Headless Chromium instances Gotenberg is allowed to spawn.
+
+**Gotenberg Resource Guidelines:**
+Headless Chromium is highly resource-intensive. A single concurrent PDF render of a heavy React page (with Recharts) generally consumes **~1 CPU Core** and **~400MB to 600MB of RAM**. 
+
+Before increasing the `gotenberg_semaphore` limit beyond its default of `2`, you should evaluate your server's true capacity using `docker stats gotenberg` during a live export. Divide your server's dedicated free RAM by the observed spike (e.g., 4000MB Free RAM / 500MB per render = Max Semaphore of 8) to find your safe hardware limit.
