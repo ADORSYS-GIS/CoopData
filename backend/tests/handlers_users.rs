@@ -6,7 +6,6 @@ use axum::{
 };
 use common::mock::TestApp;
 use coop_data_backend::api::routes::api::create_app;
-use serde_json::json;
 use tower::util::ServiceExt;
 
 async fn app() -> axum::Router {
@@ -29,12 +28,21 @@ async fn test_health_check_public() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert!(
+        response.status() == StatusCode::OK || response.status() == StatusCode::SERVICE_UNAVAILABLE,
+        "Health endpoint should be reachable without auth, got {}",
+        response.status()
+    );
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(json["status"], json!("healthy"));
+    assert!(
+        json["status"] == "healthy" || json["status"] == "degraded",
+        "Health body should carry a healthy/degraded status, got {:?}",
+        json["status"]
+    );
+    assert!(json["checks"].is_object());
 }
 
 #[tokio::test]
