@@ -4,7 +4,7 @@ const getFallbackKeycloakUrl = () => {
   if (typeof window !== "undefined") {
     const isProd = import.meta.env.PROD;
     if (isProd) {
-      return `${window.location.origin}/auth`;
+      return `${window.location.origin}`;
     }
   }
   return "http://localhost:8180";
