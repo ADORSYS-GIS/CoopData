@@ -1046,7 +1046,7 @@ export const SubmissionDetailPage: React.FC = () => {
                 onReturn={() =>
                   handleReviewAction(apexReturn, t("submissions.detail.apexReviewReturnedMsg"))
                 }
-                approveLabel={t("submissions.detail.btnApproveForward")}
+                approveLabel={t("submissions.detail.btnApprove")}
                 returnLabel={t("submissions.detail.btnRequestChanges")}
                 isPending={apexApprove.isPending || apexReturn.isPending}
               />

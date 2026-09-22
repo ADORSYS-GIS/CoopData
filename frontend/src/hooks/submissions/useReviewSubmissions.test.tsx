@@ -82,7 +82,7 @@ describe("useReviewSubmissions Hooks", () => {
 
   describe("useApexApprove", () => {
     it("approves submission", async () => {
-      const mockResponse = { id: "sub-1", status: "in_review" };
+      const mockResponse = { id: "sub-1", status: "approved" };
       vi.mocked(apiClient.POST).mockResolvedValueOnce({
         data: mockResponse,
         error: undefined,
