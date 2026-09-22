@@ -46,8 +46,7 @@ async fn test_health_check_public_no_auth_required() {
     // 401/403). In this DB-free test environment the dependencies are
     // unavailable, so it reports degraded (503) rather than healthy (200).
     assert!(
-        response.status() == StatusCode::OK
-            || response.status() == StatusCode::SERVICE_UNAVAILABLE,
+        response.status() == StatusCode::OK || response.status() == StatusCode::SERVICE_UNAVAILABLE,
         "Health endpoint should be reachable without auth, got {}",
         response.status()
     );

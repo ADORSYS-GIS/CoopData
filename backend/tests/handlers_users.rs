@@ -29,8 +29,7 @@ async fn test_health_check_public() {
         .unwrap();
 
     assert!(
-        response.status() == StatusCode::OK
-            || response.status() == StatusCode::SERVICE_UNAVAILABLE,
+        response.status() == StatusCode::OK || response.status() == StatusCode::SERVICE_UNAVAILABLE,
         "Health endpoint should be reachable without auth, got {}",
         response.status()
     );

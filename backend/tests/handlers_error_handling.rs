@@ -61,8 +61,7 @@ async fn test_health_check_returns_ok() {
     // DB-free test environment the dependencies are unavailable, so it reports
     // degraded (503) rather than healthy (200) — both are valid.
     assert!(
-        response.status() == StatusCode::OK
-            || response.status() == StatusCode::SERVICE_UNAVAILABLE,
+        response.status() == StatusCode::OK || response.status() == StatusCode::SERVICE_UNAVAILABLE,
         "Health endpoint should be reachable, got {}",
         response.status()
     );
