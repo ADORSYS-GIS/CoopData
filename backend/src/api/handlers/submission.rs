@@ -1069,14 +1069,13 @@ pub async fn apex_approve_submission(
 
             for sub in future_subs {
                 // Delete stale cached PDF from object storage (best-effort)
-                let pdf_key =
-                    format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
                 let _ = state.storage.delete_object(&pdf_key).await;
 
                 // Queue background regeneration so the next download gets fresh data
-                state
-                    .export_queue
-                    .enqueue(ExportJob::Cooperative { submission_id: sub.id });
+                state.export_queue.enqueue(ExportJob::Cooperative {
+                    submission_id: sub.id,
+                });
                 if let Some(c) = &coop {
                     state.export_queue.enqueue(ExportJob::Apex {
                         apex_id: c.apex_id,
@@ -1089,11 +1088,9 @@ pub async fn apex_approve_submission(
                         reporting_year: sub.reporting_year,
                     });
                 }
-                state
-                    .export_queue
-                    .enqueue(ExportJob::Ministry {
-                        reporting_year: sub.reporting_year,
-                    });
+                state.export_queue.enqueue(ExportJob::Ministry {
+                    reporting_year: sub.reporting_year,
+                });
 
                 tracing::info!(
                     stale_submission_id = %sub.id,
@@ -1655,14 +1652,13 @@ pub async fn ministry_approve_submission(
 
             for sub in future_subs {
                 // Delete stale cached PDF from object storage (best-effort)
-                let pdf_key =
-                    format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
                 let _ = state.storage.delete_object(&pdf_key).await;
 
                 // Queue background regeneration so the next download gets fresh data
-                state
-                    .export_queue
-                    .enqueue(ExportJob::Cooperative { submission_id: sub.id });
+                state.export_queue.enqueue(ExportJob::Cooperative {
+                    submission_id: sub.id,
+                });
                 if let Some(c) = &coop {
                     state.export_queue.enqueue(ExportJob::Apex {
                         apex_id: c.apex_id,
@@ -1675,11 +1671,9 @@ pub async fn ministry_approve_submission(
                         reporting_year: sub.reporting_year,
                     });
                 }
-                state
-                    .export_queue
-                    .enqueue(ExportJob::Ministry {
-                        reporting_year: sub.reporting_year,
-                    });
+                state.export_queue.enqueue(ExportJob::Ministry {
+                    reporting_year: sub.reporting_year,
+                });
 
                 tracing::info!(
                     stale_submission_id = %sub.id,

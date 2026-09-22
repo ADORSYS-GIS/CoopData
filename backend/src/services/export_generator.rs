@@ -13,10 +13,20 @@ use uuid::Uuid;
 /// of how many approvals happen concurrently.
 #[derive(Debug, Clone)]
 pub enum ExportJob {
-    Cooperative { submission_id: Uuid },
-    Apex { apex_id: Uuid, reporting_year: i32 },
-    Federation { federation_id: Uuid, reporting_year: i32 },
-    Ministry { reporting_year: i32 },
+    Cooperative {
+        submission_id: Uuid,
+    },
+    Apex {
+        apex_id: Uuid,
+        reporting_year: i32,
+    },
+    Federation {
+        federation_id: Uuid,
+        reporting_year: i32,
+    },
+    Ministry {
+        reporting_year: i32,
+    },
 }
 
 /// Serializes export jobs through one worker task. Handlers enqueue jobs
