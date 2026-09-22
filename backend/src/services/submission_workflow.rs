@@ -211,7 +211,11 @@ impl SubmissionWorkflow {
         Ok(())
     }
 
-    /// Apex approves → federation_review (Submitted → InReview, tier=Federation)
+    /// Apex approves → approved (terminal).
+    ///
+    /// The Apex is the final level of approval: once it approves, the
+    /// submission is immediately marked fully approved. Federation and
+    /// Ministry no longer take any action to finalize it.
     pub async fn apex_approve(
         &self,
         submission_id: Uuid,
@@ -222,8 +226,8 @@ impl SubmissionWorkflow {
             submission_id,
             SubmissionStatus::Submitted,
             ReviewAction::Approve,
-            SubmissionStatus::InReview,
-            ReviewTier::Federation,
+            SubmissionStatus::Approved,
+            ReviewTier::Apex,
             claims,
             comment,
         )
@@ -492,7 +496,7 @@ impl SubmissionWorkflow {
         counter!("coopdata_submission_transitions_total", "status" => new_status.as_str().to_string())
             .increment(1);
 
-        if new_tier == ReviewTier::Ministry
+        if (new_tier == ReviewTier::Ministry || new_tier == ReviewTier::Apex)
             && matches!(action, ReviewAction::Approve | ReviewAction::Reject)
         {
             counter!("coopdata_submissions_processed_total", "status" => new_status.as_str().to_string())

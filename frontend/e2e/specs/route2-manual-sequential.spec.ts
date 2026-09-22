@@ -1,10 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginAs } from "../fixtures/helpers/login";
-import {
-  approveAsApex,
-  approveAsFederation,
-  approveAsMinistry,
-} from "../fixtures/helpers/approval";
+import { approveAsApex } from "../fixtures/helpers/approval";
 
 /**
  * Route 2: Manual Entry Method - Sequential Flow Tests
@@ -252,26 +248,6 @@ test.describe.serial("Route 2: Manual Entry Method - Sequential Flow", () => {
     test.setTimeout(180000);
     console.log("=== STEP 5: Apex approval ===");
     await approveAsApex(page, submissionId, "Data verified manually");
-    console.log("✓ STEP 5 COMPLETED");
-  });
-
-  // ═══════════════════════════════════════════════════════════════
-  // STEP 6: Federation approval
-  // ═══════════════════════════════════════════════════════════════
-  test("Step 6: Federation approval", async ({ page }) => {
-    test.setTimeout(180000);
-    console.log("=== STEP 6: Federation approval ===");
-    await approveAsFederation(page, submissionId);
-    console.log("✓ STEP 6 COMPLETED");
-  });
-
-  // ═══════════════════════════════════════════════════════════════
-  // STEP 7: Ministry final approval
-  // ═══════════════════════════════════════════════════════════════
-  test("Step 7: Ministry final approval", async ({ page }) => {
-    test.setTimeout(180000);
-    console.log("=== STEP 7: Ministry final approval ===");
-    await approveAsMinistry(page, submissionId);
-    console.log("✓ STEP 7 COMPLETED - All tests passed!");
+    console.log("✓ STEP 5 COMPLETED - Apex approval is final; submission fully approved");
   });
 });
