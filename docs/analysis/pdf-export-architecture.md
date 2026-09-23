@@ -1,111 +1,237 @@
-# Cooperative Report PDF Export Architecture
+# Deep Dive: Report Export Flow Code Explanation
 
-This document details the architectural flow, component structure, and data sources behind the **Official Cooperative Performance Report** PDF export.
+Here is a step-by-step technical breakdown of exactly how the application generates those beautifully formatted PDF reports, with full code explanations tracing from the moment a submission is approved, to the background AI generation, down to the Gotenberg browser rendering.
 
-## 1. What is the Export Report?
-The PDF Export is a comprehensive prudential ratio evaluation, risk profiling, and financial audit generated for a cooperative. Once a cooperative's financial submission is fully reviewed and approved by the Apex or Ministry, this official report is generated to serve as the definitive snapshot of their health for that reporting year.
+---
 
-**What we did in Phase 1:**
-- Built a highly modularized React layout specifically tailored for A4 print dimensions.
-- Wired up Recharts for dynamic visual storytelling (Membership Composition, Portfolio Distribution).
-- Integrated `kpi_records` to calculate Year-over-Year (YoY) performance and PEARLS benchmark comparisons.
-- Implemented a background worker pattern to silently generate and store these heavy PDF files using Gotenberg.
+## 1. Background Trigger (On Apex Final Approval)
 
-**What we did in Phase 2 & 3 (Consolidated Exports):**
-- Built a unified `ConsolidatedReportPrint.tsx` component that dynamically adapts to **Apex**, **Federation**, and **Ministry** levels, reusing Recharts and dynamic KPI summaries.
-- Leveraged the `useNationalOverview` endpoint across all levels by passing `apexId` or `federationId` to instantly aggregate data from hundreds of cooperatives.
-- Fixed headless authentication by explicitly transmitting short-lived Keycloak tokens via URL parameters (`?token=xyz`), which are parsed by the print routes and injected as Bearer tokens into API requests.
-- Implemented robust JWT claim-fallback logic in the backend export handler: if an Apex or Federation user requests an export without explicitly declaring their ID, the backend safely extracts their `group_id` from the token claims to lock them into their permitted data scope.
+When the Apex tier finally approves a submission, we don't want the user to wait forever when they eventually click "Download PDF". So, we proactively start generating the reports in the background.
 
-## 2. Architectural Flow & The "Minion"
+**File:** `backend/src/api/handlers/submission.rs`
 
-The generation of the PDF relies on a robust background worker pattern to ensure the API remains snappy.
+```rust
+// Inside the `approve_submission` handler:
 
-1. **Approval Trigger**: When an Apex or Ministry user approves a submission (`PUT /api/v1/cooperative/submissions/:id/status`), the handler updates the database.
-2. **The Minion (Tokio Task)**: The backend invokes `ExportGenerator::trigger_cooperative_export`. This spawns a detached background thread (`tokio::spawn`)—our "minion". The API immediately returns a `200 OK` to the user, while the minion begins the heavy lifting in the background.
-3. **Cascading Consolidated Regenerations**: Because approving a new submission alters the aggregated totals for the entire hierarchy, the minion doesn't stop at the Cooperative level. It immediately regenerates the **Apex Consolidated Report**, then the **Federation Report**, and finally the **Ministry Report** — back-to-back, paced by the backend's AI and Gotenberg semaphores (the LLM client's 429-aware retry logic absorbs any provider rate limits). This ensures that all higher-level PDF caches are kept perfectly up-to-date.
-4. **Multi-Format Baking**: The minion asynchronously generates an Excel fallback (`.xlsx`), a Word document (`.docx`), and finally the PDF (`.pdf`).
-5. **Storage**: Once generated, the files are uploaded directly to the object storage bucket (e.g., S3/MinIO) under `exports/individual/{submission_id}/` (or the respective tier folder).
+// Phase A: Trigger background export generation for the cooperative, Apex, Federation, and Ministry.
+// All 4 tiers are triggered simultaneously and run in parallel.
+let state_clone = state.clone();
+let cooperative_id = updated.cooperative_id;
+let reporting_year = updated.reporting_year;
 
-## 3. How Gotenberg Works
+// 1. Immediately trigger the cooperative-level PDF generation
+crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+    state_clone.clone(),
+    id, // submission ID
+);
 
-Gotenberg is a Docker-based stateless API for PDF generation using a headless Chromium browser.
+if let Some(c) = &coop {
+    // 2. Trigger the Apex-level PDF generation (Runs in parallel)
+    crate::services::export_generator::ExportGenerator::trigger_apex_export(
+        state_clone.clone(),
+        c.apex_id,
+        reporting_year,
+    );
+}
 
-- **The Request**: The backend minion sends a multipart form POST request to Gotenberg containing the frontend URL (e.g., `http://frontend:5173/print/cooperative/{submission_id}?token=...`).
-- **Headless Authentication**: Because Gotenberg lacks the standard Keycloak session cookie and local storage state, the backend explicitly passes a generated admin or user token via the URL parameter (`?token=...`). The print routes (e.g. `print.apex.$id.tsx`) parse this token from the Search Params and inject it into the `useQuery` hooks (`useApex`, `useNationalOverview`), which supply it as an `Authorization: Bearer` header.
-- **The Magic Signal (`window.isReady`)**: Because the frontend relies on React Query to fetch data asynchronously over the network, Gotenberg cannot simply print the page immediately upon load. We configure Gotenberg with `waitForExpression="window.isReady === true"`. 
-- **The Trigger**: Inside `CooperativeReportPrint.tsx` (and `ConsolidatedReportPrint.tsx`), a `useEffect` hook waits for all data hooks to finish loading. Once the data is injected into the DOM, it fires `(window as any).isReady = true`, signaling to Gotenberg that the headless browser can now capture the perfectly rendered page and convert it to PDF.
+if let Some(a) = &apex {
+    // 3. Trigger Federation export (Runs in parallel)
+    crate::services::export_generator::ExportGenerator::trigger_federation_export(
+        state_clone.clone(),
+        a.federation_id,
+        reporting_year,
+    );
+}
 
-## 4. Frontend Component Modularization
+// 4. Trigger Ministry export (Runs in parallel)
+crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+    state_clone.clone(),
+    reporting_year,
+);
+```
 
-To prevent massive, unmaintainable files and to prepare for Phase 2 (Apex) and Phase 3 (Federation), the report is broken down into modular layout blocks located in `src/pages/shared/print/components/`:
+**Explanation:**
+- The handler immediately triggers all 4 PDF exports directly using `tokio::spawn` internally. The HTTP response for the "Approve" action returns instantly.
+- **Optimization Note:** We used to have 65-second `tokio::time::sleep` delays here to avoid AI rate limits. We completely removed them! The system now spawns all tasks in full parallel and relies entirely on a global `ai_semaphore` (max 18 concurrent requests) and `gotenberg_semaphore` (max 2 concurrent renders) to safely throttle the massive load.
 
-- `ReportCoverPage`: Branding, Organization Name, Submission Code.
-- `ReportExecutiveSummary`: High-level metrics, Sector Context, Key Ratios.
-- `ReportNonFinancial`: Membership Demographics, AGM Attendance.
-- `ReportFinancialPosition`: Detailed Balance Sheet and Income Statement with YoY changes.
-- `ReportPortfolioQuality`: Gross Loan Portfolio breakdown and classification.
-- `ReportBenchmarkComparison`: Pass/Fail status mapping against standard PEARLS benchmarks.
+---
 
-**Consolidated Reports (Apex, Federation, Ministry)**
-To handle higher-level reporting, we created the `ConsolidatedReportPrint.tsx` component. It dynamically renders:
-- **Sheet 1: Executive Dashboard**: Aggregated financial positions (Total Assets, Total GLP) and KPIs (Average PAR30, CAR) across all underlying cooperatives.
-- **Sheet 2: Cooperative Detail**: A high-density table displaying the health and compliance status of every individual cooperative in the user's scope, followed by a Bar Chart representing the distribution of risk statuses (Green/Amber/Red).
-- The print routes (`print.apex.$id.tsx`, `print.federation.$id.tsx`, and `print.ministry.tsx`) wrap this unified component, passing down the appropriately filtered data utilizing the `useNationalOverview` endpoint.
+## 2. Generating the AI Narratives
 
-## 5. Database Tables & Data Sources
+Inside `trigger_cooperative_export`, the system gathers data to feed to the LLM to write the Executive Summary.
 
-The report relies on deeply interconnected tables to build the full picture. The frontend orchestrates 5 separate API endpoints to gather this:
+**File:** `backend/src/services/export_generator.rs`
 
-1. **`submissions` & `cooperatives`**: Provides metadata like the Reporting Year, Submission Status, Cooperative Name, Region, and Institution Type.
-2. **`financial_statements` & `balance_sheet_line_items`**: Provides the raw ledger data. Specifically, account codes `1999` (Total Assets), `2999` (Total Liabilities), `3999` (Total Equity), `5999` (Total Income), and `6499` (Total Expenses).
-3. **`loans`**: Grouped and aggregated by status (Performing, Arrears 1-30, Loss, etc.) to generate the Portfolio Quality pie chart and tables.
-4. **`members`**: Aggregated by gender, youth status, and activity status to generate the Membership Demographics pie chart and AGM attendance metrics.
-5. **`kpi_records`**: The pre-computed prudential ratios. The frontend leverages `?include_prior_year=true` to automatically fetch last year's KPIs and compute the Year-over-Year change deltas.
+```rust
+pub(crate) async fn generate_cooperative_pdf(state: &AppState, submission_id: Uuid) -> AppResult<Vec<u8>> {
+    
+    // 1. Generate the AI narratives
+    let narrative_params = match Self::generate_cooperative_narratives(state, submission_id).await {
+        Ok(result) => {
+            // 2. Persist the AI output to the submission metadata in the Database
+            state.submission_repo.update_metadata(
+                submission_id,
+                serde_json::json!({ "ai_narratives": result }),
+            ).await;
+            
+            // 3. URL-encode the narratives so they can be passed to the Frontend
+            report_narrative::encode_cooperative_narrative_params(&result)
+        }
+        Err(e) => String::new() // Fallback to empty if AI fails
+    };
 
-## 6. KPIs Utilized
+    // 4. Build a hidden URL pointing to the React Frontend
+    let token = state.keycloak.get_admin_token().await?;
+    let print_url = format!(
+        "{}/print/cooperative/{}?token={}{}",
+        state.config.gotenberg_frontend_url, submission_id, token, narrative_params
+    );
 
-The following key indicators are actively fetched from `kpi_records` and utilized in the report:
+    // 5. Send this URL to the Headless Browser
+    Self::generate_pdf_via_gotenberg(state, &print_url).await
+}
+```
 
-| Category | Indicators | Where Used |
-| :--- | :--- | :--- |
-| **Financial Size** | `total_assets`, `gross_loan_portfolio`, `total_member_deposits`, `total_equity`, `net_surplus` | Executive Summary (Financial Highlights), Financial Position (Totals) |
-| **Portfolio Quality** | `par30`, `par90`, `npl_ratio`, `loan_loss_coverage` | Executive Summary (Key Ratios), Portfolio Quality, Benchmark Comparison |
-| **Profitability** | `roa`, `roe`, `operating_expense_ratio`, `net_interest_margin`, `operational_self_sufficiency` | Executive Summary (Key Ratios), Benchmark Comparison |
-| **Liquidity & Solvency**| `capital_adequacy_ratio`, `liquid_funds_ratio`, `deposits_to_loans` | Executive Summary (Key Ratios), Benchmark Comparison |
+**Explanation:**
+- **`generate_cooperative_narratives`:** This function fetches all KPIs, Financial Line Items, and Non-Financial stats (Savings/Loans/Members) from the DB. It passes them to the `narrative_generator` (LangChain/Gemini integration) to write the text.
+- **Persistence:** We save `ai_narratives` into the submission's JSONB metadata column. This allows the frontend to retrieve the exact same text later without re-running the AI.
+- **`print_url`:** The backend actually commands Gotenberg (the headless browser) to open a hidden route in the *React application* (e.g., `http://frontend:3000/print/cooperative/1234`).
 
-All indicators with a defined `benchmark` value are automatically extracted and evaluated in the final **PEARLS Benchmark Comparison** sheet (Page 6).
+---
 
-## 7. Recent Architectural Fixes & Decisions (Ongoing)
+## 3. The React Print Layout (Frontend)
 
-As the Consolidated Reports matured, we made several critical fixes to ensure stability and accuracy during headless generation:
+When Gotenberg opens that `print_url`, it hits the React router and mounts `CooperativeReportPrint.tsx`.
 
-- **Strict DB UUID Resolution for Claims**: We realized that `claims.get_apex_group_id()` often returns a human-readable name (e.g. "We" or "Eswa") rather than a strict UUID. We updated the backend (`export.rs`) to utilize `resolve_caller_apex_db_id_pub(&state, &claims)` to explicitly look up the actual DB UUID of the Apex or Federation before performing any bucket lookups or falling back to headless generation. This prevents Apex users from accidentally viewing Ministry-level fallbacks.
-- **Explicit Token Injection in Shared Hooks**: We updated `useNationalOverview.ts` to accept a `tokenOverride` string, explicitly bypassing the standard browser session cookie injection in `apiClient`. This ensures that Gotenberg (which operates completely stateless) can securely request data across the Apex, Federation, and Ministry print routes.
-- **Gotenberg Ready Signal (`window.isReady`)**: All print pages use the shared `useGotenbergReady` hook (`frontend/src/hooks/print/useGotenbergReady.ts`), which signals `(window as any).isReady = true` deterministically — a double `requestAnimationFrame` plus a short settle delay once the data hooks finish loading. This prevents Gotenberg from accidentally saving PDF snapshots of the loading spinner or half-painted charts when generating heavy Apex/Federation level aggregations in the background.
+**File:** `frontend/src/pages/shared/CooperativeReportPrint.tsx`
 
-## 8. Report Generation Optimizations
+```tsx
+export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOverride }) => {
+  // 1. Fetch data from backend using TanStack Query
+  const { data: submission, isLoading: subLoading } = useSubmission(submissionId, undefined, tokenOverride);
+  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(submissionId, tokenOverride);
+  const { data: lineItemsData, isLoading: lineItemsLoading } = useSubmissionLineItems(submissionId, tokenOverride);
+  
+  // 2. Track loading states
+  const criticalLoading = subLoading || kpisLoading || lineItemsLoading;
+  const allLoading = criticalLoading || portfolioLoading || membershipLoading;
 
-To ensure the export generation scales and performs efficiently, we have implemented one major optimization and planned two future optimizations:
+  // 3. THE OPTIMIZATION: Tell Gotenberg when the page is fully rendered
+  React.useEffect(() => {
+    if (!allLoading) {
+      setTimeout(() => {
+        // We set this global variable to let Gotenberg know it can take the screenshot
+        (window as unknown as { isReady: boolean }).isReady = true;
+      }, 1000); // 1 second buffer for charts to animate
+    }
+  }, [allLoading]);
 
-1. **Exact-Millisecond Capture via `window.isReady` (COMPLETED):**
-   - **Previous State:** Gotenberg was hardcoded to wait exactly 15 seconds (`waitDelay: "15s"`) before capturing the PDF, leading to massive wasted time or capturing loading spinners if the network was slow.
-   - **Optimization:** We added a `useEffect` in the React frontend that signals `window.isReady = true` the exact millisecond the charts finish drawing. Gotenberg now uses `waitForExpression: "window.isReady === true"`, acting as a sniper to capture the PDF instantly, drastically reducing generation latency.
-2. **Removing Artificial Timers (LLM Rate Limits):**
-   - **Current State:** To avoid free-tier Gemini API limits, the system manually pauses for 65 seconds between triggering each tier (Cooperative -> Apex -> Federation -> Ministry), leading to a ~4-5 minute total generation time.
-   - **Optimization:** By upgrading to a paid LLM tier with higher limits, we can completely delete the `tokio::time::sleep(65)` calls. Instead of forcing parallelization, we will simply rely on the system's already-built safety rails (`ai_semaphore`, `gotenberg_semaphore`, and 429 retries) to throttle requests naturally. This will reduce the total background processing time to roughly 1-2 minutes (bottlenecked primarily by Gotenberg's rendering speed).
-3. **Headless Mode for React (Planned - Skipping Animations):**
-   - **Current State:** The React app plays 1-second CSS and Framer Motion animations when mounting the charts, forcing Gotenberg to delay its snapshot to avoid capturing half-rendered graphs.
-   - **Optimization:** Pass a `?headless=true` parameter in the Gotenberg URL. The React app will detect this flag, disable all chart animations (`isAnimationActive={false}`), and instantly snap the charts to the screen, allowing Gotenberg to capture the PDF a full second faster for every single report.
+  // 4. Show spinner while loading
+  if (allLoading) {
+    return <Spinner size="xl" />
+  }
 
-## 9. Hardware Scaling & Semaphore Tuning
+  // 5. Render the actual printable pages (Tailwind print utilities are used inside these)
+  return (
+    <div className="print-report bg-white text-slate-900 font-sans print:w-[210mm]">
+      <ReportCoverPage {...reportData} />
+      <ReportExecutiveSummary {...reportData} />
+      <ReportNonFinancial {...reportData} />
+      <ReportFinancialPosition {...reportData} />
+      <ReportPortfolioQuality {...reportData} />
+    </div>
+  );
+};
+```
 
-The backend relies on two critical semaphores (defined in `backend/src/main.rs`) to prevent the server from crashing under heavy concurrency:
+**Explanation:**
+- The page functions just like a normal web app. It fetches data and displays a loading spinner.
+- The `window.isReady = true` script is our "trigger". Without this, Gotenberg wouldn't know when the React app finished fetching data and rendering the DOM.
 
-1. **`ai_semaphore`**: Controls how many isolated HTTP requests are actively sent to the AI API (Gemini) at any given time.
-2. **`gotenberg_semaphore`**: Controls how many concurrent Headless Chromium instances Gotenberg is allowed to spawn.
+---
 
-**Gotenberg Resource Guidelines:**
-Headless Chromium is highly resource-intensive. A single concurrent PDF render of a heavy React page (with Recharts) generally consumes **~1 CPU Core** and **~400MB to 600MB of RAM**. 
+## 4. Gotenberg PDF Conversion (The Headless Browser)
 
-Before increasing the `gotenberg_semaphore` limit beyond its default of `2`, you should evaluate your server's true capacity using `docker stats gotenberg` during a live export. Divide your server's dedicated free RAM by the observed spike (e.g., 4000MB Free RAM / 500MB per render = Max Semaphore of 8) to find your safe hardware limit.
+Back in the backend, the request to Gotenberg is dispatched.
+
+**File:** `backend/src/services/export_generator.rs`
+
+```rust
+pub(crate) async fn generate_pdf_via_gotenberg(state: &AppState, print_url: &str) -> AppResult<Vec<u8>> {
+    let client = reqwest::Client::new();
+    
+    // Build the multipart form instruction for Gotenberg
+    let form_clone = reqwest::multipart::Form::new()
+        .text("url", print_url.to_string())
+        
+        // 🚨 THIS IS THE OPTIMIZATION WE JUST ADDED
+        // Gotenberg will evaluate this JS expression repeatedly. The millisecond it
+        // returns true, Gotenberg captures the PDF.
+        .text("waitForExpression", "window.isReady === true")
+        
+        // Setup paper sizes and margins
+        .text("paperWidth", "8.27") // A4 size
+        .text("paperHeight", "11.69")
+        .text("marginTop", "0.5")
+        // ... (headers/footers injected as HTML parts)
+
+    // Send the request to the Gotenberg microservice (Docker container)
+    let response = client
+        .post(format!("{}/forms/chromium/convert/url", state.config.gotenberg_url))
+        .multipart(form_clone)
+        .send()
+        .await;
+
+    // Return the bytes of the PDF!
+    let bytes = response.bytes().await?;
+    return Ok(bytes.to_vec());
+}
+```
+
+**Explanation:**
+- We use the `chromium/convert/url` route of Gotenberg.
+- We pass our `waitForExpression` logic. Gotenberg will inject a script into the headless Chromium instance and poll `window.isReady === true`.
+- Once captured, Gotenberg returns the raw PDF bytes.
+
+---
+
+## 5. Serving the File (The Cache Layer)
+
+Finally, when the user clicks the "Download PDF" button on the UI, the frontend makes a `GET` request.
+
+**File:** `backend/src/api/handlers/export.rs`
+
+```rust
+pub async fn export_single_submission(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    
+    let pdf_key = format!("exports/individual/{}/submission_{}.pdf", id, id);
+
+    // If the user didn't explicitly ask for a regeneration, check the MinIO/S3 Cache!
+    if !query.regenerate {
+        // Because of the background generation we did in Step 1, this file 
+        // ALREADY EXISTS 99% of the time!
+        if let Ok(bytes) = state.storage.get_object(&pdf_key).await {
+            tracing::info!(... "Serving cached PDF");
+            return Ok(generate_pdf_response(bytes));
+        }
+    }
+
+    // Only falls back to generating it right now if the cache was missed
+    let pdf_bytes = crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
+        &state, id,
+    ).await?;
+    
+    // Save it to cache for next time
+    state.storage.store(&pdf_key, &pdf_bytes, "application/pdf").await?;
+
+    Ok(generate_pdf_response(pdf_bytes))
+}
+```
+
+**Explanation:**
+- This ties everything together beautifully. Because of the **Background Trigger** (Step 1), the PDF is almost always sitting in the object storage bucket (`state.storage.get_object`).
+- When the user requests the file, they get a near-instant response because we bypass the LLM and Headless Browser completely and just serve the cached file.
