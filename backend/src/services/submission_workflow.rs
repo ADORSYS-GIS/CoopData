@@ -161,30 +161,46 @@ impl SubmissionWorkflow {
         }
 
         // Route based on current tier and creator role:
-        // - Apex-created submissions skip apex review, go directly to Federation
+        // - Apex-created submissions: the apex is the final approval level, so
+        //   submitting finalizes the submission immediately (no federation/ministry review)
         // - Cooperative tier → Apex (coop submits after delegation, apex reviews)
         // - Apex tier → Federation (apex is done reviewing, sends to federation)
         // - Federation tier → stays at federation (federation reviews)
         // - Ministry tier → stays at ministry (ministry reviews)
-        let next_tier = if claims.is_apex() {
-            ReviewTier::Federation
+        if claims.is_apex() {
+            self.submission_repo
+                .update_status(submission_id, SubmissionStatus::Approved, ReviewTier::Apex)
+                .await?;
+
+            counter!("coopdata_submissions_processed_total", "status" => "approved").increment(1);
+
+            self.append_review(
+                submission_id,
+                ReviewTier::Apex,
+                claims,
+                ReviewAction::Approve,
+                Some("Auto-approved on submit — apex is the final approval level".to_string()),
+            )
+            .await?;
         } else {
-            match sub.current_tier {
+            let next_tier = match sub.current_tier {
                 ReviewTier::Cooperative => ReviewTier::Apex,
                 ReviewTier::Apex => ReviewTier::Federation,
                 ReviewTier::Federation => ReviewTier::Federation,
                 ReviewTier::Ministry => ReviewTier::Ministry,
-            }
-        };
+            };
 
-        self.submission_repo
-            .update_status(submission_id, SubmissionStatus::Submitted, next_tier)
-            .await?;
+            self.submission_repo
+                .update_status(submission_id, SubmissionStatus::Submitted, next_tier)
+                .await?;
+        }
 
         // Clear edited_by — submission is now in review, no one editing
         self.submission_repo.clear_edited_by(submission_id).await?;
 
-        counter!("coopdata_submissions_processed_total", "status" => "submitted").increment(1);
+        if !claims.is_apex() {
+            counter!("coopdata_submissions_processed_total", "status" => "submitted").increment(1);
+        }
 
         // Immediately compute and save KPIs to database for cooperative analytics
         if sub.submission_method != "questionnaire" {
