@@ -104,7 +104,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Server listening on {}", addr);
     tracing::info!("Swagger UI available at http://{}/swagger-ui/", addr);
 
-    let mut state = AppState {
+    let state = AppState {
         db,
         config,
         cache,
