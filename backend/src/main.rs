@@ -145,13 +145,8 @@ async fn main() -> anyhow::Result<()> {
         gotenberg_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(2)),
         ai_semaphore: std::sync::Arc::new(tokio::sync::Semaphore::new(18)),
         ministry_narratives_repo,
-        export_queue: coop_data_backend::services::export_generator::ExportQueue::new(),
     };
 
-    // Start the single export worker that serializes export jobs and enforces
-    // the global Gemini rate limit.
-    state.export_queue =
-        coop_data_backend::services::export_generator::spawn_export_worker(state.clone());
 
     // Backfill computed KPIs for existing submissions
     if let Err(e) = backfill_computed_kpis(&state).await {

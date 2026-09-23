@@ -1009,12 +1009,6 @@ pub async fn apex_approve_submission(
         );
     }
 
-    // Phase A: Queue background export generation for the cooperative, Apex,
-    // Federation, and Ministry. A single global worker serializes these and
-    // enforces the Gemini rate limit, so concurrent approvals cannot stack
-    // independent sleeping tasks.
-    use crate::services::export_generator::ExportJob;
-
     let cooperative_id = updated.cooperative_id;
     let reporting_year = updated.reporting_year;
 
@@ -1024,24 +1018,14 @@ pub async fn apex_approve_submission(
         None => None,
     };
 
-    state
-        .export_queue
-        .enqueue(ExportJob::Cooperative { submission_id: id });
+    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(state.clone(), id);
     if let Some(c) = &coop {
-        state.export_queue.enqueue(ExportJob::Apex {
-            apex_id: c.apex_id,
-            reporting_year,
-        });
+        crate::services::export_generator::ExportGenerator::trigger_apex_export(state.clone(), c.apex_id, reporting_year);
     }
     if let Some(a) = &apex {
-        state.export_queue.enqueue(ExportJob::Federation {
-            federation_id: a.federation_id,
-            reporting_year,
-        });
+        crate::services::export_generator::ExportGenerator::trigger_federation_export(state.clone(), a.federation_id, reporting_year);
     }
-    state
-        .export_queue
-        .enqueue(ExportJob::Ministry { reporting_year });
+    crate::services::export_generator::ExportGenerator::trigger_ministry_export(state.clone(), reporting_year);
 
     // Phase F: Invalidate stale exports for future-year submissions of the
     // same cooperative and queue their regeneration.
@@ -1073,24 +1057,14 @@ pub async fn apex_approve_submission(
                 let _ = state.storage.delete_object(&pdf_key).await;
 
                 // Queue background regeneration so the next download gets fresh data
-                state.export_queue.enqueue(ExportJob::Cooperative {
-                    submission_id: sub.id,
-                });
+                crate::services::export_generator::ExportGenerator::trigger_cooperative_export(state.clone(), sub.id);
                 if let Some(c) = &coop {
-                    state.export_queue.enqueue(ExportJob::Apex {
-                        apex_id: c.apex_id,
-                        reporting_year: sub.reporting_year,
-                    });
+                    crate::services::export_generator::ExportGenerator::trigger_apex_export(state.clone(), c.apex_id, sub.reporting_year);
                 }
                 if let Some(a) = &apex {
-                    state.export_queue.enqueue(ExportJob::Federation {
-                        federation_id: a.federation_id,
-                        reporting_year: sub.reporting_year,
-                    });
+                    crate::services::export_generator::ExportGenerator::trigger_federation_export(state.clone(), a.federation_id, sub.reporting_year);
                 }
-                state.export_queue.enqueue(ExportJob::Ministry {
-                    reporting_year: sub.reporting_year,
-                });
+                crate::services::export_generator::ExportGenerator::trigger_ministry_export(state.clone(), sub.reporting_year);
 
                 tracing::info!(
                     stale_submission_id = %sub.id,
@@ -1593,11 +1567,6 @@ pub async fn ministry_approve_submission(
         );
     }
 
-    // Phase A: Queue background export generation for the cooperative, Apex,
-    // Federation, and Ministry. A single global worker serializes these and
-    // enforces the Gemini rate limit.
-    use crate::services::export_generator::ExportJob;
-
     let cooperative_id = updated.cooperative_id;
     let reporting_year = updated.reporting_year;
 
@@ -1607,24 +1576,14 @@ pub async fn ministry_approve_submission(
         None => None,
     };
 
-    state
-        .export_queue
-        .enqueue(ExportJob::Cooperative { submission_id: id });
+    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(state.clone(), id);
     if let Some(c) = &coop {
-        state.export_queue.enqueue(ExportJob::Apex {
-            apex_id: c.apex_id,
-            reporting_year,
-        });
+        crate::services::export_generator::ExportGenerator::trigger_apex_export(state.clone(), c.apex_id, reporting_year);
     }
     if let Some(a) = &apex {
-        state.export_queue.enqueue(ExportJob::Federation {
-            federation_id: a.federation_id,
-            reporting_year,
-        });
+        crate::services::export_generator::ExportGenerator::trigger_federation_export(state.clone(), a.federation_id, reporting_year);
     }
-    state
-        .export_queue
-        .enqueue(ExportJob::Ministry { reporting_year });
+    crate::services::export_generator::ExportGenerator::trigger_ministry_export(state.clone(), reporting_year);
 
     // Phase F: Invalidate stale exports for future-year submissions of the
     // same cooperative and queue their regeneration.
@@ -1656,24 +1615,14 @@ pub async fn ministry_approve_submission(
                 let _ = state.storage.delete_object(&pdf_key).await;
 
                 // Queue background regeneration so the next download gets fresh data
-                state.export_queue.enqueue(ExportJob::Cooperative {
-                    submission_id: sub.id,
-                });
+                crate::services::export_generator::ExportGenerator::trigger_cooperative_export(state.clone(), sub.id);
                 if let Some(c) = &coop {
-                    state.export_queue.enqueue(ExportJob::Apex {
-                        apex_id: c.apex_id,
-                        reporting_year: sub.reporting_year,
-                    });
+                    crate::services::export_generator::ExportGenerator::trigger_apex_export(state.clone(), c.apex_id, sub.reporting_year);
                 }
                 if let Some(a) = &apex {
-                    state.export_queue.enqueue(ExportJob::Federation {
-                        federation_id: a.federation_id,
-                        reporting_year: sub.reporting_year,
-                    });
+                    crate::services::export_generator::ExportGenerator::trigger_federation_export(state.clone(), a.federation_id, sub.reporting_year);
                 }
-                state.export_queue.enqueue(ExportJob::Ministry {
-                    reporting_year: sub.reporting_year,
-                });
+                crate::services::export_generator::ExportGenerator::trigger_ministry_export(state.clone(), sub.reporting_year);
 
                 tracing::info!(
                     stale_submission_id = %sub.id,

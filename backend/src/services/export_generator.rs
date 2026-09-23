@@ -4,108 +4,10 @@ use crate::services::report_narrative;
 use crate::AppState;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::EntityTrait;
-use std::time::Duration;
-use tokio::sync::mpsc;
+
 use uuid::Uuid;
 
-/// A unit of export work. Enqueued by approval handlers and processed serially
-/// by a single global worker so the Gemini rate limit is respected regardless
-/// of how many approvals happen concurrently.
-#[derive(Debug, Clone)]
-pub enum ExportJob {
-    Cooperative {
-        submission_id: Uuid,
-    },
-    Apex {
-        apex_id: Uuid,
-        reporting_year: i32,
-    },
-    Federation {
-        federation_id: Uuid,
-        reporting_year: i32,
-    },
-    Ministry {
-        reporting_year: i32,
-    },
-}
 
-/// Serializes export jobs through one worker task. Handlers enqueue jobs
-/// instead of spawning their own sleeping background tasks, so concurrent
-/// approvals cannot stack independent tasks that each hit the rate limit.
-#[derive(Clone)]
-pub struct ExportQueue {
-    tx: mpsc::Sender<ExportJob>,
-}
-
-impl ExportQueue {
-    /// Creates an empty queue (no worker). Used as a placeholder in `AppState`
-    /// before `spawn_export_worker` replaces it with a live queue.
-    pub fn new() -> Self {
-        let (tx, _rx) = mpsc::channel(256);
-        Self { tx }
-    }
-
-    /// Enqueues an export job for the single worker to process. Best-effort:
-    /// if the queue is full the job is dropped and logged rather than blocking.
-    pub fn enqueue(&self, job: ExportJob) {
-        if let Err(e) = self.tx.try_send(job) {
-            tracing::warn!(
-                error = %e,
-                "[export] export queue full; dropping export job"
-            );
-        }
-    }
-}
-
-impl Default for ExportQueue {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Spawns the single export worker. It processes jobs one at a time, sleeping
-/// `EXPORT_JOB_INTERVAL` between triggers to enforce the global Gemini rate
-/// limit. The worker lives for the process lifetime and is the only place that
-/// triggers tier exports, so N concurrent approvals cannot multiply the load.
-pub fn spawn_export_worker(state: AppState) -> ExportQueue {
-    let (tx, mut rx) = mpsc::channel(256);
-    tokio::spawn(async move {
-        while let Some(job) = rx.recv().await {
-            process_export_job(&state, job);
-            // Artificial latency removed: No more 65-second sleep!
-        }
-    });
-    ExportQueue { tx }
-}
-
-
-
-fn process_export_job(state: &AppState, job: ExportJob) {
-    match job {
-        ExportJob::Cooperative { submission_id } => {
-            ExportGenerator::trigger_cooperative_export(state.clone(), submission_id);
-        }
-        ExportJob::Apex {
-            apex_id,
-            reporting_year,
-        } => {
-            ExportGenerator::trigger_apex_export(state.clone(), apex_id, reporting_year);
-        }
-        ExportJob::Federation {
-            federation_id,
-            reporting_year,
-        } => {
-            ExportGenerator::trigger_federation_export(
-                state.clone(),
-                federation_id,
-                reporting_year,
-            );
-        }
-        ExportJob::Ministry { reporting_year } => {
-            ExportGenerator::trigger_ministry_export(state.clone(), reporting_year);
-        }
-    }
-}
 
 pub struct ExportGenerator;
 
