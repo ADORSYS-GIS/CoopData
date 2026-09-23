@@ -611,7 +611,7 @@ pub async fn submit_submission(
     path = "/api/v1/apex/submissions/{id}/submit",
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
-        (status = 200, description = "Submission submitted to federation", body = SubmissionResponse),
+        (status = 200, description = "Submitted — fully approved (apex is the final approval level)", body = SubmissionResponse),
         (status = 400, description = "Error flags must be resolved first"),
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Not found")
@@ -669,9 +669,9 @@ pub async fn apex_submit_submission(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    tracing::info!(submission_id = %id, apex_id = %apex_db_id, "Apex-initiated submission submitted to federation");
+    tracing::info!(submission_id = %id, apex_id = %apex_db_id, status = %updated.status.as_str(), "Apex-initiated submission submitted (apex is the final approval level)");
 
-    // Audit: apex-initiated submission submitted to federation
+    // Audit: apex-initiated submission submitted and finalized
     if let Err(e) = state
         .audit
         .log_with_context(

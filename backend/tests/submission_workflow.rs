@@ -278,6 +278,52 @@ async fn submit_happy_path_routes_cooperative_tier_to_apex() {
         .expect("questionnaire-method submit must succeed");
 }
 
+#[tokio::test]
+async fn apex_submit_finalizes_apex_created_submission_as_approved() {
+    let sub_id = Uuid::new_v4();
+    let coop_id = Uuid::new_v4();
+
+    let mut draft = submission_row(
+        sub_id,
+        coop_id,
+        SubmissionStatus::Draft,
+        ReviewTier::Cooperative,
+    );
+    draft.submission_method = "questionnaire".to_string(); // skips FS check + KPI compute
+    let mut approved = draft.clone();
+    approved.status = SubmissionStatus::Approved;
+    approved.current_tier = ReviewTier::Apex;
+
+    // Pops: find, flags, fin q, nonfin q, sections,
+    //       update_status (find + UPDATE RETURNING),
+    //       clear_edited_by (find + UPDATE RETURNING), INSERT review.
+    let db = mock_postgres()
+        .append_query_results(vec![vec![draft.clone()]])
+        .append_query_results(vec![Vec::<abnormality_flag::Model>::new()])
+        .append_query_results(vec![Vec::<
+            coop_data_backend::entities::questionnaire_response::Model,
+        >::new()])
+        .append_query_results(vec![Vec::<
+            coop_data_backend::entities::questionnaire_response::Model,
+        >::new()])
+        .append_query_results(vec![vec![
+            section_row(sub_id, "financial", "ready"),
+            section_row(sub_id, "members", "ready"),
+        ]])
+        .append_query_results(vec![vec![draft]])
+        .append_query_results(vec![vec![approved.clone()]])
+        .append_query_results(vec![vec![review_row(sub_id)]])
+        .append_query_results(vec![vec![approved.clone()]])
+        .append_query_results(vec![vec![approved]])
+        .append_query_results(vec![vec![review_row(sub_id)]]);
+
+    let app = MockDbApp::new(db).await;
+    workflow(&app)
+        .submit(sub_id, &apex_claims("any"))
+        .await
+        .expect("apex submit must finalize the submission as approved");
+}
+
 // ─── Apex tier transitions ──────────────────────────────────────────────────
 
 #[tokio::test]
