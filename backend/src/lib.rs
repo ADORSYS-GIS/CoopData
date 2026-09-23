@@ -18,7 +18,8 @@ pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository,
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
-    CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
+    CustomKpiRepository, ExchangeRateRepository, ExtractionJobRepository, FarmCoopRepository,
+    FederationRepository,
     FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
     MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
     NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository,
@@ -78,6 +79,8 @@ pub struct AppState {
     pub ai_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
     pub ministry_narratives_repo: crate::repositories::MinistryReportNarrativesRepository,
     pub export_queue: crate::services::export_generator::ExportQueue,
+    pub exchange_rate_repo: crate::repositories::ExchangeRateRepository,
+    pub currency_service: crate::services::currency::CurrencyService,
 }
 
 impl AppState {

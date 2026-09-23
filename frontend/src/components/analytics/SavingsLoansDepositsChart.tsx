@@ -11,12 +11,13 @@ import {
   Legend,
 } from "recharts";
 import { useTranslation } from "react-i18next";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface TrendDataPoint {
   month: string;
-  liquidity: number; // mapped to Savings (1100)
-  loans: number; // mapped to Loans (1200)
-  savings: number; // mapped to Deposits (2100)
+  liquidity: number; // Liquid assets (COA 1100) — cash/near-cash
+  loans: number; // Gross loan portfolio (COA 1200)
+  savings: number; // Member deposits (COA 2100)
 }
 
 interface SavingsLoansDepositsChartProps {
@@ -28,7 +29,8 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
   // Compute Net Variation for each data point
   const formattedData = React.useMemo(() => {
     return data.map((item) => {
-      // Calculate Net Variation: (Savings + Loans) - Deposits
+      // Net variation: liquid assets + loans funded, net of member deposits
+      // taken in for the period (Liquid Assets + Loans − Deposits).
       const netVariation = item.liquidity + item.loans - item.savings;
       return {
         ...item,
@@ -45,13 +47,16 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-      <div>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-          {t("analytics.savingsLoansDepositsTitle")}
-        </span>
-        <span className="text-xs text-slate-500 font-medium block mt-0.5">
-          {t("analytics.monthlyFinancialBreakdown")}
-        </span>
+      <div className="flex items-start gap-1.5">
+        <div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+            {t("analytics.savingsLoansDepositsTitle")}
+          </span>
+          <span className="text-xs text-slate-500 font-medium block mt-0.5">
+            {t("analytics.monthlyFinancialBreakdown")}
+          </span>
+        </div>
+        <InfoTooltip text={t("analytics.savingsLoansDepositsTooltip")} />
       </div>
 
       {/* Grouped Bar & Line Chart Canvas */}

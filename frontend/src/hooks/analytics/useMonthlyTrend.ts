@@ -4,9 +4,18 @@ import { apiClient } from "@/openapi-client";
 export interface MonthlyTrendPoint {
   month: number;
   month_label: string;
+  /** Member savings/deposits (COA 2100), USD. */
   savings: number;
+  /** Gross loan portfolio (COA 1200), USD. */
   loans: number;
+  /** Liquid assets (COA 1100) — cash/near-cash, distinct from total assets. */
+  liquid_assets: number;
+  /** Total assets (COA 1999) — already includes loans and liquid_assets. */
   assets: number;
+  /** Total liabilities (COA 2999), USD. */
+  liabilities: number;
+  /** Total equity (COA 3999), USD. May be negative. */
+  equity: number;
 }
 
 export interface MonthlyTrendResponse {
@@ -36,9 +45,9 @@ const extractErrorMessage = (error: unknown): string => {
 
 export const useMonthlyTrend = (params: MonthlyTrendParams = {}, enabled = true) => {
   return useOfflineQuery<MonthlyTrendResponse>({
-    queryKey: ["monthly-trend", params],
+    queryKey: ["monthly-trend", "v2", params],
     cacheTable: "analytics",
-    cacheKey: `monthly-trend-${JSON.stringify(params)}`,
+    cacheKey: `monthly-trend-v2-${JSON.stringify(params)}`,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (apiClient as any).GET("/api/v1/analytics/monthly-trend", {

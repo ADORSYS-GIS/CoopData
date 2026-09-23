@@ -93,12 +93,14 @@ function buildClassificationRows(t: TFunction): ClassificationRow[] {
   rows.push({ label: t("analytics.pcEducationalPerforming"), isHeader: true, codes: [] });
   educational.forEach((l) => rows.push({ label: l, codes: [] }));
 
-  // 2. Non-Accrual
+  // 2. Non-Accrual — loans that have stopped accruing interest, i.e. the
+  // same >90-days-past-due population reported later as "Total
+  // Non-Performing" (account 1205). This was previously a hardcoded stub
+  // that always showed 0 regardless of actual data.
   rows.push({
     label: t("analytics.pcTotalNonAccrual"),
     isHeader: true,
-    codes: [],
-    computeFormula: () => 0,
+    codes: [1205],
   });
   rows.push({ label: t("analytics.pcProductiveNonAccrual"), isHeader: true, codes: [] });
   mapBuckets(["j", "j", "j", "j", "j"], productive).forEach((l) =>
@@ -256,7 +258,12 @@ export function PortfolioClassification({
 
     return comparative.grids.map((grid) => {
       const lineItems = grid.line_items || [];
-      const filtered = lineItems.filter((item) => String(item.month) === selectedMonth);
+      // Annual-frequency submissions store figures at month=0 (no monthly
+      // breakdown exists), so that row must match whichever month is
+      // selected here — otherwise every annual submission renders blank.
+      const filtered = lineItems.filter(
+        (item) => String(item.month) === selectedMonth || item.month === 0,
+      );
 
       // Sum values per account code
       const map: Record<number, number> = {};

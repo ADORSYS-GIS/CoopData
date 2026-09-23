@@ -96,6 +96,11 @@ impl TestApp {
             coop_data_backend::repositories::MinistryReportNarrativesRepository::new(db.clone());
         let questionnaire_repo = QuestionnaireRepository::new(db.clone());
         let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
+        let exchange_rate_repo =
+            coop_data_backend::repositories::ExchangeRateRepository::new(db.clone());
+        let currency_service = coop_data_backend::services::currency::CurrencyService::new(
+            exchange_rate_repo.clone(),
+        );
 
         let state = AppState {
             db,
@@ -139,6 +144,8 @@ impl TestApp {
             nf_excel_parser,
             ministry_narratives_repo,
             export_queue: coop_data_backend::services::export_generator::ExportQueue::new(),
+            exchange_rate_repo,
+            currency_service,
         };
 
         TestApp { state }

@@ -243,7 +243,12 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
 
     return comparative.grids.map((grid) => {
       const lineItems = grid.line_items || [];
-      const filtered = lineItems.filter((item) => String(item.month) === selectedMonth);
+      // Annual-frequency submissions store figures at month=0 (no monthly
+      // breakdown exists), so that row must match whichever month is
+      // selected here — otherwise every annual submission renders blank.
+      const filtered = lineItems.filter(
+        (item) => String(item.month) === selectedMonth || item.month === 0,
+      );
 
       const map: Record<number, number> = {};
       filtered.forEach((item) => {

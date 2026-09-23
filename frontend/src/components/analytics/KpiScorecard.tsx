@@ -1,5 +1,4 @@
-import { Info } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface MetricRow {
   label: string;
@@ -40,21 +39,7 @@ export function KpiScorecard({ metrics }: KpiScorecardProps) {
                     <p className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
                       {metric.label}
                     </p>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="flex focus:outline-none rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                          <Info className="size-3 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        side="top"
-                        className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl"
-                      >
-                        <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">
-                          {metric.tooltip}
-                        </p>
-                      </PopoverContent>
-                    </Popover>
+                    <InfoTooltip text={metric.tooltip} className="size-3" />
                   </div>
 
                   <div className="flex items-center gap-3">

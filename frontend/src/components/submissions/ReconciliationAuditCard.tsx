@@ -1,12 +1,10 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { ShieldCheck, AlertTriangle, CheckCircle2, Info, ArrowRight } from "lucide-react";
 import { Card, StatusPill } from "@/components/app-shell";
-import { useMembers } from "@/hooks/non-financial/useMembers";
-import { useSavings } from "@/hooks/non-financial/useSavings";
-import { useLoans } from "@/hooks/non-financial/useLoans";
-import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
-import { useLineItems } from "@/hooks/submissions/useFinancialStatement";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
+import { useReconciliationAudit } from "@/hooks/analytics/useReconciliationAudit";
 import { Spinner } from "@/components/ui/spinner";
 
 interface ReconciliationAuditCardProps {
@@ -15,195 +13,43 @@ interface ReconciliationAuditCardProps {
   onNavigateToTab?: (tab: string) => void;
 }
 
-interface AuditRow {
-  key: string;
-  label: string;
-  subLedgerName: string;
-  coaCode: number;
-  subLedgerTotal: number;
-  financialTotal: number | null;
-  count: number;
-  hasSubLedgerData: boolean;
-  hasFinancialData: boolean;
-  variance: number;
-  status: "match" | "variance" | "pending_subledger" | "pending_financial";
-}
-
+// This card is intentionally backend-computed (see
+// hooks/analytics/useReconciliationAudit.ts) rather than fetching each
+// sub-ledger's records into the browser and summing them here — that
+// approach previously requested up to 5000 rows per sub-ledger from an
+// endpoint that silently caps at 200, producing wrong totals and variance
+// alerts for any cooperative with more records than that, with no
+// indication the data was truncated. The backend endpoint uses the same
+// unpaginated SQL SUM() the Dashboard's own KPI totals use, so this panel
+// and the Dashboard can never disagree on the same submission again.
 export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = ({
   submissionId,
-  financialStatementId,
   onNavigateToTab,
 }) => {
   const { t } = useTranslation();
+  const { data, isLoading } = useReconciliationAudit(submissionId);
 
-  const { data: membersRes, isLoading: lMembers } = useMembers({
-    submission_id: submissionId,
-    page_size: 5000,
-  });
-  const { data: savingsRes, isLoading: lSavings } = useSavings({
-    submission_id: submissionId,
-    page_size: 5000,
-  });
-  const { data: loansRes, isLoading: lLoans } = useLoans({
-    submission_id: submissionId,
-    page_size: 5000,
-  });
-  const { data: fdRes, isLoading: lFd } = useFixedDeposits({
-    submission_id: submissionId,
-    page_size: 5000,
-  });
-  const { data: lineItems, isLoading: lItems } = useLineItems(financialStatementId || null);
-
-  const isLoading = lMembers || lSavings || lLoans || lFd || lItems;
-
-  const auditRows = useMemo<AuditRow[]>(() => {
-    const items = lineItems ?? [];
-
-    const getCoaAmount = (codes: number[]): number | null => {
-      if (items.length === 0) return null;
-      for (const code of codes) {
-        const found = items.find((it) => it.account_code === code);
-        if (found && found.value != null) {
-          return typeof found.value === "number"
-            ? found.value
-            : parseFloat(String(found.value)) || 0;
-        }
-      }
-      return null;
-    };
-
-    // 1. Members Shares (COA 3101 / 3100)
-    const membersList = membersRes?.data ?? [];
-    const membersShareTotal = membersList.reduce(
-      (sum, m) =>
-        sum +
-        (typeof m.share_balance === "number"
-          ? m.share_balance
-          : parseFloat(String(m.share_balance || 0)) || 0),
-      0,
-    );
-    const finShares = getCoaAmount([3101, 3100]);
-
-    // 2. Savings Accounts (COA 2101 / 2100)
-    const savingsList = savingsRes?.data ?? [];
-    const savingsTotal = savingsList.reduce(
-      (sum, s) =>
-        sum + (typeof s.balance === "number" ? s.balance : parseFloat(String(s.balance || 0)) || 0),
-      0,
-    );
-    const finSavings = getCoaAmount([2101, 2100]);
-
-    // 3. Loan Book (COA 1201 / 1104 / 1200)
-    const loansList = loansRes?.data ?? [];
-    const loansTotal = loansList.reduce(
-      (sum, l) =>
-        sum + (typeof l.balance === "number" ? l.balance : parseFloat(String(l.balance || 0)) || 0),
-      0,
-    );
-    const finLoans = getCoaAmount([1201, 1104, 1200]);
-
-    // 4. Fixed Deposits (COA 2103)
-    const fdList = fdRes?.data ?? [];
-    const fdTotal = fdList.reduce(
-      (sum, d) =>
-        sum + (typeof d.balance === "number" ? d.balance : parseFloat(String(d.balance || 0)) || 0),
-      0,
-    );
-    const finFd = getCoaAmount([2103]);
-
-    const createRow = (
-      key: string,
-      label: string,
-      subLedgerName: string,
-      coaCode: number,
-      subTotal: number,
-      finTotal: number | null,
-      count: number,
-    ): AuditRow => {
-      const hasSub = count > 0 || subTotal > 0;
-      const hasFin = finTotal !== null;
-      let status: AuditRow["status"] = "match";
-      let variance = 0;
-
-      if (!hasSub) {
-        status = "pending_subledger";
-      } else if (!hasFin) {
-        status = "pending_financial";
-      } else {
-        variance = subTotal - finTotal;
-        status = Math.abs(variance) < 0.01 ? "match" : "variance";
-      }
-
-      return {
-        key,
-        label,
-        subLedgerName,
-        coaCode,
-        subLedgerTotal: subTotal,
-        financialTotal: finTotal,
-        count,
-        hasSubLedgerData: hasSub,
-        hasFinancialData: hasFin,
-        variance,
-        status,
-      };
-    };
-
-    return [
-      createRow(
-        "shares",
-        t("reconciliation.sharesLabel", "Member Share Capital"),
-        t("reconciliation.sharesSubledger", "Shares Register"),
-        3101,
-        membersShareTotal,
-        finShares,
-        membersList.length,
-      ),
-      createRow(
-        "savings",
-        t("reconciliation.savingsLabel", "Member Short-Term Savings"),
-        t("reconciliation.savingsSubledger", "Savings Ledger"),
-        2101,
-        savingsTotal,
-        finSavings,
-        savingsList.length,
-      ),
-      createRow(
-        "loans",
-        t("reconciliation.loansLabel", "Performing Loan Portfolio"),
-        t("reconciliation.loansSubledger", "Loan Book"),
-        1201,
-        loansTotal,
-        finLoans,
-        loansList.length,
-      ),
-      createRow(
-        "deposits",
-        t("reconciliation.depositsLabel", "Fixed Term Deposits"),
-        t("reconciliation.depositsSubledger", "Fixed Deposits"),
-        2103,
-        fdTotal,
-        finFd,
-        fdList.length,
-      ),
-    ];
-  }, [membersRes, savingsRes, loansRes, fdRes, lineItems, t]);
-
+  const auditRows = data?.rows ?? [];
+  const currency = auditRows[0]?.currency ?? "SZL";
   const matchCount = auditRows.filter((r) => r.status === "match").length;
   const varianceCount = auditRows.filter((r) => r.status === "variance").length;
   const pendingCount = auditRows.filter(
     (r) => r.status === "pending_subledger" || r.status === "pending_financial",
   ).length;
 
+  const { format: formatUsdValue, formatOriginal, ready: ratesReady } = useUsdFormatter(currency);
   const fmtCurrency = (val: number | null) => {
     if (val === null) return "—";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "SZL",
-      minimumFractionDigits: 2,
-    })
-      .format(val)
-      .replace("SZL", "E");
+    return (
+      <span className="inline-flex flex-col items-end leading-tight">
+        <span>{formatUsdValue(val)}</span>
+        {ratesReady && currency !== "USD" && (
+          <span className="text-[10px] font-normal text-muted-foreground">
+            {formatOriginal(val)}
+          </span>
+        )}
+      </span>
+    );
   };
 
   return (
@@ -212,6 +58,10 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
       subtitle={t(
         "reconciliation.cardSubtitle",
         "Automated cross-validation between non-financial database sub-ledgers and the audited financial statement",
+      )}
+      info={t(
+        "reconciliation.cardInfo",
+        "Sub-ledger totals are computed from every record in the non-financial submission (savings/loans/fixed deposits/shares), not a paginated preview. Balance-sheet figures come from the matching account code on the financial statement, resolved via the chart-of-accounts rollup so a document reporting only child accounts still shows the correct total. A variance here does not necessarily mean an error: the two sources can legitimately differ (e.g. accrued interest, provisions, or GL adjustments not reflected member-by-member), but a large or unexpected variance is worth investigating against the uploaded documents.",
       )}
       action={
         !isLoading && (
@@ -343,36 +193,48 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
                 {auditRows.map((row) => (
                   <tr key={row.key} className="hover:bg-muted/20 transition-colors">
                     <td className="px-3.5 py-2.5 font-medium text-foreground">
-                      <div>{row.label}</div>
+                      <div className="flex items-center gap-1">
+                        {row.label}
+                        <InfoTooltip
+                          text={t(`reconciliation.rowInfo.${row.key}`, {
+                            defaultValue: t(
+                              "reconciliation.rowInfoDefault",
+                              "Sub-ledger total is the sum of every {{subLedgerName}} record in the non-financial submission. Balance sheet line is account code {{coaCode}} from the financial statement, resolved via the chart-of-accounts rollup.",
+                              { subLedgerName: row.sub_ledger_name, coaCode: row.coa_code },
+                            ),
+                          })}
+                          className="size-3"
+                        />
+                      </div>
                       <div className="text-[10px] text-muted-foreground font-normal">
-                        {row.subLedgerName} ({row.count} {t("records", "records")})
+                        {row.sub_ledger_name} ({row.sub_ledger_count} {t("records", "records")})
                       </div>
                     </td>
                     <td className="px-3.5 py-2.5 text-center font-mono text-xs text-muted-foreground">
-                      {row.coaCode}
+                      {row.coa_code}
                     </td>
                     <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-foreground">
-                      {row.hasSubLedgerData ? (
-                        fmtCurrency(row.subLedgerTotal)
+                      {row.sub_ledger_count > 0 || row.sub_ledger_total !== 0 ? (
+                        fmtCurrency(row.sub_ledger_total)
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
                     </td>
                     <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-foreground">
-                      {row.hasFinancialData ? (
-                        fmtCurrency(row.financialTotal)
+                      {row.financial_total !== null ? (
+                        fmtCurrency(row.financial_total)
                       ) : (
                         <span className="text-muted-foreground/50">—</span>
                       )}
                     </td>
                     <td className="px-3.5 py-2.5 text-right font-mono font-bold">
-                      {row.status === "variance" ? (
+                      {row.status === "variance" && row.variance !== null ? (
                         <span className="text-warning">
                           {row.variance > 0 ? "+" : ""}
                           {fmtCurrency(row.variance)}
                         </span>
                       ) : row.status === "match" ? (
-                        <span className="text-success">E0.00</span>
+                        <span className="text-success">{fmtCurrency(0)}</span>
                       ) : (
                         <span className="text-muted-foreground/40">—</span>
                       )}

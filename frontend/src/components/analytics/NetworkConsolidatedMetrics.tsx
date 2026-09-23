@@ -14,18 +14,13 @@ import { AgeDemographicsChart } from "@/components/analytics/AgeDemographicsChar
 import { DepositConcentrationGauge } from "@/components/analytics/DepositConcentrationGauge";
 import { GovernanceFunnel } from "@/components/analytics/GovernanceFunnel";
 import { FinancialInclusionBar } from "@/components/analytics/FinancialInclusionBar";
+import { NetworkFinancialPosition } from "@/components/analytics/NetworkFinancialPosition";
+import type { MonthlyTrendResponse } from "@/hooks/analytics/useMonthlyTrend";
 import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
 
 export interface NetworkConsolidatedMetricsProps {
   nfStats?: NfStatisticsResponse;
-  networkTrend?: {
-    months: {
-      month_label: string;
-      savings: number;
-      loans: number;
-      assets: number;
-    }[];
-  };
+  networkTrend?: Pick<MonthlyTrendResponse, "months">;
   totalCooperatives: number;
   cooperativesWithData: number;
   totalApexes?: number;
@@ -39,13 +34,19 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
   totalApexes,
 }) => {
   const { t } = useTranslation();
+  // `liquidity` is genuinely liquid assets (COA 1100) — do not map this to
+  // `assets` (COA 1999, Total Assets). Total Assets already contains both
+  // loans and liquid assets as components, so treating it as a fourth,
+  // separately-summable series double/triple-counts and was the root cause
+  // of the Portfolio Overview headline figure being ~150x the real total.
   const networkTrendPoints = useMemo(
     () =>
       (networkTrend?.months ?? []).map((m) => ({
         month: m.month_label,
-        liquidity: m.assets,
+        liquidity: m.liquid_assets,
         savings: m.savings,
         loans: m.loans,
+        totalAssets: m.assets,
       })),
     [networkTrend],
   );
@@ -53,7 +54,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
   const fallbackTrendPoints = useMemo(
     () =>
       ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map(
-        (m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }),
+        (m) => ({ month: m, liquidity: 0, savings: 0, loans: 0, totalAssets: 0 }),
       ),
     [],
   );
@@ -89,7 +90,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
       },
       {
         label: t("analytics.netTotalLoans"),
-        value: `$${(nfStats.loans.total_loan_amount / 1000).toFixed(1)}K`,
+        value: `$${(nfStats.loans.total_balance / 1000).toFixed(1)}K`,
         tooltip: t("analytics.netTotalLoansTooltip"),
         trend: "up" as const,
         trendValue: t("analytics.netArrearsPct", {
@@ -212,7 +213,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
       },
       {
         label: t("analytics.netTotalLoans"),
-        value: `$${(l.total_loan_amount / 1000).toFixed(1)}K`,
+        value: `$${(l.total_balance / 1000).toFixed(1)}K`,
         tooltip: t("analytics.netTotalLoansTooltip2"),
         trend: "up" as const,
         trendValue: t("analytics.netAvg", { amount: l.average_loan_size.toFixed(0) }),
@@ -276,6 +277,10 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
           <KpiScorecard metrics={networkKpiGridMetrics} />
         </div>
       )}
+
+      <div className="mb-6">
+        <NetworkFinancialPosition networkTrend={networkTrend} />
+      </div>
 
       {/* Row 1: Portfolio Overview & Gender Participation */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">

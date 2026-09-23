@@ -9,6 +9,7 @@ pub mod chart_of_accounts_coop_type;
 pub mod cooperative;
 pub mod custom_kpi;
 pub mod enums;
+pub mod exchange_rate;
 pub mod extraction_job;
 pub mod farm_coop;
 pub mod federation;

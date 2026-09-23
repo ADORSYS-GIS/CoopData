@@ -108,11 +108,15 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
     return comparative.grids.map((grid) => {
       const lineItems = grid.line_items || [];
 
-      // Filter by selected month if not "all"
+      // Filter by selected month if not "all". Annual-frequency submissions
+      // store their figures at month=0 (there is no monthly breakdown), so
+      // that row must match whichever specific month is selected — without
+      // this, every annual submission showed as entirely blank here since
+      // `String(0) !== "12"` (the default selection) never matched.
       const filtered =
         selectedMonth === "all"
           ? lineItems
-          : lineItems.filter((item) => String(item.month) === selectedMonth);
+          : lineItems.filter((item) => String(item.month) === selectedMonth || item.month === 0);
 
       // Sum values for the selected metric code
       const targetCode = parseInt(selectedMetric, 10);

@@ -264,6 +264,59 @@ pub async fn update_line_items(
         }
     }
 
+    // A human just changed extracted values/account codes — the previous
+    // validation run no longer reflects reality. Re-run abnormality
+    // detection and KPI computation immediately rather than leaving stale
+    // validation_errors/kpi_records/is_validated until someone happens to
+    // click "Re-validate Extraction" or re-submit.
+    if !updated.is_empty() {
+        if let Some(coop) = state.cooperative_repo.find_by_id(fs.cooperative_id).await? {
+            let coa = state.coa_repo.find_all().await?;
+            let coop_type = coop
+                .institution_type
+                .as_ref()
+                .map(|t| t.as_str().to_string())
+                .unwrap_or_else(|| "sacco".to_string());
+            let detector = crate::services::abnormality_detector::AbnormalityDetector::new(
+                state.line_item_repo.clone(),
+                state.flag_repo.clone(),
+                state.coa_repo.clone(),
+            );
+            let (errors, warnings) = detector
+                .run(fs.submission_id, fs.cooperative_id, fs.id, &coa, &coop_type)
+                .await?;
+            let is_validated = errors.is_empty();
+            let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
+            state
+                .financial_statement_repo
+                .set_validation_errors(fs.id, validation_json, is_validated)
+                .await?;
+        }
+
+        if let Some(sub) = state.submission_repo.find_by_id(fs.submission_id).await? {
+            let workflow = crate::services::submission_workflow::SubmissionWorkflow::new(
+                state.submission_repo.clone(),
+                state.review_repo.clone(),
+                state.flag_repo.clone(),
+                state.section_repo.clone(),
+                state.financial_statement_repo.clone(),
+                state.line_item_repo.clone(),
+                state.kpi_record_repo.clone(),
+                state.db.clone(),
+            );
+            if let Err(e) = workflow
+                .compute_and_save_kpis(fs.submission_id, fs.cooperative_id, sub.reporting_year)
+                .await
+            {
+                tracing::error!(
+                    submission_id = %fs.submission_id,
+                    error = %e,
+                    "Failed to recompute KPIs after line-item edit"
+                );
+            }
+        }
+    }
+
     Ok((StatusCode::OK, Json(updated)))
 }
 
@@ -453,10 +506,11 @@ pub async fn create_manual_financial_statement(
         .run(submission_id, coop.id, fs_id, &coa, &coop_type)
         .await?;
 
+    let is_validated = errors.is_empty();
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
     state
         .financial_statement_repo
-        .set_validation_errors(fs_id, validation_json)
+        .set_validation_errors(fs_id, validation_json, is_validated)
         .await?;
 
     // Set financial section status to ready or in_progress (following upload pipeline, we set it to in_progress)
@@ -2051,10 +2105,6 @@ const MONTH_LABELS: [&str; 12] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-const SAVINGS_ACCOUNT_CODES: [i32; 4] = [2100, 2101, 2102, 2103];
-const LOANS_ACCOUNT_CODES: [i32; 6] = [1200, 1201, 1202, 1203, 1204, 1205];
-const TOTAL_ASSETS_ACCOUNT_CODES: [i32; 1] = [1999];
-
 #[utoipa::path(
     get,
     path = "/api/v1/analytics/monthly-trend",
@@ -2153,37 +2203,64 @@ pub async fn get_monthly_trend(
             month_label: MONTH_LABELS[(m - 1) as usize].to_string(),
             savings: 0.0,
             loans: 0.0,
+            liquid_assets: 0.0,
             assets: 0.0,
+            liabilities: 0.0,
+            equity: 0.0,
         })
         .collect();
 
     let has_monthly_breakdown = line_items.iter().any(|item| item.month > 0);
 
+    // Resolve each statement's parent totals (2100 Member Deposits, 1200
+    // Gross Loans, 1999 Total Assets) via the chart-of-accounts rollup
+    // rather than summing every code in each bucket directly: summing
+    // parent AND child codes together (e.g. 2100 + 2101 when a document
+    // reports both) would double-count, and blindly adding 1999 Total
+    // Assets on top of its own component loans/deposits is exactly the bug
+    // that inflated the Portfolio Overview figure to ~$746,817K against a
+    // real ~$5.2M. Resolving one authoritative value per code per
+    // statement/month avoids both.
+    let coa = state.coa_repo.find_all().await?;
+    let rates = state.currency_service.load_rates().await?;
+    let fs_by_id: std::collections::HashMap<Uuid, &crate::entities::financial_statement::Model> =
+        financial_statements.iter().map(|fs| (fs.id, fs)).collect();
+
+    let mut raw_by_fs_month: std::collections::HashMap<(Uuid, i16), std::collections::HashMap<i32, f64>> =
+        std::collections::HashMap::new();
     for item in &line_items {
         if item.month == 0 && has_monthly_breakdown {
             continue;
         }
+        if let (Some(code), Some(val)) = (item.account_code, item.value.and_then(|d| d.to_f64())) {
+            raw_by_fs_month
+                .entry((item.financial_statement_id, item.month))
+                .or_default()
+                .insert(code, val);
+        }
+    }
 
-        let month_idx = if item.month == 0 {
+    for ((fs_id, item_month), raw) in &raw_by_fs_month {
+        let month_idx = if *item_month == 0 {
             11 // Default to December for annual figures
         } else {
-            (item.month - 1) as usize
+            (*item_month - 1) as usize
         };
-
         if month_idx >= 12 {
             continue;
         }
-        if let Some(code) = item.account_code {
-            if let Some(val) = item.value.and_then(|d| d.to_f64()) {
-                if SAVINGS_ACCOUNT_CODES.contains(&code) {
-                    months[month_idx].savings += val;
-                } else if LOANS_ACCOUNT_CODES.contains(&code) {
-                    months[month_idx].loans += val;
-                } else if TOTAL_ASSETS_ACCOUNT_CODES.contains(&code) {
-                    months[month_idx].assets += val;
-                }
-            }
-        }
+        let Some(fs) = fs_by_id.get(fs_id) else { continue };
+        let resolved = crate::services::coa_rollup::resolve(raw, &coa);
+        let to_usd = |code: i32| {
+            let v = resolved.get(&code).copied().unwrap_or(0.0);
+            crate::services::currency::to_usd(v, &fs.currency, &rates)
+        };
+        months[month_idx].savings += to_usd(2100);
+        months[month_idx].loans += to_usd(1200);
+        months[month_idx].liquid_assets += to_usd(1100);
+        months[month_idx].assets += to_usd(1999);
+        months[month_idx].liabilities += to_usd(2999);
+        months[month_idx].equity += to_usd(3999);
     }
 
     tracing::info!(

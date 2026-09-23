@@ -63,7 +63,7 @@ pub async fn get_nf_statistics(
         .one(&state.db)
         .await?;
 
-    let stats = if let Some(sub) = latest_approved {
+    let mut stats = if let Some(ref sub) = latest_approved {
         let db_records = state.kpi_record_repo.find_by_submission(sub.id).await?;
         if !db_records.is_empty() {
             NfStatisticsResponse::from(reconstruct_nf_stats(&db_records))
@@ -78,6 +78,21 @@ pub async fn get_nf_statistics(
                 .await?;
         NfStatisticsResponse::from(s)
     };
+
+    // Standardize on USD, same as every other analytics endpoint.
+    if let Some(sub) = latest_approved {
+        if let Some(fs) = state.financial_statement_repo.find_by_submission(sub.id).await? {
+            let rates = state.currency_service.load_rates().await?;
+            let to_usd = |v: f64| crate::services::currency::to_usd(v, &fs.currency, &rates);
+            stats.savings.total_balance = to_usd(stats.savings.total_balance);
+            stats.savings.average_balance = to_usd(stats.savings.average_balance);
+            stats.loans.total_balance = to_usd(stats.loans.total_balance);
+            stats.loans.total_loan_amount = to_usd(stats.loans.total_loan_amount);
+            stats.loans.average_loan_size = to_usd(stats.loans.average_loan_size);
+            stats.fixed_deposits.total_balance = to_usd(stats.fixed_deposits.total_balance);
+            stats.fixed_deposits.average_balance = to_usd(stats.fixed_deposits.average_balance);
+        }
+    }
 
     Ok((StatusCode::OK, Json(stats)))
 }
@@ -349,6 +364,27 @@ pub async fn get_consolidated_nf_statistics(
     let mut consolidated_stats =
         crate::services::nf_indicator_engine::NfStatisticsResponse::default();
 
+    // Balances live in whichever currency each cooperative's financial
+    // statement reports in (savings/loans/fixed_deposit ledgers carry no
+    // currency of their own — they belong to one submission, so they
+    // inherit its statement's currency). Without converting to USD before
+    // accumulating, a network mixing SZL- and USD-reporting cooperatives
+    // would silently sum incompatible currencies into one meaningless
+    // total. USD normalization matches how the Analytics dashboards are
+    // standardized elsewhere (see services::currency).
+    let rates = state.currency_service.load_rates().await?;
+    let submission_ids_for_currency: Vec<uuid::Uuid> =
+        year_filtered.iter().map(|s| s.id).collect();
+    let currency_by_submission: std::collections::HashMap<uuid::Uuid, crate::entities::enums::Currency> =
+        state
+            .financial_statement_repo
+            .find_by_submission_ids(submission_ids_for_currency)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|fs| (fs.submission_id, fs.currency))
+            .collect();
+
     let mut coop_count = 0;
     let mut total_savings_pen_pct = 0.0;
     let mut total_credit_pen_pct = 0.0;
@@ -369,8 +405,27 @@ pub async fn get_consolidated_nf_statistics(
             .await
         };
 
-        if let Ok(stats) = stats_res {
+        if let Ok(mut stats) = stats_res {
             coop_count += 1;
+
+            let submission_currency = currency_by_submission
+                .get(&submission.id)
+                .cloned()
+                .unwrap_or_default();
+            stats.savings.total_balance =
+                crate::services::currency::to_usd(stats.savings.total_balance, &submission_currency, &rates);
+            stats.loans.total_balance =
+                crate::services::currency::to_usd(stats.loans.total_balance, &submission_currency, &rates);
+            stats.loans.total_loan_amount = crate::services::currency::to_usd(
+                stats.loans.total_loan_amount,
+                &submission_currency,
+                &rates,
+            );
+            stats.fixed_deposits.total_balance = crate::services::currency::to_usd(
+                stats.fixed_deposits.total_balance,
+                &submission_currency,
+                &rates,
+            );
 
             // Sum up totals
             consolidated_stats.membership.total += stats.membership.total;
@@ -711,4 +766,187 @@ fn reconstruct_nf_stats(
         },
         computed_at: chrono::Utc::now(),
     }
+}
+
+// ── Reconciliation audit — backend-computed, unpaginated ────────────────────
+//
+// Replaces the frontend's ReconciliationAuditCard, which requested up to
+// 5000 rows per sub-ledger from a REST endpoint that silently caps at 200
+// (backend/src/api/handlers/non_financial.rs), producing wrong sub-ledger
+// totals and a variance that disagreed with the Dashboard's own (correctly,
+// fully-summed) figures. This endpoint uses the same accurate SQL SUM()
+// queries the Dashboard's KPI computation uses, and reports native-currency
+// figures (not USD-converted) since its purpose is verification against the
+// exact numbers printed in the uploaded source document.
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ReconciliationRow {
+    pub key: String,
+    pub label: String,
+    pub sub_ledger_name: String,
+    pub coa_code: i32,
+    pub sub_ledger_total: f64,
+    pub sub_ledger_count: u64,
+    pub financial_total: Option<f64>,
+    pub currency: String,
+    pub variance: Option<f64>,
+    /// "match" | "variance" | "pending_subledger" | "pending_financial"
+    pub status: String,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ReconciliationAuditResponse {
+    pub submission_id: uuid::Uuid,
+    pub rows: Vec<ReconciliationRow>,
+}
+
+fn reconciliation_row(
+    key: &str,
+    label: &str,
+    sub_ledger_name: &str,
+    coa_code: i32,
+    sub_total: f64,
+    sub_count: u64,
+    fin_total: Option<f64>,
+    currency: &str,
+) -> ReconciliationRow {
+    let has_sub = sub_count > 0 || sub_total.abs() > 0.001;
+    let has_fin = fin_total.is_some();
+    let (status, variance) = if !has_sub {
+        ("pending_subledger".to_string(), None)
+    } else if !has_fin {
+        ("pending_financial".to_string(), None)
+    } else {
+        let v = sub_total - fin_total.unwrap();
+        (
+            if v.abs() < 0.01 { "match" } else { "variance" }.to_string(),
+            Some(v),
+        )
+    };
+    ReconciliationRow {
+        key: key.to_string(),
+        label: label.to_string(),
+        sub_ledger_name: sub_ledger_name.to_string(),
+        coa_code,
+        sub_ledger_total: sub_total,
+        sub_ledger_count: sub_count,
+        financial_total: fin_total,
+        currency: currency.to_string(),
+        variance,
+        status,
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/reconciliation",
+    params(("submission_id" = uuid::Uuid, Query, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Reconciliation audit for a submission", body = ReconciliationAuditResponse),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_reconciliation_audit(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> AppResult<impl IntoResponse> {
+    let submission_id = params
+        .get("submission_id")
+        .and_then(|s| uuid::Uuid::parse_str(s).ok())
+        .ok_or_else(|| crate::error::AppError::BadRequest("submission_id is required".into()))?;
+
+    let cooperative_id = crate::api::handlers::cooperative::resolve_cooperative_id_for_nf(
+        &state,
+        &claims,
+        Some(submission_id),
+    )
+    .await?;
+
+    use rust_decimal::prelude::ToPrimitive;
+
+    let fs = state
+        .financial_statement_repo
+        .find_by_submission(submission_id)
+        .await?;
+
+    let currency_code = fs
+        .as_ref()
+        .map(|f| f.currency.as_str().to_string())
+        .unwrap_or_else(|| "SZL".to_string());
+
+    let resolved: std::collections::HashMap<i32, f64> = if let Some(fs) = &fs {
+        let items = state.line_item_repo.find_by_financial_statement(fs.id).await?;
+        let max_month = items.iter().map(|i| i.month).max().unwrap_or(0);
+        let mut raw = std::collections::HashMap::new();
+        for item in items.iter().filter(|i| i.month == max_month) {
+            if let (Some(code), Some(val)) = (item.account_code, item.value.and_then(|v| v.to_f64())) {
+                raw.insert(code, val);
+            }
+        }
+        let coa = state.coa_repo.find_all().await?;
+        crate::services::coa_rollup::resolve(&raw, &coa)
+    } else {
+        std::collections::HashMap::new()
+    };
+    let fin = |code: i32| resolved.get(&code).copied().filter(|_| fs.is_some());
+
+    let (share_total, share_count) = state
+        .member_repo
+        .sum_share_balance_by_submission(cooperative_id, submission_id)
+        .await?;
+
+    let nf_stats =
+        NfIndicatorEngine::compute_for_submission(&state.db, cooperative_id, Some(submission_id))
+            .await?;
+
+    let rows = vec![
+        reconciliation_row(
+            "shares",
+            "Member Share Capital",
+            "Shares Register",
+            3101,
+            share_total.to_f64().unwrap_or(0.0),
+            share_count,
+            fin(3101),
+            &currency_code,
+        ),
+        reconciliation_row(
+            "savings",
+            "Member Short-Term Savings",
+            "Savings Ledger",
+            2101,
+            nf_stats.savings.total_balance,
+            nf_stats.savings.total_accounts,
+            fin(2101),
+            &currency_code,
+        ),
+        reconciliation_row(
+            "loans",
+            "Performing Loan Portfolio",
+            "Loan Book",
+            1200,
+            nf_stats.loans.total_balance,
+            nf_stats.loans.total_loans,
+            fin(1200),
+            &currency_code,
+        ),
+        reconciliation_row(
+            "fixed_deposits",
+            "Fixed Term Deposits",
+            "Fixed Deposits",
+            2103,
+            nf_stats.fixed_deposits.total_balance,
+            nf_stats.fixed_deposits.total_fds,
+            fin(2103),
+            &currency_code,
+        ),
+    ];
+
+    Ok((
+        StatusCode::OK,
+        Json(ReconciliationAuditResponse { submission_id, rows }),
+    ))
 }

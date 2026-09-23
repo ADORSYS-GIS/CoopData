@@ -78,6 +78,14 @@ pub fn shared_routes() -> Router<AppState> {
             get(crate::api::handlers::nf_indicator_stats::get_consolidated_nf_statistics),
         )
         .route(
+            "/analytics/reconciliation",
+            get(crate::api::handlers::nf_indicator_stats::get_reconciliation_audit),
+        )
+        .route(
+            "/settings/exchange-rates",
+            get(crate::api::handlers::exchange_rate::list_exchange_rates),
+        )
+        .route(
             "/settings/organization-labels",
             get(crate::api::handlers::organization_label::list_organization_labels),
         )

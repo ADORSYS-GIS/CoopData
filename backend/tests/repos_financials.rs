@@ -79,7 +79,7 @@ async fn fs_set_validation_errors_binds_json() {
     let updated = app
         .state
         .financial_statement_repo
-        .set_validation_errors(id, errors)
+        .set_validation_errors(id, errors, false)
         .await
         .expect("update ok");
 

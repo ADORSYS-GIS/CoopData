@@ -446,10 +446,14 @@ impl NfIndicatorEngine {
             .filter(|l| l.loan_status == LoanStatus::WrittenOff)
             .count() as u64;
 
-        let on_time = all
-            .iter()
-            .filter(|l| l.repayment_regularity == "Regular")
-            .count() as u64;
+        let regularity_reported = all.iter().any(|l| !l.repayment_regularity.trim().is_empty());
+        let on_time = if regularity_reported {
+            all.iter()
+                .filter(|l| l.repayment_regularity == "Regular")
+                .count() as u64
+        } else {
+            performing
+        };
 
         let youth_borrowers = all.iter().filter(|l| l.youth_borrower_flag).count() as u64;
         let women_borrowers = all.iter().filter(|l| l.women_borrower_flag).count() as u64;

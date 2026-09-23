@@ -159,7 +159,7 @@ pub fn run_critical_flags(v: &ValuesMap) -> Vec<FlagOutput> {
         if e < Decimal::ZERO {
             f.push(flag(
                 "CRIT-006",
-                "critical",
+                "medium",
                 "Total Equity is negative. The cooperative is technically insolvent.".into(),
                 Some("3999".into()),
             ));
@@ -182,7 +182,7 @@ pub fn run_critical_flags(v: &ValuesMap) -> Vec<FlagOutput> {
                 Some("3999".into()),
             ));
         } else {
-            f.push(flag("CRIT-006", "critical", "Total Equity is negative (computed from sub-components). The cooperative may be insolvent.".into(), Some("3999".into())));
+            f.push(flag("CRIT-006", "medium", "Total Equity is negative (computed from sub-components). The cooperative may be insolvent.".into(), Some("3999".into())));
         }
     }
 

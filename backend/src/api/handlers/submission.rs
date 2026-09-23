@@ -416,6 +416,19 @@ pub async fn validate_extraction(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
+    // Re-running extraction rebuilds every line item from the original
+    // uploaded file and unconditionally reverts status/tier to
+    // Draft/Cooperative (see run_pipeline_inner). Doing that to an already
+    // Approved submission would silently discard any manual corrections
+    // made since extraction and revert an approval decision with no
+    // confirmation. Block it — corrections belong in the line-item editor,
+    // and reopening an approved submission is an explicit admin action.
+    if submission.status == crate::entities::enums::SubmissionStatus::Approved {
+        return Err(AppError::Conflict(
+            "This submission is already approved. Re-running automatic extraction would discard any manual corrections and revert its approval status. Use the line-item editor to correct values instead, or have an administrator reopen this submission first.".into(),
+        ));
+    }
+
     let coop = state
         .cooperative_repo
         .find_by_id(coop_id)
@@ -1335,6 +1348,21 @@ pub async fn federation_approve_submission(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Keep kpi_records in sync at every approval tier, matching
+    // apex_approve_submission/ministry_approve_submission — previously
+    // federation was the one tier that skipped this, leaving analytics
+    // stale for submissions reviewed here before ministry finalizes them.
+    if let Err(e) = workflow
+        .compute_and_save_kpis(id, updated.cooperative_id, updated.reporting_year)
+        .await
+    {
+        tracing::error!(
+            submission_id = %id,
+            error = %e,
+            "Failed to compute and save KPIs during federation approval"
+        );
+    }
 
     // Audit: submission approved by federation
     if let Err(e) = state

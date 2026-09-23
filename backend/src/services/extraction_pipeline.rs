@@ -425,9 +425,10 @@ pub async fn run_pipeline_inner(
         )
         .await?;
 
+    let is_validated = errors.is_empty();
     let validation_json = serde_json::json!({"errors": errors, "warnings": warnings});
     fs_repo
-        .set_validation_errors(fs.id, validation_json)
+        .set_validation_errors(fs.id, validation_json, is_validated)
         .await?;
 
     if let Ok(Some(sec)) = section_repo

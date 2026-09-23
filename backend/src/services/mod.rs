@@ -3,6 +3,8 @@ pub mod ai_extraction;
 pub mod audit;
 pub mod benchmark;
 pub mod cache;
+pub mod coa_rollup;
+pub mod currency;
 pub mod export_generator;
 pub mod extraction_pipeline;
 pub mod keycloak;
