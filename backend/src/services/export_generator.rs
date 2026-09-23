@@ -7,8 +7,6 @@ use sea_orm::EntityTrait;
 
 use uuid::Uuid;
 
-
-
 pub struct ExportGenerator;
 
 impl ExportGenerator {

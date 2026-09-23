@@ -147,7 +147,6 @@ async fn main() -> anyhow::Result<()> {
         ministry_narratives_repo,
     };
 
-
     // Backfill computed KPIs for existing submissions
     if let Err(e) = backfill_computed_kpis(&state).await {
         tracing::error!("Failed to backfill computed KPIs: {:?}", e);
