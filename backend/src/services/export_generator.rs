@@ -72,15 +72,13 @@ pub fn spawn_export_worker(state: AppState) -> ExportQueue {
     tokio::spawn(async move {
         while let Some(job) = rx.recv().await {
             process_export_job(&state, job);
-            tokio::time::sleep(Duration::from_secs(EXPORT_JOB_INTERVAL_SECS)).await;
+            // Artificial latency removed: No more 65-second sleep!
         }
     });
     ExportQueue { tx }
 }
 
-/// Seconds to wait between export triggers to stay under the Gemini free-tier
-/// rate limit (5 requests/min).
-const EXPORT_JOB_INTERVAL_SECS: u64 = 65;
+
 
 fn process_export_job(state: &AppState, job: ExportJob) {
     match job {
