@@ -402,8 +402,9 @@ pub async fn validate_extraction(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_id =
+        crate::api::handlers::cooperative::resolve_cooperative_id_for_nf(&state, &claims, Some(id))
+            .await?;
 
     let submission = state
         .submission_repo
@@ -411,9 +412,15 @@ pub async fn validate_extraction(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
+    if submission.cooperative_id != coop_id {
         return Err(AppError::Forbidden("Access denied".into()));
     }
+
+    let coop = state
+        .cooperative_repo
+        .find_by_id(coop_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
 
     let files = state.uploaded_file_repo.find_by_submission(id).await?;
     let file = files
