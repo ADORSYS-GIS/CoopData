@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { ConsolidatedCoverPage } from "./components/ConsolidatedCoverPage";
 import { ConsolidatedDashboardSheet } from "./components/ConsolidatedDashboardSheet";
 import { FederationApexDistributionSheet } from "./components/FederationApexDistributionSheet";
@@ -7,6 +7,7 @@ import { FederationApexComparisonSheet } from "./components/FederationApexCompar
 import { FederationPearlsSheet } from "./components/FederationPearlsSheet";
 import { FederationSocialImpactSheet } from "./components/FederationSocialImpactSheet";
 import type { NationalOverviewResponse } from "./components";
+import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
 import type { FederationNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 interface FederationReportPrintProps {
@@ -26,12 +27,7 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
   tier = "Federation",
   narratives,
 }) => {
-  useEffect(() => {
-    // Wait for all charts to render
-    setTimeout(() => {
-      (window as unknown as { isReady: boolean }).isReady = true;
-    }, 2000);
-  }, []);
+  useGotenbergReady(true);
 
   const totalApexes = React.useMemo(() => {
     if (!data?.cooperatives) return 0;

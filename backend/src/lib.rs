@@ -77,7 +77,6 @@ pub struct AppState {
     pub gotenberg_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
     pub ai_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
     pub ministry_narratives_repo: crate::repositories::MinistryReportNarrativesRepository,
-    pub export_queue: crate::services::export_generator::ExportQueue,
 }
 
 impl AppState {
