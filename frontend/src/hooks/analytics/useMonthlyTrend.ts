@@ -1,4 +1,5 @@
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
+import type { RateUsed } from "@/lib/currency";
 import { apiClient } from "@/openapi-client";
 
 export interface MonthlyTrendPoint {
@@ -21,6 +22,8 @@ export interface MonthlyTrendPoint {
 export interface MonthlyTrendResponse {
   year: number;
   months: MonthlyTrendPoint[];
+  /** Distinct USD conversion rates applied to the submissions included. */
+  rates_used?: RateUsed[];
 }
 
 export interface MonthlyTrendParams {

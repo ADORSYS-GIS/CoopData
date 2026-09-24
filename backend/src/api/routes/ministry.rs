@@ -12,7 +12,9 @@ use axum::routing::{delete, get, post};
 use axum::Router;
 
 use crate::api::handlers::audit::list_audit_logs;
-use crate::api::handlers::exchange_rate::{list_exchange_rates, update_exchange_rate};
+use crate::api::handlers::exchange_rate::{
+    list_exchange_rate_history, list_exchange_rates, update_exchange_rate,
+};
 use crate::api::handlers::federation::{
     create_federation, delete_federation, delete_federation_invitation, delete_federation_preview,
     get_federation, invite_user_to_federation, list_federation_invitations,
@@ -40,6 +42,7 @@ pub fn ministry_routes() -> Router<AppState> {
             "/exchange-rates",
             get(list_exchange_rates).put(update_exchange_rate),
         )
+        .route("/exchange-rates/history", get(list_exchange_rate_history))
         // Federation CRUD
         .route(
             "/federations",

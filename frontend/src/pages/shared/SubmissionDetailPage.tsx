@@ -471,8 +471,8 @@ export const SubmissionDetailPage: React.FC = () => {
     try {
       await submitMutation.mutateAsync(id);
       toast.success(
-        submission?.current_tier === "apex" || submission?.created_by_role === "apex"
-          ? replaceOrgTerms("Submitted to Federation")
+        role === "apex"
+          ? "Submitted and approved — the regional office is the final approval level"
           : t("submissions.detail.toastSubmitted"),
       );
       navigate({ to: "/app/submissions" });

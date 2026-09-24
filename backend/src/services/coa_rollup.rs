@@ -74,7 +74,11 @@ fn eval_additive_formula(
     let mut sign = 1.0;
     let mut term = String::new();
 
-    let flush = |term: &mut String, sign: f64, total: &mut f64, resolved: &mut HashMap<i32, f64>, visiting: &mut Vec<i32>| {
+    let flush = |term: &mut String,
+                 sign: f64,
+                 total: &mut f64,
+                 resolved: &mut HashMap<i32, f64>,
+                 visiting: &mut Vec<i32>| {
         if term.is_empty() {
             return;
         }

@@ -193,6 +193,25 @@ pub async fn run_pipeline_inner(
         })?
     };
 
+    let (sanitized_items, sanitize_report) =
+        crate::services::extraction_sanitizer::sanitize(output.line_items, &coa);
+    tracing::info!(
+        job_id = %job_id,
+        dropped_grand_totals = sanitize_report.dropped_grand_totals,
+        dropped_section_subtotals = sanitize_report.dropped_section_subtotals,
+        collapsed_duplicate_totals = sanitize_report.collapsed_duplicate_totals,
+        inferred_totals = ?sanitize_report.inferred_totals,
+        derived_totals = ?sanitize_report.derived_totals,
+        dropped_total_duplicates = sanitize_report.dropped_total_duplicates,
+        dropped_sum_subtotals = sanitize_report.dropped_sum_subtotals,
+        dropped_unmatched_unlabeled = sanitize_report.dropped_unmatched_unlabeled,
+        "Extraction output sanitized"
+    );
+    let output = crate::services::ai_extraction::ExtractionOutput {
+        line_items: sanitized_items,
+        ..output
+    };
+
     // ── Year validation: reject if the document year doesn't match the submission ──
     // Allow a tolerance of ±1 year for fiscal years that straddle calendar years
     // (e.g. a fiscal year ending in 2024 may appear as "2024" or "2023-24")

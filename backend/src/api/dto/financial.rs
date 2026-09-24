@@ -200,6 +200,8 @@ pub struct MinistryStatsResponse {
 pub struct MonthlyTrendResponse {
     pub year: i32,
     pub months: Vec<MonthlyTrendPoint>,
+    /// Distinct USD conversion rates applied across the submissions included.
+    pub rates_used: Vec<crate::api::dto::common::RateUsed>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

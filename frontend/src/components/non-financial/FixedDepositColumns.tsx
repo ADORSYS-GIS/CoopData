@@ -14,9 +14,10 @@ interface FixedDepositActions {
 
 export function useFixedDepositColumns(
   actions?: FixedDepositActions,
+  rateToUsd?: number | null,
 ): ColumnDef<FixedDepositResponse>[] {
   const { t } = useTranslation();
-  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL");
+  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL", rateToUsd);
   return [
     {
       accessorKey: "fixed_deposit_id",

@@ -7,6 +7,7 @@ pub mod coa_rollup;
 pub mod currency;
 pub mod export_generator;
 pub mod extraction_pipeline;
+pub mod extraction_sanitizer;
 pub mod keycloak;
 pub mod kpi_engine;
 pub mod localization;

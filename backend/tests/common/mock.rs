@@ -98,9 +98,8 @@ impl TestApp {
         let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
         let exchange_rate_repo =
             coop_data_backend::repositories::ExchangeRateRepository::new(db.clone());
-        let currency_service = coop_data_backend::services::currency::CurrencyService::new(
-            exchange_rate_repo.clone(),
-        );
+        let currency_service =
+            coop_data_backend::services::currency::CurrencyService::new(exchange_rate_repo.clone());
 
         let state = AppState {
             db,

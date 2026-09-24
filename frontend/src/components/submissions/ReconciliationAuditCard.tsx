@@ -5,6 +5,7 @@ import { Card, StatusPill } from "@/components/app-shell";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
 import { useReconciliationAudit } from "@/hooks/analytics/useReconciliationAudit";
+import { describeRate } from "@/lib/currency";
 import { Spinner } from "@/components/ui/spinner";
 
 interface ReconciliationAuditCardProps {
@@ -37,7 +38,11 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
     (r) => r.status === "pending_subledger" || r.status === "pending_financial",
   ).length;
 
-  const { format: formatUsdValue, formatOriginal, ready: ratesReady } = useUsdFormatter(currency);
+  const {
+    format: formatUsdValue,
+    formatOriginal,
+    ready: ratesReady,
+  } = useUsdFormatter(currency, data?.rate_used?.rate_to_usd);
   const fmtCurrency = (val: number | null) => {
     if (val === null) return "—";
     return (
@@ -261,6 +266,11 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
               </tbody>
             </table>
           </div>
+          {data?.rate_used && (
+            <p className="px-3.5 pt-2 text-[11px] text-muted-foreground">
+              {describeRate(data.rate_used)}
+            </p>
+          )}
         </div>
       )}
     </Card>

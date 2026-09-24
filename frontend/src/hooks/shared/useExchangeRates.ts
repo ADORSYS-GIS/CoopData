@@ -23,8 +23,12 @@ export const useExchangeRates = () =>
     staleTime: 10 * 60 * 1000,
   });
 
-export const useUsdFormatter = (nativeCurrency: string) => {
-  const { data: rates } = useExchangeRates();
+export const useUsdFormatter = (nativeCurrency: string, rateOverride?: number | null) => {
+  const { data: fetchedRates } = useExchangeRates();
+  const rates: ExchangeRates | undefined =
+    rateOverride && rateOverride > 0
+      ? { ...fetchedRates, [nativeCurrency]: rateOverride }
+      : fetchedRates;
   const ready = !!rates && (nativeCurrency === "USD" || rates[nativeCurrency] > 0);
   const usd = useCallback(
     (value: number) => (rates ? toUsd(value, nativeCurrency, rates) : value),

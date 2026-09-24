@@ -3,10 +3,10 @@ import React, { useMemo } from "react";
 import { Card } from "@/components/app-shell";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import type { MonthlyTrendResponse } from "@/hooks/analytics/useMonthlyTrend";
-import { formatUsd } from "@/lib/currency";
+import { describeRate, formatUsd } from "@/lib/currency";
 
 interface NetworkFinancialPositionProps {
-  networkTrend: Pick<MonthlyTrendResponse, "months"> | undefined;
+  networkTrend: Pick<MonthlyTrendResponse, "months" | "rates_used"> | undefined;
 }
 
 interface PositionStat {
@@ -71,6 +71,14 @@ export const NetworkFinancialPosition: React.FC<NetworkFinancialPositionProps> =
               </div>
             ))}
           </div>
+          {(networkTrend?.rates_used ?? []).map((rate) => (
+            <p
+              key={`${rate.currency_code}-${rate.rate_to_usd}-${rate.effective_date ?? ""}`}
+              className="mt-3 text-[11px] text-muted-foreground"
+            >
+              {describeRate(rate)}
+            </p>
+          ))}
         </Card>
       )}
     </div>

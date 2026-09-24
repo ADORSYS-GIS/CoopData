@@ -16,6 +16,8 @@ import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { formatUsd } from "@/lib/currency";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface FinancialIndicatorsProps {
   reportingYear: number;
@@ -25,12 +27,28 @@ interface FinancialIndicatorsProps {
 interface IndicatorRow {
   label: string;
   isHeader?: boolean;
-  unit: "%" | "SZL" | "ratio";
+  unit: "%" | "USD" | "ratio";
   computeFormula: (
     kpis: Record<string, { value: number }>,
     accounts: Record<number, number>,
   ) => number | null;
 }
+
+const INCOME_ACCOUNT_CODES = [
+  4101, 4102, 4201, 4999, 5101, 5102, 5201, 5202, 5203, 5204, 5301, 5999, 6999,
+];
+
+const hasIncomeData = (accounts: Record<number, number>): boolean =>
+  INCOME_ACCOUNT_CODES.some((code) => (accounts[code] || 0) !== 0);
+
+const incomeKpi = (
+  name: string,
+): ((
+  kpis: Record<string, { value: number }>,
+  accounts: Record<number, number>,
+) => number | null) => {
+  return (kpis, accounts) => (hasIncomeData(accounts) ? (kpis[name]?.value ?? null) : null);
+};
 
 function buildIndicatorRows(t: TFunction): IndicatorRow[] {
   return [
@@ -123,7 +141,7 @@ function buildIndicatorRows(t: TFunction): IndicatorRow[] {
     {
       label: t("analytics.indicatorOpexRatio"),
       unit: "%",
-      computeFormula: (kpis) => kpis["operating_expense_ratio"]?.value ?? null,
+      computeFormula: incomeKpi("operating_expense_ratio"),
     },
     {
       label: t("analytics.indicatorOpexMargin"),
@@ -151,17 +169,17 @@ function buildIndicatorRows(t: TFunction): IndicatorRow[] {
     {
       label: t("analytics.indicatorRoa"),
       unit: "%",
-      computeFormula: (kpis) => kpis["roa"]?.value ?? null,
+      computeFormula: incomeKpi("roa"),
     },
     {
       label: t("analytics.indicatorRoe"),
       unit: "%",
-      computeFormula: (kpis) => kpis["roe"]?.value ?? null,
+      computeFormula: incomeKpi("roe"),
     },
     {
       label: t("analytics.indicatorOss"),
       unit: "%",
-      computeFormula: (kpis) => kpis["operational_self_sufficiency"]?.value ?? null,
+      computeFormula: incomeKpi("operational_self_sufficiency"),
     },
 
     // 7. Liquidity & Intermediation
@@ -234,6 +252,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
   const formatValue = (val: number | null, unit: string) => {
     if (val === null) return "-";
     if (unit === "%") return `${val.toFixed(2)}%`;
+    if (unit === "USD") return formatUsd(val);
     return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
@@ -253,7 +272,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
       const map: Record<number, number> = {};
       filtered.forEach((item) => {
         if (item.account_code) {
-          map[item.account_code] = (map[item.account_code] || 0) + item.value;
+          map[item.account_code] = (map[item.account_code] || 0) + item.value_usd;
         }
       });
 
@@ -399,6 +418,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
       {/* Grid Comparative Table */}
       <Card
         title={t("analytics.prudentialGridTitle")}
+        info="Prudential ratios per cooperative (capital adequacy, asset quality, delinquency, profitability, efficiency) computed from the approved financial statement. Each row names its formula; a dash means an input account was not reported."
         subtitle={t("analytics.sideBySideIndicatorAnalysis")}
       >
         {filteredMatrices.length > 0 ? (
@@ -425,7 +445,12 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
                     return (
                       <tr key={`h-${rIdx}`} className="bg-muted/10 font-bold">
                         <td className="py-2.5 px-4 sticky left-0 bg-background border-r border-border font-sans font-bold text-primary uppercase text-[10px] tracking-wide">
-                          {row.label}
+                          <span className="inline-flex items-center gap-1.5">
+                            {row.label}
+                            {!row.isHeader && (
+                              <InfoTooltip text="Ratio computed from the approved financial statement (formula in the row name) or from the KPI engine on the same statement. A dash means a required account was not reported, so no ratio is shown." />
+                            )}
+                          </span>
                         </td>
                         {filteredMatrices.map((coop) => (
                           <td
@@ -442,7 +467,12 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
                   return (
                     <tr key={`r-${rIdx}`} className="hover:bg-muted/10 transition-colors">
                       <td className="py-2 px-4 sticky left-0 bg-background border-r border-border font-sans text-muted-foreground font-medium pl-6">
-                        {row.label}
+                        <span className="inline-flex items-center gap-1.5">
+                          {row.label}
+                          {!row.isHeader && (
+                            <InfoTooltip text="Ratio computed from the approved financial statement (formula in the row name) or from the KPI engine on the same statement. A dash means a required account was not reported, so no ratio is shown." />
+                          )}
+                        </span>
                       </td>
                       {filteredMatrices.map((coop) => {
                         const val = row.computeFormula(coop.kpis, coop.codeValues);

@@ -10,6 +10,7 @@ pub mod cooperative;
 pub mod custom_kpi;
 pub mod enums;
 pub mod exchange_rate;
+pub mod exchange_rate_history;
 pub mod extraction_job;
 pub mod farm_coop;
 pub mod federation;

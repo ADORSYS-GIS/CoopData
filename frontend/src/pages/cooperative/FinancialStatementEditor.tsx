@@ -56,6 +56,8 @@ import { useChartOfAccounts } from "@/hooks/submissions/useFinancialStatement";
 import { ACCOUNT_CODES } from "@/lib/financial-data";
 import { Spinner } from "@/components/ui/spinner";
 import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
+import { useSubmissionRate } from "@/hooks/shared/useSubmissionRate";
+import { describeRate } from "@/lib/currency";
 
 const STATIC_COA_OPTIONS: {
   code: number;
@@ -293,7 +295,8 @@ export const FinancialStatementEditor: React.FC<{
   const { isOnline } = useNetworkStatus();
   const { data: fs } = useFinancialStatement(fsId);
   const statementCurrency = fs?.currency ?? "SZL";
-  const { format: formatUsdValue, ready: usdReady } = useUsdFormatter(statementCurrency);
+  const { rateUsed, rateToUsd } = useSubmissionRate(fs?.submission_id);
+  const { format: formatUsdValue, ready: usdReady } = useUsdFormatter(statementCurrency, rateToUsd);
   const { data: items = [], isLoading: itemsLoading } = useLineItems(fsId);
   const updateItems = useUpdateLineItems(fsId);
   const validate = useValidateExtraction();
@@ -993,6 +996,11 @@ export const FinancialStatementEditor: React.FC<{
               </tbody>
             </table>
           </div>
+        )}
+        {rateUsed && (
+          <p className="px-4 pb-3 pt-2 text-[11px] text-muted-foreground">
+            {describeRate(rateUsed)}
+          </p>
         )}
       </Card>
 

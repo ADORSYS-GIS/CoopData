@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { formatUsd } from "@/lib/currency";
 import {
   ResponsiveContainer,
   BarChart,
@@ -122,7 +123,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
       const targetCode = parseInt(selectedMetric, 10);
       const sum = filtered
         .filter((item) => item.account_code === targetCode)
-        .reduce((acc, curr) => acc + curr.value, 0);
+        .reduce((acc, curr) => acc + curr.value_usd, 0);
 
       return {
         cooperative_id: grid.cooperative_id,
@@ -154,7 +155,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
 
   // Formatting helper
   const formatValue = (val: number) => {
-    return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return formatUsd(val);
   };
 
   // Chart data mapping
@@ -274,6 +275,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         <div className="lg:col-span-2">
           <Card
             title={t("analytics.coopContributionShares")}
+            info="Each cooperative's share of the network total for the principal financial statement accounts (assets, loans, savings, equity), from approved statements converted to USD. Shares sum to 100% across the cooperatives shown."
             subtitle={t("analytics.spreadsheetBreakdown")}
           >
             {rankedCoops.length > 0 ? (
@@ -323,6 +325,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         <div className="lg:col-span-3">
           <Card
             title={t("analytics.rankingPrincipalAccounts")}
+            info="Ranking of cooperatives by value of the principal accounts from the approved financial statement, in USD at the configured exchange rate. Only cooperatives with an approved statement for the selected period appear."
             subtitle={t("analytics.valueContributionSubtitle")}
           >
             {chartData.length > 0 ? (

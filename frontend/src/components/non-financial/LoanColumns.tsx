@@ -19,9 +19,12 @@ interface LoanActions {
   onDelete?: (id: string) => void;
 }
 
-export function useLoanColumns(actions?: LoanActions): ColumnDef<LoanResponse>[] {
+export function useLoanColumns(
+  actions?: LoanActions,
+  rateToUsd?: number | null,
+): ColumnDef<LoanResponse>[] {
   const { t } = useTranslation();
-  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL");
+  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL", rateToUsd);
   return [
     {
       accessorKey: "loan_id",

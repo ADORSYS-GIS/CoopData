@@ -12,9 +12,12 @@ interface SavingsActions {
   onDelete?: (id: string) => void;
 }
 
-export function useSavingsColumns(actions?: SavingsActions): ColumnDef<SavingsAccountResponse>[] {
+export function useSavingsColumns(
+  actions?: SavingsActions,
+  rateToUsd?: number | null,
+): ColumnDef<SavingsAccountResponse>[] {
   const { t } = useTranslation();
-  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL");
+  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL", rateToUsd);
   return [
     {
       accessorKey: "savings_account_id",

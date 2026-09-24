@@ -52,6 +52,27 @@ pub fn to_usd(amount: f64, currency: &Currency, rates: &HashMap<Currency, f64>) 
     amount / rate * usd_self_rate(rates)
 }
 
+/// Convert using the rate frozen on an approved submission when present,
+/// otherwise the current configured rate (drafts). USD is always 1:1.
+pub fn to_usd_frozen(
+    amount: f64,
+    currency: &Currency,
+    frozen_rate: Option<f64>,
+    rates: &HashMap<Currency, f64>,
+) -> f64 {
+    match (currency, frozen_rate) {
+        (Currency::Usd, _) => amount,
+        (_, Some(rate)) if rate > 0.0 => amount / rate,
+        _ => to_usd(amount, currency, rates),
+    }
+}
+
+/// Frozen rate of a submission as f64, if it has been approved and frozen.
+pub fn frozen_rate_of(submission: &crate::entities::submission::Model) -> Option<f64> {
+    use rust_decimal::prelude::ToPrimitive;
+    submission.rate_to_usd.and_then(|d| d.to_f64())
+}
+
 /// `rates` stores "units of native currency per 1 USD" (e.g. SZL: 18.5), so
 /// converting to USD is `amount / rate`. USD's own configured rate should
 /// always be 1.0, but this guards against a misconfigured admin entry
@@ -79,6 +100,31 @@ mod tests {
         let mut rates = HashMap::new();
         rates.insert(Currency::Usd, 1.0);
         assert_eq!(to_usd(1000.0, &Currency::Usd, &rates), 1000.0);
+    }
+
+    #[test]
+    fn frozen_rate_wins_over_current_rate() {
+        let mut rates = HashMap::new();
+        rates.insert(Currency::Szl, 20.0);
+        let usd = to_usd_frozen(1850.0, &Currency::Szl, Some(18.5), &rates);
+        assert!((usd - 100.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn current_rate_used_when_not_frozen() {
+        let mut rates = HashMap::new();
+        rates.insert(Currency::Szl, 20.0);
+        let usd = to_usd_frozen(2000.0, &Currency::Szl, None, &rates);
+        assert!((usd - 100.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn usd_ignores_frozen_rate() {
+        let rates = HashMap::new();
+        assert_eq!(
+            to_usd_frozen(50.0, &Currency::Usd, Some(18.5), &rates),
+            50.0
+        );
     }
 
     #[test]

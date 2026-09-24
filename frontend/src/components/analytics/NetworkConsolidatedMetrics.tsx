@@ -20,7 +20,7 @@ import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
 
 export interface NetworkConsolidatedMetricsProps {
   nfStats?: NfStatisticsResponse;
-  networkTrend?: Pick<MonthlyTrendResponse, "months">;
+  networkTrend?: Pick<MonthlyTrendResponse, "months" | "rates_used">;
   totalCooperatives: number;
   cooperativesWithData: number;
   totalApexes?: number;

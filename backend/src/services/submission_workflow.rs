@@ -160,13 +160,12 @@ impl SubmissionWorkflow {
             }
         }
 
-        // Route based on current tier and creator role:
-        // - Apex-created submissions: the apex is the final approval level, so
-        //   submitting finalizes the submission immediately (no federation/ministry review)
-        // - Cooperative tier → Apex (coop submits after delegation, apex reviews)
-        // - Apex tier → Federation (apex is done reviewing, sends to federation)
-        // - Federation tier → stays at federation (federation reviews)
-        // - Ministry tier → stays at ministry (ministry reviews)
+        // Route on submit:
+        // - Apex submitter: the apex is the final approval level, so submitting
+        //   finalizes the submission immediately (no federation/ministry step).
+        // - Any other submitter (the cooperative, including after delegation):
+        //   the submission goes to the apex for review, regardless of the tier
+        //   it was previously parked at.
         if claims.is_apex() {
             self.submission_repo
                 .update_status(submission_id, SubmissionStatus::Approved, ReviewTier::Apex)
@@ -183,12 +182,7 @@ impl SubmissionWorkflow {
             )
             .await?;
         } else {
-            let next_tier = match sub.current_tier {
-                ReviewTier::Cooperative => ReviewTier::Apex,
-                ReviewTier::Apex => ReviewTier::Federation,
-                ReviewTier::Federation => ReviewTier::Federation,
-                ReviewTier::Ministry => ReviewTier::Ministry,
-            };
+            let next_tier = ReviewTier::Apex;
 
             self.submission_repo
                 .update_status(submission_id, SubmissionStatus::Submitted, next_tier)

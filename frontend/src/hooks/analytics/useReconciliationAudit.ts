@@ -1,4 +1,5 @@
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
+import type { RateUsed } from "@/lib/currency";
 import { apiClient } from "@/openapi-client";
 
 export interface ReconciliationRow {
@@ -17,6 +18,7 @@ export interface ReconciliationRow {
 export interface ReconciliationAuditResponse {
   submission_id: string;
   rows: ReconciliationRow[];
+  rate_used?: RateUsed | null;
 }
 
 const extractErrorMessage = (error: unknown): string => {

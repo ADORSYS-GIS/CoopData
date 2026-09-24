@@ -2223,11 +2223,17 @@ pub async fn get_monthly_trend(
     // statement/month avoids both.
     let coa = state.coa_repo.find_all().await?;
     let rates = state.currency_service.load_rates().await?;
+    let current_rates = state.exchange_rate_repo.find_all().await?;
+    let submission_by_id: std::collections::HashMap<Uuid, &crate::entities::submission::Model> =
+        year_filtered.iter().map(|s| (s.id, *s)).collect();
+    let mut rates_used: Vec<crate::api::dto::common::RateUsed> = Vec::new();
     let fs_by_id: std::collections::HashMap<Uuid, &crate::entities::financial_statement::Model> =
         financial_statements.iter().map(|fs| (fs.id, fs)).collect();
 
-    let mut raw_by_fs_month: std::collections::HashMap<(Uuid, i16), std::collections::HashMap<i32, f64>> =
-        std::collections::HashMap::new();
+    let mut raw_by_fs_month: std::collections::HashMap<
+        (Uuid, i16),
+        std::collections::HashMap<i32, f64>,
+    > = std::collections::HashMap::new();
     for item in &line_items {
         if item.month == 0 && has_monthly_breakdown {
             continue;
@@ -2249,11 +2255,24 @@ pub async fn get_monthly_trend(
         if month_idx >= 12 {
             continue;
         }
-        let Some(fs) = fs_by_id.get(fs_id) else { continue };
+        let Some(fs) = fs_by_id.get(fs_id) else {
+            continue;
+        };
+        let fs_submission = submission_by_id.get(&fs.submission_id).copied();
+        let frozen_rate = fs_submission.and_then(crate::services::currency::frozen_rate_of);
+        if let Some(used) = crate::api::handlers::exchange_rate::rate_used_for(
+            &fs.currency,
+            fs_submission,
+            &current_rates,
+        ) {
+            if !rates_used.contains(&used) {
+                rates_used.push(used);
+            }
+        }
         let resolved = crate::services::coa_rollup::resolve(raw, &coa);
         let to_usd = |code: i32| {
             let v = resolved.get(&code).copied().unwrap_or(0.0);
-            crate::services::currency::to_usd(v, &fs.currency, &rates)
+            crate::services::currency::to_usd_frozen(v, &fs.currency, frozen_rate, &rates)
         };
         months[month_idx].savings += to_usd(2100);
         months[month_idx].loans += to_usd(1200);
@@ -2271,7 +2290,14 @@ pub async fn get_monthly_trend(
         "Monthly trend computed"
     );
 
-    Ok((StatusCode::OK, Json(MonthlyTrendResponse { year, months })))
+    Ok((
+        StatusCode::OK,
+        Json(MonthlyTrendResponse {
+            year,
+            months,
+            rates_used,
+        }),
+    ))
 }
 
 #[utoipa::path(

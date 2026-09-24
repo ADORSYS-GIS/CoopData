@@ -9,6 +9,7 @@ interface SavingsGridProps {
   savings: SavingsAccountResponse[];
   isLoading?: boolean;
   isReadOnly?: boolean;
+  rateToUsd?: number | null;
   errorRowIds?: string[];
   onEdit?: (savings: SavingsAccountResponse) => void;
   onDelete?: (id: string) => void;
@@ -18,6 +19,7 @@ export function SavingsGrid({
   savings,
   isLoading,
   isReadOnly,
+  rateToUsd,
   errorRowIds,
   onEdit,
   onDelete,
@@ -25,6 +27,7 @@ export function SavingsGrid({
   const { t } = useTranslation();
   const columns = useSavingsColumns(
     isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
+    rateToUsd,
   );
 
   const errorSet = new Set(errorRowIds ?? []);

@@ -446,7 +446,9 @@ impl NfIndicatorEngine {
             .filter(|l| l.loan_status == LoanStatus::WrittenOff)
             .count() as u64;
 
-        let regularity_reported = all.iter().any(|l| !l.repayment_regularity.trim().is_empty());
+        let regularity_reported = all
+            .iter()
+            .any(|l| !l.repayment_regularity.trim().is_empty());
         let on_time = if regularity_reported {
             all.iter()
                 .filter(|l| l.repayment_regularity == "Regular")

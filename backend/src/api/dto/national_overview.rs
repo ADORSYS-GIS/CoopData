@@ -168,6 +168,8 @@ pub struct CooperativeStatementGrid {
     /// haven't been confirmed accurate.
     pub is_validated: bool,
     pub has_unmapped_items: bool,
+    /// Rate used for `value_usd`; None when the statement is already in USD.
+    pub rate_used: Option<crate::api::dto::common::RateUsed>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]

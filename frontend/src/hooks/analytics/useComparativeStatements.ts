@@ -1,17 +1,26 @@
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
+import type { RateUsed } from "@/lib/currency";
 import { apiClient } from "@/openapi-client";
 
 export interface CooperativeLineItem {
   account_code?: number | null;
   account_name: string;
+  /** Amount in the statement's native currency, as printed in the source document. */
   value: number;
+  /** Amount converted to USD server-side at the submission's frozen (or current) rate. */
+  value_usd: number;
   month: number;
+  is_derived?: boolean;
 }
 
 export interface CooperativeStatementGrid {
   cooperative_id: string;
   cooperative_name: string;
   line_items: CooperativeLineItem[];
+  currency?: string;
+  is_validated?: boolean;
+  has_unmapped_items?: boolean;
+  rate_used?: RateUsed | null;
 }
 
 export interface ComparativeStatementsResponse {
@@ -37,9 +46,9 @@ export const useComparativeStatements = (
   enabled = true,
 ) =>
   useOfflineQuery<ComparativeStatementsResponse>({
-    queryKey: ["comparative-statements", params],
+    queryKey: ["comparative-statements", "v2", params],
     cacheTable: "analytics",
-    cacheKey: `comparative-statements-${JSON.stringify(params)}`,
+    cacheKey: `comparative-statements-v2-${JSON.stringify(params)}`,
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
