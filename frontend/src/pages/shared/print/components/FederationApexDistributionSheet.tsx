@@ -1,6 +1,7 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
+import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
 import { CoopKpiRow } from "./types";
 import { useTranslation } from "react-i18next";
 
@@ -31,11 +32,7 @@ export const FederationApexDistributionSheet: React.FC<FederationApexDistributio
   const { t } = useTranslation();
   const cooperatives: CoopKpiRow[] = data.cooperatives || [];
 
-  useEffect(() => {
-    setTimeout(() => {
-      (window as unknown as { isReady: boolean }).isReady = true;
-    }, 1500);
-  }, []);
+  useGotenbergReady(true);
 
   const apexGroups = React.useMemo(() => {
     const groups = new Map<string, { coopCount: number; members: number }>();

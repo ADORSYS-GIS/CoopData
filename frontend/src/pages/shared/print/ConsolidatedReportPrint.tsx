@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   ConsolidatedCoverPage,
   ConsolidatedDashboardSheet,
@@ -6,6 +6,7 @@ import {
   ConsolidatedRiskWatchSheet,
 } from "./components";
 import type { NationalOverviewResponse } from "./components";
+import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
 import type { ApexNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 interface ConsolidatedReportPrintProps {
@@ -27,12 +28,7 @@ export const ConsolidatedReportPrint: React.FC<ConsolidatedReportPrintProps> = (
 }) => {
   const { total_cooperatives, cooperatives_with_data } = data;
 
-  useEffect(() => {
-    // Signal Gotenberg that charts and DOM are fully rendered
-    setTimeout(() => {
-      (window as unknown as { isReady: boolean }).isReady = true;
-    }, 1000);
-  }, []);
+  useGotenbergReady(true);
 
   return (
     <div className="print-report bg-white text-slate-900 font-sans print:w-[210mm]">

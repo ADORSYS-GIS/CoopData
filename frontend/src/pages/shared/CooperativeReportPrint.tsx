@@ -12,6 +12,7 @@ import {
   MembershipStatsResponse,
 } from "@/hooks/submissions/useCooperativeKpis";
 import { useSubmissionNarratives } from "@/hooks/submissions/useSubmissionNarratives";
+import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
 import {
   ReportCoverPage,
   ReportExecutiveSummary,
@@ -62,6 +63,8 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
   // Wait for critical data — portfolio and membership are allowed to still load
   const criticalLoading = subLoading || kpisLoading || lineItemsLoading;
   const allLoading = criticalLoading || portfolioLoading || membershipLoading;
+
+  useGotenbergReady(!allLoading);
 
   if (allLoading) {
     return (

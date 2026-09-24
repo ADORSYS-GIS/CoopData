@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
+import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
 import { CoopKpiRow } from "./types";
 import { useTranslation } from "react-i18next";
 
@@ -87,11 +88,7 @@ export const FederationSocialImpactSheet: React.FC<FederationSocialImpactSheetPr
 
   const totalLoans = getSum(cooperatives, "active_borrowers"); // Using active_borrowers as total loans approximation for %
 
-  useEffect(() => {
-    setTimeout(() => {
-      (window as unknown as { isReady: boolean }).isReady = true;
-    }, 1500);
-  }, []);
+  useGotenbergReady(true);
 
   return (
     <div className="print-page relative flex flex-col w-[210mm] min-h-[268mm] p-12 bg-white text-slate-900 border-b border-gray-200 break-after-page font-sans">

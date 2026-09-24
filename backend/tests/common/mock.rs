@@ -142,7 +142,6 @@ impl TestApp {
             narrative_generator,
             nf_excel_parser,
             ministry_narratives_repo,
-            export_queue: coop_data_backend::services::export_generator::ExportQueue::new(),
             exchange_rate_repo,
             currency_service,
         };
