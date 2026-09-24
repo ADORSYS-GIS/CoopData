@@ -368,6 +368,7 @@ pub async fn get_consolidated_nf_statistics(
             .push(rec);
     }
 
+    let mut regular_savers_total = 0.0_f64;
     let mut consolidated_stats =
         crate::services::nf_indicator_engine::NfStatisticsResponse::default();
 
@@ -468,6 +469,8 @@ pub async fn get_consolidated_nf_statistics(
             consolidated_stats.savings.dormant_accounts += stats.savings.dormant_accounts;
             consolidated_stats.savings.zero_balance_count += stats.savings.zero_balance_count;
             consolidated_stats.savings.increasing_trend += stats.savings.increasing_trend;
+            regular_savers_total +=
+                stats.savings.regular_savers_pct / 100.0 * stats.savings.total_accounts as f64;
             consolidated_stats.savings.stable_trend += stats.savings.stable_trend;
             consolidated_stats.savings.declining_trend += stats.savings.declining_trend;
             consolidated_stats.savings.high_withdrawal_count += stats.savings.high_withdrawal_count;
@@ -606,7 +609,7 @@ pub async fn get_consolidated_nf_statistics(
         consolidated_stats.savings.zero_balance_pct =
             (consolidated_stats.savings.zero_balance_count as f64 / total_accounts) * 100.0;
         consolidated_stats.savings.regular_savers_pct =
-            (consolidated_stats.savings.increasing_trend as f64 / total_accounts) * 100.0;
+            (regular_savers_total / total_accounts) * 100.0;
     }
 
     // Recompute loans borrower percentages

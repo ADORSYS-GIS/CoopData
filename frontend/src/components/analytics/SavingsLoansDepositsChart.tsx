@@ -99,13 +99,13 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               }}
               formatter={(value: number, name: string) => [
-                `$${value.toLocaleString()}`,
+                `$${Math.round(value).toLocaleString()}`,
                 name === "liquidity"
-                  ? t("analytics.savingsShort")
+                  ? t("analytics.seriesLiquidAssets")
                   : name === "loans"
-                    ? t("analytics.loansLabel")
+                    ? t("analytics.seriesGrossLoans")
                     : name === "savings"
-                      ? t("analytics.depositsLabel")
+                      ? t("analytics.seriesMemberDeposits")
                       : name,
               ]}
             />
@@ -119,7 +119,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="liquidity"
-              name={t("analytics.savingsShort")}
+              name={t("analytics.seriesLiquidAssets")}
               fill="var(--chart-1)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
@@ -129,7 +129,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="loans"
-              name={t("analytics.loansLabel")}
+              name={t("analytics.seriesGrossLoans")}
               fill="var(--chart-2)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
@@ -139,7 +139,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="savings"
-              name={t("analytics.depositsLabel")}
+              name={t("analytics.seriesMemberDeposits")}
               fill="var(--chart-3)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
