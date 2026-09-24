@@ -4366,6 +4366,7 @@
       "tinMax": "Doit comporter 20 caractères ou moins",
       "georeferenceFormat": "Format : lat,long (ex. -26.3,31.1)",
       "sectorRequired": "Le secteur est obligatoire",
+      "typeSectorMismatch": "Le secteur doit correspondre au type d'institution",
       "registeredOnRequired": "La date d'enregistrement est obligatoire",
       "regNoInUse": "Ce numéro d'enregistrement est déjà utilisé."
     }

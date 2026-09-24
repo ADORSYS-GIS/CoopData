@@ -276,6 +276,16 @@ pub async fn update_apex(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Some(ref new_name) = body.name {
+        if let Err(e) = state
+            .apex_repo
+            .update_display_name(&id, new_name.trim())
+            .await
+        {
+            tracing::error!(group_id = %id, error = %e, "Failed to sync apex name to PG");
+        }
+    }
+
     if let Err(e) = state
         .audit
         .log(

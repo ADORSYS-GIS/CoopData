@@ -508,6 +508,16 @@ pub async fn update_cooperative(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Some(ref new_name) = body.name {
+        if let Err(e) = state
+            .cooperative_repo
+            .update_display_name(&id, new_name.trim())
+            .await
+        {
+            tracing::error!(group_id = %id, error = %e, "Failed to sync cooperative name to PG");
+        }
+    }
+
     if let Err(e) = state
         .audit
         .log(

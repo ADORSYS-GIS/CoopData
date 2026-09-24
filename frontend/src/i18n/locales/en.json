@@ -4395,6 +4395,7 @@
       "tinMax": "Must be 20 characters or fewer",
       "georeferenceFormat": "Format: lat,long (e.g. -26.3,31.1)",
       "sectorRequired": "Sector is required",
+      "typeSectorMismatch": "Sector must match the institution type",
       "registeredOnRequired": "Registration date is required",
       "regNoInUse": "This registration number is already in use."
     }

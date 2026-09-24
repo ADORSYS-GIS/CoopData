@@ -23,22 +23,124 @@ use crate::AppState;
     tag = "Auth"
 )]
 pub async fn get_current_user_profile(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
+    let organization_id = claims.get_organization_id();
+    let organization_name = resolve_organization_name(
+        &state,
+        organization_id.as_deref(),
+        claims.get_organization_name(),
+    )
+    .await;
+
+    let paths = claims.get_cooperation_paths();
+    let segments: Vec<String> = paths
+        .first()
+        .map(|p| {
+            p.split('/')
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect()
+        })
+        .unwrap_or_default();
+    let apex_name = match segments.first() {
+        Some(seg) => state
+            .apex_repo
+            .find_by_keycloak_id(seg)
+            .await
+            .ok()
+            .flatten()
+            .map(|a| a.display_name),
+        None => None,
+    };
+    let cooperation_name = match segments.get(1).or(segments.first()) {
+        Some(seg) => state
+            .cooperative_repo
+            .find_by_keycloak_id(seg)
+            .await
+            .ok()
+            .flatten()
+            .map(|c| c.display_name),
+        None => None,
+    };
+
     let profile = UserProfileResponse {
         sub: claims.sub.clone(),
         username: claims.username().map(String::from),
         email: claims.email.clone(),
         name: claims.name.clone(),
         roles: claims.all_roles(),
-        organization_id: claims.get_organization_id(),
-        organization_name: claims.get_organization_name(),
-        cooperation_paths: claims.get_cooperation_paths(),
+        organization_id,
+        organization_name,
+        apex_name,
+        cooperation_name,
+        cooperation_paths: paths,
         assigned_dimensions: claims.get_assigned_dimensions(),
     };
 
     Ok((StatusCode::OK, Json(profile)))
+}
+
+pub(crate) fn pick_organization_name(
+    keycloak_display: Option<String>,
+    stored: Option<String>,
+    token_name: Option<String>,
+) -> Option<String> {
+    [keycloak_display, stored, token_name]
+        .into_iter()
+        .flatten()
+        .map(|n| n.trim().to_string())
+        .find(|n| !n.is_empty())
+}
+
+/// The token carries the organization's original (immutable) Keycloak alias,
+/// so a rename never reaches it. The admin rename writes the organization's
+/// `display_name` attribute in Keycloak, which is therefore the source of
+/// truth; the local federations row is a copy that is re-synced here when
+/// it has drifted.
+async fn resolve_organization_name(
+    state: &AppState,
+    organization_id: Option<&str>,
+    token_name: Option<String>,
+) -> Option<String> {
+    let Some(org_id) = organization_id else {
+        return token_name;
+    };
+
+    let keycloak_display = state
+        .keycloak
+        .get_organization_by_id(org_id)
+        .await
+        .ok()
+        .and_then(|org| {
+            org.attributes
+                .and_then(|attrs| attrs.get("display_name").and_then(|v| v.first().cloned()))
+        })
+        .map(|n| n.trim().to_string())
+        .filter(|n| !n.is_empty());
+
+    let stored = state
+        .federation_repo
+        .find_by_keycloak_id(org_id)
+        .await
+        .ok()
+        .flatten()
+        .map(|f| f.display_name);
+
+    if let Some(ref fresh) = keycloak_display {
+        if stored.as_deref() != Some(fresh.as_str()) && stored.is_some() {
+            if let Err(e) = state
+                .federation_repo
+                .update_display_name(org_id, fresh)
+                .await
+            {
+                tracing::warn!(org_id, error = %e, "Failed to re-sync federation name");
+            }
+        }
+    }
+
+    pick_organization_name(keycloak_display, stored, token_name)
 }
 
 #[utoipa::path(
@@ -512,4 +614,40 @@ pub async fn disable_mfa(
             mfa_configured: true,
         }),
     ))
+}
+
+#[cfg(test)]
+mod organization_name_tests {
+    use super::pick_organization_name;
+
+    #[test]
+    fn prefers_the_keycloak_display_name_over_a_stale_stored_copy() {
+        let name = pick_organization_name(
+            Some("FedSouthern".into()),
+            Some("Southern Federation of Cooperatives".into()),
+            Some("FedSouthernTest".into()),
+        );
+        assert_eq!(name.as_deref(), Some("FedSouthern"));
+    }
+
+    #[test]
+    fn falls_back_to_stored_then_token() {
+        assert_eq!(
+            pick_organization_name(None, Some("Stored".into()), Some("alias".into())).as_deref(),
+            Some("Stored")
+        );
+        assert_eq!(
+            pick_organization_name(None, None, Some("alias".into())).as_deref(),
+            Some("alias")
+        );
+    }
+
+    #[test]
+    fn ignores_blank_names() {
+        assert_eq!(
+            pick_organization_name(Some("  ".into()), None, Some("alias".into())).as_deref(),
+            Some("alias")
+        );
+        assert_eq!(pick_organization_name(None, None, None), None);
+    }
 }

@@ -4360,6 +4360,7 @@
       "tinMax": "Kumele kube nezinhlamvu ezingu-20 noma ngaphansi",
       "georeferenceFormat": "Ifomethi: lat,long (isib. -26.3,31.1)",
       "sectorRequired": "Isekta iyadingeka",
+      "typeSectorMismatch": "Isekta kufanele ifane nemhlobo wesikhungo",
       "registeredOnRequired": "Lusuku lokubhaliswa luyadingeka",
       "regNoInUse": "Le nombolo yokubhaliswa isivele isetjentiswa."
     }
