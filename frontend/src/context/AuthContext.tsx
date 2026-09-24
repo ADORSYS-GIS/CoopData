@@ -17,6 +17,8 @@ import {
   getUserProfile,
   isOfflineModeActive,
 } from "@/services/shared/authService";
+import { apiClient } from "@/openapi-client";
+import { mergeServerNames, type ServerProfileNames } from "@/services/shared/profileNames";
 import { seedOfflineCache } from "@/services/shared/offlineSeeder";
 import { offlineDb } from "@/services/shared/offlineDb";
 import type { AuthContextValue, UserProfile } from "@/types/auth";
@@ -105,6 +107,18 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated]); // Include isAuthenticated since we guard on it
 
+  const refreshNamesFromServer = async (profile: UserProfile) => {
+    try {
+      const { data } = await apiClient.GET("/api/v1/me");
+      if (!data) return;
+      const merged = mergeServerNames(profile, data as ServerProfileNames);
+      setUser(merged);
+      localStorage.setItem("coopdata_user_profile", JSON.stringify(merged));
+    } catch (e) {
+      console.warn("[auth-context] Could not refresh organization names:", e);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -127,6 +141,9 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
           try {
             const token = await getAccessToken();
             setAccessToken(token);
+            if (profile && navigator.onLine && !isOfflineModeActive()) {
+              void refreshNamesFromServer(profile);
+            }
           } catch (e) {
             console.warn("[auth-context] Failed to get access token:", e);
           }

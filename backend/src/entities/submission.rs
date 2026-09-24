@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -49,6 +49,13 @@ pub struct Model {
     /// Display name of the current editor (denormalized for read performance)
     #[sea_orm(nullable)]
     pub edited_by_name: Option<String>,
+    /// Native currency units per 1 USD, frozen when the submission is approved.
+    #[sea_orm(nullable, column_type = "Decimal(Some((18, 6)))")]
+    pub rate_to_usd: Option<Decimal>,
+    #[sea_orm(nullable)]
+    pub rate_effective_date: Option<NaiveDate>,
+    #[sea_orm(nullable)]
+    pub rate_source: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

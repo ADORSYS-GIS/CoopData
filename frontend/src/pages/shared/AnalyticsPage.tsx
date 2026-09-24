@@ -17,7 +17,6 @@ import { AppShell } from "@/components/app-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PanelSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import { useUserRole } from "@/lib/auth";
-import type { DateRange } from "@/components/analytics/date-range-picker";
 import { AnalyticsFilterBar } from "../analytics/AnalyticsFilterBar";
 import { CooperativeAnalyticsView } from "../analytics/CooperativeAnalyticsView";
 import type { components } from "@/openapi-client/api";
@@ -169,11 +168,6 @@ export const AnalyticsPage: React.FC = () => {
   const [filterValues, setFilterValues] = useState<AnalyticsFilterValues>({
     ...defaultFilterValues,
     year: String(new Date().getFullYear()),
-  });
-
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(new Date().getFullYear(), 0, 1),
-    to: new Date(),
   });
 
   const [activeTab, setActiveTab] = useState<
@@ -346,9 +340,7 @@ export const AnalyticsPage: React.FC = () => {
           <AnalyticsFilterBar
             filters={filters}
             filterValues={filterValues}
-            dateRange={dateRange}
             onFilterChange={handleFilterChange}
-            onDateRangeChange={setDateRange}
             onClear={handleClear}
           />
         )}
@@ -358,9 +350,7 @@ export const AnalyticsPage: React.FC = () => {
           <AnalyticsFilterBar
             filters={[]}
             filterValues={filterValues}
-            dateRange={dateRange}
             onFilterChange={handleFilterChange}
-            onDateRangeChange={setDateRange}
             onClear={handleClear}
           />
         )}

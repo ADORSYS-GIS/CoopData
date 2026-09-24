@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import {
   LayoutDashboard,
   Building2,
@@ -27,7 +27,6 @@ import {
   ScrollText,
   Users,
   Database,
-  Info,
   Scale,
   Calculator,
   Gauge,
@@ -544,23 +543,7 @@ export function Card({
             {title && (
               <h3 className="font-heading text-sm font-semibold text-foreground flex items-center gap-1.5 truncate">
                 {title}
-                {info && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="flex focus:outline-none rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                        <Info className="size-3.5 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors shrink-0" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      side="top"
-                      className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl"
-                    >
-                      <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">
-                        {info}
-                      </p>
-                    </PopoverContent>
-                  </Popover>
-                )}
+                {info && <InfoTooltip text={info} />}
               </h3>
             )}
             {subtitle && (
@@ -637,23 +620,7 @@ export function StatCard({
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground leading-tight truncate">
             {label}
           </p>
-          {info && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="flex focus:outline-none rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                  <Info className="size-3 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors shrink-0" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent
-                side="top"
-                className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl"
-              >
-                <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">
-                  {info}
-                </p>
-              </PopoverContent>
-            </Popover>
-          )}
+          {info && <InfoTooltip text={info} className="size-3" />}
         </div>
         <div className={`size-8 rounded-lg grid place-items-center shrink-0 ${iconBadgeCls}`}>
           <Icon className="size-4" />

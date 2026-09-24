@@ -107,6 +107,8 @@ pub struct UserProfileResponse {
     pub roles: Vec<String>,
     pub organization_id: Option<String>,
     pub organization_name: Option<String>,
+    pub apex_name: Option<String>,
+    pub cooperation_name: Option<String>,
     pub cooperation_paths: Vec<String>,
     pub assigned_dimensions: Vec<String>,
 }

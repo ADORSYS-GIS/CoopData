@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   ComposedChart,
   Area,
@@ -11,12 +11,14 @@ import {
   Legend,
 } from "recharts";
 import { useTranslation } from "react-i18next";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface TrendDataPoint {
   month: string;
-  liquidity: number; // mapped to Savings (1100)
-  loans: number; // mapped to Loans (1200)
-  savings: number; // mapped to Deposits (2100)
+  liquidity: number; // Liquid assets (COA 1100) — cash/near-cash
+  loans: number; // Gross loan portfolio (COA 1200)
+  savings: number; // Member deposits (COA 2100)
+  totalAssets: number; // Total assets (COA 1999) — includes loans + liquidity; never sum with them
 }
 
 interface PortfolioOverviewChartProps {
@@ -25,7 +27,6 @@ interface PortfolioOverviewChartProps {
 
 export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
   const { t } = useTranslation();
-  const [range, setRange] = useState<"1D" | "5D" | "1M" | "1Y">("1Y");
 
   // Format Y-axis ticks in thousands or millions
   const formatYAxis = (value: number) => {
@@ -34,41 +35,30 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
     return `$${value}`;
   };
 
-  // Compute total portfolio balance (Savings + Loans + Deposits) for the latest month
+  // Headline figure is Total Assets for the latest month — it already
+  // contains the loan portfolio and liquid assets shown as separate lines
+  // below, so it must not be added to them (that was the previous bug:
+  // liquidity+loans+savings summed three overlapping/unrelated balance
+  // sheet figures into a number ~150x the real portfolio size).
   const totalBalance = React.useMemo(() => {
     if (data.length === 0) return 0;
-    const latest = data[data.length - 1];
-    return latest.liquidity + latest.loans + latest.savings;
+    return data[data.length - 1].totalAssets;
   }, [data]);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-      {/* Header section with Balance & Slicer buttons */}
+      {/* Header section with Balance */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-            {t("analytics.portfolioOverview")}
-          </span>
-          <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
-            ${(totalBalance / 1_000).toLocaleString(undefined, { maximumFractionDigits: 0 })}K
-          </h3>
-        </div>
-
-        {/* Chart Timeframe selectors */}
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200/50">
-          {(["1D", "5D", "1M", "1Y"] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                range === r
-                  ? "bg-white dark:bg-slate-700 text-primary shadow-sm"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-              }`}
-            >
-              {r}
-            </button>
-          ))}
+        <div className="flex items-start gap-1.5">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              {t("analytics.portfolioOverview")}
+            </span>
+            <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
+              ${(totalBalance / 1_000).toLocaleString(undefined, { maximumFractionDigits: 0 })}K
+            </h3>
+          </div>
+          <InfoTooltip text={t("analytics.portfolioOverviewTooltip")} />
         </div>
       </div>
 

@@ -18,6 +18,7 @@ import { Link } from "@tanstack/react-router";
 import { useTheme, type Theme } from "@/lib/theme";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { NonFinancialCatalogManager } from "@/components/submissions/non-financial-catalog-manager";
+import { ExchangeRateSettings } from "@/components/settings/ExchangeRateSettings";
 import { TerminologySettingsManager } from "@/components/settings/TerminologySettingsManager";
 
 const THEME_OPTIONS: { value: Theme; labelKey: string; icon: typeof Sun }[] = [
@@ -84,7 +85,17 @@ export const SettingsPage: React.FC = () => {
       }
     >
       <div className="space-y-8">
-        {activeCategory === "terminology" ? (
+        {activeCategory === "exchange-rates" ? (
+          <div className="space-y-6">
+            <button
+              onClick={() => setActiveCategory("general")}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mb-2"
+            >
+              <ArrowLeft className="size-3.5" /> {t("settings.backBtn")}
+            </button>
+            <ExchangeRateSettings />
+          </div>
+        ) : activeCategory === "terminology" ? (
           <div className="space-y-6">
             <button
               onClick={() => setActiveCategory("general")}
@@ -196,6 +207,20 @@ export const SettingsPage: React.FC = () => {
               >
                 <ClipboardList className="size-3.5" />{" "}
                 {t("settings.terminology.cardOpen", { defaultValue: "Configure level names" })}
+                <ChevronRight className="size-3.5" />
+              </button>
+            </Card>
+
+            <Card
+              title="Exchange rate (USD)"
+              subtitle="Set the SZL/USD rate used to standardise analytics, with source and history"
+              edge="info"
+            >
+              <button
+                onClick={() => setActiveCategory("exchange-rates")}
+                className="press-feedback inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline"
+              >
+                <ClipboardList className="size-3.5" /> Manage exchange rate
                 <ChevronRight className="size-3.5" />
               </button>
             </Card>

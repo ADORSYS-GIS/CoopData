@@ -122,6 +122,19 @@ impl CooperativeRepository {
         .await
     }
 
+    pub async fn update_display_name(
+        &self,
+        keycloak_id: &str,
+        display_name: &str,
+    ) -> AppResult<Option<cooperative::Model>> {
+        let Some(existing) = self.find_by_keycloak_id(keycloak_id).await? else {
+            return Ok(None);
+        };
+        let mut active: cooperative::ActiveModel = existing.into();
+        active.display_name = sea_orm::Set(display_name.to_string());
+        self.update(active).await.map(Some)
+    }
+
     pub async fn update(&self, model: cooperative::ActiveModel) -> AppResult<cooperative::Model> {
         db_query("cooperative", "update", async {
             model.update(&self.db).await.map_err(|e| {

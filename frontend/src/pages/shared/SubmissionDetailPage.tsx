@@ -471,8 +471,8 @@ export const SubmissionDetailPage: React.FC = () => {
     try {
       await submitMutation.mutateAsync(id);
       toast.success(
-        submission?.current_tier === "apex" || submission?.created_by_role === "apex"
-          ? replaceOrgTerms("Submitted to Federation")
+        role === "apex"
+          ? "Submitted and approved — the regional office is the final approval level"
           : t("submissions.detail.toastSubmitted"),
       );
       navigate({ to: "/app/submissions" });
@@ -1022,9 +1022,11 @@ export const SubmissionDetailPage: React.FC = () => {
                       ) : (
                         <Send className="size-4" />
                       )}
-                      {submission.current_tier === "cooperative" && role !== "apex"
-                        ? t("submissions.detail.submitToApex", "Submit to Apex")
-                        : t("submissions.detail.submitToFederation", "Submit to Federation")}
+                      {role === "apex"
+                        ? t("submissions.detail.submit", "Submit")
+                        : submission.current_tier === "cooperative"
+                          ? t("submissions.detail.submitToApex", "Submit to Apex")
+                          : t("submissions.detail.submitToFederation", "Submit to Federation")}
                     </button>
                   </div>
                 </div>

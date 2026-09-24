@@ -200,18 +200,33 @@ pub struct MinistryStatsResponse {
 pub struct MonthlyTrendResponse {
     pub year: i32,
     pub months: Vec<MonthlyTrendPoint>,
+    /// Distinct USD conversion rates applied across the submissions included.
+    pub rates_used: Vec<crate::api::dto::common::RateUsed>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MonthlyTrendPoint {
     pub month: i16,
     pub month_label: String,
-    /// Member savings and deposits (COA 2101–2103).
+    /// Member savings and deposits (COA 2100/2101–2103), resolved via the
+    /// chart-of-accounts rollup and converted to USD.
     pub savings: f64,
-    /// Gross loan portfolio (COA 1201–1205).
+    /// Gross loan portfolio (COA 1200/1201–1205), resolved and USD-converted.
     pub loans: f64,
-    /// Total assets (COA 1999).
+    /// Liquid assets (COA 1100/1101–1104) — cash and near-cash holdings,
+    /// distinct from and much smaller than total assets. This is what the
+    /// "Portfolio Overview" chart's liquidity/savings series should plot;
+    /// do not sum this with `assets` below.
+    pub liquid_assets: f64,
+    /// Total assets (COA 1999) — already includes `loans` and
+    /// `liquid_assets` as components. Never add this to `loans`/`savings`
+    /// when computing a headline figure; that was the exact bug that
+    /// inflated the old Portfolio Overview total to ~150x the real value.
     pub assets: f64,
+    /// Total liabilities (COA 2999), USD-converted.
+    pub liabilities: f64,
+    /// Total equity (COA 3999), USD-converted. May be negative.
+    pub equity: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -358,6 +373,8 @@ pub struct ChartOfAccountResponse {
     /// e.g. "1101+1102+1103+1104" — present only on total/parent codes
     pub formula: Option<String>,
     pub display_order: i32,
+    /// Human-readable explanation of what this account represents (from the COA seed)
+    pub description: Option<String>,
 }
 
 impl From<CoaModel> for ChartOfAccountResponse {
@@ -371,6 +388,7 @@ impl From<CoaModel> for ChartOfAccountResponse {
             is_section_header: m.is_section_header,
             formula: m.formula,
             display_order: m.display_order,
+            description: m.description,
         }
     }
 }
