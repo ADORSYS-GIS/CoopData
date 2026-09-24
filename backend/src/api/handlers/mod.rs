@@ -3,6 +3,7 @@ pub mod audit;
 pub mod basic_benchmark;
 pub mod cooperative;
 pub mod custom_kpi;
+pub mod exchange_rate;
 pub mod export;
 pub mod extraction;
 pub mod federation;

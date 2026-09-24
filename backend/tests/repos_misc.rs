@@ -144,7 +144,11 @@ async fn flag_find_errors_by_submission_filters_severity() {
 
     let sql = &rm.sql()[0];
     assert!(sql.contains("severity"), "must filter severity: {sql}");
-    assert!(rm.binds(0).contains(&"error".to_string()));
+    let binds = rm.binds(0);
+    assert!(
+        binds.contains(&"critical".to_string()) && binds.contains(&"high".to_string()),
+        "must filter to blocking severities critical/high (the only ones AbnormalityDetector ever emits): {binds:?}"
+    );
 }
 
 #[tokio::test]

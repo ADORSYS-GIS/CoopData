@@ -73,6 +73,24 @@ impl ApexRepository {
         Ok(())
     }
 
+    pub async fn update_display_name(
+        &self,
+        keycloak_id: &str,
+        display_name: &str,
+    ) -> AppResult<Option<apex::Model>> {
+        let Some(existing) = self.find_by_keycloak_id(keycloak_id).await? else {
+            return Ok(None);
+        };
+        let mut active: apex::ActiveModel = existing.into();
+        active.display_name = Set(display_name.to_string());
+        active.updated_at = Set(chrono::Utc::now());
+        active
+            .update(&self.db)
+            .await
+            .map(Some)
+            .map_err(AppError::DatabaseError)
+    }
+
     pub async fn update_metadata(
         &self,
         id: Uuid,

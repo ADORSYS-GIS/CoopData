@@ -48,21 +48,28 @@ import {
   useSubmissionSections,
   useUpdateSubmissionSection,
 } from "@/hooks/submissions/useSubmissionSections";
-import { useChartOfAccountsLeafs } from "@/hooks/submissions/useFinancialStatement";
+import { useChartOfAccounts } from "@/hooks/submissions/useFinancialStatement";
 
 // COA_BY_CODE is built dynamically from the live hook inside the component.
 // We keep a module-level fallback map seeded from the static constants for
 // the account_name display column (used even before the hook resolves).
 import { ACCOUNT_CODES } from "@/lib/financial-data";
 import { Spinner } from "@/components/ui/spinner";
+import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
+import { useSubmissionRate } from "@/hooks/shared/useSubmissionRate";
+import { describeRate } from "@/lib/currency";
 
-const STATIC_COA_OPTIONS: { code: number; name: string; category: string }[] = Object.entries(
-  ACCOUNT_CODES,
-).flatMap(([category, codes]) =>
+const STATIC_COA_OPTIONS: {
+  code: number;
+  name: string;
+  category: string;
+  description: string | null;
+}[] = Object.entries(ACCOUNT_CODES).flatMap(([category, codes]) =>
   Object.entries(codes as Record<string, number>).map(([key, code]) => ({
     code,
     name: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
     category: category.toLowerCase(),
+    description: null,
   })),
 );
 
@@ -287,6 +294,9 @@ export const FinancialStatementEditor: React.FC<{
   const navigate = useNavigate();
   const { isOnline } = useNetworkStatus();
   const { data: fs } = useFinancialStatement(fsId);
+  const statementCurrency = fs?.currency ?? "SZL";
+  const { rateUsed, rateToUsd } = useSubmissionRate(fs?.submission_id);
+  const { format: formatUsdValue, ready: usdReady } = useUsdFormatter(statementCurrency, rateToUsd);
   const { data: items = [], isLoading: itemsLoading } = useLineItems(fsId);
   const updateItems = useUpdateLineItems(fsId);
   const validate = useValidateExtraction();
@@ -322,14 +332,20 @@ export const FinancialStatementEditor: React.FC<{
   };
 
   // Live CoA from backend — same data the LLM uses, sorted by display_order
-  const { data: liveCoaLeafs = [] } = useChartOfAccountsLeafs();
+  const { data: allCoa = [] } = useChartOfAccounts();
+  const liveCoaLeafs = allCoa.filter((c) => !c.is_section_header);
   // Build a live lookup map; fall back to static map while hook is loading
   const COA_BY_CODE =
     liveCoaLeafs.length > 0
       ? new Map(
           liveCoaLeafs.map((c) => [
             c.account_code,
-            { code: c.account_code, name: c.account_name, category: c.account_category },
+            {
+              code: c.account_code,
+              name: c.account_name,
+              category: c.account_category,
+              description: c.description,
+            },
           ]),
         )
       : STATIC_COA_BY_CODE;
@@ -339,6 +355,7 @@ export const FinancialStatementEditor: React.FC<{
           code: c.account_code,
           name: c.account_name,
           category: c.account_category,
+          description: c.description,
         }))
       : STATIC_COA_OPTIONS;
 
@@ -438,13 +455,18 @@ export const FinancialStatementEditor: React.FC<{
     setIsDeleteDialogOpen(true);
   };
 
-  const filteredCoaOptions = codeSearch
-    ? COA_OPTIONS.filter(
-        (o) =>
-          o.name.toLowerCase().includes(codeSearch.toLowerCase()) ||
-          String(o.code).includes(codeSearch),
-      )
-    : COA_OPTIONS;
+  // Codes already assigned to other line items — hide them so the user only
+  // sees codes that are still free to map (avoids duplicate/conflicting codes).
+  const usedCodes = new Set(items.map((i) => i.account_code).filter((c): c is number => c != null));
+
+  const filteredCoaOptions = COA_OPTIONS.filter(
+    (o) =>
+      !usedCodes.has(o.code) &&
+      (codeSearch
+        ? o.name.toLowerCase().includes(codeSearch.toLowerCase()) ||
+          String(o.code).includes(codeSearch)
+        : true),
+  );
 
   const periodType = (submission?.period_type || "MONTHLY").toUpperCase();
   const periodValue = submission?.period_value || "";
@@ -474,7 +496,12 @@ export const FinancialStatementEditor: React.FC<{
   );
 
   const MONTH_HEADERS = isYearly
-    ? [{ month: 0, label: t("financialStatementEditor.months.annual", "Annual Total") }]
+    ? [
+        {
+          month: 0,
+          label: `${t("financialStatementEditor.months.annual", "Annual Total")} (${fs?.currency ?? "SZL"})`,
+        },
+      ]
     : (() => {
         const headersFor = (months: number[]) => [
           { month: 0, label: t("financialStatementEditor.months.decPrev") },
@@ -806,12 +833,21 @@ export const FinancialStatementEditor: React.FC<{
                                   <button
                                     key={opt.code}
                                     onMouseDown={() => assignCode(row.sampleItem, opt.code)}
-                                    className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-muted transition-colors"
+                                    className="flex w-full flex-col px-3 py-1.5 text-left text-xs hover:bg-muted transition-colors"
                                   >
-                                    <span className="font-mono text-muted-foreground w-12 shrink-0 font-bold">
-                                      {opt.code}
+                                    <span className="flex items-center justify-between w-full">
+                                      <span className="font-mono text-muted-foreground w-12 shrink-0 font-bold">
+                                        {opt.code}
+                                      </span>
+                                      <span className="truncate flex-1 font-medium">
+                                        {opt.name}
+                                      </span>
                                     </span>
-                                    <span className="truncate flex-1 font-medium">{opt.name}</span>
+                                    {opt.description ? (
+                                      <span className="mt-0.5 pl-12 text-[11px] leading-snug text-muted-foreground/80 line-clamp-2">
+                                        {opt.description}
+                                      </span>
+                                    ) : null}
                                   </button>
                                 ))
                               )}
@@ -915,26 +951,38 @@ export const FinancialStatementEditor: React.FC<{
                                   className="w-24 rounded border border-ring bg-surface px-1.5 py-0.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-ring/20 font-mono"
                                 />
                               ) : (
-                                <button
-                                  onClick={() => {
-                                    if (!isDraft || isReadOnly) return;
-                                    setEditingValueId(monthItem.id);
-                                    setEditValue(String(monthItem.value ?? ""));
-                                  }}
-                                  className={`inline-flex items-center gap-0.5 font-mono text-xs transition-colors group ${
-                                    isDraft ? "hover:text-primary cursor-pointer" : "cursor-default"
-                                  }`}
-                                >
-                                  {monthItem.value !== null && monthItem.value !== undefined
-                                    ? monthItem.value.toLocaleString("en-US", {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 2,
-                                      })
-                                    : t("financialStatementEditor.matrix.valuePlaceholder")}
-                                  {isDraft && (
-                                    <Edit3 className="size-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
-                                  )}
-                                </button>
+                                <div className="flex flex-col items-end">
+                                  <button
+                                    onClick={() => {
+                                      if (!isDraft || isReadOnly) return;
+                                      setEditingValueId(monthItem.id);
+                                      setEditValue(String(monthItem.value ?? ""));
+                                    }}
+                                    className={`inline-flex items-center gap-0.5 font-mono text-xs transition-colors group ${
+                                      isDraft
+                                        ? "hover:text-primary cursor-pointer"
+                                        : "cursor-default"
+                                    }`}
+                                  >
+                                    {monthItem.value !== null && monthItem.value !== undefined
+                                      ? monthItem.value.toLocaleString("en-US", {
+                                          minimumFractionDigits: 0,
+                                          maximumFractionDigits: 2,
+                                        })
+                                      : t("financialStatementEditor.matrix.valuePlaceholder")}
+                                    {isDraft && (
+                                      <Edit3 className="size-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                    )}
+                                  </button>
+                                  {usdReady &&
+                                    statementCurrency !== "USD" &&
+                                    monthItem.value !== null &&
+                                    monthItem.value !== undefined && (
+                                      <span className="text-[10px] font-mono text-muted-foreground">
+                                        ≈ {formatUsdValue(monthItem.value)}
+                                      </span>
+                                    )}
+                                </div>
                               )
                             ) : (
                               <span className="text-muted-foreground/40 text-xs">—</span>
@@ -948,6 +996,11 @@ export const FinancialStatementEditor: React.FC<{
               </tbody>
             </table>
           </div>
+        )}
+        {rateUsed && (
+          <p className="px-4 pb-3 pt-2 text-[11px] text-muted-foreground">
+            {describeRate(rateUsed)}
+          </p>
         )}
       </Card>
 

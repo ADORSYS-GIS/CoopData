@@ -2,6 +2,20 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+/// The USD conversion rate applied to a figure, so any dashboard number can be
+/// traced back to "1 USD = X <currency>, set on <date>, source <note>".
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema)]
+pub struct RateUsed {
+    pub currency_code: String,
+    /// Native currency units per 1 USD.
+    pub rate_to_usd: f64,
+    pub effective_date: Option<chrono::NaiveDate>,
+    pub source: Option<String>,
+    /// True when the rate was frozen on the submission at approval; false when
+    /// the current configured rate was used (draft submissions).
+    pub frozen: bool,
+}
+
 use super::apex::ApexResponse;
 use super::organization::OrganizationResponse;
 use super::user::UserResponse;

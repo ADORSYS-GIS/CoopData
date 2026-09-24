@@ -8,16 +8,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/app-shell";
-import { DateRangePicker, type DateRange } from "@/components/analytics/date-range-picker";
 import type { FilterConfig, AnalyticsFilterValues } from "./analyticsTypes";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 
 interface Props {
   filters: FilterConfig[];
   filterValues: AnalyticsFilterValues;
-  dateRange: DateRange;
   onFilterChange: (id: string, value: string) => void;
-  onDateRangeChange: (range: DateRange) => void;
   onClear: () => void;
 }
 
@@ -30,14 +27,7 @@ const stateKey = (filterId: string): keyof AnalyticsFilterValues =>
         ? "cooperativeId"
         : (filterId as keyof AnalyticsFilterValues);
 
-export function AnalyticsFilterBar({
-  filters,
-  filterValues,
-  dateRange,
-  onFilterChange,
-  onDateRangeChange,
-  onClear,
-}: Props) {
+export function AnalyticsFilterBar({ filters, filterValues, onFilterChange, onClear }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const { t, replaceOrgTerms } = useOrganizationLabelsContext();
 
@@ -259,7 +249,6 @@ export function AnalyticsFilterBar({
         )}
 
         <div className="flex-1" />
-        <DateRangePicker value={dateRange} onChange={onDateRangeChange} />
       </div>
 
       {showFilters && otherFilters.length > 0 && (

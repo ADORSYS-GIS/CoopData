@@ -16,6 +16,8 @@ import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { formatUsd } from "@/lib/currency";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface ComparativeIncomeStatementProps {
   reportingYear: number;
@@ -29,6 +31,16 @@ interface IncomeStatementRow {
   codes: number[];
   multiplier?: number;
   computeFormula?: (coopData: Record<number, number>) => number;
+}
+
+function describeRow(row: { codes: number[]; computeFormula?: unknown }): string {
+  if (row.computeFormula) {
+    return "Calculated from the other rows of this grid (see the account codes in those rows). Values come from the approved financial statement and are shown in USD at the configured exchange rate.";
+  }
+  if (row.codes.length === 0) {
+    return "Not reported: the financial statement does not provide this breakdown, so no value is shown rather than a fabricated zero.";
+  }
+  return `Source: financial statement account code${row.codes.length > 1 ? "s" : ""} ${row.codes.join(", ")}, summed for the cooperative and shown in USD at the configured exchange rate.`;
 }
 
 function buildIncomeStatementRows(t: TFunction): IncomeStatementRow[] {
@@ -174,7 +186,7 @@ export function ComparativeIncomeStatement({
 
   const formatCurrency = (val: number) => {
     if (val === 0) return "-";
-    return `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return formatUsd(val);
   };
 
   const coopMatrices = useMemo(() => {
@@ -182,12 +194,17 @@ export function ComparativeIncomeStatement({
 
     return comparative.grids.map((grid) => {
       const lineItems = grid.line_items || [];
-      const filtered = lineItems.filter((item) => String(item.month) === selectedMonth);
+      // Annual-frequency submissions store figures at month=0 (no monthly
+      // breakdown exists), so that row must match whichever month is
+      // selected here — otherwise every annual submission renders blank.
+      const filtered = lineItems.filter(
+        (item) => String(item.month) === selectedMonth || item.month === 0,
+      );
 
       const map: Record<number, number> = {};
       filtered.forEach((item) => {
         if (item.account_code) {
-          map[item.account_code] = (map[item.account_code] || 0) + item.value;
+          map[item.account_code] = (map[item.account_code] || 0) + item.value_usd;
         }
       });
 
@@ -324,6 +341,7 @@ export function ComparativeIncomeStatement({
 
       <Card
         title={t("analytics.incomeStatementGrid")}
+        info="Side-by-side income statement per cooperative from the approved financial statement (income accounts 4xxx, expense accounts 5xxx, surplus 6999), in USD at the configured exchange rate. Each row lists its source account codes; totals are recalculated from the rows above them."
         subtitle={t("analytics.sideBySideComparison")}
       >
         {filteredMatrices.length > 0 ? (
@@ -350,7 +368,10 @@ export function ComparativeIncomeStatement({
                     return (
                       <tr key={`h-${rIdx}`} className="bg-muted/10 font-bold">
                         <td className="py-2.5 px-4 sticky left-0 bg-background border-r border-border font-sans font-bold text-primary uppercase text-[10px] tracking-wide">
-                          {row.label}
+                          <span className="inline-flex items-center gap-1.5">
+                            {row.label}
+                            <InfoTooltip text={describeRow(row)} />
+                          </span>
                         </td>
                         {filteredMatrices.map((coop) => {
                           const val = row.computeFormula
@@ -375,7 +396,10 @@ export function ComparativeIncomeStatement({
                   return (
                     <tr key={`r-${rIdx}`} className="hover:bg-muted/10 transition-colors">
                       <td className="py-2 px-4 sticky left-0 bg-background border-r border-border font-sans text-muted-foreground font-medium pl-6">
-                        {row.label}
+                        <span className="inline-flex items-center gap-1.5">
+                          {row.label}
+                          <InfoTooltip text={describeRow(row)} />
+                        </span>
                         {row.subLabel && (
                           <span className="block text-[10px] text-muted-foreground/60">
                             {row.subLabel}

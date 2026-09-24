@@ -349,6 +349,9 @@ pub fn submission_row(
         created_by_name: None,
         edited_by: None,
         edited_by_name: None,
+        rate_to_usd: None,
+        rate_effective_date: None,
+        rate_source: None,
     }
 }
 

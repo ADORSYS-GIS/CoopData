@@ -104,13 +104,17 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       }));
   }, [kpisData, t]);
 
+  // See NetworkConsolidatedMetrics.tsx — `liquidity` must be liquid assets
+  // (1100), not Total Assets (1999), which already contains loans/liquidity
+  // and must never be summed with them.
   const trendPoints = useMemo(
     () =>
       (trendData?.months ?? []).map((m) => ({
         month: m.month_label,
-        liquidity: m.assets,
+        liquidity: m.liquid_assets,
         savings: m.savings,
         loans: m.loans,
+        totalAssets: m.assets,
       })),
     [trendData],
   );
@@ -217,7 +221,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
       },
       {
         label: t("cooperativeAnalytics.totalLoans"),
-        value: `$${(l.total_loan_amount / 1000).toFixed(1)}K`,
+        value: `$${(l.total_balance / 1000).toFixed(1)}K`,
         tooltip: t("cooperativeAnalytics.totalLoansTooltip"),
         trend: "up" as const,
         trendValue: t("cooperativeAnalytics.totalLoansTrend", {
@@ -366,7 +370,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
                     "Oct",
                     "Nov",
                     "Dec",
-                  ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
+                  ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0, totalAssets: 0 }))
             }
           />
         </div>
@@ -406,7 +410,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
                   "Oct",
                   "Nov",
                   "Dec",
-                ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0 }))
+                ].map((m) => ({ month: m, liquidity: 0, savings: 0, loans: 0, totalAssets: 0 }))
           }
         />
         {kpisData && (

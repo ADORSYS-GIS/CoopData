@@ -3,19 +3,18 @@
 //! These routes don't require a specific role — any authenticated user can access them.
 
 use axum::{
-    extract::{Extension, State},
     routing::{delete, get, post, put},
-    Json, Router,
+    Router,
 };
-use std::sync::Arc;
 
-use crate::auth::claims::Claims;
-use crate::error::AppResult;
 use crate::AppState;
 
 pub fn shared_routes() -> Router<AppState> {
     Router::new()
-        .route("/me", get(get_current_user_profile))
+        .route(
+            "/me",
+            get(crate::api::handlers::me::get_current_user_profile),
+        )
         // Non-financial indicator catalog — readable by all authenticated roles
         .route(
             "/non-financial-indicators/catalog",
@@ -78,6 +77,14 @@ pub fn shared_routes() -> Router<AppState> {
             get(crate::api::handlers::nf_indicator_stats::get_consolidated_nf_statistics),
         )
         .route(
+            "/analytics/reconciliation",
+            get(crate::api::handlers::nf_indicator_stats::get_reconciliation_audit),
+        )
+        .route(
+            "/settings/exchange-rates",
+            get(crate::api::handlers::exchange_rate::list_exchange_rates),
+        )
+        .route(
             "/settings/organization-labels",
             get(crate::api::handlers::organization_label::list_organization_labels),
         )
@@ -120,20 +127,4 @@ pub fn sensitive_auth_routes() -> Router<AppState> {
             "/me/security/mfa",
             delete(crate::api::handlers::me::disable_mfa),
         )
-}
-
-async fn get_current_user_profile(
-    Extension(claims): Extension<Arc<Claims>>,
-    State(_state): State<AppState>,
-) -> AppResult<Json<serde_json::Value>> {
-    Ok(Json(serde_json::json!({
-        "id": claims.sub,
-        "username": claims.preferred_username,
-        "email": claims.email,
-        "roles": claims.all_roles(),
-        "organization": claims.get_organization_name(),
-        "organization_id": claims.get_organization_id(),
-        "cooperation": claims.get_cooperation_paths(),
-        "assigned_dimensions": claims.get_assigned_dimensions()
-    })))
 }

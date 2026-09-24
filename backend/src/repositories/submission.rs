@@ -300,11 +300,39 @@ impl SubmissionRepository {
             .map_err(crate::error::AppError::from)?
             .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
 
+        let approving = status == SubmissionStatus::Approved;
         let mut active: ActiveModel = existing.into();
         active.status = Set(status);
         active.current_tier = Set(current_tier);
         active.updated_at = Set(chrono::Utc::now());
-        active.update(db).await.map_err(Into::into)
+        let updated = active
+            .update(db)
+            .await
+            .map_err(crate::error::AppError::from)?;
+
+        if approving {
+            Self::freeze_exchange_rate_tx(db, id).await?;
+        }
+        Ok(updated)
+    }
+
+    /// Copy the rate currently in force for the statement's currency onto the
+    /// submission the first time it is approved; never overwrites a frozen rate.
+    async fn freeze_exchange_rate_tx<C: ConnectionTrait>(db: &C, id: Uuid) -> AppResult<()> {
+        db.execute(Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            "UPDATE submissions s \
+             SET rate_to_usd = er.rate_to_usd, \
+                 rate_effective_date = er.effective_date, \
+                 rate_source = er.source_note \
+             FROM financial_statements fs \
+             JOIN exchange_rates er ON er.currency_code = fs.currency \
+             WHERE fs.submission_id = s.id AND s.id = $1 AND s.rate_to_usd IS NULL",
+            [id.into()],
+        ))
+        .await
+        .map_err(crate::error::AppError::from)?;
+        Ok(())
     }
 
     pub async fn update_submission_method(

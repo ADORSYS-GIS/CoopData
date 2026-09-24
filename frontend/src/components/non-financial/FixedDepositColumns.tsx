@@ -5,10 +5,7 @@ import { SortableHeader } from "@/components/ui/data-table";
 import { Pencil, Trash2 } from "lucide-react";
 import type { FixedDepositResponse } from "@/types/non-financial";
 import { useTranslation } from "react-i18next";
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "SZL" }).format(value);
-}
+import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
 
 interface FixedDepositActions {
   onEdit?: (fd: FixedDepositResponse) => void;
@@ -17,8 +14,10 @@ interface FixedDepositActions {
 
 export function useFixedDepositColumns(
   actions?: FixedDepositActions,
+  rateToUsd?: number | null,
 ): ColumnDef<FixedDepositResponse>[] {
   const { t } = useTranslation();
+  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL", rateToUsd);
   return [
     {
       accessorKey: "fixed_deposit_id",
@@ -92,7 +91,9 @@ export function useFixedDepositColumns(
         <SortableHeader column={column}>{t("columns.balance")}</SortableHeader>
       ),
       cell: ({ row }) => (
-        <span className="text-xs font-mono">{formatCurrency(Number(row.getValue("balance")))}</span>
+        <span className="text-xs font-mono" title={formatOriginal(Number(row.getValue("balance")))}>
+          {formatCurrency(Number(row.getValue("balance")))}
+        </span>
       ),
     },
     ...(actions

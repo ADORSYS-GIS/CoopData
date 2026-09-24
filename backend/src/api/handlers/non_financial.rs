@@ -12,6 +12,7 @@ use crate::api::dto::non_financial::*;
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 
+use crate::entities::enums::{AgeGroup, Gender, UrbanRural};
 use crate::entities::{farm_coop, fixed_deposit, loan, member, savings_account, uploaded_file};
 use crate::error::{AppError, AppResult};
 use crate::services::nf_excel_parser::{NfExcelParser, NfParseWarning, NfSection};
@@ -369,12 +370,29 @@ pub async fn upload_non_financial(
     // members from OTHER submissions for this cooperative (same member_id string,
     // different DB UUID), leading to FK violations in the child tables.
     let mut member_map: HashMap<String, Uuid> = HashMap::new();
+    // Demographic lookup used to derive loan-level women/youth/rural borrower
+    // flags below — the LOANS sheet only carries a member business id, not
+    // gender/age/region, so those flags must be joined from the member
+    // record rather than left at their (always-false) parsed defaults.
+    let mut member_demographics: HashMap<String, (Gender, AgeGroup, UrbanRural)> = HashMap::new();
     for am in &member_active_models {
         // member_id is the business key (string), id is the DB primary key (uuid)
         if let (sea_orm::ActiveValue::Set(member_id_str), sea_orm::ActiveValue::Set(db_uuid)) =
             (&am.member_id, &am.id)
         {
             member_map.insert(member_id_str.clone(), *db_uuid);
+        }
+        if let (
+            sea_orm::ActiveValue::Set(member_id_str),
+            sea_orm::ActiveValue::Set(gender),
+            sea_orm::ActiveValue::Set(age_group),
+            sea_orm::ActiveValue::Set(urban_rural),
+        ) = (&am.member_id, &am.gender, &am.age_group, &am.urban_rural)
+        {
+            member_demographics.insert(
+                member_id_str.clone(),
+                (gender.clone(), age_group.clone(), urban_rural.clone()),
+            );
         }
     }
 
@@ -398,6 +416,10 @@ pub async fn upload_non_financial(
             ));
         }
         for m in existing {
+            member_demographics.insert(
+                m.member_id.clone(),
+                (m.gender.clone(), m.age_group.clone(), m.urban_rural.clone()),
+            );
             member_map.insert(m.member_id, m.id);
         }
     }
@@ -449,6 +471,23 @@ pub async fn upload_non_financial(
                 record.member_business_id, record.loan_id
             ))
         })?;
+        // Loan sheets never carry gender/age/region columns — derive the
+        // demographic borrower flags from the linked member record instead
+        // of trusting the parser's raw (always-false) defaults, which is
+        // why Financial Inclusion previously showed 0% across the board
+        // regardless of actual membership composition.
+        let demographics = member_demographics.get(&record.member_business_id);
+        let women_borrower_flag = demographics
+            .map(|(gender, _, _)| *gender == Gender::Female)
+            .unwrap_or(record.women_borrower_flag);
+        let youth_borrower_flag = demographics
+            .map(|(_, age_group, _)| {
+                matches!(age_group, AgeGroup::Under18 | AgeGroup::Between18And35)
+            })
+            .unwrap_or(record.youth_borrower_flag);
+        let rural_borrower_flag = demographics
+            .map(|(_, _, urban_rural)| *urban_rural == UrbanRural::Rural)
+            .unwrap_or(record.rural_borrower_flag);
         loan_active_models.push(loan::ActiveModel {
             id: Set(Uuid::new_v4()),
             cooperative_id: Set(coop_id),
@@ -460,9 +499,9 @@ pub async fn upload_non_financial(
             loan_maturity_date: Set(record.loan_maturity_date),
             loan_status: Set(record.loan_status.clone()),
             borrower_type: Set(record.borrower_type.clone()),
-            youth_borrower_flag: Set(record.youth_borrower_flag),
-            women_borrower_flag: Set(record.women_borrower_flag),
-            rural_borrower_flag: Set(record.rural_borrower_flag),
+            youth_borrower_flag: Set(youth_borrower_flag),
+            women_borrower_flag: Set(women_borrower_flag),
+            rural_borrower_flag: Set(rural_borrower_flag),
             repayment_regularity: Set(record.repayment_regularity.clone()),
             days_past_due_category: Set(record.days_past_due_category.clone()),
             missed_installments_count: Set(record.missed_installments_count),

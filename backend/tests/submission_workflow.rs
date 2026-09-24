@@ -312,6 +312,10 @@ async fn apex_submit_finalizes_apex_created_submission_as_approved() {
         ]])
         .append_query_results(vec![vec![draft]])
         .append_query_results(vec![vec![approved.clone()]])
+        .append_exec_results(vec![sea_orm::MockExecResult {
+            rows_affected: 1,
+            last_insert_id: 0,
+        }])
         .append_query_results(vec![vec![review_row(sub_id)]])
         .append_query_results(vec![vec![approved.clone()]])
         .append_query_results(vec![vec![approved]])
@@ -349,7 +353,11 @@ async fn apex_approve_moves_submitted_to_approved_at_apex() {
         .append_query_results(vec![vec![submitted.clone()]])
         .append_query_results(vec![vec![submitted]])
         .append_query_results(vec![vec![approved]])
-        .append_query_results(vec![vec![review_row(sub_id)]]);
+        .append_query_results(vec![vec![review_row(sub_id)]])
+        .append_exec_results(vec![sea_orm::MockExecResult {
+            rows_affected: 1,
+            last_insert_id: 0,
+        }]);
 
     let app = MockDbApp::new(db).await;
     workflow(&app)
@@ -656,7 +664,11 @@ async fn ministry_approve_terminal() {
         .append_query_results(vec![vec![in_review.clone()]])
         .append_query_results(vec![vec![in_review]])
         .append_query_results(vec![vec![approved]])
-        .append_query_results(vec![vec![review_row(sub_id)]]);
+        .append_query_results(vec![vec![review_row(sub_id)]])
+        .append_exec_results(vec![sea_orm::MockExecResult {
+            rows_affected: 1,
+            last_insert_id: 0,
+        }]);
 
     let app = MockDbApp::new(db).await;
     workflow(&app)

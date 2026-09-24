@@ -102,3 +102,6 @@ CVE-2026-76957
 DLA-4783-1
 TEMP-1147318-639065
 
+
+# libexpat in nginx:alpine (fixed in 2.8.5-r0) - ignored at maintainers request
+CVE-2026-93990

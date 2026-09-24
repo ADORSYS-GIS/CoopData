@@ -6,9 +6,8 @@
  * full non-financial consolidation panel.
  */
 import { useMemo } from "react";
-import { Info } from "lucide-react";
 import { Card } from "@/components/app-shell";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
 import { CooperativeDeepDive } from "@/components/analytics/CooperativeDeepDive";
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
@@ -151,21 +150,7 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   {stat.label}
                 </p>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="flex focus:outline-none rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                      <Info className="size-3 text-muted-foreground/60 hover:text-foreground cursor-pointer transition-colors" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="top"
-                    className="max-w-xs whitespace-normal z-[60] p-3 shadow-xl"
-                  >
-                    <p className="text-sm font-normal normal-case tracking-normal text-foreground leading-snug">
-                      {stat.tooltip}
-                    </p>
-                  </PopoverContent>
-                </Popover>
+                <InfoTooltip text={stat.tooltip} className="size-3" />
               </div>
               <p className="font-heading text-2xl font-bold text-foreground num mt-1">
                 {stat.value}

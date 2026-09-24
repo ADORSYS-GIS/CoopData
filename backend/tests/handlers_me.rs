@@ -3,7 +3,7 @@ mod common;
 use axum::http::Method;
 use common::mock::TestApp;
 use common::mock_db::MockKeycloak;
-use sea_orm::DatabaseConnection;
+use sea_orm::{DatabaseBackend, DatabaseConnection, MockDatabase};
 
 #[tokio::test]
 async fn get_me_requires_auth() {
@@ -18,7 +18,12 @@ async fn get_me_requires_auth() {
 
 #[tokio::test]
 async fn get_me_success() {
-    let app = TestApp::with_db(DatabaseConnection::default()).await;
+    let mock = MockDatabase::new(DatabaseBackend::Postgres)
+        .append_query_results(vec![Vec::<coop_data_backend::entities::apex::Model>::new()])
+        .append_query_results(vec![
+            Vec::<coop_data_backend::entities::cooperative::Model>::new(),
+        ]);
+    let app = TestApp::with_db(mock.into_connection()).await;
     let response = app
         .request()
         .method(Method::GET)

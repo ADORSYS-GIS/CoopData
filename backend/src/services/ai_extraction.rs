@@ -456,6 +456,7 @@ SPECIFIC LABEL → CODE MAPPINGS (memorize):
 "Fixed assets (cost)" / "Property plant equipment" / "PPE" / "Property, plant, and equipment" / "Property, plant and equipment" → 1303
 "Accumulated depreciation" / "Accum. depreciation" → 1304 (NEGATIVE)
 "Intangible assets" → 1305
+"Inventories" / "Inventory" / "Stock" / "Trading stock" / "Inventory on hand" / "Goods for resale" → 1306
 "Total Current Assets" / "CURRENT ASSETS" (subtotal) → 1100
 "Total Non-Current Assets" / "NON-CURRENT ASSETS" / "OTHER ASSETS" (subtotal) → 1300
 "Total Assets" → 1999
@@ -492,6 +493,8 @@ SPECIFIC LABEL → CODE MAPPINGS (memorize):
 "Loan loss provision expense" / "Provision expense" → 5301
 "Total Expenses" → 5999
 "Net surplus" / "Net deficit" / "Net income" / "Profit or loss" → 6999
+"Gross surplus" / "Gross operating surplus" / "Gross profit" → 6999
+"Net operating result" / "Operating result" / "Net operating surplus" / "Operating surplus" → 6999
 
 Return ONLY a MINIFIED, SINGLE-LINE JSON object (no pretty-printing, no newlines, no indentation, no spaces in formatting, no markdown fences) with this exact structure. Minifying is absolutely critical to avoid token truncation:
 {{"line_items":[{{"account_code":1101,"account_name":"CASH ON HAND","confidence":1.0,"raw_label":"Cash on Hand","values":{{"0":213165.0,"1":277410.0,"2":362919.0}}}}],"totals_reconciliation":{{"assets_total":null,"liabilities_total":null,"equity_total":null,"net_surplus":null}},"detected_period_type":"YEARLY","detected_period_value":"2026","detected_reporting_year":2026,"detected_fiscal_start_month":10}}

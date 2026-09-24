@@ -937,6 +937,17 @@ pub async fn get_comparative_statements(
         }
     }
 
+    // Chart-of-accounts rollup rules (e.g. 1200 "Gross Loans" = sum of
+    // 1201-1205) and the USD exchange rates — loaded once, applied per
+    // cooperative below, so every grid (Rankings/Portfolio
+    // Classification/Income Statement/Financial Indicators) sees
+    // consistently-resolved parent totals in a single display currency
+    // instead of blank cells whenever a source document only populated
+    // child account codes.
+    let coa = state.coa_repo.find_all().await?;
+    let rates = state.currency_service.load_rates().await?;
+    let current_rates = state.exchange_rate_repo.find_all().await?;
+
     // Build the grids response
     let mut grids = vec![];
 
@@ -947,15 +958,81 @@ pub async fn get_comparative_statements(
             .find(|fs| fs_to_coop.get(&fs.id) == Some(&coop.id));
 
         let mut grid_items = vec![];
+        let mut currency = crate::entities::enums::Currency::Szl;
+        let mut is_validated = false;
+        let mut has_unmapped_items = false;
+        let mut rate_used = None;
+
         if let Some(fs) = fs_opt {
+            currency = fs.currency.clone();
+            let fs_submission = year_submissions.iter().find(|s| s.id == fs.submission_id);
+            let frozen_rate = fs_submission.and_then(crate::services::currency::frozen_rate_of);
+            rate_used = crate::api::handlers::exchange_rate::rate_used_for(
+                &currency,
+                fs_submission,
+                &current_rates,
+            );
+            is_validated = fs.is_validated;
+
             if let Some(items) = items_by_fs.get(&fs.id) {
+                has_unmapped_items = items.iter().any(|i| i.account_code.is_none());
+
+                // Group raw values by month so the rollup only ever sums
+                // figures reported for the same period.
+                let mut by_month: HashMap<i32, HashMap<i32, f64>> = HashMap::new();
                 for item in items {
+                    if let Some(code) = item.account_code {
+                        by_month
+                            .entry(item.month as i32)
+                            .or_default()
+                            .insert(code, item.value.and_then(|v| v.to_f64()).unwrap_or(0.0));
+                    }
                     grid_items.push(CooperativeLineItem {
                         account_code: item.account_code,
                         account_name: item.account_name.clone(),
                         value: item.value.and_then(|v| v.to_f64()).unwrap_or(0.0),
+                        value_usd: crate::services::currency::to_usd_frozen(
+                            item.value.and_then(|v| v.to_f64()).unwrap_or(0.0),
+                            &currency,
+                            frozen_rate,
+                            &rates,
+                        ),
                         month: item.month as i32,
+                        is_derived: false,
                     });
+                }
+
+                // Synthesize the aggregate codes a source document didn't
+                // report directly (e.g. only 1201-1205 present, not the
+                // 1200 parent) so exact-account-code lookups downstream
+                // never see a gap that a real value could resolve.
+                for (month, raw) in &by_month {
+                    let resolved = crate::services::coa_rollup::resolve(raw, &coa);
+                    for account in &coa {
+                        if account.formula.is_none() {
+                            continue;
+                        }
+                        if raw.contains_key(&account.account_code) {
+                            continue;
+                        }
+                        let value = resolved.get(&account.account_code).copied().unwrap_or(0.0);
+                        if value.abs() <= 0.001 {
+                            continue;
+                        }
+                        grid_items.push(CooperativeLineItem {
+                            account_code: Some(account.account_code),
+                            account_name: account.account_name.clone(),
+                            value,
+                            value_usd: crate::services::currency::to_usd_frozen(
+                                value,
+                                &currency,
+                                frozen_rate,
+                                &rates,
+                            ),
+                            month: *month,
+                            is_derived: true,
+                        });
+                    }
                 }
             }
         }
@@ -964,6 +1041,10 @@ pub async fn get_comparative_statements(
             cooperative_id: coop.id,
             cooperative_name: coop.name,
             line_items: grid_items,
+            currency: currency.as_str().to_string(),
+            is_validated,
+            has_unmapped_items,
+            rate_used,
         });
     }
 

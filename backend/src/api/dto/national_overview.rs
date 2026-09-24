@@ -140,8 +140,19 @@ pub struct ComparativeStatementsParams {
 pub struct CooperativeLineItem {
     pub account_code: Option<i32>,
     pub account_name: String,
+    /// Native-currency value as reported in the source financial statement.
     pub value: f64,
+    /// Same value converted to USD via the admin-configured exchange rate
+    /// (see services::currency) — dashboards/grids should display this, and
+    /// keep `value`/`currency` alongside it so a figure can be traced back
+    /// to what's printed in the uploaded document.
+    pub value_usd: f64,
     pub month: i32,
+    /// True when this row was derived from a formula (e.g. account 1200
+    /// "Gross Loans" summed from 1201-1205) because the source document
+    /// only reported the child accounts, not this aggregate directly.
+    #[serde(default)]
+    pub is_derived: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
@@ -149,6 +160,16 @@ pub struct CooperativeStatementGrid {
     pub cooperative_id: Uuid,
     pub cooperative_name: String,
     pub line_items: Vec<CooperativeLineItem>,
+    /// Native currency of the source financial statement (e.g. "SZL").
+    pub currency: String,
+    /// False when the statement has never passed validation (unresolved
+    /// unmapped line items and/or open critical/high abnormality flags) —
+    /// grids should surface this instead of silently showing numbers that
+    /// haven't been confirmed accurate.
+    pub is_validated: bool,
+    pub has_unmapped_items: bool,
+    /// Rate used for `value_usd`; None when the statement is already in USD.
+    pub rate_used: Option<crate::api::dto::common::RateUsed>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
