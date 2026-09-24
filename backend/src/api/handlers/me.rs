@@ -99,7 +99,7 @@ pub(crate) fn pick_organization_name(
 /// `display_name` attribute in Keycloak, which is therefore the source of
 /// truth; the local federations row is a copy that is re-synced here when
 /// it has drifted.
-async fn resolve_organization_name(
+pub(crate) async fn resolve_organization_name(
     state: &AppState,
     organization_id: Option<&str>,
     token_name: Option<String>,
