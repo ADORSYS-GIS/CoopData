@@ -70,6 +70,7 @@ export function SavingsRadialGauges({ data }: SavingsRadialGaugesProps) {
         <p className="text-sm font-semibold text-muted-foreground">
           {t("analytics.totalSavingsBalance")}
         </p>
+        <p className="text-xs text-muted-foreground">{t("analytics.totalSavingsBalanceNote")}</p>
         <p className="font-heading text-2xl font-bold text-foreground num mt-1">
           ${data.total_balance.toLocaleString()}
         </p>

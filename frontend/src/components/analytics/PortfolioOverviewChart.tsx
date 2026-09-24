@@ -111,7 +111,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
                 fontSize: "12px",
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               }}
-              formatter={(value: number) => [`$${value.toLocaleString()}`]}
+              formatter={(value: number) => [`$${Math.round(value).toLocaleString()}`]}
             />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: "15px" }}
@@ -136,7 +136,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               yAxisId="left"
               type="monotone"
               dataKey="loans"
-              name={t("analytics.loansLabel")}
+              name={t("analytics.seriesGrossLoans")}
               stroke="var(--chart-2)"
               strokeWidth={2}
               strokeDasharray="4 4"
@@ -148,7 +148,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               yAxisId="right"
               type="monotone"
               dataKey="savings"
-              name={t("analytics.depositsLabel")}
+              name={t("analytics.seriesMemberDeposits")}
               stroke="var(--chart-3)"
               strokeWidth={3}
               dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
