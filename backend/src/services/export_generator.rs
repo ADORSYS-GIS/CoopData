@@ -404,45 +404,22 @@ impl ExportGenerator {
                 clean_url
             );
 
+            // Margins are set to 0 here — all header/footer/page-margin layout is
+            // handled entirely by CSS @page margin-box rules inside the frontend
+            // print stylesheet. This gives pixel-perfect control and eliminates the
+            // empty-space issues caused by mixing Gotenberg injection with CSS layout.
             let form_clone = reqwest::multipart::Form::new()
                 .text("url", print_url.to_string())
                 .text("waitForExpression", "window.isReady === true")
                 .text("paperWidth", "8.27")
                 .text("paperHeight", "11.69")
-                .text("marginTop", "0.5")
-                .text("marginBottom", "0.5")
+                .text("marginTop", "0")
+                .text("marginBottom", "0")
                 .text("marginLeft", "0")
                 .text("marginRight", "0")
                 .text("printBackground", "true")
-                .text("emulateMediaType", "screen")
-                .part(
-                    "headerHtml",
-                    reqwest::multipart::Part::bytes(
-                        pdf_templates::PDF_HEADER_HTML.as_bytes().to_vec(),
-                    )
-                    .file_name("header.html")
-                    .mime_str("text/html")
-                    .map_err(|e| {
-                        crate::error::AppError::InternalServerError(format!(
-                            "Invalid header mime: {}",
-                            e
-                        ))
-                    })?,
-                )
-                .part(
-                    "footerHtml",
-                    reqwest::multipart::Part::bytes(
-                        pdf_templates::PDF_FOOTER_HTML.as_bytes().to_vec(),
-                    )
-                    .file_name("footer.html")
-                    .mime_str("text/html")
-                    .map_err(|e| {
-                        crate::error::AppError::InternalServerError(format!(
-                            "Invalid footer mime: {}",
-                            e
-                        ))
-                    })?,
-                );
+                .text("emulateMediaType", "print")
+                .text("preferCssPageSize", "true");
 
             let response = client
                 .post(format!(

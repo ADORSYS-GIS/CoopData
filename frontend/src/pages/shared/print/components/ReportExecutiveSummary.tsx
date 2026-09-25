@@ -1,252 +1,136 @@
-import React from "react";
-import { useTranslation } from "react-i18next";
+import React, { useMemo } from "react";
 import { ReportDataProps } from "./types";
-import { findKpi, formatCurrency, calculateYoY } from "./utils";
-import { ShieldAlert, ShieldCheck, Shield } from "lucide-react";
-import { AiInsightBox } from "./AiInsightBox";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { findKpi, getLineItem, calculateYoY, formatCurrency } from "./utils";
 
 export const ReportExecutiveSummary: React.FC<ReportDataProps> = ({
   submission,
-  submissionId,
-  cooperative,
-  coopName,
   kpiMap,
   kpisData,
+  lineItemsData,
   narratives,
 }) => {
-  const { t } = useTranslation();
-  const complianceKpis = [
-    findKpi(kpiMap, "par30"),
-    findKpi(kpiMap, "capital_adequacy_ratio"),
-    findKpi(kpiMap, "return_on_assets"),
-    findKpi(kpiMap, "return_on_equity"),
-    findKpi(kpiMap, "operational_expense_ratio"),
-    findKpi(kpiMap, "loan_loss_coverage"),
-    findKpi(kpiMap, "liquid_funds_ratio"),
-    findKpi(kpiMap, "operational_self_sufficiency"),
-  ].filter((k) => k !== undefined);
+  const getVal = (code: number, isPrior = false) => getLineItem(lineItemsData, code, isPrior) ?? 0;
+  const sumCodes = (codes: number[], isPrior = false) => codes.reduce((acc, c) => acc + getVal(c, isPrior), 0);
 
-  const renderStatusBadge = (status?: string) => {
-    if (status === "green")
-      return (
-        <span className="text-green-500">
-          <ShieldCheck className="size-4 inline mr-1" /> {t("printReports.green")}
-        </span>
-      );
-    if (status === "red")
-      return (
-        <span className="text-red-500">
-          <ShieldAlert className="size-4 inline mr-1" /> {t("printReports.red")}
-        </span>
-      );
-    return (
-      <span className="text-amber-500">
-        <Shield className="size-4 inline mr-1" /> {t("printReports.amber")}
-      </span>
-    );
-  };
+  const currentAssets = getVal(1999) || (sumCodes([1101, 1102]) + sumCodes([1201, 1202]) + sumCodes([5301]) + sumCodes([1301]));
+  const priorAssets = getVal(1999, true) || (sumCodes([1101, 1102], true) + sumCodes([1201, 1202], true) + sumCodes([5301], true) + sumCodes([1301], true));
 
-  const totalAssetsFormatted =
-    findKpi(kpiMap, "total_assets")?.formatted ?? "a significant portion";
+  const currentEquity = getVal(3999) || sumCodes([3101, 3102, 3201, 3202, 3203, 3301, 3302]);
+  const priorEquity = getVal(3999, true) || sumCodes([3101, 3102, 3201, 3202, 3203, 3301, 3302], true);
 
-  const ratioChartData = complianceKpis
-    .filter((k) => k.unit === "percent" && k.benchmark !== undefined && k.benchmark !== null)
-    .map((k) => ({
-      name: k.name.replace(/_/g, " ").toUpperCase(),
-      value: k.value ?? 0,
-      benchmark: k.benchmark ?? 0,
-    }));
+  const currentSavings = getVal(2100) || sumCodes([2101, 2102, 2103]);
+  const priorSavings = getVal(2100, true) || sumCodes([2101, 2102, 2103], true);
+
+  const currentSurplus = getVal(6999) || getVal(3302);
+  const priorSurplus = getVal(6999, true) || getVal(3302, true);
+  
+  const currentNetInterest = sumCodes([4101, 4102]) - sumCodes([5101, 5102]);
+  const priorNetInterest = sumCodes([4101, 4102], true) - sumCodes([5101, 5102], true);
+  const currentOpSurplus = currentNetInterest + sumCodes([4201]) - sumCodes([5201, 5202, 5203, 5204]);
+  const priorOpSurplus = priorNetInterest + sumCodes([4201], true) - sumCodes([5201, 5202, 5203, 5204], true);
+
+  const surplusYoY = ((currentSurplus - priorSurplus) / (priorSurplus || 1)) * 100;
+  const assetsYoY = ((currentAssets - priorAssets) / (priorAssets || 1)) * 100;
+  const equityYoY = ((currentEquity - priorEquity) / (priorEquity || 1)) * 100;
+  const savingsYoY = ((currentSavings - priorSavings) / (priorSavings || 1)) * 100;
+
+  const chartData = [
+    { label: "Net Interest", prior: priorNetInterest, current: currentNetInterest },
+    { label: "Op. Surplus", prior: priorOpSurplus, current: currentOpSurplus },
+    { label: "Yr Surplus", prior: priorSurplus, current: currentSurplus },
+    { label: "Total Equity", prior: priorEquity, current: currentEquity },
+  ];
+
+  const maxVal = Math.max(...chartData.flatMap(d => [d.prior, d.current]), 1);
+  const scale = (val: number) => (150 * val) / maxVal;
 
   return (
-    <div className="report-sheet relative w-[210mm] min-h-[268mm] p-16 block break-after-page bg-white font-sans">
-      <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        {t("printReports.performanceReport")}
-      </h2>
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">
-        {t("printReports.executiveSummary")}
-      </h3>
+    <div className="rp-page">
+      <div className="eyebrow">Executive Summary</div>
+      <h2 className="section-title">Annual Performance Review</h2>
+      <p className="section-intro">
+        The cooperative closed the {submission.reporting_year} financial year with steady performance across major measures 
+        including surplus, assets, member savings, and equity.
+      </p>
 
-      {/* Header Block */}
-      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6 grid grid-cols-2 gap-y-2 gap-x-8 text-xs">
-        <div className="flex justify-between">
-          <span className="font-bold text-slate-600">{t("printReports.cooperativeName")}</span>{" "}
-          <span className="text-slate-800">{coopName}</span>
+      {narratives?.executive_summary ? (
+        <div className="box" style={{ marginBottom: "30px" }}>
+          <h4>Executive Summary Insights</h4>
+          <p>{narratives.executive_summary}</p>
         </div>
-        <div className="flex justify-between">
-          <span className="font-bold text-slate-600">{t("printReports.registrationNo")}</span>{" "}
-          <span className="text-slate-800">
-            {cooperative?.id?.slice(0, 8).toUpperCase() ?? t("printReports.n/a")}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="font-bold text-slate-600">{t("printReports.reportingPeriod")}</span>{" "}
-          <span className="text-slate-800">{submission.reporting_year}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="font-bold text-slate-600">{t("printReports.institutionType")}</span>{" "}
-          <span className="text-slate-800 capitalize">
-            {cooperative?.institution_type ?? t("printReports.n/a")}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="font-bold text-slate-600">{t("printReports.region")}</span>{" "}
-          <span className="text-slate-800 capitalize">
-            {cooperative?.region ?? t("printReports.n/a")}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="font-bold text-slate-600">{t("printReports.status")}</span>{" "}
-          <span
-            className={`font-bold capitalize ${submission.status === "approved" ? "text-green-600" : "text-slate-800"}`}
-          >
-            {submission.status
-              ? t(`submissions.status.${submission.status}`, submission.status)
-              : t("printReports.draft")}
-          </span>
-        </div>
-      </div>
-
-      {/* AI Insight */}
-      <AiInsightBox
-        title="Executive Summary & Key Strengths"
-        content={narratives?.executive_summary}
-        fallbackContent={
-          <>
-            This cooperative's total assets represent {totalAssetsFormatted} of the national
-            cooperative sector total. The sector's average PAR30 is roughly 8.2%, and this
-            cooperative's asset quality continues to be monitored closely against regulatory limits.
-          </>
-        }
-      />
-
-      {/* Financial Highlights */}
-      <h4 className="text-sm font-bold text-slate-800 mb-2">
-        {t("printReports.financialHighlights")}
-      </h4>
-      <table className="w-full text-left text-xs border-collapse mb-8 page-break-inside-avoid">
-        <thead>
-          <tr className="bg-slate-800 text-white">
-            <th className="px-3 py-2 font-semibold">{t("printReports.metric")}</th>
-            <th className="px-3 py-2 font-semibold">{t("printReports.current")}</th>
-            <th className="px-3 py-2 font-semibold">{t("printReports.priorYear")}</th>
-            <th className="px-3 py-2 font-semibold">{t("printReports.yoyChange")}</th>
-            <th className="px-3 py-2 font-semibold text-center">{t("printReports.trend")}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {[
-            "total_assets",
-            "gross_loan_portfolio",
-            "total_member_deposits",
-            "total_equity",
-            "net_surplus",
-          ].map((key) => {
-            const kpi = findKpi(kpiMap, key);
-            const priorKpi = kpisData?.prior_year_kpis?.find((k) => k.name === key);
-            if (!kpi) return null;
-
-            const yoyChange = kpi.value && priorKpi?.value ? kpi.value - priorKpi.value : null;
-
-            return (
-              <tr key={kpi.name} className="hover:bg-slate-50">
-                <td className="px-3 py-2">{kpi.description}</td>
-                <td className="px-3 py-2 font-medium">{kpi.formatted}</td>
-                <td className="px-3 py-2">{priorKpi?.formatted ?? "—"}</td>
-                <td className="px-3 py-2">
-                  {yoyChange !== null ? formatCurrency(yoyChange) : "—"}
-                </td>
-                <td className="px-3 py-2 text-center">
-                  {yoyChange !== null ? (yoyChange > 0 ? "▲" : yoyChange < 0 ? "▼" : "—") : "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {/* Key Ratios */}
-      <h4 className="text-sm font-bold text-slate-800 mb-2">{t("printReports.keyRatios")}</h4>
-      <table className="w-full text-left text-xs border-collapse page-break-inside-avoid">
-        <thead>
-          <tr className="bg-slate-800 text-white">
-            <th className="px-3 py-2 font-semibold">{t("printReports.ratio")}</th>
-            <th className="px-3 py-2 font-semibold">{t("printReports.value")}</th>
-            <th className="px-3 py-2 font-semibold">{t("printReports.benchmark")}</th>
-            <th className="px-3 py-2 font-semibold">{t("printReports.status")}</th>
-            <th className="px-3 py-2 font-semibold">{t("printReports.yoy")}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {complianceKpis.map((kpi) => {
-            const priorKpi = kpisData?.prior_year_kpis?.find((k) => k.name === kpi.name);
-            const yoyDisplay = calculateYoY(kpi.value, priorKpi?.value);
-            return (
-              <tr key={kpi.name} className="hover:bg-slate-50">
-                <td className="px-3 py-2">{kpi.description}</td>
-                <td className="px-3 py-2 font-medium">{kpi.formatted}</td>
-                <td className="px-3 py-2 text-slate-500">
-                  {kpi.benchmark
-                    ? kpi.unit === "percent"
-                      ? `${kpi.benchmark}%`
-                      : kpi.benchmark
-                    : "—"}
-                </td>
-                <td className="px-3 py-2">{renderStatusBadge(kpi.status)}</td>
-                <td className="px-3 py-2 text-slate-500">{yoyDisplay}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {ratioChartData.length > 0 && (
-        <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 mb-6">
-          <h4 className="text-sm font-bold text-slate-800 mb-2">
-            {t("printReports.ratioBenchmarkChart")}
-          </h4>
-          <BarChart
-            width={680}
-            height={240}
-            data={ratioChartData}
-            margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fontWeight: "bold" }}
-              interval={0}
-            />
-            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-            <Tooltip cursor={{ fill: "rgba(0,0,0,0.05)" }} />
-            <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
-            <Bar
-              dataKey="value"
-              name={t("printReports.current")}
-              fill="#2563eb"
-              radius={[3, 3, 0, 0]}
-              isAnimationActive={false}
-            />
-            <Bar
-              dataKey="benchmark"
-              name={t("printReports.benchmark")}
-              fill="#f59e0b"
-              radius={[3, 3, 0, 0]}
-              isAnimationActive={false}
-            />
-          </BarChart>
+      ) : (
+        <div className="box-row">
+          <div className="box">
+            <h4>What drove it</h4>
+            <p>Careful management of interest margins and operational efficiency played a key role in the overall financial outcome this year.</p>
+          </div>
+          <div className="box">
+            <h4>What it means for members</h4>
+            <p>Continued growth in reserves and equity strengthens the cooperative's capital buffer and ensures long-term stability.</p>
+          </div>
         </div>
       )}
 
-      <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
-        <span></span>
-        <span>
-          SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}
-        </span>
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="kpi-label">Surplus for the Year</div>
+          <div className="kpi-val">{formatCurrency(currentSurplus)}</div>
+          <div className={`kpi-delta ${surplusYoY < 0 ? 'neg' : ''}`}>
+            {surplusYoY >= 0 ? '▲' : '▼'} {Math.abs(surplusYoY).toFixed(1)}% vs {submission.reporting_year - 1}
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Total Assets</div>
+          <div className="kpi-val">{formatCurrency(currentAssets)}</div>
+          <div className={`kpi-delta ${assetsYoY < 0 ? 'neg' : ''}`}>
+            {assetsYoY >= 0 ? '▲' : '▼'} {Math.abs(assetsYoY).toFixed(1)}% vs {submission.reporting_year - 1}
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Total Equity</div>
+          <div className="kpi-val">{formatCurrency(currentEquity)}</div>
+          <div className={`kpi-delta ${equityYoY < 0 ? 'neg' : ''}`}>
+            {equityYoY >= 0 ? '▲' : '▼'} {Math.abs(equityYoY).toFixed(1)}% vs {submission.reporting_year - 1}
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Members' Savings</div>
+          <div className="kpi-val">{formatCurrency(currentSavings)}</div>
+          <div className={`kpi-delta ${savingsYoY < 0 ? 'neg' : ''}`}>
+            {savingsYoY >= 0 ? '▲' : '▼'} {Math.abs(savingsYoY).toFixed(1)}% vs {submission.reporting_year - 1}
+          </div>
+        </div>
       </div>
+
+      <div className="chart-wrap">
+        <div className="chart-title">Key results, {submission.reporting_year - 1} vs {submission.reporting_year}</div>
+        <svg viewBox="0 0 780 230" width="100%">
+          <line x1="60" y1="190" x2="760" y2="190" stroke="#e2e5ea" strokeWidth="1"/>
+          <g fontFamily="sans-serif" fontSize="11" fill="#5b6478">
+            {chartData.map((d, i) => {
+              const xBase = 100 + i * 160;
+              const pH = scale(d.prior);
+              const cH = scale(d.current);
+              return (
+                <g key={i}>
+                  <rect x={xBase} y={190 - pH} width="26" height={pH} fill="#1f3159"/>
+                  <rect x={xBase + 30} y={190 - cH} width="26" height={cH} fill="#c0392b"/>
+                  <text x={xBase + 28} y="210" textAnchor="middle">{d.label}</text>
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+        <div className="legend">
+          <span><i className="sw a"></i>{submission.reporting_year - 1}</span>
+          <span><i className="sw b"></i>{submission.reporting_year}</span>
+        </div>
+      </div>
+
+      <footer>Cooperative Annual Report · FY {submission.reporting_year}</footer>
+      <div className="pageno">2</div>
     </div>
   );
 };
+
 export default ReportExecutiveSummary;

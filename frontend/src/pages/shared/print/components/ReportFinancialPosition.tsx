@@ -1,257 +1,244 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { ReportDataProps } from "./types";
-import { getLineItem, calculateYoY, formatCurrency } from "./utils";
-import { LineItemResponse } from "@/hooks/submissions/useCooperativeKpis";
-import { useTranslation } from "react-i18next";
-import { AiInsightBox } from "./AiInsightBox";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { getLineItem, formatCurrency } from "./utils";
 
 export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
-  lineItemsData,
   submission,
-  submissionId,
+  lineItemsData,
   narratives,
 }) => {
-  const { t } = useTranslation();
-  const assetsYoY = calculateYoY(
-    getLineItem(lineItemsData, 1999),
-    getLineItem(lineItemsData, 1999, true),
-  );
+  const getVal = (code: number, isPrior = false) => getLineItem(lineItemsData, code, isPrior) ?? 0;
+  const sumCodes = (codes: number[], isPrior = false) => codes.reduce((acc, c) => acc + getVal(c, isPrior), 0);
 
-  const { balanceSheetItems, incomeStatementItems, positionChartData } = useMemo(() => {
-    const items = lineItemsData?.current_year || [];
-    const priorItems = lineItemsData?.prior_year || [];
+  const y1 = submission.reporting_year;
+  const y0 = submission.reporting_year - 1;
 
-    // Deduplicate by account_code (take the latest month or first seen)
-    const uniqueItemsMap = new Map<number, LineItemResponse>();
-    items.forEach((item) => {
-      if (item.account_code === undefined) return;
-      const existing = uniqueItemsMap.get(item.account_code);
-      // Assuming month is available, prefer the higher month (closer to year-end YTD)
-      // Otherwise just keep the first one
-      if (!existing || (item.month && existing.month && item.month > existing.month)) {
-        uniqueItemsMap.set(item.account_code, item);
-      }
-    });
+  // --- INCOME STATEMENT ---
+  const finIncome1 = sumCodes([4101, 4102]); const finIncome0 = sumCodes([4101, 4102], true);
+  const finExp1 = sumCodes([5101, 5102]); const finExp0 = sumCodes([5101, 5102], true);
+  const netInt1 = finIncome1 - finExp1; const netInt0 = finIncome0 - finExp0;
+  
+  const otherInc1 = sumCodes([4201]); const otherInc0 = sumCodes([4201], true);
+  const opExp1 = sumCodes([5201, 5202, 5203, 5204]); const opExp0 = sumCodes([5201, 5202, 5203, 5204], true);
+  const prov1 = sumCodes([5301]); const prov0 = sumCodes([5301], true);
+  
+  const totalInc1 = getVal(4999) || (finIncome1 + otherInc1); 
+  const totalInc0 = getVal(4999, true) || (finIncome0 + otherInc0);
+  const totalExp1 = getVal(5999) || (finExp1 + opExp1 + prov1); 
+  const totalExp0 = getVal(5999, true) || (finExp0 + opExp0 + prov0);
+  const surplus1 = getVal(6999) || getVal(3302); 
+  const surplus0 = getVal(6999, true) || getVal(3302, true);
 
-    const uniqueItems = Array.from(uniqueItemsMap.values());
+  // --- ASSETS ---
+  const cash1 = sumCodes([1101, 1102]); const cash0 = sumCodes([1101, 1102], true);
+  const loans1 = sumCodes([1201, 1202]); const loans0 = sumCodes([1201, 1202], true);
+  const otherAssets1 = sumCodes([1301]); const otherAssets0 = sumCodes([1301], true);
+  const totalAssets1 = getVal(1999) || (cash1 + loans1 + prov1 + otherAssets1); 
+  const totalAssets0 = getVal(1999, true) || (cash0 + loans0 + prov0 + otherAssets0);
 
-    const sorted = uniqueItems.sort((a, b) => {
-      return (a.account_code ?? 0) - (b.account_code ?? 0);
-    });
-
-    const bsCategories = ["assets", "liabilities", "equity"];
-    const isCategories = ["income", "expenses", "surplus"];
-
-    const sumByCategory = (list: LineItemResponse[], categories: string[]) =>
-      list
-        .filter((i) => categories.includes(i.account_category.toLowerCase()))
-        .reduce((acc, i) => acc + (i.value ?? 0), 0);
-
-    const positionChartData = [
-      {
-        name: t("printReports.assets"),
-        current: sumByCategory(items, ["assets"]),
-        prior: sumByCategory(priorItems, ["assets"]),
-      },
-      {
-        name: t("printReports.liabilities"),
-        current: sumByCategory(items, ["liabilities"]),
-        prior: sumByCategory(priorItems, ["liabilities"]),
-      },
-      {
-        name: t("printReports.equity"),
-        current: sumByCategory(items, ["equity"]),
-        prior: sumByCategory(priorItems, ["equity"]),
-      },
-    ];
-
-    return {
-      balanceSheetItems: sorted.filter((i) =>
-        bsCategories.includes(i.account_category.toLowerCase()),
-      ),
-      incomeStatementItems: sorted.filter((i) =>
-        isCategories.includes(i.account_category.toLowerCase()),
-      ),
-      positionChartData,
-    };
-  }, [lineItemsData, t]);
-
-  const totalAssets = getLineItem(lineItemsData, 1999);
-  const totalIncome = getLineItem(lineItemsData, 5999);
-
-  const renderRow = (item: LineItemResponse, totalVal: number | undefined) => {
-    if (!item.account_code) return null;
-    const code = item.account_code;
-    const currentVal = item.value;
-    const priorVal = getLineItem(lineItemsData, code, true);
-
-    const isTotal = code % 1000 === 999;
-    const isHeader = code % 100 === 0 && !isTotal;
-    const isSuperTotal =
-      code === 1999 ||
-      code === 2999 ||
-      code === 3999 ||
-      code === 5999 ||
-      code === 6499 ||
-      code === 6999;
-
-    let percentage = "—";
-    if (totalVal && currentVal !== undefined && currentVal !== null) {
-      percentage = ((currentVal / totalVal) * 100).toFixed(1) + "%";
-    }
-
-    // Don't calculate % for header rows
-    if (isHeader) percentage = "";
-
-    return (
-      <tr
-        key={item.id}
-        className={`${isSuperTotal ? "bg-slate-200 font-bold text-blue-900" : isTotal ? "bg-slate-100 font-bold" : isHeader ? "bg-slate-50 font-semibold italic" : ""}`}
-      >
-        <td className="px-2 py-1">{code}</td>
-        <td className={`px-2 py-1 ${isHeader ? "" : isTotal ? "pl-2" : "pl-6"}`}>
-          {item.account_name}
-        </td>
-        <td className="px-2 py-1 text-right">{formatCurrency(currentVal)}</td>
-        <td className="px-2 py-1 text-right">{formatCurrency(priorVal)}</td>
-        <td className="px-2 py-1 text-right">{calculateYoY(currentVal, priorVal)}</td>
-        <td className="px-2 py-1 text-right">{percentage}</td>
-      </tr>
-    );
-  };
+  // --- LIABILITIES & EQUITY ---
+  const deposits1 = getVal(2100) || sumCodes([2101, 2102, 2103]); 
+  const deposits0 = getVal(2100, true) || sumCodes([2101, 2102, 2103], true);
+  const otherLiab1 = sumCodes([2201]); const otherLiab0 = sumCodes([2201], true);
+  const totalLiab1 = getVal(2999) || (deposits1 + otherLiab1); 
+  const totalLiab0 = getVal(2999, true) || (deposits0 + otherLiab0);
+  const equity1 = getVal(3999) || sumCodes([3101, 3102, 3201, 3202, 3203, 3301, 3302]); 
+  const equity0 = getVal(3999, true) || sumCodes([3101, 3102, 3201, 3202, 3203, 3301, 3302], true);
 
   return (
-    <div className="report-sheet relative w-[210mm] min-h-[268mm] p-16 block break-after-page bg-white">
-      <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        {t("printReports.financialPositionTitle")}
-      </h2>
+    <>
+      {/* ============ INCOME STATEMENT ============ */}
+      <div className="rp-page">
+        <div className="eyebrow">Statement of Comprehensive Income</div>
+        <h2 className="section-title">Income and surplus</h2>
+        <p className="section-intro">
+          The statement below shows how the cooperative's income from loans and other sources converted 
+          into an operating and overall surplus for members.
+        </p>
 
-      <AiInsightBox
-        title="Financial Position Insights"
-        content={narratives?.financial_position}
-        fallbackContent={
-          <>
-            Total assets showed a{" "}
-            {assetsYoY.startsWith("+") || assetsYoY === "—" ? "positive trend" : "decline"}{" "}
-            year-on-year, driven by changes in member deposits and equity. The detailed balance
-            sheet and income statement below reflect the financial health for the period.
-          </>
-        }
-      />
+        {narratives?.financial_position ? (
+          <div className="box" style={{ marginBottom: "30px" }}>
+            <h4>Financial Position Insights</h4>
+            <p>{narratives.financial_position}</p>
+          </div>
+        ) : (
+          <div className="box-row">
+            <div className="box">
+              <h4>Reading this statement</h4>
+              <p>Financial income from the loan portfolio remains the primary driver of revenue, set against the cost of funding and operations.</p>
+            </div>
+            <div className="box">
+              <h4>Watch point</h4>
+              <p>Operating expenses and provisions for credit losses are key factors in determining the final net surplus generated.</p>
+            </div>
+          </div>
+        )}
 
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">
-        {t("printReports.balanceSheet")}
-      </h3>
+        <table>
+          <thead>
+            <tr><th>Figures in Local Currency</th><th className="num">{y1}</th><th className="num">{y0}</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Financial Income</td><td className="num">{formatCurrency(finIncome1)}</td><td className="num">{formatCurrency(finIncome0)}</td></tr>
+            <tr><td>Financial Expenses</td><td className="num">({formatCurrency(finExp1)})</td><td className="num">({formatCurrency(finExp0)})</td></tr>
+            <tr className="total"><td>Net Interest</td><td className="num">{formatCurrency(netInt1)}</td><td className="num">{formatCurrency(netInt0)}</td></tr>
+            <tr><td>Other Income</td><td className="num">{formatCurrency(otherInc1)}</td><td className="num">{formatCurrency(otherInc0)}</td></tr>
+            <tr><td>Operating Expenses</td><td className="num">({formatCurrency(opExp1)})</td><td className="num">({formatCurrency(opExp0)})</td></tr>
+            <tr><td>Provisions / Credit Loss</td><td className="num">({formatCurrency(prov1)})</td><td className="num">({formatCurrency(prov0)})</td></tr>
+            <tr className="total"><td>Surplus for the year</td><td className="num">{formatCurrency(surplus1)}</td><td className="num">{formatCurrency(surplus0)}</td></tr>
+          </tbody>
+        </table>
 
-      <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 mb-6">
-        <h4 className="text-sm font-bold text-slate-800 mb-2">
-          {t("printReports.financialPositionChart")}
-        </h4>
-        <BarChart
-          width={680}
-          height={240}
-          data={positionChartData}
-          margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-          <XAxis
-            dataKey="name"
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 12, fontWeight: "bold" }}
-          />
-          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-          <Tooltip cursor={{ fill: "rgba(0,0,0,0.05)" }} />
-          <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
-          <Bar
-            dataKey="current"
-            name={t("printReports.currentYear")}
-            fill="#2563eb"
-            radius={[3, 3, 0, 0]}
-            isAnimationActive={false}
-          />
-          <Bar
-            dataKey="prior"
-            name={t("printReports.priorYear")}
-            fill="#94a3b8"
-            radius={[3, 3, 0, 0]}
-            isAnimationActive={false}
-          />
-        </BarChart>
+        <div className="chart-wrap">
+          <div className="chart-title">Financial Income vs. Expenses (Local Currency)</div>
+          <svg viewBox="0 0 780 190" width="100%">
+            <line x1="60" y1="160" x2="760" y2="160" stroke="#e2e5ea"/>
+            <g fontFamily="sans-serif" fontSize="11" fill="#5b6478">
+              {(() => {
+                const max = Math.max(finIncome0, finIncome1, totalExp0, totalExp1, 1);
+                const scale = (v: number) => (120 * v) / max;
+                return (
+                  <>
+                    <rect x="140" y={160 - scale(finIncome0)} width="40" height={scale(finIncome0)} fill="#1f3159"/>
+                    <text x="160" y="180" textAnchor="middle">Income '{y0.toString().slice(2)}</text>
+                    
+                    <rect x="220" y={160 - scale(finIncome1)} width="40" height={scale(finIncome1)} fill="#1f3159"/>
+                    <text x="240" y="180" textAnchor="middle">Income '{y1.toString().slice(2)}</text>
+                    
+                    <rect x="380" y={160 - scale(totalExp0)} width="40" height={scale(totalExp0)} fill="#c0392b"/>
+                    <text x="400" y="180" textAnchor="middle">Expense '{y0.toString().slice(2)}</text>
+                    
+                    <rect x="460" y={160 - scale(totalExp1)} width="40" height={scale(totalExp1)} fill="#c0392b"/>
+                    <text x="480" y="180" textAnchor="middle">Expense '{y1.toString().slice(2)}</text>
+                  </>
+                )
+              })()}
+            </g>
+          </svg>
+        </div>
+        <footer>Cooperative Annual Report · FY {y1}</footer>
+        <div className="pageno">3</div>
       </div>
 
-      <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
-        <thead>
-          <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountCode")}</th>
-            <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountName")}</th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.currentYearSzl")}
-            </th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.priorYearSzl")}
-            </th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.yoyChange")}
-            </th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.percentOfAssets")}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {balanceSheetItems.length > 0 ? (
-            balanceSheetItems.map((item) => renderRow(item, totalAssets))
-          ) : (
-            <tr>
-              <td colSpan={6} className="px-2 py-4 text-center text-slate-500 italic">
-                {t("printReports.noBalanceSheetData")}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      {/* ============ BALANCE SHEET - ASSETS ============ */}
+      <div className="rp-page">
+        <div className="eyebrow">Statement of Financial Position — Assets</div>
+        <h2 className="section-title">What the Cooperative owns</h2>
+        <p className="section-intro">
+          The asset base is primarily composed of loans issued to members, supported by cash reserves and other assets held for liquidity and operations.
+        </p>
 
-      <h3 className="text-sm font-bold text-slate-800 mb-2">{t("printReports.incomeStatement")}</h3>
-      <table className="w-full text-left text-[10px] border-collapse page-break-inside-avoid">
-        <thead>
-          <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountCode")}</th>
-            <th className="px-2 py-1 font-semibold">{t("printReports.headers.accountName")}</th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.currentYearSzl")}
-            </th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.priorYearSzl")}
-            </th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.yoyChange")}
-            </th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.percentOfIncome")}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {incomeStatementItems.length > 0 ? (
-            incomeStatementItems.map((item) => renderRow(item, totalIncome))
-          ) : (
-            <tr>
-              <td colSpan={6} className="px-2 py-4 text-center text-slate-500 italic">
-                {t("printReports.noIncomeStatementData")}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+        {!narratives?.financial_position && (
+          <div className="box" style={{ marginBottom: "20px" }}>
+            <h4>Reading this statement</h4>
+            <p>Loans to members — the core earning asset — typically make up the vast majority of the balance sheet, acting as the primary engine behind total asset growth.</p>
+          </div>
+        )}
 
-      <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
-        <span></span>
-        <span>
-          SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}
-        </span>
+        <table>
+          <thead>
+            <tr><th>Figures in Local Currency</th><th className="num">{y1}</th><th className="num">{y0}</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Cash and Liquid Assets</td><td className="num">{formatCurrency(cash1)}</td><td className="num">{formatCurrency(cash0)}</td></tr>
+            <tr><td>Gross Loan Portfolio</td><td className="num">{formatCurrency(loans1)}</td><td className="num">{formatCurrency(loans0)}</td></tr>
+            <tr><td>Other Assets</td><td className="num">{formatCurrency(otherAssets1)}</td><td className="num">{formatCurrency(otherAssets0)}</td></tr>
+            <tr className="total"><td>Total Assets</td><td className="num">{formatCurrency(totalAssets1)}</td><td className="num">{formatCurrency(totalAssets0)}</td></tr>
+          </tbody>
+        </table>
+
+        <div className="chart-wrap">
+          <div className="chart-title">Asset composition, {y1}</div>
+          <svg viewBox="0 0 780 60" width="100%">
+            <g>
+              {(() => {
+                const total = Math.max(totalAssets1, 1);
+                const wLoans = (loans1 / total) * 760;
+                const wCash = (cash1 / total) * 760;
+                const wOther = (otherAssets1 / total) * 760;
+                return (
+                  <>
+                    <rect x="10" y="15" width={wLoans} height="28" fill="#1f3159"/>
+                    <rect x={10 + wLoans} y="15" width={wCash} height="28" fill="#c0392b"/>
+                    <rect x={10 + wLoans + wCash} y="15" width={wOther} height="28" fill="#9aa3b5"/>
+                  </>
+                )
+              })()}
+            </g>
+            <g fontFamily="sans-serif" fontSize="10.5" fill="#5b6478">
+              <text x="10" y="55">Loans: {((loans1 / Math.max(totalAssets1, 1))*100).toFixed(0)}%</text>
+              <text x="400" y="55">Cash: {((cash1 / Math.max(totalAssets1, 1))*100).toFixed(0)}%</text>
+              <text x="600" y="55">Other: {((otherAssets1 / Math.max(totalAssets1, 1))*100).toFixed(0)}%</text>
+            </g>
+          </svg>
+        </div>
+        <footer>Cooperative Annual Report · FY {y1}</footer>
+        <div className="pageno">4</div>
       </div>
-    </div>
+
+      {/* ============ BALANCE SHEET - EQUITY & LIABILITIES ============ */}
+      <div className="rp-page">
+        <div className="eyebrow">Statement of Financial Position — Equity &amp; Liabilities</div>
+        <h2 className="section-title">How the Cooperative is funded</h2>
+        <p className="section-intro">
+          Growth is funded mainly by member savings and deposits, with equity providing the foundational capital base.
+        </p>
+
+        {!narratives?.financial_position && (
+          <div className="box" style={{ marginBottom: "20px" }}>
+            <h4>Reading this statement</h4>
+            <p>A strong equity base relative to liabilities ensures the cooperative remains resilient and capable of absorbing potential shocks while meeting withdrawal demands.</p>
+          </div>
+        )}
+
+        <table>
+          <thead>
+            <tr><th>Figures in Local Currency</th><th className="num">{y1}</th><th className="num">{y0}</th></tr>
+          </thead>
+          <tbody>
+            <tr className="sub"><td>Equity</td><td className="num"></td><td className="num"></td></tr>
+            <tr className="total"><td>Total Equity</td><td className="num">{formatCurrency(equity1)}</td><td className="num">{formatCurrency(equity0)}</td></tr>
+            <tr className="sub"><td>Liabilities</td><td className="num"></td><td className="num"></td></tr>
+            <tr><td>Total Member Deposits</td><td className="num">{formatCurrency(deposits1)}</td><td className="num">{formatCurrency(deposits0)}</td></tr>
+            <tr><td>Other Liabilities</td><td className="num">{formatCurrency(otherLiab1)}</td><td className="num">{formatCurrency(otherLiab0)}</td></tr>
+            <tr className="total"><td>Total Liabilities</td><td className="num">{formatCurrency(totalLiab1)}</td><td className="num">{formatCurrency(totalLiab0)}</td></tr>
+            <tr className="total"><td>Total Equity &amp; Liabilities</td><td className="num">{formatCurrency(totalAssets1)}</td><td className="num">{formatCurrency(totalAssets0)}</td></tr>
+          </tbody>
+        </table>
+
+        <div className="chart-wrap">
+          <div className="chart-title">Equity vs. Liabilities, {y0} vs {y1}</div>
+          <svg viewBox="0 0 780 200" width="100%">
+            <line x1="60" y1="170" x2="760" y2="170" stroke="#e2e5ea"/>
+            <g fontFamily="sans-serif" fontSize="11" fill="#5b6478">
+              {(() => {
+                const max = Math.max(equity0, equity1, totalLiab0, totalLiab1, 1);
+                const scale = (v: number) => (150 * v) / max;
+                return (
+                  <>
+                    <rect x="180" y={170 - scale(equity0)} width="46" height={scale(equity0)} fill="#1f3159"/>
+                    <text x="203" y="185" textAnchor="middle">Equity '{y0.toString().slice(2)}</text>
+                    
+                    <rect x="260" y={170 - scale(equity1)} width="46" height={scale(equity1)} fill="#1f3159"/>
+                    <text x="283" y="185" textAnchor="middle">Equity '{y1.toString().slice(2)}</text>
+                    
+                    <rect x="440" y={170 - scale(totalLiab0)} width="46" height={scale(totalLiab0)} fill="#c0392b"/>
+                    <text x="463" y="185" textAnchor="middle">Liabilities '{y0.toString().slice(2)}</text>
+                    
+                    <rect x="520" y={170 - scale(totalLiab1)} width="46" height={scale(totalLiab1)} fill="#c0392b"/>
+                    <text x="543" y="185" textAnchor="middle">Liabilities '{y1.toString().slice(2)}</text>
+                  </>
+                );
+              })()}
+            </g>
+          </svg>
+          <div className="legend"><span><i className="sw a"></i>Equity</span><span><i className="sw b"></i>Liabilities</span></div>
+        </div>
+        <footer>Cooperative Annual Report · FY {y1}</footer>
+        <div className="pageno">5</div>
+      </div>
+    </>
   );
 };
+
+export default ReportFinancialPosition;

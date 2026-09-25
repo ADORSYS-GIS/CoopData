@@ -400,13 +400,13 @@ impl KpiEngine {
         let abs = value.abs();
         let sign = if value < 0.0 { "-" } else { "" };
         if abs >= 1_000_000_000.0 {
-            format!("{sign}${:.2}B", abs / 1_000_000_000.0)
+            format!("{sign}{:.2}B", abs / 1_000_000_000.0)
         } else if abs >= 1_000_000.0 {
-            format!("{sign}${:.1}M", abs / 1_000_000.0)
+            format!("{sign}{:.1}M", abs / 1_000_000.0)
         } else if abs >= 1_000.0 {
-            format!("{sign}${:.0}K", abs / 1_000.0)
+            format!("{sign}{:.0}K", abs / 1_000.0)
         } else {
-            format!("{sign}${abs:.0}")
+            format!("{sign}{abs:.0}")
         }
     }
 

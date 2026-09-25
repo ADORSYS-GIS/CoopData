@@ -1,120 +1,144 @@
 import React from "react";
 import { ReportDataProps } from "./types";
 import { findKpi, formatCurrency } from "./utils";
-import { PieChart, Pie, Cell, Legend } from "recharts";
-import { useTranslation } from "react-i18next";
-import { AiInsightBox } from "./AiInsightBox";
 
 export const ReportPortfolioQuality: React.FC<ReportDataProps> = ({
   portfolioData,
   kpiMap,
+  kpisData,
   submission,
   submissionId,
   narratives,
 }) => {
-  const { t } = useTranslation();
-  const COLORS = ["#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981"];
+  const subRef = `SUB-${submission.reporting_year}-${submissionId.slice(0, 5).toUpperCase()}`;
+
+  const npl         = findKpi(kpiMap, "non_performing_loans");
+  const coverage    = findKpi(kpiMap, "loan_loss_coverage");
+  const grossLoans  = findKpi(kpiMap, "gross_loan_portfolio");
+
+  const priorCoverage = kpisData?.prior_year_kpis?.find((k) => k.name === "loan_loss_coverage");
+
+  const totalPortfolioBalance = portfolioData.categories.reduce((a, c) => a + c.balance, 0);
+  const totalPortfolioCount   = portfolioData.categories.reduce((a, c) => a + c.count, 0);
+
+  const statusBadge = (status?: string | null) => {
+    if (status === "green") return <span className="rp-st rp-ok">Meets</span>;
+    if (status === "red")   return <span className="rp-st rp-bad">Breach</span>;
+    if (status === "amber") return <span className="rp-st rp-warn">Watch</span>;
+    return <span className="rp-st rp-na">Unverified</span>;
+  };
 
   return (
-    <div className="w-[210mm] h-[268mm] p-16 block break-after-page bg-white">
-      <h2 className="text-xl font-bold text-slate-800 tracking-tight border-b-2 border-blue-600 pb-2 mb-6">
-        {t("printReports.portfolioQualityTitle")}
-      </h2>
+    <section className="rp-page">
+      <div className="rp-sec">
+        <span className="rp-sec-no">5</span>
+        <h2>Loan Portfolio Quality &amp; Credit Risk</h2>
+        <span className="rp-sec-sub">As at 31 December {submission.reporting_year}</span>
+      </div>
 
-      <AiInsightBox
-        title="Portfolio Quality Insights"
-        content={narratives?.portfolio_quality}
-        fallbackContent={
-          <>
-            This section provides a breakdown of the cooperative's loan portfolio by category,
-            highlighting the distribution of performing and non-performing assets.
-          </>
-        }
-      />
+      {narratives?.portfolio_quality && (
+        <div className="rp-opinion rp-keep">
+          <div className="rp-lbl">Portfolio Quality Insights</div>
+          <p style={{ margin: 0 }}>{narratives.portfolio_quality}</p>
+        </div>
+      )}
 
-      <div className="flex justify-center mb-10 h-[250px] relative mt-4">
-        {(portfolioData.categories || []).length > 0 ? (
-          <PieChart width={400} height={250}>
-            <Pie
-              isAnimationActive={false}
-              data={portfolioData.categories || []}
-              dataKey="balance"
-              nameKey="category"
-              cx="50%"
-              cy="45%"
-              outerRadius={80}
-              label={({ category, percent }) => `${category} ${(percent * 100).toFixed(1)}%`}
-            >
-              {(portfolioData.categories || []).map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Legend
-              verticalAlign="bottom"
-              height={36}
-              iconType="circle"
-              wrapperStyle={{ fontSize: "12px" }}
-            />
-          </PieChart>
-        ) : (
-          <div className="flex items-center justify-center h-full w-full text-slate-400 text-sm italic">
-            {t("printReports.noPortfolioData")}
-          </div>
-        )}
-        <div className="absolute top-0 left-0 w-full text-center">
-          <h3 className="text-sm font-bold text-slate-800">
-            {t("printReports.portfolioDistribution")}
-          </h3>
+      {/* Two-column: GL indicators + register breakdown */}
+      <div className="rp-two rp-keep">
+        <div>
+          <h3 style={{ marginTop: 0 }}>Portfolio-at-risk indicators</h3>
+          <table className="rp-tbl">
+            <thead>
+              <tr>
+                <th>Indicator</th>
+                <th className="rp-num">Prior yr</th>
+                <th className="rp-num">Current</th>
+                <th className="rp-num">Limit</th>
+                <th style={{ width: "20mm" }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Loans in arrears</td>
+                <td className="rp-num">—</td>
+                <td className="rp-num">{npl?.formatted ?? "—"}</td>
+                <td className="rp-num">—</td>
+                <td><span className="rp-st rp-na">Info</span></td>
+              </tr>
+              <tr>
+                <td>Gross loan portfolio</td>
+                <td className="rp-num">—</td>
+                <td className="rp-num">{grossLoans?.formatted ?? "—"}</td>
+                <td className="rp-num">—</td>
+                <td><span className="rp-st rp-na">Info</span></td>
+              </tr>
+              <tr className="rp-total">
+                <td>Loan-loss coverage</td>
+                <td className="rp-num">{priorCoverage?.formatted ?? "—"}</td>
+                <td className="rp-num">{coverage?.formatted ?? "—"}</td>
+                <td className="rp-num">100%</td>
+                <td>{statusBadge(coverage?.status)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h3 style={{ marginTop: 0 }}>Portfolio by category (register)</h3>
+          <table className="rp-tbl">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th className="rp-num">Count</th>
+                <th className="rp-num">Balance</th>
+                <th className="rp-num">% of portfolio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {portfolioData.categories.length > 0 ? (
+                <>
+                  {portfolioData.categories.map((c) => (
+                    <tr key={c.category}>
+                      <td>{c.category}</td>
+                      <td className="rp-num">{c.count}</td>
+                      <td className="rp-num">{formatCurrency(c.balance)}</td>
+                      <td className="rp-num">
+                        {totalPortfolioBalance > 0
+                          ? `${((c.balance / totalPortfolioBalance) * 100).toFixed(1)}%`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="rp-total">
+                    <td>Total</td>
+                    <td className="rp-num">{totalPortfolioCount}</td>
+                    <td className="rp-num">{formatCurrency(totalPortfolioBalance)}</td>
+                    <td className="rp-num">100.0%</td>
+                  </tr>
+                </>
+              ) : (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: "center", fontStyle: "italic", color: "var(--ink-3)" }}>
+                    No portfolio register data available.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <h3 className="text-lg font-semibold text-slate-700 mb-4">
-        {t("printReports.portfolioQuality")}
-      </h3>
-      <table className="w-full text-left text-[10px] border-collapse mb-8 page-break-inside-avoid">
-        <thead>
-          <tr className="bg-slate-800 text-white">
-            <th className="px-2 py-1 font-semibold">{t("printReports.headers.category")}</th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.amountSzl")}
-            </th>
-            <th className="px-2 py-1 font-semibold text-right">
-              {t("printReports.headers.percentOfPortfolio")}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {(portfolioData.categories || []).map((c) => (
-            <tr key={c.category}>
-              <td className="px-2 py-1">{c.category}</td>
-              <td className="px-2 py-1 text-right">{formatCurrency(c.balance)}</td>
-              <td className="px-2 py-1 text-right">
-                {findKpi(kpiMap, "gross_loan_portfolio")?.value
-                  ? ((c.balance / findKpi(kpiMap, "gross_loan_portfolio")!.value) * 100).toFixed(
-                      2,
-                    ) + "%"
-                  : "—"}
-              </td>
-            </tr>
-          ))}
-          <tr className="bg-slate-100 font-bold">
-            <td className="px-2 py-1">{t("printReports.total")}</td>
-            <td className="px-2 py-1 text-right">
-              {formatCurrency(
-                (portfolioData.categories || []).reduce((acc, c) => acc + c.balance, 0),
-              )}
-            </td>
-            <td className="px-2 py-1 text-right">100.0%</td>
-          </tr>
-        </tbody>
-      </table>
+      {/* Supervisory note if coverage is a breach */}
+      {coverage?.status === "red" && (
+        <div className="rp-note rp-keep">
+          <b>Supervisory concern.</b> Loan-loss coverage is below the required 100% threshold.
+          The cooperative must establish provisions in line with prudential standards.
+        </div>
+      )}
 
-      <div className="border-t border-slate-200 pt-6 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-auto pb-4">
-        <span></span>
-        <span>
-          SUB-{submission.reporting_year}-{submissionId.slice(0, 5).toUpperCase()}
-        </span>
-      </div>
-    </div>
+      <p className="rp-src" style={{ textAlign: "right", marginTop: "4mm" }}>{subRef}</p>
+    </section>
   );
 };
+
+export default ReportPortfolioQuality;
