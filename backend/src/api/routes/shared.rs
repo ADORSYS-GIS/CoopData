@@ -65,6 +65,10 @@ pub fn shared_routes() -> Router<AppState> {
             get(crate::api::handlers::questionnaire::get_questionnaire_analytics),
         )
         .route(
+            "/analytics/basic-dashboard",
+            get(crate::api::handlers::basic_dashboard::get_basic_dashboard),
+        )
+        .route(
             "/analytics/comparative-statements",
             get(crate::api::handlers::national_overview::get_comparative_statements),
         )

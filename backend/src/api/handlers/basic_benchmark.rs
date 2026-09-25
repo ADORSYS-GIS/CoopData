@@ -377,9 +377,6 @@ fn metrics_from_answers(answers: &serde_json::Value) -> HashMap<String, f64> {
 
     let savings_m = get_f64_from_json(answers, &["savings_value_male", "savings_male"]);
     let savings_f = get_f64_from_json(answers, &["savings_value_female", "savings_female"]);
-    let loans_m = get_f64_from_json(answers, &["outstanding_value_male", "loans_male"]);
-    let loans_f = get_f64_from_json(answers, &["outstanding_value_female", "loans_female"]);
-    let nf_loans_owed = get_f64_from_json(answers, &["amount_owed_by_members"]);
 
     let mut metrics = HashMap::new();
     metrics.insert(
@@ -400,7 +397,7 @@ fn metrics_from_answers(answers: &serde_json::Value) -> HashMap<String, f64> {
     metrics.insert("total_savings_value".to_string(), savings_m + savings_f);
     metrics.insert(
         "total_loans_outstanding".to_string(),
-        loans_m + loans_f + nf_loans_owed,
+        crate::api::handlers::questionnaire::outstanding_loans(answers),
     );
     metrics.insert(
         "total_income".to_string(),
@@ -416,47 +413,47 @@ fn metrics_from_answers(answers: &serde_json::Value) -> HashMap<String, f64> {
     );
     metrics.insert(
         "members_age_18_25".to_string(),
-        get_i32_from_json(
+        crate::api::handlers::questionnaire::sum_f64_from_json(
             answers,
             &[
                 "age_18_25_male",
                 "age_18_25_female",
                 "registered_members_18_25",
             ],
-        ) as f64,
+        ) as i32 as f64,
     );
     metrics.insert(
         "members_age_26_35".to_string(),
-        get_i32_from_json(
+        crate::api::handlers::questionnaire::sum_f64_from_json(
             answers,
             &[
                 "age_26_35_male",
                 "age_26_35_female",
                 "registered_members_26_35",
             ],
-        ) as f64,
+        ) as i32 as f64,
     );
     metrics.insert(
         "members_age_36_60".to_string(),
-        get_i32_from_json(
+        crate::api::handlers::questionnaire::sum_f64_from_json(
             answers,
             &[
                 "age_36_60_male",
                 "age_36_60_female",
                 "registered_members_36_60",
             ],
-        ) as f64,
+        ) as i32 as f64,
     );
     metrics.insert(
         "members_age_61plus".to_string(),
-        get_i32_from_json(
+        crate::api::handlers::questionnaire::sum_f64_from_json(
             answers,
             &[
                 "age_61plus_male",
                 "age_61plus_female",
                 "registered_members_61plus",
             ],
-        ) as f64,
+        ) as i32 as f64,
     );
     metrics
 }
@@ -692,6 +689,32 @@ mod tests {
         assert!(!has_benchmark_metrics(&serde_json::json!([1, 2, 3])));
     }
 
+    #[test]
+    fn age_bands_count_male_and_female_members() {
+        let answers = serde_json::json!({
+            "age_18_25_male": 10, "age_18_25_female": 15,
+            "age_26_35_male": 4, "age_26_35_female": 6,
+            "age_61plus_male": 2, "age_61plus_female": 3,
+        });
+        let m = metrics_from_answers(&answers);
+        assert_eq!(m["members_age_18_25"], 25.0);
+        assert_eq!(m["members_age_26_35"], 10.0);
+        assert_eq!(m["members_age_61plus"], 5.0);
+    }
+
+    #[test]
+    fn members_owed_is_only_a_fallback_for_outstanding_loans() {
+        let only_nf = serde_json::json!({ "amount_owed_by_members": 80.0 });
+        assert_eq!(
+            metrics_from_answers(&only_nf)["total_loans_outstanding"],
+            80.0
+        );
+        let both = serde_json::json!({
+            "outstanding_value_male": 30.0, "amount_owed_by_members": 999.0
+        });
+        assert_eq!(metrics_from_answers(&both)["total_loans_outstanding"], 30.0);
+    }
+
     // ── metrics_from_answers: alias resolution ───────────────────────────────
 
     #[test]
@@ -720,7 +743,7 @@ mod tests {
         assert_eq!(m["total_members_male"], 30.0);
         assert_eq!(m["total_members_female"], 20.0);
         assert_eq!(m["total_savings_value"], 150.0);
-        assert_eq!(m["total_loans_outstanding"], 55.0);
+        assert_eq!(m["total_loans_outstanding"], 50.0);
         assert_eq!(m["total_share_capital"], 500.0);
         assert_eq!(m["total_borrowed_funds"], 200.0);
         assert_eq!(m["total_income"], 1000.0);

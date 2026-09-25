@@ -1,6 +1,7 @@
 pub mod apex;
 pub mod audit;
 pub mod basic_benchmark;
+pub mod basic_dashboard;
 pub mod common;
 pub mod cooperative;
 pub mod custom_kpi;

@@ -12,6 +12,8 @@ pub struct Model {
     pub cooperative_id: Uuid,
     pub questionnaire_type: String,
     pub reporting_year: i32,
+    pub period_type: String,
+    pub period_value: String,
     pub answers: serde_json::Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
