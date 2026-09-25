@@ -251,6 +251,13 @@ function halfRanges(startMonth: number): { h: string; label: string }[] {
   ];
 }
 
+const FREQUENCY_KEYS = {
+  YEARLY: "yearly",
+  QUARTERLY: "quarterly",
+  MONTHLY: "monthly",
+  SEMI_ANNUAL: "semiAnnual",
+} as const;
+
 function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const { t } = useOrganizationLabelsContext();
   const navigate = useNavigate();
@@ -262,6 +269,8 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const [periodValue, setPeriodValue] = useState<string>(String(currentYear));
   const [fiscalStartMonth, setFiscalStartMonth] = useState<number>(1);
   const createSubmission = useCreateSubmission();
+  const { data: existingSubmissions = [] } = useCooperativeSubmissions(true);
+  const lock = yearLock(existingSubmissions, year);
 
   const handlePeriodTypeChange = (type: "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL") => {
     setPeriodType(type);
@@ -269,6 +278,17 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
     else if (type === "QUARTERLY") setPeriodValue("Q1");
     else if (type === "MONTHLY") setPeriodValue("01");
     else if (type === "SEMI_ANNUAL") setPeriodValue("H1");
+  };
+
+  const handleYearChange = (y: number) => {
+    setYear(y);
+    const yearLocked = yearLock(existingSubmissions, y);
+    if (yearLocked) {
+      handlePeriodTypeChange(yearLocked.periodType);
+      if (yearLocked.periodType === "YEARLY") setPeriodValue(String(y));
+    } else if (periodType === "YEARLY") {
+      setPeriodValue(String(y));
+    }
   };
 
   const handleCreate = async () => {
@@ -336,7 +356,8 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
                   key={type}
                   type="button"
                   onClick={() => handlePeriodTypeChange(type)}
-                  className={`rounded-xl py-2 px-3 text-xs font-bold border transition-all text-center ${
+                  disabled={lock !== null && lock.periodType !== type}
+                  className={`rounded-xl py-2 px-3 text-xs font-bold border transition-all text-center disabled:cursor-not-allowed disabled:opacity-40 ${
                     periodType === type
                       ? "border-primary bg-primary text-primary-foreground shadow-sm"
                       : "border-border bg-muted/20 text-foreground hover:bg-muted"
@@ -349,6 +370,19 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
                 </button>
               ))}
             </div>
+            {lock && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t(
+                  lock.onlyDrafts
+                    ? "periodReminders.lockedFrequencyDrafts"
+                    : "periodReminders.lockedFrequency",
+                  {
+                    year,
+                    frequency: t(`periodReminders.frequency.${FREQUENCY_KEYS[lock.periodType]}`),
+                  },
+                )}
+              </p>
+            )}
           </div>
 
           {/* Fiscal year start month (aligns quarters/halves) */}
@@ -479,13 +513,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
             <label className="block text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
               {t("submissions.reportingYear")}
             </label>
-            <CalendarYearPicker
-              selectedYear={year}
-              onChangeYear={(y) => {
-                setYear(y);
-                if (periodType === "YEARLY") setPeriodValue(String(y));
-              }}
-            />
+            <CalendarYearPicker selectedYear={year} onChangeYear={handleYearChange} />
           </div>
         </div>
 
@@ -712,6 +740,9 @@ import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PeriodReminderBanner } from "@/components/submissions/PeriodReminderBanner";
+import { usePeriodReminders } from "@/hooks/submissions/usePeriodReminders";
+import { yearLock } from "@/lib/period-rules";
 
 function SubmissionTable({
   submissions,
@@ -1011,6 +1042,7 @@ export const SubmissionsPage: React.FC = () => {
   const isApex = role === "apex";
   const isFederation = role === "federation";
   const isMinistry = role === "ministry";
+  const periodReminders = usePeriodReminders(isCooperative);
 
   const federationGroups = useMemo(() => {
     const map = new Map<string, { name: string; subs: SubmissionWithName[] }>();
@@ -1133,6 +1165,12 @@ export const SubmissionsPage: React.FC = () => {
         subtitle={subtitleByRole[role] ?? t("submissions.subtitle.fallback")}
       >
         <div className="space-y-8">
+          {isCooperative && (
+            <PeriodReminderBanner
+              reminders={periodReminders.visible}
+              onDismiss={periodReminders.dismiss}
+            />
+          )}
           {(isCooperative || isApex) && (
             <div className="flex justify-end">
               <button

@@ -42,6 +42,7 @@ import { UnauthorizedPage } from "@/components/UnauthorizedPage";
 import { Sun, Moon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./shared/LanguageSwitcher";
+import { PeriodReminderBell } from "@/components/submissions/PeriodReminderBell";
 import { Spinner } from "@/components/ui/spinner";
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: string };
@@ -343,7 +344,7 @@ function Topbar({
   const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, role } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const handleLogout = async () => {
@@ -409,6 +410,8 @@ function Topbar({
               ⌘K
             </kbd>
           </div>
+
+          {role === "cooperative" && <PeriodReminderBell />}
 
           {/* Language Selector */}
           <LanguageSwitcher className="mr-1" />
