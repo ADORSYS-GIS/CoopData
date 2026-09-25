@@ -196,45 +196,63 @@ export const ReportNonFinancial: React.FC<ReportDataProps> = ({
           <svg viewBox="0 0 780 280" width="100%">
             <g fontFamily="sans-serif" fontSize="12" fill="#5b6478">
               {/* Grid lines */}
-              {[0, 25, 50, 75, 100].map(pct => {
-                const x = 220 + (pct / maxGrowth) * 500;
-                if (pct > maxGrowth && pct !== 0) return null; // hide lines beyond max
-                return (
-                  <g key={pct}>
-                    <line x1={x} y1="10" x2={x} y2="240" stroke="#e2e5ea" strokeWidth={1}/>
-                    <text x={x} y="255" textAnchor="middle" fontSize="10">{pct}%</text>
-                  </g>
-                )
-              })}
-              
-              <line x1="220" y1="10" x2="220" y2="240" stroke="#e2e5ea" strokeWidth={1}/>
-              
-              {growths.map((g, i) => {
-                const yPos = 34 + i * 32;
-                const width = (Math.abs(g.val) / maxGrowth) * 500;
-                const isPos = g.val >= 0;
-                const color = g.type === "is" ? "#c0392b" : "#1f3159";
+              {(() => {
+                const actualMin = Math.min(0, ...growths.map(g => g.val));
+                const actualMax = Math.max(0, ...growths.map(g => g.val));
                 
-                let xEnd = 220;
-                if (g.val === 0) {
-                  xEnd = 220;
-                } else if (isPos) {
-                  xEnd = 220 + width;
-                } else {
-                  xEnd = 220 - width;
+                let minTick = Math.floor(actualMin / 25) * 25;
+                if (actualMin < 0 && Math.abs(minTick - actualMin) < 15) {
+                   minTick -= 25;
+                }
+                let maxTick = Math.max(100, Math.ceil(actualMax / 25) * 25);
+                if (Math.abs(maxTick - actualMax) < 15) {
+                   maxTick += 25;
                 }
 
+                const range = maxTick - minTick;
+                const chartLeft = 210;
+                const chartWidth = 530;
+                const zeroX = chartLeft + (Math.abs(minTick) / range) * chartWidth;
+                const getX = (val: number) => zeroX + (val / range) * chartWidth;
+                
+                const ticks = [];
+                for (let t = minTick; t <= maxTick; t += 25) ticks.push(t);
+
                 return (
-                  <g key={g.label}>
-                    <text x="210" y={yPos + 4} textAnchor="end">{g.label}</text>
-                    {width > 0 && <line x1="220" y1={yPos} x2={xEnd} y2={yPos} stroke={color} strokeWidth="2"/>}
-                    {width > 0 && <circle cx={xEnd} cy={yPos} r="5.5" fill={color}/>}
-                    <text x={isPos || g.val === 0 ? xEnd + 12 : xEnd - 12} y={yPos + 4} textAnchor={isPos || g.val === 0 ? "start" : "end"} fill={color} fontWeight="bold">
-                      {g.val === 0 ? "0.0%" : `${isPos ? "+" : ""}${g.val.toFixed(1)}%`}
-                    </text>
-                  </g>
+                  <>
+                    {ticks.map(pct => {
+                      const x = getX(pct);
+                      return (
+                        <g key={pct}>
+                          <line x1={x} y1="10" x2={x} y2="240" stroke="#e2e5ea" strokeWidth={1}/>
+                          <text x={x} y="255" textAnchor="middle" fontSize="10">{pct}%</text>
+                        </g>
+                      )
+                    })}
+                    
+                    {/* The 0 axis bold line */}
+                    <line x1={zeroX} y1="10" x2={zeroX} y2="240" stroke="#c9d3d8" strokeWidth={2}/>
+                    
+                    {growths.map((g, i) => {
+                      const yPos = 34 + i * 32;
+                      const xEnd = getX(g.val);
+                      const isPos = g.val >= 0;
+                      const color = g.type === "is" ? "#c0392b" : "#1f3159";
+
+                      return (
+                        <g key={g.label}>
+                          <text x={chartLeft - 10} y={yPos + 4} textAnchor="end">{g.label}</text>
+                          {g.val !== 0 && <line x1={zeroX} y1={yPos} x2={xEnd} y2={yPos} stroke={color} strokeWidth="2"/>}
+                          {g.val !== 0 && <circle cx={xEnd} cy={yPos} r="5.5" fill={color}/>}
+                          <text x={isPos || g.val === 0 ? xEnd + 12 : xEnd - 12} y={yPos + 4} textAnchor={isPos || g.val === 0 ? "start" : "end"} fill={color} fontWeight="bold">
+                            {g.val === 0 ? "0.0%" : `${isPos ? "+" : ""}${g.val.toFixed(1)}%`}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </>
                 );
-              })}
+              })()}
             </g>
           </svg>
           <div className="legend" style={{marginTop: "10px", paddingLeft: "20px"}}>
