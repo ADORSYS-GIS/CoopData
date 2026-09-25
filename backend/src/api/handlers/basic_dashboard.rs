@@ -21,7 +21,7 @@ use crate::AppState;
     path = "/api/v1/analytics/basic-dashboard",
     params(BasicDashboardParams),
     responses(
-        (status = 200, description = "Basic analytics dashboard", body = crate::api::dto::basic_dashboard::BasicDashboardResponse),
+        (status = 200, description = "Basic analytics dashboard", body = BasicDashboardResponse),
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Cooperative outside the caller's scope")
     ),

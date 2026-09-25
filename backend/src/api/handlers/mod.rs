@@ -17,6 +17,7 @@ pub mod non_financial;
 pub mod non_financial_indicator;
 pub mod organization_label;
 pub mod organizations;
+pub mod period_series;
 pub mod questionnaire;
 pub mod questionnaire_report;
 pub mod questionnaire_template;

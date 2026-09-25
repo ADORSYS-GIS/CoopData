@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::api::dto::common::RateUsed;
 use crate::services::kpi_engine::KpiValue;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
@@ -169,7 +170,7 @@ pub struct CooperativeStatementGrid {
     pub is_validated: bool,
     pub has_unmapped_items: bool,
     /// Rate used for `value_usd`; None when the statement is already in USD.
-    pub rate_used: Option<crate::api::dto::common::RateUsed>,
+    pub rate_used: Option<RateUsed>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]

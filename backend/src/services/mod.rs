@@ -16,6 +16,8 @@ pub mod nf_excel_parser;
 pub mod nf_indicator_engine;
 pub mod object_storage;
 pub mod pdf_templates;
+pub mod period_rules;
+pub mod period_series;
 pub mod questionnaire_kpi;
 pub mod questionnaire_report;
 pub mod report_narrative;

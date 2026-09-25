@@ -19,7 +19,7 @@ use crate::AppState;
     path = "/api/v1/cooperative/submissions/{id}/questionnaire-report",
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
-        (status = 200, description = "Report data", body = crate::api::dto::basic_dashboard::BasicDashboardResponse),
+        (status = 200, description = "Report data", body = BasicDashboardResponse),
         (status = 400, description = "Submission was not filled in through the questionnaire"),
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Not found")

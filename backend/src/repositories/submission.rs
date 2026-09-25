@@ -119,6 +119,22 @@ impl SubmissionRepository {
         .await
     }
 
+    pub async fn find_all_by_cooperative_and_year(
+        &self,
+        cooperative_id: Uuid,
+        reporting_year: i32,
+    ) -> AppResult<Vec<submission::Model>> {
+        db_query("submission", "find_all_by_cooperative_and_year", async {
+            Entity::find()
+                .filter(Column::CooperativeId.eq(cooperative_id))
+                .filter(Column::ReportingYear.eq(reporting_year))
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
+    }
+
     pub async fn find_by_cooperative_and_period(
         &self,
         cooperative_id: Uuid,
