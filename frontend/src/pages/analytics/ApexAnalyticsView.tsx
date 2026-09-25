@@ -6,12 +6,11 @@
  */
 import { useMemo } from "react";
 import { X } from "lucide-react";
-import { Card } from "@/components/app-shell";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import { ApexRadarChart } from "@/components/analytics/ApexRadarChart";
 import { CoopScatterPlot } from "@/components/analytics/CoopScatterPlot";
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
 import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDoughnutCharts";
-import { CooperativeDeepDive } from "@/components/analytics/CooperativeDeepDive";
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
 import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
 import { CooperativeRanking } from "@/components/analytics/CooperativeRanking";
@@ -24,10 +23,9 @@ import { Spinner } from "@/components/ui/spinner";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
-  onFilterChange: (id: string, value: string) => void;
 }
 
-export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
+export function ApexAnalyticsView({ filterValues }: Props) {
   const { t } = useOrganizationLabelsContext();
   const year = Number(filterValues.year);
 
@@ -46,13 +44,7 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
   const { data: overview, isLoading: overviewLoading } = useNationalOverview(params);
   const { data: nfStats } = useNfStatistics(false, params);
   const { data: networkTrend } = useMonthlyTrend(params, filterValues.cooperativeId === "all");
-  const coops = overview?.cooperatives ?? [];
-
-  const hasSelected = filterValues.cooperativeId !== "all";
-  const selectedCoopRow = useMemo(
-    () => coops.find((c) => c.cooperative_id === filterValues.cooperativeId),
-    [coops, filterValues.cooperativeId],
-  );
+  const coops = useMemo(() => overview?.cooperatives ?? [], [overview]);
 
   if (overviewLoading) {
     return (
@@ -63,20 +55,6 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
   }
 
   /* ── Deep-dive: single cooperative selected ── */
-  if (hasSelected && selectedCoopRow) {
-    return (
-      <CooperativeDeepDive
-        cooperativeId={selectedCoopRow.cooperative_id}
-        submissionId={selectedCoopRow.submission_id}
-        cooperativeName={selectedCoopRow.name}
-        cooperativeRegion={selectedCoopRow.region}
-        cooperativeType={selectedCoopRow.institution_type}
-        reportingYear={year}
-        onClose={() => onFilterChange("cooperativeId", "all")}
-      />
-    );
-  }
-
   /* ── Network overview ── */
   return (
     <div className="space-y-6">
@@ -85,6 +63,7 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
         networkTrend={networkTrend}
         totalCooperatives={overview?.total_cooperatives ?? 0}
         cooperativesWithData={overview?.cooperatives_with_data ?? 0}
+        seriesQuery={params}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -110,7 +89,7 @@ export function ApexAnalyticsView({ filterValues, onFilterChange }: Props) {
           subtitle={t("apexAnalytics.nplLeaderboardSubtitle")}
           info={t("apexAnalytics.nplLeaderboardInfo")}
         >
-          <TopBottomLeaderboard cooperatives={coops} sortByKpi="npl_ratio" />
+          <TopBottomLeaderboard cooperatives={coops} sortByKpi="npl_ratio" higherIsBetter={false} />
         </Card>
         {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
           <Card

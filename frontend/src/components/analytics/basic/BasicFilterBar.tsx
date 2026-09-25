@@ -12,9 +12,9 @@ import {
   ALL,
   periodOptions,
   periodTypeOptions,
-  yearOptions,
   type BasicFilterState,
 } from "@/lib/basic-dashboard-filters";
+import { YearPickerFilter } from "@/components/shared/YearPickerFilter";
 import type { PeriodOption } from "@/types/basic-dashboard";
 
 export interface CooperativeOption {
@@ -33,18 +33,25 @@ interface BasicFilterBarProps {
   showScopeFilters: boolean;
 }
 
-interface FilterSelectProps {
+export interface FilterSelectProps {
   label: string;
+  disabled?: boolean;
   value: string;
   onValueChange: (value: string) => void;
   options: { value: string; label: string }[];
 }
 
-function FilterSelect({ label, value, onValueChange, options }: FilterSelectProps) {
+export function FilterSelect({
+  label,
+  value,
+  onValueChange,
+  options,
+  disabled = false,
+}: FilterSelectProps) {
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold">
       <span className="whitespace-nowrap uppercase text-muted-foreground">{label}:</span>
-      <Select value={value} onValueChange={onValueChange}>
+      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger
           aria-label={label}
           className="h-auto border-none bg-transparent p-0 font-bold shadow-none focus:ring-0 [&>svg]:opacity-50"
@@ -89,11 +96,12 @@ export function BasicFilterBar({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <FilterSelect
+      <YearPickerFilter
         label={f("year")}
         value={state.year}
         onValueChange={(year) => onChange({ year, periodValue: ALL })}
-        options={[latest, ...yearOptions(availablePeriods).map((y) => ({ value: y, label: y }))]}
+        latestValue={ALL}
+        latestLabel={latest.label}
       />
       <FilterSelect
         label={f("periodType")}

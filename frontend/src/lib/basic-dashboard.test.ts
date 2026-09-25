@@ -194,8 +194,16 @@ describe("share helpers", () => {
 describe("filters", () => {
   const { available_periods: periods } = basicDashboardFixture.scope;
 
-  it("derives year, period type and period options from the available periods", () => {
-    expect(yearOptions(periods)).toEqual(["2026", "2025"]);
+  it("lists every year back to 2000 and keeps years that already have data", () => {
+    const years = yearOptions(periods, 2026);
+
+    expect(years[0]).toBe("2027");
+    expect(years).toContain("2005");
+    expect(years[years.length - 1]).toBe("2000");
+    expect(new Set(years).size).toBe(years.length);
+  });
+
+  it("derives period type and period options from the available periods", () => {
     expect(periodTypeOptions(periods)).toEqual(["QUARTERLY"]);
     expect(periodOptions(periods, "2025", "all").map((p) => p.period_value)).toEqual(["Q4"]);
   });

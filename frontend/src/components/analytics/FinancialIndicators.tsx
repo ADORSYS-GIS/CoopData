@@ -4,7 +4,7 @@ import {
   useNationalOverview,
   type NationalOverviewParams,
 } from "@/hooks/analytics/useNationalOverview";
-import { Card } from "@/components/app-shell";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import {
   Select,
   SelectContent,

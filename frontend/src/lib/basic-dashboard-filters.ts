@@ -27,10 +27,24 @@ export const SECTORS = ["Agriculture", "Finance", "Housing", "Transport", "Manuf
 
 const unique = <T>(values: T[]): T[] => Array.from(new Set(values));
 
-export const yearOptions = (periods: PeriodOption[]): string[] =>
-  unique(periods.map((p) => p.reporting_year))
+export const EARLIEST_YEAR = 2000;
+
+/**
+ * Every year from the earliest supported one to next year, plus any year that
+ * already has data, so an older year can always be chosen.
+ */
+export const yearOptions = (
+  periods: PeriodOption[],
+  currentYear: number = new Date().getFullYear(),
+): string[] => {
+  const range = Array.from(
+    { length: currentYear + 1 - EARLIEST_YEAR + 1 },
+    (_, index) => currentYear + 1 - index,
+  );
+  return unique([...range, ...periods.map((p) => p.reporting_year)])
     .sort((a, b) => b - a)
     .map(String);
+};
 
 export const periodTypeOptions = (periods: PeriodOption[]): string[] =>
   unique(periods.map((p) => p.period_type));

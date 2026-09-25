@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { formatUsd } from "@/lib/currency";
+import { compactNumber } from "@/lib/basic-dashboard";
+import { AXIS_PROPS, TOOLTIP_STYLE } from "@/components/analytics/basic/chart-config";
 import {
   ResponsiveContainer,
   BarChart,
@@ -14,7 +16,7 @@ import {
   type NationalOverviewParams,
 } from "@/hooks/analytics/useNationalOverview";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
-import { Card } from "@/components/app-shell";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import {
   Select,
   SelectContent,
@@ -161,9 +163,9 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
   // Chart data mapping
   const chartData = useMemo(() => {
     return rankedCoops.map((c) => ({
-      name: c.name.length > 20 ? `${c.name.substring(0, 20)}...` : c.name,
+      name: c.name.length > 18 ? `${c.name.substring(0, 18)}…` : c.name,
       fullName: c.name,
-      value: c.value / 1_000_000, // Millions
+      value: c.value,
     }));
   }, [rankedCoops]);
 
@@ -301,10 +303,10 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                           <td className="py-2.5 px-3 font-semibold text-foreground truncate max-w-[180px]">
                             {coop.name}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-foreground">
                             {formatValue(coop.value)}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-medium text-accent bg-accent/5">
+                          <td className="py-2.5 px-3 text-right font-mono font-medium text-primary">
                             {contribPct.toFixed(2)}%
                           </td>
                         </tr>
@@ -329,39 +331,39 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
             subtitle={t("analytics.valueContributionSubtitle")}
           >
             {chartData.length > 0 ? (
-              <div className="h-[430px] w-full mt-4">
+              <div
+                className="mt-4 w-full"
+                style={{ height: Math.max(280, chartData.length * 44 + 40) }}
+              >
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 65 }}>
-                    <defs>
-                      <linearGradient id="rankingBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.4} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                  <BarChart
+                    data={chartData}
+                    layout="vertical"
+                    margin={{ top: 4, right: 24, left: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      horizontal={false}
+                    />
                     <XAxis
-                      dataKey="name"
-                      stroke="currentColor"
-                      fontSize={9}
-                      opacity={0.8}
-                      angle={-45}
-                      textAnchor="end"
-                      interval={0}
-                      height={75}
+                      type="number"
+                      {...AXIS_PROPS}
+                      tickFormatter={(value: number) => `$${compactNumber(value)}`}
                     />
-                    <YAxis stroke="currentColor" fontSize={10} opacity={0.8} />
+                    <YAxis type="category" dataKey="name" width={120} {...AXIS_PROPS} />
                     <ChartTooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--background))",
-                        borderColor: "hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(val: unknown) => [
-                        `${Number(val).toFixed(2)}M`,
-                        t("analytics.valueMillions"),
-                      ]}
+                      contentStyle={TOOLTIP_STYLE}
+                      cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                      formatter={(val: number) => [formatUsd(val), activeMetricInfo?.label ?? ""]}
+                      labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
                     />
-                    <Bar dataKey="value" fill="url(#rankingBarGrad)" radius={[2, 2, 0, 0]} />
+                    <Bar
+                      dataKey="value"
+                      fill="var(--chart-1)"
+                      radius={[0, 4, 4, 0]}
+                      maxBarSize={28}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -46,13 +46,13 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+    <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
       <div className="flex items-start gap-1.5">
         <div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">
             {t("analytics.savingsLoansDepositsTitle")}
           </span>
-          <span className="text-xs text-slate-500 font-medium block mt-0.5">
+          <span className="text-xs text-muted-foreground font-medium block mt-0.5">
             {t("analytics.monthlyFinancialBreakdown")}
           </span>
         </div>

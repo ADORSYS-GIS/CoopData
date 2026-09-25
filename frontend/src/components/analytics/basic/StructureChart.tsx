@@ -46,13 +46,7 @@ export function StructureChart({ points }: { points: SeriesPoint[] | undefined }
         <ComposedChart data={data} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis dataKey="label" {...AXIS_PROPS} />
-          <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={percentFormatters.axis} />
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            {...AXIS_PROPS}
-            tickFormatter={percentFormatters.axis}
-          />
+          <YAxis {...AXIS_PROPS} tickFormatter={percentFormatters.axis} />
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
             formatter={(value: number, name: string) => [
@@ -64,7 +58,6 @@ export function StructureChart({ points }: { points: SeriesPoint[] | undefined }
           {BAR_KEYS.map((key, index) => (
             <Bar
               key={key}
-              yAxisId="left"
               dataKey={key}
               fill={CHART_COLORS[index]}
               radius={[3, 3, 0, 0]}
@@ -72,7 +65,6 @@ export function StructureChart({ points }: { points: SeriesPoint[] | undefined }
             />
           ))}
           <Line
-            yAxisId="right"
             type="monotone"
             dataKey={LINE_KEY}
             stroke={CHART_COLORS[3]}

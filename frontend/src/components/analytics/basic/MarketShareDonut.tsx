@@ -1,3 +1,4 @@
+import { PieTooltip } from "@/components/analytics/PieTooltip";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useTranslation } from "react-i18next";
 
@@ -5,7 +6,6 @@ import { ChartCard } from "@/components/analytics/basic/chart-shared";
 import {
   CHART_COLORS,
   moneyFormatters,
-  TOOLTIP_STYLE,
   useChartText,
 } from "@/components/analytics/basic/chart-config";
 import { topShares } from "@/lib/basic-dashboard";
@@ -30,6 +30,11 @@ export function MarketShareDonut({ chartKey, rows, currency }: MarketShareDonutP
     t("basicDashboard.charts.other", { defaultValue: "Other" }),
   );
 
+  const coloured = slices.map((slice, index) => ({
+    ...slice,
+    fill: SLICE_COLORS[index % SLICE_COLORS.length],
+  }));
+
   return (
     <ChartCard
       title={text.title}
@@ -42,23 +47,30 @@ export function MarketShareDonut({ chartKey, rows, currency }: MarketShareDonutP
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={slices}
+                data={coloured}
                 dataKey="value"
                 nameKey="name"
                 innerRadius="55%"
                 outerRadius="85%"
                 paddingAngle={2}
               >
-                {slices.map((slice, index) => (
-                  <Cell key={slice.name} fill={SLICE_COLORS[index % SLICE_COLORS.length]} />
+                {coloured.map((slice) => (
+                  <Cell key={slice.name} fill={slice.fill} />
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={TOOLTIP_STYLE}
-                formatter={(value: number, name: string, item) => [
-                  `${money.tooltip(value)} (${(item.payload as { share_pct: number }).share_pct.toFixed(2)}%)`,
-                  name,
-                ]}
+                content={
+                  <PieTooltip
+                    total={slices.reduce((sum, slice) => sum + slice.value, 0)}
+                    format={money.tooltip}
+                    detail={(slice) =>
+                      typeof slice["share_pct"] === "number"
+                        ? `${slice["share_pct"].toFixed(2)}%`
+                        : null
+                    }
+                    showPercent={false}
+                  />
+                }
               />
             </PieChart>
           </ResponsiveContainer>
