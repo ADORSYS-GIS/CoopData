@@ -39,6 +39,9 @@
   min-height: 297mm; /* Ensure it spans a full A4 page when printing */
   break-after: page;
 }
+.rp-page:last-child {
+  break-after: auto;
+}
 
 .divider {
   margin: 0 auto 60px;
