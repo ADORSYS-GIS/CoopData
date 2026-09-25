@@ -1,14 +1,8 @@
 import React from "react";
-import { ConsolidatedCoverPage } from "./components/ConsolidatedCoverPage";
-import { ConsolidatedDashboardSheet } from "./components/ConsolidatedDashboardSheet";
-import { FederationApexDistributionSheet } from "./components/FederationApexDistributionSheet";
-import { FederationSectorSheet } from "./components/FederationSectorSheet";
-import { FederationApexComparisonSheet } from "./components/FederationApexComparisonSheet";
-import { FederationPearlsSheet } from "./components/FederationPearlsSheet";
-import { FederationSocialImpactSheet } from "./components/FederationSocialImpactSheet";
-import type { NationalOverviewResponse } from "./components";
-import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
+
 import type { FederationNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
+import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
+import { ConsolidatedTplReport } from "@/pages/shared/print/cons/ConsolidatedTplReport";
 
 interface FederationReportPrintProps {
   entityName: string;
@@ -27,77 +21,15 @@ export const FederationReportPrint: React.FC<FederationReportPrintProps> = ({
   tier = "Federation",
   narratives,
 }) => {
-  useGotenbergReady(true);
-
-  const totalApexes = React.useMemo(() => {
-    if (!data?.cooperatives) return 0;
-    const apexSet = new Set<string>();
-    data.cooperatives.forEach((c) => {
-      if (c.apex_id) apexSet.add(c.apex_id);
-    });
-    return apexSet.size;
-  }, [data]);
-
   if (!data) return null;
-
   return (
-    <div className="print-report bg-white text-slate-900 font-sans print:w-[210mm]">
-      {/* Cover Page */}
-      <ConsolidatedCoverPage
-        tier={tier}
-        entityName={entityName}
-        year={year}
-        totalCooperatives={data.total_cooperatives || 0}
-        submittedCooperatives={data.cooperatives_with_data || 0}
-        totalApexes={totalApexes}
-      />
-
-      {/* Sheet 1: Executive Dashboard */}
-      <ConsolidatedDashboardSheet
-        tier={tier}
-        entityName={entityName}
-        year={year}
-        data={data}
-        priorData={priorData}
-        totalApexes={totalApexes}
-        narratives={narratives?.executive_dashboard}
-        riskNarratives={narratives?.risk_distribution}
-      />
-
-      {/* Sheet 1 (Continued): Sector Breakdown */}
-      <FederationSectorSheet
-        federationName={entityName}
-        year={year}
-        data={data}
-        narratives={narratives?.sector_breakdown}
-      />
-
-      {/* Sheet 1 (Continued): Apex Distribution */}
-      <FederationApexDistributionSheet federationName={entityName} year={year} data={data} />
-
-      {/* Sheet 2 & 3: Apex Comparison and Filing Compliance */}
-      <FederationApexComparisonSheet
-        federationName={entityName}
-        year={year}
-        data={data}
-        narratives={narratives?.apex_comparison}
-      />
-
-      {/* Sheet 4: PEARLS Comparative Analysis */}
-      <FederationPearlsSheet
-        federationName={entityName}
-        year={year}
-        data={data}
-        narratives={narratives?.pearls_analysis}
-      />
-
-      {/* Sheet 6: Federation Social Impact Summary */}
-      <FederationSocialImpactSheet
-        federationName={entityName}
-        year={year}
-        data={data}
-        priorData={priorData}
-      />
-    </div>
+    <ConsolidatedTplReport
+      tier={tier}
+      entityName={entityName}
+      year={year}
+      data={data}
+      priorData={priorData}
+      narrative={narratives?.executive_dashboard}
+    />
   );
 };

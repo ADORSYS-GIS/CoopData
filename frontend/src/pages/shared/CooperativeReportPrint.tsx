@@ -12,17 +12,8 @@ import {
 } from "@/hooks/submissions/useCooperativeKpis";
 import { useSubmissionNarratives } from "@/hooks/submissions/useSubmissionNarratives";
 import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
-import {
-  ReportCoverPage,
-  ReportExecutiveSummary,
-  ReportNonFinancial,
-  ReportFinancialPosition,
-  ReportDataProps,
-} from "./print/components";
-
-// Import the global print stylesheet — owns @page margin-boxes, fonts,
-// colour palette and all rp-* utility classes.
-import "./print/print-report.css";
+import type { ReportDataProps } from "./print/components/types";
+import { CooperativeTplReport } from "./print/coop/CooperativeTplReport";
 
 interface Props {
   submissionId: string;
@@ -103,9 +94,6 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     agm_attendance: 0,
   };
 
-  const subRef = `SUB-${submission.reporting_year}-${submissionId.slice(0, 5).toUpperCase()}`;
-  const coopYear = `${coopName}  ·  FY ${submission.reporting_year}`;
-
   const reportData: ReportDataProps = {
     submission,
     submissionId,
@@ -118,22 +106,5 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     narratives,
   };
 
-  return (
-    /*
-     * data-coop-year  → injected into @top-right margin box via CSS attr()
-     * data-sub-ref    → injected into @bottom-center margin box via CSS attr()
-     * These attributes replace the old Gotenberg-injected header/footer HTML.
-     */
-    <div
-      className="print-report"
-      data-coop-year={coopYear}
-      data-sub-ref={subRef}
-    >
-      {/* Section order must match the numbered sections exactly */}
-      <ReportCoverPage {...reportData} />          {/* Cover  */}
-      <ReportExecutiveSummary {...reportData} />   {/* § 1   */}
-      <ReportFinancialPosition {...reportData} />  {/* § 2, 3, 4 */}
-      <ReportNonFinancial {...reportData} />       {/* § 5, 6, Annex */}
-    </div>
-  );
+  return <CooperativeTplReport {...reportData} />;
 };
