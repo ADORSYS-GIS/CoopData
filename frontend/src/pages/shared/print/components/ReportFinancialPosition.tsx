@@ -95,20 +95,24 @@ export const ReportFinancialPosition: React.FC<ReportDataProps> = ({
             <line x1="60" y1="160" x2="760" y2="160" stroke="#e2e5ea"/>
             <g fontFamily="sans-serif" fontSize="11" fill="#5b6478">
               {(() => {
-                const max = Math.max(finIncome0, finIncome1, totalExp0, totalExp1, 1);
+                const absInc0 = Math.abs(finIncome0);
+                const absInc1 = Math.abs(finIncome1);
+                const absExp0 = Math.abs(totalExp0);
+                const absExp1 = Math.abs(totalExp1);
+                const max = Math.max(absInc0, absInc1, absExp0, absExp1, 1);
                 const scale = (v: number) => (120 * v) / max;
                 return (
                   <>
-                    <rect x="140" y={160 - scale(finIncome0)} width="40" height={scale(finIncome0)} fill="#1f3159"/>
+                    <rect x="140" y={160 - scale(absInc0)} width="40" height={scale(absInc0)} fill="#1f3159"/>
                     <text x="160" y="180" textAnchor="middle">Income '{y0.toString().slice(2)}</text>
                     
-                    <rect x="220" y={160 - scale(finIncome1)} width="40" height={scale(finIncome1)} fill="#1f3159"/>
+                    <rect x="220" y={160 - scale(absInc1)} width="40" height={scale(absInc1)} fill="#1f3159"/>
                     <text x="240" y="180" textAnchor="middle">Income '{y1.toString().slice(2)}</text>
                     
-                    <rect x="380" y={160 - scale(totalExp0)} width="40" height={scale(totalExp0)} fill="#c0392b"/>
+                    <rect x="380" y={160 - scale(absExp0)} width="40" height={scale(absExp0)} fill="#c0392b"/>
                     <text x="400" y="180" textAnchor="middle">Expense '{y0.toString().slice(2)}</text>
                     
-                    <rect x="460" y={160 - scale(totalExp1)} width="40" height={scale(totalExp1)} fill="#c0392b"/>
+                    <rect x="460" y={160 - scale(absExp1)} width="40" height={scale(absExp1)} fill="#c0392b"/>
                     <text x="480" y="180" textAnchor="middle">Expense '{y1.toString().slice(2)}</text>
                   </>
                 )
