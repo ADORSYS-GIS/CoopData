@@ -29,6 +29,13 @@ const STATUS_TEXT = {
  * status. Without a financial statement (no total assets) every ratio is zero,
  * so the cards read "Not reported" instead of a misleading 0.0% "Risk".
  */
+const kpiLabel = (kpi: KpiItem, t: TFunction): string =>
+  t(`analytics.kpiName.${kpi.name.toLowerCase()}`, { defaultValue: kpi.name.replace(/_/g, " ") });
+
+/** The backend sends English only; a translated text is used when one exists. */
+const kpiHelp = (kpi: KpiItem, t: TFunction): string =>
+  t(`analytics.kpiHelp.${kpi.name.toLowerCase()}`, { defaultValue: kpi.description || kpi.name });
+
 export const buildKpiCards = (kpis: readonly KpiItem[], t: TFunction): MetricCard[] => {
   const assets = kpis.find((kpi) => kpi.name.toLowerCase() === "total_assets")?.value ?? 0;
   const reported = assets > 0;
@@ -40,18 +47,18 @@ export const buildKpiCards = (kpis: readonly KpiItem[], t: TFunction): MetricCar
       if (!reported || !isReportedKpi(kpi)) {
         return {
           key: kpi.name,
-          label: kpi.name.replace(/_/g, " "),
+          label: kpiLabel(kpi, t),
           value: "—",
-          tooltip: kpi.description || kpi.name,
+          tooltip: kpiHelp(kpi, t),
           trend: "neutral" as const,
           trendValue: t("analytics.stmt.notReported"),
         };
       }
       return {
         key: kpi.name,
-        label: kpi.name.replace(/_/g, " "),
+        label: kpiLabel(kpi, t),
         value: kpi.formatted || String(kpi.value),
-        tooltip: kpi.description || kpi.name,
+        tooltip: kpiHelp(kpi, t),
         trend:
           status && status in STATUS_TREND ? STATUS_TREND[status as "green" | "red"] : "neutral",
         trendValue: status ? t(STATUS_TEXT[status]) : t("analytics.unknown"),

@@ -2539,7 +2539,47 @@
       "liquid": "The share of assets held as cash and bank balances. It shows how much is available at short notice. Approved statement at the month chosen. Formula: liquid assets divided by total assets, as a percentage (1100 over 1999).",
       "loansDeposits": "How much has been lent for each unit of member savings. Around 100 percent or more means savings are fully lent, leaving less cash for withdrawals. Approved statement at the month chosen. Formula: gross loans divided by member savings, as a percentage (1200 over 2100)."
     },
-    "netOfAccountsPct": "{{pct}}% of accounts"
+    "netOfAccountsPct": "{{pct}}% of accounts",
+    "kpiName": {
+      "total_assets": "Total assets",
+      "gross_loan_portfolio": "Gross loan portfolio",
+      "net_loan_portfolio": "Net loan portfolio",
+      "total_member_deposits": "Total member deposits",
+      "total_equity": "Total equity",
+      "net_surplus": "Net surplus",
+      "par30": "PAR > 30 days",
+      "par90": "PAR > 90 days",
+      "npl_ratio": "Non-performing loans",
+      "loan_loss_coverage": "Loan loss coverage",
+      "roa": "Return on assets",
+      "roe": "Return on equity",
+      "operating_expense_ratio": "Operating expense ratio",
+      "capital_adequacy_ratio": "Capital adequacy ratio",
+      "liquid_funds_ratio": "Liquid funds ratio",
+      "operational_self_sufficiency": "Operational self-sufficiency",
+      "net_interest_margin": "Net interest margin",
+      "deposits_to_loans": "Deposits to loans"
+    },
+    "kpiHelp": {
+      "total_assets": "Everything the cooperative owns. It shows the overall size of the cooperative. Taken from the approved financial statement at the latest month reported. Formula: total assets.",
+      "gross_loan_portfolio": "The amount members still owe on loans, including overdue loans, before provisions. It is the main earning asset. Taken from the approved financial statement at the latest month reported. Formula: loans and advances.",
+      "net_loan_portfolio": "The loan book after setting aside money for expected losses, a more prudent view of what will be recovered. Taken from the approved financial statement. Formula: gross loan portfolio minus provisions.",
+      "total_member_deposits": "The money members hold as savings with the cooperative. It is the main source of funds for lending. Taken from the approved financial statement at the latest month reported. Formula: member deposits and savings.",
+      "total_equity": "What is left for members after all debts are paid: shares, reserves and retained earnings. It shows net worth. Taken from the approved financial statement at the latest month reported. Formula: total equity.",
+      "net_surplus": "What is left after all expenses. Positive is a surplus, negative a loss. Shown as not reported when the statement has no income lines. Taken from the approved financial statement, summed over the months reported. Formula: net surplus, otherwise total income minus total expenses.",
+      "par30": "The share of the loan book that is more than 30 days late. A high value means many loans may not be repaid, so lower is better. Loans only 1 to 30 days late are not counted. Taken from the approved financial statement at the latest month reported. Formula: loans overdue more than 30 days divided by gross loans.",
+      "par90": "The share of the loan book that is more than 90 days late. These loans are unlikely to be recovered, so lower is better. Taken from the approved financial statement at the latest month reported. Formula: non-performing loans divided by gross loans.",
+      "npl_ratio": "The share of the loan book that is non-performing, meaning more than 90 days late. Lower is better. Taken from the approved financial statement at the latest month reported. Formula: non-performing loans divided by gross loans.",
+      "loan_loss_coverage": "How much of the seriously late loans is covered by provisions. Around 100 percent or more means expected losses are fully set aside; higher is safer. Shown as not reported when there are no loans over 30 days late. Formula: provisions divided by loans overdue more than 30 days.",
+      "roa": "How much surplus is made for each unit of assets. Higher means assets are used more profitably. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: net surplus divided by total assets.",
+      "roe": "How much surplus is made for each unit of members' equity. Higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: net surplus divided by total equity.",
+      "operating_expense_ratio": "The running costs of the cooperative compared with its size. Lower means a leaner operation. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: operating expenses divided by total assets.",
+      "capital_adequacy_ratio": "How much of the assets belongs to members rather than creditors. Higher means a stronger cushion against losses. Taken from the approved financial statement at the latest month reported. Formula: total equity divided by total assets.",
+      "liquid_funds_ratio": "The share of assets held as cash and bank balances, available at short notice. Higher is safer. This is measured against total assets, not against member savings. Taken from the approved financial statement at the latest month reported. Formula: liquid assets divided by total assets.",
+      "operational_self_sufficiency": "Whether income covers costs. Above 100 percent the cooperative covers its costs from its own income; higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, summed over the months reported. Formula: total income divided by total expenses.",
+      "net_interest_margin": "What the cooperative earns from lending and investing after paying interest, compared with its size. Higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: financial income minus financial expenses, divided by total assets.",
+      "deposits_to_loans": "How much members have saved for each unit lent. Below 100 percent means loans exceed savings and are funded by other sources. Taken from the approved financial statement at the latest month reported. Formula: member savings divided by gross loan portfolio."
+    }
   },
   "cooperativeDashboard": {
     "title": "Cooperative Dashboard",
