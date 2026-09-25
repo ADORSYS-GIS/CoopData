@@ -4744,5 +4744,344 @@
   "errors": {
     "rateLimited": "Trop de tentatives. Réessayez dans {{seconds}}s.",
     "rateLimitedTitle": "Ralentissez"
+  },
+  "basicDashboard": {
+    "title": "Analyses de base",
+    "subtitle": "ICP, tendances et graphiques calculés à partir des questionnaires soumis",
+    "loading": "Chargement des analyses...",
+    "loadError": "Impossible de charger le tableau de bord : {{error}}",
+    "empty": "Aucune donnée de questionnaire pour les filtres sélectionnés.",
+    "search": {
+      "placeholder": "Rechercher un indicateur (ex. PAR, liquidité, membres)",
+      "clear": "Effacer la recherche",
+      "noResults": "Aucun indicateur ne correspond à « {{query}} »."
+    },
+    "filters": {
+      "year": "Année",
+      "periodType": "Fréquence",
+      "period": "Période",
+      "region": "Région",
+      "sector": "Secteur",
+      "cooperative": "Coopérative",
+      "currency": "Devise",
+      "allPeriods": "Dernière disponible",
+      "allRegions": "Toutes les régions",
+      "allSectors": "Tous les secteurs",
+      "allCooperatives": "Toutes les coopératives",
+      "yearly": "Annuelle",
+      "semiAnnual": "Semestrielle",
+      "quarterly": "Trimestrielle",
+      "monthly": "Mensuelle",
+      "usd": "USD",
+      "native": "Locale",
+      "clear": "Effacer les filtres",
+      "regions": {
+        "Manzini": "Manzini",
+        "Hhohho": "Hhohho",
+        "Shiselweni": "Shiselweni",
+        "Lubombo": "Lubombo"
+      },
+      "sectors": {
+        "Agriculture": "Agriculture",
+        "Finance": "Finance",
+        "Housing": "Logement",
+        "Transport": "Transport",
+        "Manufacturing": "Industrie"
+      }
+    },
+    "scope": {
+      "individual": "Vue individuelle",
+      "consolidated": "Vue consolidée",
+      "reporting": "{{reporting}} coopératives sur {{total}} ont déclaré",
+      "period": "Période : {{period}}",
+      "currency": "Montants en {{currency}}",
+      "rate": "Converti au taux de {{rate}}"
+    },
+    "groups": {
+      "membership": "Membres",
+      "savings": "Épargne",
+      "loans": "Portefeuille de prêts",
+      "risk": "Risque du portefeuille",
+      "liquidity": "Liquidité",
+      "structure": "Structure financière",
+      "capital": "Capital institutionnel",
+      "profitability": "Rentabilité",
+      "governance": "Gouvernance"
+    },
+    "indicators": {
+      "registered_members": "Membres inscrits",
+      "active_members": "Membres actifs",
+      "inactive_members": "Membres inactifs",
+      "active_members_pct": "Membres actifs (%)",
+      "women_members_pct": "Femmes membres (%)",
+      "youth_members_pct": "Jeunes membres 18-35 (%)",
+      "number_of_groups": "Nombre de groupes",
+      "total_deposits": "Total des dépôts des membres",
+      "deposit_accounts": "Comptes de dépôt",
+      "avg_savings_per_account": "Épargne moyenne par compte",
+      "gross_loan_portfolio": "Portefeuille brut de prêts",
+      "loans_outstanding_count": "Prêts en cours",
+      "avg_loan_balance": "Solde moyen des prêts",
+      "total_disbursed_active": "Total décaissé (prêts actifs)",
+      "loans_awaiting_approval": "Prêts en attente d'approbation",
+      "loans_in_arrears_count": "Prêts en retard",
+      "projected_interest_earnings": "Produits d'intérêts prévisionnels sur prêts",
+      "female_borrowers_pct": "Emprunteuses (%)",
+      "total_overdrafts": "Total des découverts",
+      "par_gt_7_pct": "PAR > 7 jours",
+      "par_gt_30_pct": "PAR > 30 jours",
+      "par_gt_90_pct": "PAR > 90 jours",
+      "par_30_90_pct": "PAR 30-90 jours",
+      "par_180_360_pct": "PAR 180-360 jours",
+      "portfolio_at_risk_pct": "Portefeuille à risque",
+      "value_at_risk": "Valeur à risque",
+      "var_gt_7": "VAR > 7 jours",
+      "var_gt_30": "VAR > 30 jours",
+      "var_gt_90": "VAR > 90 jours",
+      "interest_in_suspense": "Intérêts en suspens",
+      "interest_payable": "Intérêts à payer",
+      "written_off_loans": "Prêts passés en perte",
+      "liquid_assets": "Actifs liquides",
+      "liquidity_ratio_pct": "Liquidité par rapport à l'épargne des membres",
+      "liquidity_minimum_pct": "Liquidité minimale",
+      "liquidity_gap_pct": "Écart avec la liquidité minimale",
+      "total_assets": "Total des actifs",
+      "earning_asset_ratio": "Ratio des actifs productifs",
+      "member_savings_ratio": "Ratio de l'épargne des membres",
+      "member_share_ratio": "Ratio des parts sociales",
+      "borrowed_funds_ratio": "Ratio des fonds empruntés",
+      "loans_to_savings_ratio": "Ratio prêts / épargne",
+      "institutional_capital": "Capital institutionnel",
+      "institutional_capital_ratio_pct": "Capital institutionnel / actifs",
+      "institutional_capital_minimum_pct": "Capital institutionnel minimal",
+      "institutional_capital_excess_pct": "Excédent / déficit par rapport au minimum",
+      "total_equity": "Total des capitaux propres",
+      "share_capital": "Capital social",
+      "retained_earnings": "Bénéfices non distribués",
+      "statutory_reserves": "Réserves statutaires",
+      "total_income": "Total des produits",
+      "total_expenditure": "Total des charges",
+      "net_income": "Résultat net",
+      "return_on_assets_pct": "Rendement des actifs",
+      "operating_expense_ratio_pct": "Charges / produits",
+      "board_women_pct": "Femmes au conseil (%)",
+      "executive_women_pct": "Femmes au comité exécutif (%)",
+      "credit_committee_women_pct": "Femmes au comité de crédit (%)",
+      "agm_attendance_pct": "Participation à l'AG (%)"
+    },
+    "status": {
+      "approximate": "Approximatif",
+      "notReported": "Non renseigné",
+      "notReportedHint": "Ce chiffre ne peut pas être calculé car les champs du questionnaire nécessaires n'ont pas été remplis.",
+      "approximateHint": "Estimé à partir des champs du questionnaire les plus proches."
+    },
+    "tooltip": {
+      "formula": "Formule",
+      "sources": "Champs sources",
+      "note": "Remarque",
+      "previous": "Période précédente : {{value}}",
+      "vsPrevious": "par rapport à la période précédente"
+    },
+    "charts": {
+      "assetEvolution": {
+        "title": "Évolution des actifs",
+        "subtitle": "Total des actifs par période",
+        "info": "Total des actifs (immobilisés et circulants) des coopératives concernées, par période."
+      },
+      "savingsTrend": {
+        "title": "Évolution de l'épargne",
+        "subtitle": "Épargne des membres par période",
+        "info": "Valeur nette de l'épargne des membres (hommes et femmes) par période."
+      },
+      "loanPortfolio": {
+        "title": "Portefeuille de prêts",
+        "subtitle": "Prêts en cours par période",
+        "info": "Valeur des prêts en cours (hommes et femmes) par période."
+      },
+      "parTrend": {
+        "title": "Portefeuille à risque",
+        "subtitle": "Évolution du PAR par période",
+        "info": "Prêts en retard en proportion du portefeuille en cours, par nombre de jours de retard. Plus bas est meilleur."
+      },
+      "liquidity": {
+        "title": "Liquidité par rapport à l'épargne",
+        "subtitle": "Liquidité maintenue et minimum réglementaire",
+        "info": "Actifs liquides (caisse et banque) divisés par l'épargne des membres, comparés au minimum. La courbe montre l'écart avec le minimum."
+      },
+      "financialStructure": {
+        "title": "Structure financière effective",
+        "subtitle": "Financement et emploi des actifs",
+        "info": "Actifs productifs, épargne et parts sociales des membres en proportion du total des actifs (barres) et fonds empruntés (courbe, axe de droite)."
+      },
+      "profitability": {
+        "title": "Rentabilité",
+        "subtitle": "Résultat net par période",
+        "info": "Résultat net (produits moins charges) par période."
+      },
+      "institutionalCapital": {
+        "title": "Capital institutionnel / actifs",
+        "subtitle": "Capital institutionnel et ratio minimal",
+        "info": "Capital institutionnel (réserves, bénéfices non distribués et dons) en proportion du total des actifs, comparé au minimum. La courbe montre l'excédent ou le déficit."
+      },
+      "marketShareAssets": {
+        "title": "Part de marché par total des actifs",
+        "subtitle": "Part de chaque coopérative dans les actifs consolidés",
+        "info": "Actifs de chaque coopérative divisés par les actifs de toutes les coopératives concernées."
+      },
+      "marketShareLoans": {
+        "title": "Part de marché par prêts et avances",
+        "subtitle": "Part de chaque coopérative dans l'encours consolidé",
+        "info": "Prêts en cours de chaque coopérative divisés par l'encours de toutes les coopératives concernées."
+      },
+      "demographics": {
+        "title": "Profil des membres",
+        "subtitle": "Sexe et âge des membres",
+        "info": "Membres inscrits et actifs par sexe, et membres inscrits par tranche d'âge."
+      },
+      "governance": {
+        "title": "Femmes dans la gouvernance",
+        "subtitle": "Part des femmes dans les organes de direction",
+        "info": "Part des femmes au conseil, au comité exécutif et au comité de crédit."
+      },
+      "ranking": {
+        "title": "Classement des coopératives",
+        "subtitle": "Principaux ratios par coopérative",
+        "info": "Chiffres par coopérative pour la période choisie. Les ratios sont colorés selon la tolérance PAR et les minimums réglementaires."
+      },
+      "noData": "Pas encore de données pour ce graphique.",
+      "series": {
+        "assets": "Total des actifs",
+        "savings": "Épargne des membres",
+        "loans": "Prêts bruts",
+        "par30": "PAR > 30 jours",
+        "par90": "PAR > 90 jours",
+        "portfolioAtRisk": "Portefeuille à risque",
+        "maintained": "Liquidité maintenue",
+        "minimum": "Minimum",
+        "gap": "Écart",
+        "earning": "Actifs productifs",
+        "memberSavings": "Épargne des membres",
+        "memberShares": "Parts des membres",
+        "borrowed": "Fonds empruntés",
+        "netIncome": "Résultat net",
+        "capital": "Capital institutionnel",
+        "excess": "Excédent / déficit"
+      },
+      "other": "Autres"
+    },
+    "demographics": {
+      "registered": "Inscrits",
+      "active": "Actifs",
+      "male": "Hommes",
+      "female": "Femmes",
+      "age1825": "18-25",
+      "age2635": "26-35",
+      "age3660": "36-60",
+      "age61": "61+",
+      "board": "Conseil",
+      "executive": "Comité exécutif",
+      "creditCommittee": "Comité de crédit",
+      "womenShare": "Part des femmes"
+    },
+    "table": {
+      "cooperative": "Coopérative",
+      "members": "Membres",
+      "assets": "Total des actifs",
+      "deposits": "Dépôts",
+      "loans": "Prêts bruts",
+      "par30": "PAR > 30",
+      "liquidity": "Liquidité",
+      "capital": "Capital inst.",
+      "netIncome": "Résultat net",
+      "region": "Région",
+      "sector": "Secteur",
+      "sortBy": "Trier par {{column}}"
+    }
+  },
+  "questionnaireReport": {
+    "aiInsight": "Analyse IA",
+    "aiSummary": "Résumé exécutif IA",
+    "aiRecommendations": "Perspectives et recommandations IA",
+    "cover": {
+      "kicker": "Évaluation périodique de la performance",
+      "description": "Indicateurs, ratios réglementaires et tendances calculés à partir du questionnaire de la coopérative.",
+      "period": "Période de déclaration",
+      "currency": "Devise"
+    },
+    "summary": {
+      "page": "Synthèse",
+      "title": "Résumé exécutif",
+      "fallback": "Le résumé IA n'est pas disponible pour ce rapport. Les chiffres ci-dessous sont calculés directement à partir du questionnaire.",
+      "keyFigures": "Chiffres clés",
+      "regulatory": "Minimums réglementaires",
+      "measure": "Mesure",
+      "maintained": "Maintenu",
+      "minimum": "Minimum",
+      "result": "Résultat",
+      "met": "Respecté",
+      "shortfall": "Sous le minimum",
+      "coverage": "{{reported}} indicateurs sur {{total}} ont pu être calculés à partir des réponses."
+    },
+    "membership": {
+      "page": "Membres",
+      "title": "Membres et gouvernance",
+      "fallback": "Les chiffres sur les membres et la gouvernance sont calculés à partir du questionnaire.",
+      "gender": "Répartition par genre",
+      "age": "Membres par tranche d'âge"
+    },
+    "portfolio": {
+      "page": "Portefeuille",
+      "title": "Portefeuille d'épargne et de crédit",
+      "fallback": "Les chiffres d'épargne et de crédit sont calculés à partir du questionnaire.",
+      "panel": "Indicateurs principaux",
+      "legend": "Le signe ≈ indique une estimation. Un tiret signifie que l'indicateur n'a pas été déclaré."
+    },
+    "risk": {
+      "page": "Qualité du portefeuille",
+      "title": "Qualité du portefeuille et risque",
+      "fallback": "Le portefeuille à risque est calculé à partir des soldes en retard du questionnaire.",
+      "buckets": "Soldes en retard",
+      "bucket": "Jours de retard",
+      "rate": "Part des crédits bruts",
+      "amount": "Montant",
+      "bucketLabels": {
+        "gt7": "Plus de 7 jours",
+        "gt30": "Plus de 30 jours",
+        "d30to90": "31 à 90 jours",
+        "gt90": "Plus de 90 jours",
+        "d180to360": "181 à 360 jours",
+        "total": "Tous les crédits en retard"
+      }
+    },
+    "liquidity": {
+      "page": "Liquidité et capital",
+      "title": "Liquidité et capital institutionnel",
+      "fallback": "La liquidité et le capital institutionnel sont comparés à leurs minimums réglementaires."
+    },
+    "structure": {
+      "page": "Structure",
+      "title": "Structure financière et rentabilité",
+      "fallback": "Les ratios de structure et la rentabilité sont calculés à partir du questionnaire."
+    },
+    "trends": {
+      "page": "Tendances",
+      "title": "Tendances et perspectives",
+      "currentAssets": "Le total des actifs est de {{value}} à {{period}}.",
+      "needHistory": "Des périodes antérieures sont nécessaires pour afficher la tendance.",
+      "outlook": "Perspectives",
+      "fallback": "Les perspectives IA ne sont pas disponibles pour ce rapport."
+    },
+    "methodology": {
+      "page": "Méthodologie",
+      "title": "Méthodologie et couverture des données",
+      "intro": "{{reported}} indicateurs sur {{total}} ont été calculés. Les indicateurs ci-dessous sont estimés ou n'ont pas été déclarés.",
+      "allComputed": "Tous les indicateurs ont été calculés à partir de réponses déclarées.",
+      "indicator": "Indicateur",
+      "status": "Statut",
+      "value": "Valeur",
+      "formula": "Formule",
+      "fields": "Champs du questionnaire",
+      "notes": "Les pourcentages portent sur les totaux de la coopérative. Les montants sont convertis avec le taux figé lors de l'approbation de la soumission."
+    }
   }
 }

@@ -4787,5 +4787,344 @@
   "errors": {
     "rateLimited": "Too many attempts. Please try again in {{seconds}}s.",
     "rateLimitedTitle": "Slow down"
+  },
+  "basicDashboard": {
+    "title": "Basic Analytics",
+    "subtitle": "KPIs, trends and charts computed from the questionnaire submissions",
+    "loading": "Loading analytics...",
+    "loadError": "Could not load the dashboard: {{error}}",
+    "empty": "No questionnaire data found for the selected filters.",
+    "search": {
+      "placeholder": "Search indicators (e.g. PAR, liquidity, members)",
+      "clear": "Clear search",
+      "noResults": "No indicator matches \"{{query}}\"."
+    },
+    "filters": {
+      "year": "Year",
+      "periodType": "Frequency",
+      "period": "Period",
+      "region": "Region",
+      "sector": "Sector",
+      "cooperative": "Cooperative",
+      "currency": "Currency",
+      "allPeriods": "Latest available",
+      "allRegions": "All regions",
+      "allSectors": "All sectors",
+      "allCooperatives": "All cooperatives",
+      "yearly": "Yearly",
+      "semiAnnual": "Half-yearly",
+      "quarterly": "Quarterly",
+      "monthly": "Monthly",
+      "usd": "USD",
+      "native": "Native",
+      "clear": "Clear filters",
+      "regions": {
+        "Manzini": "Manzini",
+        "Hhohho": "Hhohho",
+        "Shiselweni": "Shiselweni",
+        "Lubombo": "Lubombo"
+      },
+      "sectors": {
+        "Agriculture": "Agriculture",
+        "Finance": "Finance",
+        "Housing": "Housing",
+        "Transport": "Transport",
+        "Manufacturing": "Manufacturing"
+      }
+    },
+    "scope": {
+      "individual": "Individual view",
+      "consolidated": "Consolidated view",
+      "reporting": "{{reporting}} of {{total}} cooperatives reporting",
+      "period": "Period: {{period}}",
+      "currency": "Amounts in {{currency}}",
+      "rate": "Converted at {{rate}}"
+    },
+    "groups": {
+      "membership": "Membership",
+      "savings": "Savings",
+      "loans": "Loan portfolio",
+      "risk": "Portfolio risk",
+      "liquidity": "Liquidity",
+      "structure": "Financial structure",
+      "capital": "Institutional capital",
+      "profitability": "Profitability",
+      "governance": "Governance"
+    },
+    "indicators": {
+      "registered_members": "Registered members",
+      "active_members": "Active members",
+      "inactive_members": "Inactive members",
+      "active_members_pct": "Active members (%)",
+      "women_members_pct": "Women members (%)",
+      "youth_members_pct": "Youth members 18-35 (%)",
+      "number_of_groups": "Number of groups",
+      "total_deposits": "Total member deposits",
+      "deposit_accounts": "Deposit accounts",
+      "avg_savings_per_account": "Average savings per account",
+      "gross_loan_portfolio": "Gross loan portfolio",
+      "loans_outstanding_count": "Loans outstanding",
+      "avg_loan_balance": "Average loan balance",
+      "total_disbursed_active": "Total disbursed (active loans)",
+      "loans_awaiting_approval": "Loans awaiting approval",
+      "loans_in_arrears_count": "Loans in arrears",
+      "projected_interest_earnings": "Projected loan interest earnings",
+      "female_borrowers_pct": "Female borrowers (%)",
+      "total_overdrafts": "Total overdrafts",
+      "par_gt_7_pct": "PAR > 7 days",
+      "par_gt_30_pct": "PAR > 30 days",
+      "par_gt_90_pct": "PAR > 90 days",
+      "par_30_90_pct": "PAR 30-90 days",
+      "par_180_360_pct": "PAR 180-360 days",
+      "portfolio_at_risk_pct": "Portfolio at risk",
+      "value_at_risk": "Value at risk",
+      "var_gt_7": "VAR > 7 days",
+      "var_gt_30": "VAR > 30 days",
+      "var_gt_90": "VAR > 90 days",
+      "interest_in_suspense": "Interest in suspense",
+      "interest_payable": "Interest payable",
+      "written_off_loans": "Written-off loans",
+      "liquid_assets": "Liquid assets",
+      "liquidity_ratio_pct": "Liquidity to member savings",
+      "liquidity_minimum_pct": "Minimum liquidity",
+      "liquidity_gap_pct": "Gap to minimum liquidity",
+      "total_assets": "Total assets",
+      "earning_asset_ratio": "Earning asset ratio",
+      "member_savings_ratio": "Members' savings ratio",
+      "member_share_ratio": "Members' share ratio",
+      "borrowed_funds_ratio": "Borrowed funds ratio",
+      "loans_to_savings_ratio": "Loans to savings ratio",
+      "institutional_capital": "Institutional capital",
+      "institutional_capital_ratio_pct": "Institutional capital to assets",
+      "institutional_capital_minimum_pct": "Minimum institutional capital",
+      "institutional_capital_excess_pct": "Excess / deficiency vs minimum",
+      "total_equity": "Total equity",
+      "share_capital": "Share capital",
+      "retained_earnings": "Retained earnings",
+      "statutory_reserves": "Statutory reserves",
+      "total_income": "Total income",
+      "total_expenditure": "Total expenditure",
+      "net_income": "Net income",
+      "return_on_assets_pct": "Return on assets",
+      "operating_expense_ratio_pct": "Expenses to income",
+      "board_women_pct": "Women on board (%)",
+      "executive_women_pct": "Women on executive (%)",
+      "credit_committee_women_pct": "Women on credit committee (%)",
+      "agm_attendance_pct": "AGM attendance (%)"
+    },
+    "status": {
+      "approximate": "Approximate",
+      "notReported": "Not reported",
+      "notReportedHint": "This figure cannot be computed because the questionnaire fields it needs were not answered.",
+      "approximateHint": "Estimated from the closest available questionnaire fields."
+    },
+    "tooltip": {
+      "formula": "Formula",
+      "sources": "Source fields",
+      "note": "Note",
+      "previous": "Previous period: {{value}}",
+      "vsPrevious": "vs previous period"
+    },
+    "charts": {
+      "assetEvolution": {
+        "title": "Asset evolution",
+        "subtitle": "Total assets by period",
+        "info": "Total assets (non-current plus current assets) of the cooperatives in scope, per reporting period."
+      },
+      "savingsTrend": {
+        "title": "Savings trend",
+        "subtitle": "Member savings by period",
+        "info": "Net value of member savings (male plus female) per reporting period."
+      },
+      "loanPortfolio": {
+        "title": "Loan portfolio",
+        "subtitle": "Outstanding loans by period",
+        "info": "Value of outstanding loans (male plus female) per reporting period."
+      },
+      "parTrend": {
+        "title": "Portfolio at risk",
+        "subtitle": "PAR trend by period",
+        "info": "Overdue loans as a share of the outstanding loan portfolio, by days past due. Lower is better."
+      },
+      "liquidity": {
+        "title": "Liquidity to member savings",
+        "subtitle": "Maintained liquidity versus the regulatory minimum",
+        "info": "Liquid assets (cash and bank) divided by member savings, compared with the minimum. The line shows the gap to the minimum."
+      },
+      "financialStructure": {
+        "title": "Effective financial structure",
+        "subtitle": "How assets are funded and deployed",
+        "info": "Earning assets, members' savings and members' shares as a share of total assets (bars) and borrowed funds as a share of total assets (line, right axis)."
+      },
+      "profitability": {
+        "title": "Profitability",
+        "subtitle": "Net income by period",
+        "info": "Net income (total income less total expenditure) per reporting period."
+      },
+      "institutionalCapital": {
+        "title": "Institutional capital to assets",
+        "subtitle": "Institutional capital versus the minimum ratio",
+        "info": "Institutional capital (reserves, retained earnings and donations) as a share of total assets, compared with the minimum. The line shows the excess or deficiency."
+      },
+      "marketShareAssets": {
+        "title": "Market share by total assets",
+        "subtitle": "Share of each cooperative in consolidated assets",
+        "info": "Each cooperative's total assets divided by the total assets of all cooperatives in scope."
+      },
+      "marketShareLoans": {
+        "title": "Market share by loans and advances",
+        "subtitle": "Share of each cooperative in the consolidated loan book",
+        "info": "Each cooperative's outstanding loans divided by the outstanding loans of all cooperatives in scope."
+      },
+      "demographics": {
+        "title": "Membership profile",
+        "subtitle": "Gender and age of members",
+        "info": "Registered and active members by gender, and registered members by age band."
+      },
+      "governance": {
+        "title": "Women in governance",
+        "subtitle": "Share of women in leadership bodies",
+        "info": "Women as a share of the board, executive committee and credit committee."
+      },
+      "ranking": {
+        "title": "Cooperative ranking",
+        "subtitle": "Key ratios per cooperative",
+        "info": "Per-cooperative figures for the selected period. Ratios are coloured against the PAR tolerance and the regulatory minimums."
+      },
+      "noData": "No data for this chart yet.",
+      "series": {
+        "assets": "Total assets",
+        "savings": "Member savings",
+        "loans": "Gross loans",
+        "par30": "PAR > 30 days",
+        "par90": "PAR > 90 days",
+        "portfolioAtRisk": "Portfolio at risk",
+        "maintained": "Maintained liquidity",
+        "minimum": "Minimum",
+        "gap": "Gap",
+        "earning": "Earning assets",
+        "memberSavings": "Members' savings",
+        "memberShares": "Members' shares",
+        "borrowed": "Borrowed funds",
+        "netIncome": "Net income",
+        "capital": "Institutional capital",
+        "excess": "Excess / deficiency"
+      },
+      "other": "Other"
+    },
+    "demographics": {
+      "registered": "Registered",
+      "active": "Active",
+      "male": "Male",
+      "female": "Female",
+      "age1825": "18-25",
+      "age2635": "26-35",
+      "age3660": "36-60",
+      "age61": "61+",
+      "board": "Board",
+      "executive": "Executive",
+      "creditCommittee": "Credit committee",
+      "womenShare": "Women share"
+    },
+    "table": {
+      "cooperative": "Cooperative",
+      "members": "Members",
+      "assets": "Total assets",
+      "deposits": "Deposits",
+      "loans": "Gross loans",
+      "par30": "PAR > 30",
+      "liquidity": "Liquidity",
+      "capital": "Inst. capital",
+      "netIncome": "Net income",
+      "region": "Region",
+      "sector": "Sector",
+      "sortBy": "Sort by {{column}}"
+    }
+  },
+  "questionnaireReport": {
+    "aiInsight": "AI Insight",
+    "aiSummary": "AI Executive Summary",
+    "aiRecommendations": "AI Outlook and Recommendations",
+    "cover": {
+      "kicker": "Periodic performance assessment",
+      "description": "KPIs, regulatory ratios and trends computed from the cooperative's questionnaire return.",
+      "period": "Reporting period",
+      "currency": "Currency"
+    },
+    "summary": {
+      "page": "Summary",
+      "title": "Executive Summary",
+      "fallback": "The AI summary is not available for this report. The figures below are computed directly from the questionnaire.",
+      "keyFigures": "Key figures",
+      "regulatory": "Regulatory minimums",
+      "measure": "Measure",
+      "maintained": "Maintained",
+      "minimum": "Minimum",
+      "result": "Result",
+      "met": "Met",
+      "shortfall": "Below minimum",
+      "coverage": "{{reported}} of {{total}} indicators could be computed from the questionnaire answers."
+    },
+    "membership": {
+      "page": "Membership",
+      "title": "Membership and Governance",
+      "fallback": "Membership and governance figures are computed from the questionnaire.",
+      "gender": "Gender balance",
+      "age": "Members by age band"
+    },
+    "portfolio": {
+      "page": "Portfolio",
+      "title": "Savings and Loan Portfolio",
+      "fallback": "Savings and loan figures are computed from the questionnaire.",
+      "panel": "Core indicators",
+      "legend": "An approximation sign (≈) marks an estimate. A dash means the indicator was not reported."
+    },
+    "risk": {
+      "page": "Portfolio quality",
+      "title": "Portfolio Quality and Risk",
+      "fallback": "Portfolio at risk is computed from the overdue balances in the questionnaire.",
+      "buckets": "Overdue balances",
+      "bucket": "Days overdue",
+      "rate": "Share of gross loans",
+      "amount": "Amount",
+      "bucketLabels": {
+        "gt7": "More than 7 days",
+        "gt30": "More than 30 days",
+        "d30to90": "31 to 90 days",
+        "gt90": "More than 90 days",
+        "d180to360": "181 to 360 days",
+        "total": "All overdue loans"
+      }
+    },
+    "liquidity": {
+      "page": "Liquidity and capital",
+      "title": "Liquidity and Institutional Capital",
+      "fallback": "Liquidity and institutional capital are compared with their regulatory minimums."
+    },
+    "structure": {
+      "page": "Structure",
+      "title": "Financial Structure and Profitability",
+      "fallback": "Structure ratios and profitability are computed from the questionnaire."
+    },
+    "trends": {
+      "page": "Trends",
+      "title": "Trends and Outlook",
+      "currentAssets": "Total assets are {{value}} at {{period}}.",
+      "needHistory": "Earlier periods are needed to show the trend.",
+      "outlook": "Outlook",
+      "fallback": "The AI outlook is not available for this report."
+    },
+    "methodology": {
+      "page": "Methodology",
+      "title": "Methodology and Data Coverage",
+      "intro": "{{reported}} of {{total}} indicators were computed. The indicators below are estimated or were not reported.",
+      "allComputed": "All indicators were computed from reported answers.",
+      "indicator": "Indicator",
+      "status": "Status",
+      "value": "Value",
+      "formula": "Formula",
+      "fields": "Questionnaire fields",
+      "notes": "Percentages are taken over the totals of the cooperative. Amounts are converted with the exchange rate frozen when the submission was approved."
+    }
   }
 }
