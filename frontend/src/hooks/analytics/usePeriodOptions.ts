@@ -9,7 +9,12 @@ import {
 import type { Role } from "@/lib/auth";
 import { toPeriodOptions } from "@/lib/analytics-filters";
 
-/** Periods with approved submissions inside the caller's scope. */
+const STATEMENT_EXCLUDED_METHODS = ["questionnaire"];
+
+/**
+ * Periods with approved submissions inside the caller's scope that carry a
+ * financial statement, which is what the Analytics figures are built from.
+ */
 export const usePeriodOptions = (role: Role | null | undefined) => {
   const cooperative = useCooperativeSubmissions(role === "cooperative");
   const apex = useApexSubmissions(role === "apex");
@@ -25,5 +30,8 @@ export const usePeriodOptions = (role: Role | null | undefined) => {
           ? federation.data
           : ministry.data;
 
-  return useMemo(() => toPeriodOptions(submissions ?? []), [submissions]);
+  return useMemo(
+    () => toPeriodOptions(submissions ?? [], STATEMENT_EXCLUDED_METHODS),
+    [submissions],
+  );
 };

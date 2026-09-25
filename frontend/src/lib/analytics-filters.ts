@@ -7,6 +7,7 @@ export interface SubmissionPeriod {
   period_type?: string | null;
   period_value?: string | null;
   status?: string | null;
+  submission_method?: string | null;
 }
 
 const MONTH_LABELS = [
@@ -33,11 +34,19 @@ export const periodLabel = (type: string, value: string, year: number): string =
   return `${value.toUpperCase()} ${year}`;
 };
 
-/** Periods that have at least one approved submission, newest first. */
-export const toPeriodOptions = (submissions: readonly SubmissionPeriod[]): PeriodOption[] => {
+/**
+ * Periods that have at least one approved submission, newest first. Methods in
+ * `excludeMethods` are skipped: questionnaire returns carry no financial
+ * statement, so the statement-based Analytics must not pick them as "latest".
+ */
+export const toPeriodOptions = (
+  submissions: readonly SubmissionPeriod[],
+  excludeMethods: readonly string[] = [],
+): PeriodOption[] => {
   const seen = new Map<string, PeriodOption>();
   for (const submission of submissions) {
     if ((submission.status ?? "").toLowerCase() !== "approved") continue;
+    if (excludeMethods.includes(submission.submission_method ?? "")) continue;
     const type = (submission.period_type ?? "YEARLY").toUpperCase();
     const value = submission.period_value ?? String(submission.reporting_year);
     const key = `${submission.reporting_year}:${type}:${value.toUpperCase()}`;

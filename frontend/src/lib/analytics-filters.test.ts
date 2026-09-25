@@ -20,6 +20,33 @@ describe("toPeriodOptions", () => {
   });
 });
 
+describe("toPeriodOptions with excluded methods", () => {
+  it("skips questionnaire returns so latest available lands on a statement period", () => {
+    const options = toPeriodOptions(
+      [
+        {
+          reporting_year: 2026,
+          period_type: "QUARTERLY",
+          period_value: "Q1",
+          status: "approved",
+          submission_method: "questionnaire",
+        },
+        {
+          reporting_year: 2025,
+          period_type: "YEARLY",
+          period_value: "2025",
+          status: "approved",
+          submission_method: "upload",
+        },
+      ],
+      ["questionnaire"],
+    );
+
+    expect(options.map((o) => o.label)).toEqual(["2025"]);
+    expect(resolveYear("all", options)).toBe(2025);
+  });
+});
+
 describe("periodLabel", () => {
   it("names months and yearly periods", () => {
     expect(periodLabel("MONTHLY", "03", 2026)).toBe("Mar 2026");
