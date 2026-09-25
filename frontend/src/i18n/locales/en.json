@@ -2503,7 +2503,13 @@
       "trends": "Financial structure and profitability",
       "loans": "Loans and inclusion",
       "members": "Members",
-      "compliance": "Regulatory compliance"
+      "compliance": "Regulatory compliance",
+      "regional": "Regional distribution and loan quality",
+      "leaderboards": "Leaderboards",
+      "comparison": "Peer comparison",
+      "hide": "Hide",
+      "show": "Show",
+      "keyIndicators": "Key indicators"
     }
   },
   "cooperativeDashboard": {
@@ -5157,6 +5163,13 @@
       "region": "Region",
       "sector": "Sector",
       "sortBy": "Sort by {{column}}"
+    },
+    "sections": {
+      "trends": "Trends and ratios",
+      "marketShare": "Market share",
+      "members": "Membership and governance",
+      "ranking": "Cooperative ranking",
+      "keyIndicators": "Key indicators"
     }
   },
   "questionnaireReport": {

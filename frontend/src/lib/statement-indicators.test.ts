@@ -86,4 +86,20 @@ describe("buildStatementIndicators", () => {
   it("has no change without a comparable previous period", () => {
     expect(list.find((i) => i.key === "netIncome")?.change).toBeNull();
   });
+
+  it("does not report profitability when the statement has no income or expense figures", () => {
+    const balanceSheetOnly = buildStatementIndicators(
+      point({
+        total_income: 0,
+        total_expenses: 0,
+        net_income: 0,
+        financial_income: 0,
+        financial_expenses: 0,
+      }),
+    );
+
+    const profitability = balanceSheetOnly.filter((i) => i.group === "profitability");
+    expect(profitability.every((i) => i.value === null)).toBe(true);
+    expect(value(balanceSheetOnly, "totalAssets")).toBe(1000);
+  });
 });

@@ -2475,7 +2475,13 @@
       "trends": "Structure financière et rentabilité",
       "loans": "Prêts et inclusion",
       "members": "Membres",
-      "compliance": "Conformité réglementaire"
+      "compliance": "Conformité réglementaire",
+      "regional": "Répartition régionale et qualité des prêts",
+      "leaderboards": "Classements",
+      "comparison": "Comparaison entre pairs",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "keyIndicators": "Indicateurs clés"
     }
   },
   "cooperativeDashboard": {
@@ -5114,6 +5120,13 @@
       "region": "Région",
       "sector": "Secteur",
       "sortBy": "Trier par {{column}}"
+    },
+    "sections": {
+      "trends": "Tendances et ratios",
+      "marketShare": "Parts de marché",
+      "members": "Membres et gouvernance",
+      "ranking": "Classement des coopératives",
+      "keyIndicators": "Indicateurs clés"
     }
   },
   "questionnaireReport": {

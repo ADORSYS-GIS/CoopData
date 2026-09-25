@@ -10,6 +10,7 @@ import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
 import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDoughnutCharts";
+import { CollapsibleSection } from "@/components/analytics/national/CollapsibleSection";
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
 import { ApexRadarChart } from "@/components/analytics/ApexRadarChart";
 import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
@@ -80,82 +81,90 @@ export function FederationAnalyticsView({ filterValues }: Props) {
       />
 
       {/* Apex & Regional Distributions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card
-          title={t("federationAnalytics.apexDistTitle")}
-          subtitle={t("federationAnalytics.apexDistSubtitle")}
-          info={t("federationAnalytics.apexDistInfo")}
-        >
-          <ApexDistributionBar cooperatives={coops} />
-        </Card>
-
-        <Card
-          title={t("federationAnalytics.regionalPortfolioTitle")}
-          subtitle={t("federationAnalytics.regionalPortfolioSubtitle")}
-          info={t("federationAnalytics.regionalPortfolioInfo")}
-        >
-          <RegionalGroupedBar cooperatives={coops} />
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Efficiency leaderboard (OER — lower = better) */}
-        <Card
-          title={t("federationAnalytics.oerRankingTitle")}
-          subtitle={t("federationAnalytics.oerRankingSubtitle")}
-          info={t("federationAnalytics.oerRankingInfo")}
-        >
-          <TopBottomLeaderboard
-            cooperatives={coops}
-            sortByKpi="operating_expense_ratio"
-            higherIsBetter={false}
-          />
-        </Card>
-
-        {/* ROA leaderboard */}
-        <Card
-          title={t("federationAnalytics.profitabilityRankingTitle")}
-          subtitle={t("federationAnalytics.profitabilityRankingSubtitle")}
-          info={t("federationAnalytics.profitabilityRankingInfo")}
-        >
-          <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {coops.length > 0 && (
+      <CollapsibleSection id="analytics-regional-0" title={t("analytics.section.regional")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card
-            title={t("federationAnalytics.radarTitle")}
-            subtitle={t("federationAnalytics.radarSubtitle")}
-            info={t("federationAnalytics.radarInfo")}
+            title={t("federationAnalytics.apexDistTitle")}
+            subtitle={t("federationAnalytics.apexDistSubtitle")}
+            info={t("federationAnalytics.apexDistInfo")}
           >
-            <ApexRadarChart data={coops} />
+            <ApexDistributionBar cooperatives={coops} />
           </Card>
-        )}
-        {coops.length > 0 && (
+
           <Card
-            title={t("federationAnalytics.loanGapTitle")}
-            subtitle={t("federationAnalytics.loanGapSubtitle")}
-            info={t("federationAnalytics.loanGapInfo")}
+            title={t("federationAnalytics.regionalPortfolioTitle")}
+            subtitle={t("federationAnalytics.regionalPortfolioSubtitle")}
+            info={t("federationAnalytics.regionalPortfolioInfo")}
           >
-            <LoanProvisioningWaterfall
-              glp={aggMetrics.totalGLP}
-              par30_pct={aggMetrics.par30Pct}
-              provisions_pct={aggMetrics.provisionsPct}
+            <RegionalGroupedBar cooperatives={coops} />
+          </Card>
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="analytics-leaderboards-1" title={t("analytics.section.leaderboards")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Efficiency leaderboard (OER — lower = better) */}
+          <Card
+            title={t("federationAnalytics.oerRankingTitle")}
+            subtitle={t("federationAnalytics.oerRankingSubtitle")}
+            info={t("federationAnalytics.oerRankingInfo")}
+          >
+            <TopBottomLeaderboard
+              cooperatives={coops}
+              sortByKpi="operating_expense_ratio"
+              higherIsBetter={false}
             />
           </Card>
-        )}
-      </div>
+
+          {/* ROA leaderboard */}
+          <Card
+            title={t("federationAnalytics.profitabilityRankingTitle")}
+            subtitle={t("federationAnalytics.profitabilityRankingSubtitle")}
+            info={t("federationAnalytics.profitabilityRankingInfo")}
+          >
+            <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
+          </Card>
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="analytics-comparison-2" title={t("analytics.section.comparison")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {coops.length > 0 && (
+            <Card
+              title={t("federationAnalytics.radarTitle")}
+              subtitle={t("federationAnalytics.radarSubtitle")}
+              info={t("federationAnalytics.radarInfo")}
+            >
+              <ApexRadarChart data={coops} />
+            </Card>
+          )}
+          {coops.length > 0 && (
+            <Card
+              title={t("federationAnalytics.loanGapTitle")}
+              subtitle={t("federationAnalytics.loanGapSubtitle")}
+              info={t("federationAnalytics.loanGapInfo")}
+            >
+              <LoanProvisioningWaterfall
+                glp={aggMetrics.totalGLP}
+                par30_pct={aggMetrics.par30Pct}
+                provisions_pct={aggMetrics.provisionsPct}
+              />
+            </Card>
+          )}
+        </div>
+      </CollapsibleSection>
 
       {/* Traffic-light compliance bars */}
       {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-        <Card
-          title={t("federationAnalytics.complianceTitle")}
-          subtitle={t("federationAnalytics.complianceSubtitle")}
-          info={t("federationAnalytics.complianceInfo")}
-        >
-          <ComplianceDoughnutCharts distributions={overview.distributions} />
-        </Card>
+        <CollapsibleSection id="analytics-compliance" title={t("analytics.section.compliance")}>
+          <Card
+            title={t("federationAnalytics.complianceTitle")}
+            subtitle={t("federationAnalytics.complianceSubtitle")}
+            info={t("federationAnalytics.complianceInfo")}
+          >
+            <ComplianceDoughnutCharts distributions={overview.distributions} />
+          </Card>
+        </CollapsibleSection>
       )}
 
       {coops.length === 0 && (

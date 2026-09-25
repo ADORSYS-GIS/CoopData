@@ -2469,7 +2469,13 @@
       "trends": "Estrutura financeira e rentabilidade",
       "loans": "Crédito e inclusão",
       "members": "Membros",
-      "compliance": "Conformidade regulamentar"
+      "compliance": "Conformidade regulamentar",
+      "regional": "Distribuição regional e qualidade do crédito",
+      "leaderboards": "Classificações",
+      "comparison": "Comparação entre pares",
+      "hide": "Ocultar",
+      "show": "Mostrar",
+      "keyIndicators": "Indicadores principais"
     }
   },
   "cooperativeDashboard": {
@@ -5108,6 +5114,13 @@
       "region": "Região",
       "sector": "Setor",
       "sortBy": "Ordenar por {{column}}"
+    },
+    "sections": {
+      "trends": "Tendências e rácios",
+      "marketShare": "Quota de mercado",
+      "members": "Membros e governação",
+      "ranking": "Classificação das cooperativas",
+      "keyIndicators": "Indicadores principais"
     }
   },
   "questionnaireReport": {

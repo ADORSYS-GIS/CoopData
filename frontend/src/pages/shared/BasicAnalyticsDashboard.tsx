@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { AppShell } from "@/components/app-shell";
 import { BasicFilterBar } from "@/components/analytics/basic/BasicFilterBar";
+import { CollapsibleSection } from "@/components/analytics/national/CollapsibleSection";
 import { CapitalChart } from "@/components/analytics/basic/CapitalChart";
 import { CHART_COLORS } from "@/components/analytics/basic/chart-config";
 import { CooperativeRankingTable } from "@/components/analytics/basic/CooperativeRankingTable";
@@ -28,7 +29,7 @@ import {
   filtersToParams,
   type BasicFilterState,
 } from "@/lib/basic-dashboard-filters";
-import { humanizeKey } from "@/lib/basic-dashboard";
+import { HEADLINE_KEYS, humanizeKey } from "@/lib/basic-dashboard";
 import type { BasicDashboardResponse } from "@/types/basic-dashboard";
 
 function DashboardBody({ data, query }: { data: BasicDashboardResponse; query: string }) {
@@ -62,62 +63,82 @@ function DashboardBody({ data, query }: { data: BasicDashboardResponse; query: s
         )
       ) : (
         <>
-          <HeadlineStrip indicators={data.indicators} scope={scope} />
+          <CollapsibleSection
+            id="basic-headline"
+            title={t("basicDashboard.sections.keyIndicators")}
+            count={HEADLINE_KEYS.length}
+          >
+            <HeadlineStrip indicators={data.indicators} scope={scope} />
+          </CollapsibleSection>
           <IndicatorGroupSection indicators={data.indicators} scope={scope} />
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <SeriesBarChart
-              chartKey="assetEvolution"
-              seriesLabelKey="assets"
-              points={series.asset_evolution}
-              valueKey="total_assets"
-              currency={currency}
-              color={CHART_COLORS[0]}
-            />
-            <SeriesBarChart
-              chartKey="savingsTrend"
-              seriesLabelKey="savings"
-              points={series.savings_trend}
-              valueKey="total_deposits"
-              currency={currency}
-              color={CHART_COLORS[1]}
-            />
-            <SeriesBarChart
-              chartKey="loanPortfolio"
-              seriesLabelKey="loans"
-              points={series.loan_portfolio}
-              valueKey="gross_loans"
-              currency={currency}
-              color={CHART_COLORS[2]}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ParTrendChart points={series.par_trend} />
-            <LiquidityChart points={series.liquidity} />
-            <StructureChart points={series.financial_structure} />
-            <CapitalChart points={series.institutional_capital} />
-            <ProfitabilityChart points={series.profitability} currency={currency} />
-          </div>
+          <CollapsibleSection id="basic-trends" title={t("basicDashboard.sections.trends")}>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <SeriesBarChart
+                  chartKey="assetEvolution"
+                  seriesLabelKey="assets"
+                  points={series.asset_evolution}
+                  valueKey="total_assets"
+                  currency={currency}
+                  color={CHART_COLORS[0]}
+                />
+                <SeriesBarChart
+                  chartKey="savingsTrend"
+                  seriesLabelKey="savings"
+                  points={series.savings_trend}
+                  valueKey="total_deposits"
+                  currency={currency}
+                  color={CHART_COLORS[1]}
+                />
+                <SeriesBarChart
+                  chartKey="loanPortfolio"
+                  seriesLabelKey="loans"
+                  points={series.loan_portfolio}
+                  valueKey="gross_loans"
+                  currency={currency}
+                  color={CHART_COLORS[2]}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <ParTrendChart points={series.par_trend} />
+                <LiquidityChart points={series.liquidity} />
+                <StructureChart points={series.financial_structure} />
+                <CapitalChart points={series.institutional_capital} />
+                <ProfitabilityChart points={series.profitability} currency={currency} />
+              </div>
+            </div>
+          </CollapsibleSection>
           {scope.level === "consolidated" && data.market_share && (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <MarketShareDonut
-                chartKey="marketShareAssets"
-                rows={data.market_share.by_assets}
+            <CollapsibleSection id="basic-share" title={t("basicDashboard.sections.marketShare")}>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <MarketShareDonut
+                  chartKey="marketShareAssets"
+                  rows={data.market_share.by_assets}
+                  currency={currency}
+                />
+                <MarketShareDonut
+                  chartKey="marketShareLoans"
+                  rows={data.market_share.by_loans}
+                  currency={currency}
+                />
+              </div>
+            </CollapsibleSection>
+          )}
+          <CollapsibleSection id="basic-members" title={t("basicDashboard.sections.members")}>
+            <div className="space-y-6">
+              <DemographicsPanel demographics={data.demographics} />
+            </div>
+          </CollapsibleSection>
+          <CollapsibleSection id="basic-ranking" title={t("basicDashboard.sections.ranking")}>
+            <div className="space-y-6">
+              <CooperativeRankingTable
+                rows={data.cooperatives}
                 currency={currency}
-              />
-              <MarketShareDonut
-                chartKey="marketShareLoans"
-                rows={data.market_share.by_loans}
-                currency={currency}
+                thresholds={data.thresholds}
               />
             </div>
-          )}
-          <DemographicsPanel demographics={data.demographics} />
-          <CooperativeRankingTable
-            rows={data.cooperatives}
-            currency={currency}
-            thresholds={data.thresholds}
-          />
+          </CollapsibleSection>
         </>
       )}
     </div>

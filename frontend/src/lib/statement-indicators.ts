@@ -306,6 +306,26 @@ export const INDICATOR_GROUPS: IndicatorGroup[] = [
 const isReported = (p: StatementPoint | undefined): p is StatementPoint =>
   p !== undefined && (p.assets !== 0 || p.loans !== 0 || p.savings !== 0);
 
+/**
+ * A statement can carry the balance sheet only. When no income or expense
+ * account has a figure, profitability is unknown rather than zero.
+ */
+const hasIncomeStatement = (p: StatementPoint): boolean =>
+  p.total_income !== 0 ||
+  p.total_expenses !== 0 ||
+  p.net_income !== 0 ||
+  p.financial_income !== 0 ||
+  p.financial_expenses !== 0;
+
+const computeIfReported = (
+  definition: Definition,
+  p: StatementPoint | undefined,
+): number | null => {
+  if (!isReported(p)) return null;
+  if (definition.group === "profitability" && !hasIncomeStatement(p)) return null;
+  return definition.compute(p);
+};
+
 const changeOf = (
   unit: IndicatorUnit,
   now: number | null,
@@ -326,8 +346,8 @@ export const buildStatementIndicators = (
   previous?: StatementPoint,
 ): StatementIndicator[] =>
   DEFINITIONS.map((definition) => {
-    const value = isReported(current) ? definition.compute(current) : null;
-    const before = isReported(previous) ? definition.compute(previous) : null;
+    const value = computeIfReported(definition, current);
+    const before = computeIfReported(definition, previous);
     return {
       key: definition.key,
       group: definition.group,

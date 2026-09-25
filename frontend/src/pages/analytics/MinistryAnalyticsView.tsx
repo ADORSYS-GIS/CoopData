@@ -7,6 +7,7 @@
  */
 import { useMemo } from "react";
 import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
+import { CollapsibleSection } from "@/components/analytics/national/CollapsibleSection";
 import { MetricsGridCards } from "@/components/analytics/MetricsGridCards";
 import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
@@ -104,59 +105,65 @@ export function MinistryAnalyticsView({ filterValues }: Props) {
         seriesQuery={params}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Macro distribution */}
-        <Card
-          title={t("ministryAnalytics.nationalPortfolio")}
-          subtitle={t("ministryAnalytics.nationalPortfolioSub")}
-          info={t("ministryAnalytics.nationalPortfolioInfo")}
-        >
-          <RegionalGroupedBar cooperatives={coops} />
-        </Card>
-
-        {/* National loan gap */}
-        {coops.length > 0 && (
+      <CollapsibleSection id="analytics-regional-0" title={t("analytics.section.regional")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Macro distribution */}
           <Card
-            title={t("ministryAnalytics.loanProvisioningGap")}
-            subtitle={t("ministryAnalytics.loanProvisioningGapSub")}
-            info={t("ministryAnalytics.loanProvisioningGapInfo")}
+            title={t("ministryAnalytics.nationalPortfolio")}
+            subtitle={t("ministryAnalytics.nationalPortfolioSub")}
+            info={t("ministryAnalytics.nationalPortfolioInfo")}
           >
-            <LoanProvisioningWaterfall
-              glp={aggMetrics.totalGLP}
-              par30_pct={aggMetrics.par30Pct}
-              provisions_pct={aggMetrics.provisionsPct}
-            />
+            <RegionalGroupedBar cooperatives={coops} />
           </Card>
-        )}
-      </div>
+
+          {/* National loan gap */}
+          {coops.length > 0 && (
+            <Card
+              title={t("ministryAnalytics.loanProvisioningGap")}
+              subtitle={t("ministryAnalytics.loanProvisioningGapSub")}
+              info={t("ministryAnalytics.loanProvisioningGapInfo")}
+            >
+              <LoanProvisioningWaterfall
+                glp={aggMetrics.totalGLP}
+                par30_pct={aggMetrics.par30Pct}
+                provisions_pct={aggMetrics.provisionsPct}
+              />
+            </Card>
+          )}
+        </div>
+      </CollapsibleSection>
 
       {/* Top & bottom performers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card
-          title={t("ministryAnalytics.roaLeaderboard")}
-          subtitle={t("ministryAnalytics.roaLeaderboardSub")}
-          info={t("ministryAnalytics.roaLeaderboardInfo")}
-        >
-          <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
-        </Card>
-        <Card
-          title={t("ministryAnalytics.carLeaderboard")}
-          subtitle={t("ministryAnalytics.carLeaderboardSub")}
-          info={t("ministryAnalytics.carLeaderboardInfo")}
-        >
-          <TopBottomLeaderboard cooperatives={coops} sortByKpi="capital_adequacy_ratio" />
-        </Card>
-      </div>
+      <CollapsibleSection id="analytics-leaderboards-1" title={t("analytics.section.leaderboards")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card
+            title={t("ministryAnalytics.roaLeaderboard")}
+            subtitle={t("ministryAnalytics.roaLeaderboardSub")}
+            info={t("ministryAnalytics.roaLeaderboardInfo")}
+          >
+            <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
+          </Card>
+          <Card
+            title={t("ministryAnalytics.carLeaderboard")}
+            subtitle={t("ministryAnalytics.carLeaderboardSub")}
+            info={t("ministryAnalytics.carLeaderboardInfo")}
+          >
+            <TopBottomLeaderboard cooperatives={coops} sortByKpi="capital_adequacy_ratio" />
+          </Card>
+        </div>
+      </CollapsibleSection>
 
       {/* Traffic-light compliance distribution */}
       {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-        <Card
-          title={t("ministryAnalytics.kpiTrafficLight")}
-          subtitle={t("ministryAnalytics.kpiTrafficLightSub")}
-          info={t("ministryAnalytics.kpiTrafficLightInfo")}
-        >
-          <ComplianceDoughnutCharts distributions={overview.distributions} />
-        </Card>
+        <CollapsibleSection id="analytics-compliance" title={t("analytics.section.compliance")}>
+          <Card
+            title={t("ministryAnalytics.kpiTrafficLight")}
+            subtitle={t("ministryAnalytics.kpiTrafficLightSub")}
+            info={t("ministryAnalytics.kpiTrafficLightInfo")}
+          >
+            <ComplianceDoughnutCharts distributions={overview.distributions} />
+          </Card>
+        </CollapsibleSection>
       )}
 
       {coops.length === 0 && (
