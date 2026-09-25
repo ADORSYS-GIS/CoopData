@@ -110,13 +110,13 @@ export interface CooperativeRow {
   region: string | null;
   sector: string | null;
   total_members: number;
-  total_assets: number;
-  total_deposits: number;
-  gross_loans: number;
+  total_assets: number | null;
+  total_deposits: number | null;
+  gross_loans: number | null;
   par_gt_30_pct: number | null;
   liquidity_ratio_pct: number | null;
   institutional_capital_ratio_pct: number | null;
-  net_income: number;
+  net_income: number | null;
 }
 
 export interface BasicDashboardResponse {

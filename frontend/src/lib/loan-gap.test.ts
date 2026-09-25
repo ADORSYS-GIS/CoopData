@@ -45,4 +45,13 @@ describe("aggregateLoanGap", () => {
   it("returns zeros for an empty portfolio", () => {
     expect(aggregateLoanGap([])).toEqual({ totalGLP: 0, par30Pct: 0, provisionsPct: 0 });
   });
+
+  it("ignores a PAR 30 printed as not reported instead of counting it as zero", () => {
+    const missing = coop(500, 0);
+    missing.kpis["par30"] = { ...kpi(0), formatted: "—" };
+
+    const totals = aggregateLoanGap([coop(500, 4), missing]);
+
+    expect(totals.par30Pct).toBeCloseTo(4, 5);
+  });
 });

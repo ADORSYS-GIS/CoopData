@@ -127,3 +127,13 @@ fn statement_totals_reads_loan_quality_capital_and_income_components() {
     assert_eq!(totals.financial_income, 90.0);
     assert_eq!(totals.operating_expenses, 40.0);
 }
+
+#[test]
+fn statement_totals_returns_provisions_as_positive_amount() {
+    let mut by_month = BTreeMap::new();
+    by_month.insert(0, raw(&[(1200, 1000.0), (1250, -74.0)]));
+
+    let totals = statement_totals(&by_month, &[]);
+
+    assert_eq!(totals.provisions, 74.0);
+}

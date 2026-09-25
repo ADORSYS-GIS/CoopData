@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 
 import type { MetricCard } from "@/components/analytics/national/metrics";
+import { isReportedKpi } from "@/lib/kpi-reported";
 import type { components } from "@/openapi-client/api";
 
 const CORE_KPI_NAMES = new Set([
@@ -36,7 +37,7 @@ export const buildKpiCards = (kpis: readonly KpiItem[], t: TFunction): MetricCar
     .filter((kpi) => CORE_KPI_NAMES.has(kpi.name.toUpperCase()))
     .map((kpi) => {
       const status = kpi.status as keyof typeof STATUS_TEXT | null;
-      if (!reported) {
+      if (!reported || !isReportedKpi(kpi)) {
         return {
           key: kpi.name,
           label: kpi.name.replace(/_/g, " "),

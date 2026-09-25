@@ -1,5 +1,6 @@
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 import { ShieldCheck, Target } from "lucide-react";
+import { isReportedKpi } from "@/lib/kpi-reported";
 import { rankPerformers } from "@/lib/leaderboard";
 import { useTranslation } from "react-i18next";
 
@@ -22,7 +23,7 @@ export function TopBottomLeaderboard({
   higherIsBetter = true,
 }: TopBottomLeaderboardProps) {
   const { t } = useTranslation();
-  const withData = cooperatives.filter((c) => c.has_data && c.kpis[sortByKpi] !== undefined);
+  const withData = cooperatives.filter((c) => c.has_data && isReportedKpi(c.kpis[sortByKpi]));
 
   const { top: top5, bottom: bottom5 } = rankPerformers(
     withData,
@@ -60,7 +61,7 @@ export function TopBottomLeaderboard({
           <span className="font-heading font-bold num">{coop.kpis[sortByKpi].formatted}</span>
           <KpiChip status={coop.kpis[sortByKpi].status} />
         </div>
-        {coop.kpis["capital_adequacy_ratio"] && (
+        {isReportedKpi(coop.kpis["capital_adequacy_ratio"]) && (
           <span className="text-[10px] text-muted-foreground">
             {t("analytics.carPrefix")} {coop.kpis["capital_adequacy_ratio"].formatted}
           </span>

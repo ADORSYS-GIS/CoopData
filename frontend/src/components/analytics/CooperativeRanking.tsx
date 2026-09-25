@@ -16,6 +16,7 @@ import {
   type NationalOverviewParams,
 } from "@/hooks/analytics/useNationalOverview";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
+import { accountValuesAt } from "@/lib/statement-grid";
 import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import {
   Select,
@@ -40,7 +41,7 @@ interface MonthOption {
 
 function buildMonthOptions(t: (key: string) => string): MonthOption[] {
   return [
-    { value: "all", label: t("analytics.yearTotal") },
+    { value: "all", label: t("analytics.latestReported") },
     { value: "1", label: "31. Jan " },
     { value: "2", label: "28. Feb " },
     { value: "3", label: "31. Mar " },
@@ -97,7 +98,12 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
 
   // Fetch raw comparative statement line items (scoped to filtered coops)
   const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
-    { reportingYear, cooperativeIds },
+    {
+      reportingYear,
+      cooperativeIds,
+      periodType: filterParams?.periodType,
+      periodValue: filterParams?.periodValue,
+    },
     !!cooperativeIds,
   );
 
@@ -109,23 +115,12 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
     if (!comparative?.grids) return [];
 
     return comparative.grids.map((grid) => {
-      const lineItems = grid.line_items || [];
-
-      // Filter by selected month if not "all". Annual-frequency submissions
-      // store their figures at month=0 (there is no monthly breakdown), so
-      // that row must match whichever specific month is selected — without
-      // this, every annual submission showed as entirely blank here since
-      // `String(0) !== "12"` (the default selection) never matched.
-      const filtered =
-        selectedMonth === "all"
-          ? lineItems
-          : lineItems.filter((item) => String(item.month) === selectedMonth || item.month === 0);
-
-      // Sum values for the selected metric code
+      const values = accountValuesAt(
+        grid.line_items || [],
+        selectedMonth === "all" ? null : Number(selectedMonth),
+      );
       const targetCode = parseInt(selectedMetric, 10);
-      const sum = filtered
-        .filter((item) => item.account_code === targetCode)
-        .reduce((acc, curr) => acc + curr.value_usd, 0);
+      const sum = values ? (values[targetCode] ?? null) : null;
 
       return {
         cooperative_id: grid.cooperative_id,
@@ -145,28 +140,28 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
 
   // Compute total sum of all cooperative values for percentage calculations
   const totalSum = useMemo(() => {
-    return dataList.reduce((sum, item) => sum + Math.max(0, item.value), 0);
+    return dataList.reduce((sum, item) => sum + Math.max(0, item.value ?? 0), 0);
   }, [dataList]);
 
   // Sort and limit cooperatives
   const rankedCoops = useMemo(() => {
     const list = [...dataList];
-    list.sort((a, b) => b.value - a.value);
+    list.sort((a, b) => (b.value ?? -Infinity) - (a.value ?? -Infinity));
     return list;
   }, [dataList]);
 
   // Formatting helper
-  const formatValue = (val: number) => {
-    return formatUsd(val);
-  };
+  const formatValue = (val: number | null) => (val === null ? "—" : formatUsd(val));
 
   // Chart data mapping
   const chartData = useMemo(() => {
-    return rankedCoops.map((c) => ({
-      name: c.name.length > 18 ? `${c.name.substring(0, 18)}…` : c.name,
-      fullName: c.name,
-      value: c.value,
-    }));
+    return rankedCoops
+      .filter((c) => c.value !== null)
+      .map((c) => ({
+        name: c.name.length > 18 ? `${c.name.substring(0, 18)}…` : c.name,
+        fullName: c.name,
+        value: c.value,
+      }));
   }, [rankedCoops]);
 
   if (isOverviewLoading || isCompLoading) {
@@ -277,7 +272,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         <div className="lg:col-span-2">
           <Card
             title={t("analytics.coopContributionShares")}
-            info="Each cooperative's share of the network total for the principal financial statement accounts (assets, loans, savings, equity), from approved statements converted to USD. Shares sum to 100% across the cooperatives shown."
+            info={t("analytics.rankingSharesInfo")}
             subtitle={t("analytics.spreadsheetBreakdown")}
           >
             {rankedCoops.length > 0 ? (
@@ -293,7 +288,9 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                   <tbody className="divide-y divide-border">
                     {rankedCoops.map((coop) => {
                       const contribPct =
-                        totalSum > 0 ? (Math.max(0, coop.value) / totalSum) * 100 : 0;
+                        totalSum > 0 && coop.value !== null
+                          ? `${((Math.max(0, coop.value) / totalSum) * 100).toFixed(2)}%`
+                          : "—";
 
                       return (
                         <tr
@@ -307,7 +304,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                             {formatValue(coop.value)}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono font-medium text-primary">
-                            {contribPct.toFixed(2)}%
+                            {contribPct}
                           </td>
                         </tr>
                       );
@@ -327,7 +324,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         <div className="lg:col-span-3">
           <Card
             title={t("analytics.rankingPrincipalAccounts")}
-            info="Ranking of cooperatives by value of the principal accounts from the approved financial statement, in USD at the configured exchange rate. Only cooperatives with an approved statement for the selected period appear."
+            info={t("analytics.rankingChartInfo")}
             subtitle={t("analytics.valueContributionSubtitle")}
           >
             {chartData.length > 0 ? (

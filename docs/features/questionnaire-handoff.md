@@ -29,8 +29,8 @@ Make the seeded questionnaire forms (Financial and Non-Financial "Primary Cooper
 - Report print page `routes/print.questionnaire.$id.tsx` with `QuestionnaireReportPrint.tsx` and 9 sheets under `pages/shared/print/components/questionnaire/`, plus hook `useQuestionnaireReport`, lib, types, and i18n `questionnaireReport` (en/fr/pt).
 - Reported by the agents: frontend tsc and lint clean, 73 files and 624 tests pass. Backend suite of 805 tests passed after the report work, and clippy was clean after fixes.
 
-### Local demo data (dev DB only)
-20 demo submissions with responses, tagged `metadata->>'seed'='kpi-demo'`. They cover 4 cooperatives across QUARTERLY Q1 to Q4 2025 and Q1 2026, approved, rate 18.5. Remove them with `delete from submissions where metadata->>'seed'='kpi-demo'` (it cascades).
+### Local demo data
+The 20 demo submissions (tagged `metadata->>'seed'='kpi-demo'`) used to test the dashboard were removed from the dev DB. Basic Analytics is empty until a cooperative submits a questionnaire.
 
 ## What is not done (next steps, in order)
 
@@ -49,7 +49,6 @@ Make the seeded questionnaire forms (Financial and Non-Financial "Primary Cooper
 - Sector-wide figures outside the SACCO returns (banks, insurance, capital markets, FSP licensing) cannot come from these forms.
 - The new form fields have no fr/pt/ss labels. The existing forms have none either.
 - Decide whether the non-financial form or other seeded sections need more fields.
-- Remove the demo seed data when it is no longer needed.
 
 ## Production deploy notes (only when the user asks)
 

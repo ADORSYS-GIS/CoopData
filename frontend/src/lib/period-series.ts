@@ -26,7 +26,7 @@ export const toStructureSeries = (points: readonly PeriodSeriesPoint[]): SeriesP
     toSeriesPoint(p, {
       earning_asset_ratio: ratio(p.loans + p.liquid_assets, p.assets),
       member_savings_ratio: ratio(p.savings, p.assets),
-      borrowed_funds_ratio: ratio(Math.max(0, p.liabilities - p.savings), p.assets),
+      borrowed_funds_ratio: ratio(p.borrowings, p.assets),
     }),
   );
 

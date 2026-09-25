@@ -127,13 +127,13 @@ pub struct CooperativeRow {
     pub region: Option<String>,
     pub sector: Option<String>,
     pub total_members: f64,
-    pub total_assets: f64,
-    pub total_deposits: f64,
-    pub gross_loans: f64,
+    pub total_assets: Option<f64>,
+    pub total_deposits: Option<f64>,
+    pub gross_loans: Option<f64>,
     pub par_gt_30_pct: Option<f64>,
     pub liquidity_ratio_pct: Option<f64>,
     pub institutional_capital_ratio_pct: Option<f64>,
-    pub net_income: f64,
+    pub net_income: Option<f64>,
 }
 
 /// Response of `GET /api/v1/analytics/basic-dashboard`.

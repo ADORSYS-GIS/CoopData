@@ -101,12 +101,12 @@ export function CooperativeCharts({
               info={t("cooperativeAnalytics.regComplianceInfo")}
             >
               <ComplianceRadialGauges
-                carValue={kpiMap["capital_adequacy_ratio"] ?? 0}
-                liquidityValue={kpiMap["liquid_funds_ratio"] ?? 0}
-                nplValue={kpiMap["npl_ratio"] ?? 0}
+                carValue={kpiMap["capital_adequacy_ratio"]}
+                liquidityValue={kpiMap["liquid_funds_ratio"]}
+                nplValue={kpiMap["npl_ratio"]}
               />
             </Card>
-            {hasKpis && (
+            {hasKpis && kpiMap["par30"] !== undefined && (
               <Card
                 title={t("cooperativeAnalytics.loanProvTitle")}
                 subtitle={t("cooperativeAnalytics.loanProvSubtitle")}
@@ -114,7 +114,7 @@ export function CooperativeCharts({
               >
                 <LoanProvisioningWaterfall
                   glp={kpiMap["gross_loan_portfolio"] ?? 0}
-                  par30_pct={kpiMap["par30"] ?? 0}
+                  par30_pct={kpiMap["par30"]}
                   provisions_pct={kpiMap["loan_loss_coverage"] ?? 0}
                 />
               </Card>

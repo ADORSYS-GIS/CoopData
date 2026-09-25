@@ -68,8 +68,18 @@ pub async fn get_period_series(
         .filter(|s| s.status == SubmissionStatus::Approved && s.period_type == period_type)
         .collect();
 
+    let approved_ids: Vec<Uuid> = approved.iter().map(|s| s.id).collect();
+    let with_statement: std::collections::HashSet<Uuid> = state
+        .financial_statement_repo
+        .find_by_submission_ids(approved_ids)
+        .await?
+        .into_iter()
+        .map(|fs| fs.submission_id)
+        .collect();
+
     let keyed: Vec<((i32, u32), submission::Model)> = approved
         .into_iter()
+        .filter(|s| with_statement.contains(&s.id))
         .filter_map(|s| {
             period_key(period_type, s.reporting_year, &s.period_value).map(|key| (key, s))
         })

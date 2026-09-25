@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
+import { accountValuesAt, provisionAmount, shareOf } from "@/lib/statement-grid";
 import {
   useNationalOverview,
   type NationalOverviewParams,
@@ -16,7 +17,6 @@ import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
-import { formatUsd } from "@/lib/currency";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface FinancialIndicatorsProps {
@@ -25,184 +25,107 @@ interface FinancialIndicatorsProps {
 }
 
 interface IndicatorRow {
+  key: string;
   label: string;
   isHeader?: boolean;
-  unit: "%" | "USD" | "ratio";
-  computeFormula: (
-    kpis: Record<string, { value: number }>,
-    accounts: Record<number, number>,
-  ) => number | null;
+  unit: "%";
+  compute: (accounts: Record<number, number>) => number | null;
 }
 
 const INCOME_ACCOUNT_CODES = [
   4101, 4102, 4201, 4999, 5101, 5102, 5201, 5202, 5203, 5204, 5301, 5999, 6999,
 ];
 
-const hasIncomeData = (accounts: Record<number, number>): boolean =>
-  INCOME_ACCOUNT_CODES.some((code) => (accounts[code] || 0) !== 0);
+const hasIncomeData = (a: Record<number, number>): boolean =>
+  INCOME_ACCOUNT_CODES.some((code) => (a[code] ?? 0) !== 0);
 
-const incomeKpi = (
-  name: string,
-): ((
-  kpis: Record<string, { value: number }>,
-  accounts: Record<number, number>,
-) => number | null) => {
-  return (kpis, accounts) => (hasIncomeData(accounts) ? (kpis[name]?.value ?? null) : null);
-};
+const sum = (a: Record<number, number>, codes: number[]): number =>
+  codes.reduce((total, code) => total + (a[code] ?? 0), 0);
+
+const totalIncome = (a: Record<number, number>): number =>
+  a[4999] ? a[4999] : sum(a, [4101, 4102, 4201]);
+
+const totalExpenses = (a: Record<number, number>): number =>
+  a[5999] ? a[5999] : sum(a, [5101, 5102, 5201, 5202, 5203, 5204, 5301]);
+
+const netSurplus = (a: Record<number, number>): number =>
+  a[6999] ? a[6999] : totalIncome(a) - totalExpenses(a);
+
+const arrears30 = (a: Record<number, number>): number => sum(a, [1203, 1204, 1205]);
+
+const ifIncome =
+  (fn: (a: Record<number, number>) => number | null) =>
+  (a: Record<number, number>): number | null =>
+    hasIncomeData(a) ? fn(a) : null;
+
+const header = (key: string, label: string): IndicatorRow => ({
+  key,
+  label,
+  isHeader: true,
+  unit: "%",
+  compute: () => null,
+});
 
 function buildIndicatorRows(t: TFunction): IndicatorRow[] {
+  const row = (key: string, labelKey: string, compute: IndicatorRow["compute"]): IndicatorRow => ({
+    key,
+    label: t(labelKey),
+    unit: "%",
+    compute,
+  });
+
   return [
-    // 1. Patrimonial Sufficiency
-    {
-      label: t("analytics.indicatorPatrimonialSuff"),
-      isHeader: true,
-      unit: "%",
-      computeFormula: () => null,
-    },
-    {
-      label: t("analytics.indicatorCarEqAssets"),
-      unit: "%",
-      computeFormula: (kpis) => kpis["capital_adequacy_ratio"]?.value ?? null,
-    },
-
-    // 2. Asset Quality
-    {
-      label: t("analytics.indicatorAssetStructure"),
-      isHeader: true,
-      unit: "%",
-      computeFormula: () => null,
-    },
-    {
-      label: t("analytics.indicatorEarningAssets"),
-      unit: "%",
-      computeFormula: (kpis, accounts) => {
-        const grossLoans = accounts[1200] || 0;
-        const totalAssets = accounts[1999] || 0;
-        return totalAssets > 0 ? (grossLoans / totalAssets) * 100 : null;
-      },
-    },
-    {
-      label: t("analytics.indicatorEarningLiabilities"),
-      unit: "%",
-      computeFormula: (kpis, accounts) => {
-        const grossLoans = accounts[1200] || 0;
-        const deposits = accounts[2100] || 0;
-        return deposits > 0 ? (grossLoans / deposits) * 100 : null;
-      },
-    },
-
-    // 3. Delinquency
-    {
-      label: t("analytics.indicatorDelinquencyRatios"),
-      isHeader: true,
-      unit: "%",
-      computeFormula: () => null,
-    },
-    {
-      label: t("analytics.indicatorTotalDelinquency"),
-      unit: "%",
-      computeFormula: (kpis) => kpis["npl_ratio"]?.value ?? null,
-    },
-    {
-      label: t("analytics.indicatorPar30"),
-      unit: "%",
-      computeFormula: (kpis) => kpis["par30"]?.value ?? null,
-    },
-    {
-      label: t("analytics.indicatorProductiveDelinquency"),
-      unit: "%",
-      computeFormula: (kpis, accounts) => {
-        const arrears = (accounts[1202] || 0) + (accounts[1203] || 0) + (accounts[1204] || 0);
-        const gross = accounts[1200] || 1;
-        return arrears > 0 ? (arrears / gross) * 100 : 0;
-      },
-    },
-
-    // 4. Provision Coverage
-    {
-      label: t("analytics.indicatorProvisionCoverage"),
-      isHeader: true,
-      unit: "%",
-      computeFormula: () => null,
-    },
-    {
-      label: t("analytics.indicatorCoverageRatio"),
-      unit: "%",
-      computeFormula: (kpis) => kpis["loan_loss_coverage"]?.value ?? null,
-    },
-
-    // 5. Operating Efficiency
-    {
-      label: t("analytics.indicatorMicroeconomicEfficiency"),
-      isHeader: true,
-      unit: "%",
-      computeFormula: () => null,
-    },
-    {
-      label: t("analytics.indicatorOpexRatio"),
-      unit: "%",
-      computeFormula: incomeKpi("operating_expense_ratio"),
-    },
-    {
-      label: t("analytics.indicatorOpexMargin"),
-      unit: "%",
-      computeFormula: (kpis, accounts) => {
-        const opex =
-          (accounts[5201] || 0) +
-          (accounts[5202] || 0) +
-          (accounts[5203] || 0) +
-          (accounts[5204] || 0);
-        const inc = (accounts[4101] || 0) + (accounts[4102] || 0);
-        const exp = (accounts[5101] || 0) + (accounts[5102] || 0);
-        const margin = inc - exp;
-        return margin > 0 ? (opex / margin) * 100 : null;
-      },
-    },
-
-    // 6. Profitability
-    {
-      label: t("analytics.indicatorProfitability"),
-      isHeader: true,
-      unit: "%",
-      computeFormula: () => null,
-    },
-    {
-      label: t("analytics.indicatorRoa"),
-      unit: "%",
-      computeFormula: incomeKpi("roa"),
-    },
-    {
-      label: t("analytics.indicatorRoe"),
-      unit: "%",
-      computeFormula: incomeKpi("roe"),
-    },
-    {
-      label: t("analytics.indicatorOss"),
-      unit: "%",
-      computeFormula: incomeKpi("operational_self_sufficiency"),
-    },
-
-    // 7. Liquidity & Intermediation
-    {
-      label: t("analytics.indicatorIntermediationLiquidity"),
-      isHeader: true,
-      unit: "%",
-      computeFormula: () => null,
-    },
-    {
-      label: t("analytics.indicatorLiquidFunds"),
-      unit: "%",
-      computeFormula: (kpis) => kpis["liquid_funds_ratio"]?.value ?? null,
-    },
-    {
-      label: t("analytics.indicatorLoansDeposits"),
-      unit: "%",
-      computeFormula: (kpis, accounts) => {
-        const grossLoans = accounts[1200] || 0;
-        const deposits = accounts[2100] || 0;
-        return deposits > 0 ? (grossLoans / deposits) * 100 : null;
-      },
-    },
+    header("h1", t("analytics.indicatorPatrimonialSuff")),
+    row("car", "analytics.indicatorCarEqAssets", (a) => shareOf(a[3999] ?? 0, a[1999] ?? 0)),
+    header("h2", t("analytics.indicatorAssetStructure")),
+    row("earning", "analytics.indicatorEarningAssets", (a) => shareOf(a[1200] ?? 0, a[1999] ?? 0)),
+    row("earningLiab", "analytics.indicatorEarningLiabilities", (a) =>
+      shareOf(a[1200] ?? 0, a[2100] ?? 0),
+    ),
+    header("h3", t("analytics.indicatorDelinquencyRatios")),
+    row("npl", "analytics.indicatorTotalDelinquency", (a) => shareOf(a[1205] ?? 0, a[1200] ?? 0)),
+    row("par30", "analytics.indicatorPar30", (a) => shareOf(arrears30(a), a[1200] ?? 0)),
+    row("early", "analytics.indicatorProductiveDelinquency", (a) =>
+      shareOf(sum(a, [1202, 1203, 1204]), a[1200] ?? 0),
+    ),
+    header("h4", t("analytics.indicatorProvisionCoverage")),
+    row("coverage", "analytics.indicatorCoverageRatio", (a) =>
+      shareOf(provisionAmount(a), arrears30(a)),
+    ),
+    header("h5", t("analytics.indicatorMicroeconomicEfficiency")),
+    row(
+      "opex",
+      "analytics.indicatorOpexRatio",
+      ifIncome((a) => shareOf(sum(a, [5201, 5202, 5203, 5204]), a[1999] ?? 0)),
+    ),
+    row(
+      "opexMargin",
+      "analytics.indicatorOpexMargin",
+      ifIncome((a) =>
+        shareOf(sum(a, [5201, 5202, 5203, 5204]), sum(a, [4101, 4102]) - sum(a, [5101, 5102])),
+      ),
+    ),
+    header("h6", t("analytics.indicatorProfitability")),
+    row(
+      "roa",
+      "analytics.indicatorRoa",
+      ifIncome((a) => (a[1999] > 0 ? (netSurplus(a) / a[1999]) * 100 : null)),
+    ),
+    row(
+      "roe",
+      "analytics.indicatorRoe",
+      ifIncome((a) => (a[3999] > 0 ? (netSurplus(a) / a[3999]) * 100 : null)),
+    ),
+    row(
+      "oss",
+      "analytics.indicatorOss",
+      ifIncome((a) => shareOf(totalIncome(a), totalExpenses(a))),
+    ),
+    header("h7", t("analytics.indicatorIntermediationLiquidity")),
+    row("liquid", "analytics.indicatorLiquidFunds", (a) => shareOf(a[1100] ?? 0, a[1999] ?? 0)),
+    row("loansDeposits", "analytics.indicatorLoansDeposits", (a) =>
+      shareOf(a[1200] ?? 0, a[2100] ?? 0),
+    ),
   ];
 }
 
@@ -245,51 +168,33 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
 
   // Fetch raw comparative statement line items (scoped to filtered coops)
   const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
-    { reportingYear, cooperativeIds },
+    {
+      reportingYear,
+      cooperativeIds,
+      periodType: filterParams?.periodType,
+      periodValue: filterParams?.periodValue,
+    },
     !!cooperativeIds,
   );
 
-  const formatValue = (val: number | null, unit: string) => {
-    if (val === null) return "-";
-    if (unit === "%") return `${val.toFixed(2)}%`;
-    if (unit === "USD") return formatUsd(val);
-    return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+  const formatValue = (val: number | null) => (val === null ? "—" : `${val.toFixed(2)}%`);
 
   // Group line items by cooperative and sum values per account code
   const coopMatrices = useMemo(() => {
     if (!comparative?.grids) return [];
 
     return comparative.grids.map((grid) => {
-      const lineItems = grid.line_items || [];
-      // Annual-frequency submissions store figures at month=0 (no monthly
-      // breakdown exists), so that row must match whichever month is
-      // selected here — otherwise every annual submission renders blank.
-      const filtered = lineItems.filter(
-        (item) => String(item.month) === selectedMonth || item.month === 0,
-      );
-
-      const map: Record<number, number> = {};
-      filtered.forEach((item) => {
-        if (item.account_code) {
-          map[item.account_code] = (map[item.account_code] || 0) + item.value_usd;
-        }
-      });
-
-      // Match calculated KPIs from overview
-      const overviewCoop = overview?.cooperatives.find(
-        (c) => c.cooperative_id === grid.cooperative_id,
-      );
-      const kpis = overviewCoop?.kpis || {};
+      const values = accountValuesAt(grid.line_items || [], Number(selectedMonth));
+      const map: Record<number, number> = values ?? {};
 
       return {
         id: grid.cooperative_id,
         name: grid.cooperative_name,
         codeValues: map,
-        kpis,
+        reported: values !== null,
       };
     });
-  }, [comparative, selectedMonth, overview]);
+  }, [comparative, selectedMonth]);
 
   const filteredMatrices = useMemo(() => {
     if (selectedCoopIds.length === 0) return coopMatrices;
@@ -418,7 +323,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
       {/* Grid Comparative Table */}
       <Card
         title={t("analytics.prudentialGridTitle")}
-        info="Prudential ratios per cooperative (capital adequacy, asset quality, delinquency, profitability, efficiency) computed from the approved financial statement. Each row names its formula; a dash means an input account was not reported."
+        info={t("analytics.indicatorsGridInfo")}
         subtitle={t("analytics.sideBySideIndicatorAnalysis")}
       >
         {filteredMatrices.length > 0 ? (
@@ -448,7 +353,7 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
                           <span className="inline-flex items-center gap-1.5">
                             {row.label}
                             {!row.isHeader && (
-                              <InfoTooltip text="Ratio computed from the approved financial statement (formula in the row name) or from the KPI engine on the same statement. A dash means a required account was not reported, so no ratio is shown." />
+                              <InfoTooltip text={t(`analytics.indicatorTip.${row.key}`)} />
                             )}
                           </span>
                         </td>
@@ -470,15 +375,15 @@ export function FinancialIndicators({ reportingYear, filterParams }: FinancialIn
                         <span className="inline-flex items-center gap-1.5">
                           {row.label}
                           {!row.isHeader && (
-                            <InfoTooltip text="Ratio computed from the approved financial statement (formula in the row name) or from the KPI engine on the same statement. A dash means a required account was not reported, so no ratio is shown." />
+                            <InfoTooltip text={t(`analytics.indicatorTip.${row.key}`)} />
                           )}
                         </span>
                       </td>
                       {filteredMatrices.map((coop) => {
-                        const val = row.computeFormula(coop.kpis, coop.codeValues);
+                        const val = coop.reported ? row.compute(coop.codeValues) : null;
                         return (
                           <td key={coop.id} className="py-2 px-4 text-right text-slate-700">
-                            {formatValue(val, row.unit)}
+                            {formatValue(val)}
                           </td>
                         );
                       })}

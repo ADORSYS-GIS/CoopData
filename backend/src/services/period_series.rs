@@ -125,7 +125,8 @@ const FLOW_CODES: [i32; 8] = [4999, 5999, 6999, 4100, 4200, 5100, 5200, 5300];
 /// Totals of one statement in its own currency. Balance-sheet figures come from
 /// the latest month reported (an annual statement stores everything at month 0);
 /// income and expense figures are summed over the months reported, or read from
-/// month 0.
+/// month 0. Loan loss provisions are stored as negative numbers and returned as
+/// a positive amount.
 pub fn statement_totals(
     raw_by_month: &BTreeMap<i16, HashMap<i32, f64>>,
     coa: &[chart_of_account::Model],
@@ -170,7 +171,7 @@ pub fn statement_totals(
         arrears_31_60: at(1203),
         arrears_61_90: at(1204),
         non_performing: at(1205),
-        provisions: at(1250),
+        provisions: at(1250).abs(),
         borrowings: at(2200),
         share_capital: at(3100),
         reserves: at(3200),

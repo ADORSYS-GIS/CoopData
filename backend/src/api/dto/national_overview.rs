@@ -135,6 +135,10 @@ pub struct BenchmarkInsufficientData {
 pub struct ComparativeStatementsParams {
     pub reporting_year: Option<i32>,
     pub cooperative_ids: Option<String>,
+    /// Restrict to one period type (YEARLY, QUARTERLY, MONTHLY, SEMI_ANNUAL).
+    pub period_type: Option<String>,
+    /// Restrict to one period value (for example Q1, 08, H1).
+    pub period_value: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]

@@ -60,7 +60,8 @@ export function CooperativeRankingTable({
       setDirection(key === "name" ? "asc" : "desc");
     }
   };
-  const money = (value: number) => formatMoneyValue(value, currency);
+  const money = (value: number | null) =>
+    value === null ? "—" : formatMoneyValue(value, currency);
 
   return (
     <Card
@@ -129,7 +130,7 @@ export function CooperativeRankingTable({
                 </td>
                 <td
                   className={`px-3 py-2 text-right font-semibold ${
-                    row.net_income < 0 ? "text-destructive" : "text-foreground"
+                    (row.net_income ?? 0) < 0 ? "text-destructive" : "text-foreground"
                   }`}
                 >
                   {money(row.net_income)}

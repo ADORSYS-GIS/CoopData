@@ -278,20 +278,20 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
                 region: c.coop.region.as_ref().map(|r| r.as_str().to_string()),
                 sector: c.coop.sector.as_ref().map(|s| s.as_str().to_string()),
                 total_members: d.registered,
-                total_assets: d.total_assets.unwrap_or(0.0),
-                total_deposits: d.deposits.unwrap_or(0.0),
-                gross_loans: d.gross_loans.unwrap_or(0.0),
+                total_assets: d.total_assets,
+                total_deposits: d.deposits,
+                gross_loans: d.gross_loans,
                 par_gt_30_pct: d.par_pct(d.overdue_gt_30),
                 liquidity_ratio_pct: d.liquidity_ratio_pct(),
                 institutional_capital_ratio_pct: d.institutional_capital_ratio_pct(),
-                net_income: d.net_income.unwrap_or(0.0),
+                net_income: d.net_income,
             });
         }
         rows.sort_by(|a, b| a.name.cmp(&b.name));
     }
     let market_share = (req.admin_view && rows.len() > 1).then(|| MarketShare {
-        by_assets: shares(&rows, |r| r.total_assets),
-        by_loans: shares(&rows, |r| r.gross_loans),
+        by_assets: shares(&rows, |r| r.total_assets.unwrap_or(0.0)),
+        by_loans: shares(&rows, |r| r.gross_loans.unwrap_or(0.0)),
     });
 
     let i = &total_inputs;

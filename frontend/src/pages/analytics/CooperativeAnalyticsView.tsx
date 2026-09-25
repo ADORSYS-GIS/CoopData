@@ -1,3 +1,4 @@
+import { isReportedKpi } from "@/lib/kpi-reported";
 import { useMemo, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -62,7 +63,10 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
   const { data: nfStats } = useNfStatistics(isCooperative, scope, hasApproved);
 
   const kpiMap = useMemo(
-    () => Object.fromEntries((kpisData?.kpis ?? []).map((k) => [k.name, k.value])),
+    () =>
+      Object.fromEntries(
+        (kpisData?.kpis ?? []).filter((k) => isReportedKpi(k)).map((k) => [k.name, k.value]),
+      ),
     [kpisData],
   );
   const headline = useMemo(() => buildKpiCards(kpisData?.kpis ?? [], t), [kpisData, t]);

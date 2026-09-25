@@ -23,7 +23,7 @@ const point = (overrides: Partial<PeriodSeriesPoint>): PeriodSeriesPoint => ({
   arrears_61_90: 0,
   non_performing: 0,
   provisions: 0,
-  borrowings: 0,
+  borrowings: 100,
   share_capital: 0,
   reserves: 0,
   statutory_reserve: 0,
@@ -43,7 +43,7 @@ describe("toStructureSeries", () => {
     expect(first?.values).toEqual({
       earning_asset_ratio: 60,
       member_savings_ratio: 60,
-      borrowed_funds_ratio: 20,
+      borrowed_funds_ratio: 10,
     });
   });
 
@@ -55,10 +55,10 @@ describe("toStructureSeries", () => {
     expect(toStructureSeries([point({ assets: 0 })])[0]?.values).toEqual({});
   });
 
-  it("never reports negative borrowed funds", () => {
-    const [first] = toStructureSeries([point({ liabilities: 500, savings: 600 })]);
+  it("uses borrowings only, not other liabilities", () => {
+    const [first] = toStructureSeries([point({ liabilities: 900, savings: 600, borrowings: 50 })]);
 
-    expect(first?.values.borrowed_funds_ratio).toBe(0);
+    expect(first?.values.borrowed_funds_ratio).toBe(5);
   });
 });
 

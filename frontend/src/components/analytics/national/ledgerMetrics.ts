@@ -38,7 +38,7 @@ export const buildMembershipMetrics = (
   {
     key: "youthMembers",
     label: t("analytics.netYouthMembers"),
-    value: m.age_18_35.toLocaleString(),
+    value: (m.under_18 + m.age_18_35).toLocaleString(),
     tooltip: t("analytics.netYouthMembersTooltip"),
     trend: "neutral",
     trendValue: t("analytics.netOfTotalPct", { pct: m.youth_pct.toFixed(1) }),
@@ -79,7 +79,7 @@ export const buildSavingsMetrics = (
     value: s.active_accounts.toLocaleString(),
     tooltip: t("analytics.netActiveSaversTooltip"),
     trend: "up",
-    trendValue: t("analytics.netPenetrationPct", { pct: s.active_savers_pct.toFixed(1) }),
+    trendValue: t("analytics.netOfAccountsPct", { pct: s.active_savers_pct.toFixed(1) }),
   },
   {
     key: "regularSavers",

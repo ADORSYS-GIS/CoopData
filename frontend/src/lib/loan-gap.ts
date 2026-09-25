@@ -1,4 +1,5 @@
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import { isReportedKpi } from "@/lib/kpi-reported";
 
 export interface LoanGapTotals {
   totalGLP: number;
@@ -20,8 +21,10 @@ export const aggregateLoanGap = (coops: readonly CoopKpiRow[]): LoanGapTotals =>
 
   for (const coop of coops) {
     const glp = coop.kpis["gross_loan_portfolio"]?.value ?? 0;
-    const par30 = coop.kpis["par30"]?.value;
-    const coverage = coop.kpis["loan_loss_coverage"]?.value;
+    const par30 = isReportedKpi(coop.kpis["par30"]) ? coop.kpis["par30"].value : undefined;
+    const coverage = isReportedKpi(coop.kpis["loan_loss_coverage"])
+      ? coop.kpis["loan_loss_coverage"].value
+      : undefined;
     totalGLP += glp;
 
     if (par30 === undefined || glp <= 0) continue;

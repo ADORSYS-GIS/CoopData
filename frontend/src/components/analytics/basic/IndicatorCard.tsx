@@ -22,7 +22,7 @@ interface IndicatorCardProps {
 const DELTA_ICON = { up: ArrowUp, down: ArrowDown, flat: ArrowRight } as const;
 
 export function IndicatorCard({ indicator, scope, emphasis = false }: IndicatorCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const label = t(`basicDashboard.indicators.${indicator.key}`, {
     defaultValue: humanizeKey(indicator.key),
   });
@@ -30,14 +30,15 @@ export function IndicatorCard({ indicator, scope, emphasis = false }: IndicatorC
   const delta = missing ? null : formatDelta(indicator.change_pct);
   const Icon = DELTA_ICON[deltaDirection(indicator.change_pct)];
 
+  const helpKey = `basicDashboard.help.${indicator.key}`;
+  const description = i18n.exists(helpKey) ? t(helpKey) : null;
   const tooltipParts = [
-    `${t("basicDashboard.tooltip.formula")}: ${indicator.formula}`,
-    indicator.sources.length > 0
-      ? `${t("basicDashboard.tooltip.sources")}: ${indicator.sources.join(", ")}`
-      : null,
+    description ??
+      `${t("basicDashboard.tooltip.formula")}: ${indicator.formula}${
+        indicator.note ? `. ${t("basicDashboard.tooltip.note")}: ${indicator.note}` : ""
+      }`,
     indicator.status === "approximate" ? t("basicDashboard.status.approximateHint") : null,
     missing ? t("basicDashboard.status.notReportedHint") : null,
-    indicator.note ? `${t("basicDashboard.tooltip.note")}: ${indicator.note}` : null,
   ].filter((part): part is string => part !== null);
 
   return (

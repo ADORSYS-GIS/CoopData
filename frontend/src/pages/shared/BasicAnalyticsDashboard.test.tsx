@@ -11,6 +11,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) =>
       options?.defaultValue ?? key.split(".").pop() ?? key,
+    i18n: { exists: () => false },
   }),
 }));
 
