@@ -105,3 +105,12 @@ TEMP-1147318-639065
 
 # libexpat in nginx:alpine (fixed in 2.8.5-r0) - ignored at maintainers request
 CVE-2026-93990
+
+# Backend image findings ignored at maintainers request until a fixed base
+# image or package is available.
+CVE-2026-42767
+CVE-2026-54874
+CVE-2026-63072
+CVE-2026-63074
+CVE-2026-63076
+CVE-2026-75803

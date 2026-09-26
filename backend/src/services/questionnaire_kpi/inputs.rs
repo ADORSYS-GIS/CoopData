@@ -34,6 +34,13 @@ fn sum(answers: &Value, keys: &[&'static str]) -> Option<(f64, &'static str)> {
     total.zip(first_key)
 }
 
+/// Sum of the split fields (all keys but the last) when any is present, else the
+/// last key, the aggregate. The two forms describe the same members.
+fn split(answers: &Value, keys: &[&'static str]) -> Option<(f64, &'static str)> {
+    let (aggregate, parts) = keys.split_last()?;
+    sum(answers, parts).or_else(|| sum(answers, &[*aggregate]))
+}
+
 macro_rules! inputs {
     ($( $field:ident : $mode:ident [$($key:literal),+] $(, money = $money:tt)? );+ $(;)?) => {
         #[derive(Debug, Clone, Default)]
@@ -120,10 +127,10 @@ inputs! {
     reg_f: sum ["registered_members_female", "total_registered_female", "registered_female"];
     act_m: sum ["active_members_male", "total_active_male", "active_male"];
     act_f: sum ["active_members_female", "total_active_female", "active_female"];
-    age_18_25: sum ["age_18_25_male", "age_18_25_female", "registered_members_18_25"];
-    age_26_35: sum ["age_26_35_male", "age_26_35_female", "registered_members_26_35"];
-    age_36_60: sum ["age_36_60_male", "age_36_60_female", "registered_members_36_60"];
-    age_61_plus: sum ["age_61plus_male", "age_61plus_female", "registered_members_61plus"];
+    age_18_25: split ["age_18_25_male", "age_18_25_female", "registered_members_18_25"];
+    age_26_35: split ["age_26_35_male", "age_26_35_female", "registered_members_26_35"];
+    age_36_60: split ["age_36_60_male", "age_36_60_female", "registered_members_36_60"];
+    age_61_plus: split ["age_61plus_male", "age_61plus_female", "registered_members_61plus"];
     groups: first ["number_of_groups"];
     // savings
     sav_acc_m: first ["savings_accounts_male"];

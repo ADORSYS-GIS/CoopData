@@ -75,6 +75,13 @@ fn matches_filter(value: Option<&str>, wanted: &Option<String>) -> bool {
     }
 }
 
+/// A filter value that narrows the selection; empty and "all" mean no filter.
+fn active_filter(value: Option<&str>) -> Option<&str> {
+    value
+        .map(str::trim)
+        .filter(|v| !v.is_empty() && !v.eq_ignore_ascii_case("all"))
+}
+
 struct CoopPeriod {
     coop: cooperative::Model,
     inputs: Inputs,
@@ -197,18 +204,15 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
                 period_value: r.period_value.clone(),
             })
     });
-    let wanted_type = req.params.period_type.as_deref().map(str::to_uppercase);
+    let wanted_type = active_filter(req.params.period_type.as_deref()).map(str::to_uppercase);
+    let wanted_value = active_filter(req.params.period_value.as_deref());
     let selected: Option<PeriodKey> = focus_key.or_else(|| {
         keys.iter()
             .rev()
             .find(|k| {
                 req.params.reporting_year.map_or(true, |y| y == k.year)
                     && wanted_type.as_deref().map_or(true, |t| t == k.period_type)
-                    && req
-                        .params
-                        .period_value
-                        .as_deref()
-                        .map_or(true, |v| v.eq_ignore_ascii_case(&k.period_value))
+                    && wanted_value.map_or(true, |v| v.eq_ignore_ascii_case(&k.period_value))
             })
             .cloned()
     });
@@ -373,4 +377,23 @@ fn shares(rows: &[CooperativeRow], value: impl Fn(&CooperativeRow) -> f64) -> Ve
         .collect();
     out.sort_by(|a, b| b.value.total_cmp(&a.value));
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::active_filter;
+
+    #[test]
+    fn all_and_blank_filters_do_not_narrow() {
+        assert_eq!(active_filter(None), None);
+        assert_eq!(active_filter(Some("")), None);
+        assert_eq!(active_filter(Some("  ")), None);
+        assert_eq!(active_filter(Some("all")), None);
+        assert_eq!(active_filter(Some("ALL")), None);
+    }
+
+    #[test]
+    fn a_real_value_is_kept_trimmed() {
+        assert_eq!(active_filter(Some(" Q1 ")), Some("Q1"));
+    }
 }

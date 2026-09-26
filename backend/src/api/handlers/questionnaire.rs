@@ -333,6 +333,20 @@ pub(crate) fn sum_f64_from_json(json: &serde_json::Value, keys: &[&str]) -> f64 
         .sum()
 }
 
+/// Sum of the split fields (all keys but the last) when any is present, else
+/// the last key, the aggregate. The two forms describe the same members, so
+/// they must never be added together.
+pub(crate) fn sum_split_or_aggregate(json: &serde_json::Value, keys: &[&str]) -> f64 {
+    let Some((aggregate, split)) = keys.split_last() else {
+        return 0.0;
+    };
+    if has_any_json_key(json, split) {
+        sum_f64_from_json(json, split)
+    } else {
+        sum_f64_from_json(json, &[*aggregate])
+    }
+}
+
 pub(crate) fn has_any_json_key(json: &serde_json::Value, keys: &[&str]) -> bool {
     keys.iter().any(|k| json.get(*k).is_some())
 }
@@ -475,7 +489,7 @@ pub async fn get_questionnaire_analytics(
         total_expenditure += exp;
         total_net_income += net;
 
-        age_18_25 += sum_f64_from_json(
+        age_18_25 += sum_split_or_aggregate(
             answers,
             &[
                 "age_18_25_male",
@@ -483,7 +497,7 @@ pub async fn get_questionnaire_analytics(
                 "registered_members_18_25",
             ],
         ) as i32;
-        age_26_35 += sum_f64_from_json(
+        age_26_35 += sum_split_or_aggregate(
             answers,
             &[
                 "age_26_35_male",
@@ -491,7 +505,7 @@ pub async fn get_questionnaire_analytics(
                 "registered_members_26_35",
             ],
         ) as i32;
-        age_36_60 += sum_f64_from_json(
+        age_36_60 += sum_split_or_aggregate(
             answers,
             &[
                 "age_36_60_male",
@@ -499,7 +513,7 @@ pub async fn get_questionnaire_analytics(
                 "registered_members_36_60",
             ],
         ) as i32;
-        age_61plus += sum_f64_from_json(
+        age_61plus += sum_split_or_aggregate(
             answers,
             &[
                 "age_61plus_male",

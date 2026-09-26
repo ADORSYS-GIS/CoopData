@@ -30,6 +30,21 @@ fn age_bands_add_male_and_female() {
 }
 
 #[test]
+fn age_band_does_not_add_the_aggregate_to_the_split() {
+    let both = inputs(json!({
+        "age_18_25_male": 10, "age_18_25_female": 15, "registered_members_18_25": 25
+    }));
+    assert_eq!(both.age_18_25, 25.0);
+}
+
+#[test]
+fn age_band_falls_back_to_the_aggregate() {
+    let i = inputs(json!({ "registered_members_36_60": 40 }));
+    assert_eq!(i.age_36_60, 40.0);
+    assert!(i.has("age_36_60"));
+}
+
+#[test]
 fn zero_is_reported_but_missing_is_not() {
     let list = compute(json!({ "savings_value_male": 0, "savings_value_female": 0 }));
     assert_eq!(value(&list, "total_deposits"), Some(0.0));

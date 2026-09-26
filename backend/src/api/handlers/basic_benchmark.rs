@@ -413,7 +413,7 @@ fn metrics_from_answers(answers: &serde_json::Value) -> HashMap<String, f64> {
     );
     metrics.insert(
         "members_age_18_25".to_string(),
-        crate::api::handlers::questionnaire::sum_f64_from_json(
+        crate::api::handlers::questionnaire::sum_split_or_aggregate(
             answers,
             &[
                 "age_18_25_male",
@@ -424,7 +424,7 @@ fn metrics_from_answers(answers: &serde_json::Value) -> HashMap<String, f64> {
     );
     metrics.insert(
         "members_age_26_35".to_string(),
-        crate::api::handlers::questionnaire::sum_f64_from_json(
+        crate::api::handlers::questionnaire::sum_split_or_aggregate(
             answers,
             &[
                 "age_26_35_male",
@@ -435,7 +435,7 @@ fn metrics_from_answers(answers: &serde_json::Value) -> HashMap<String, f64> {
     );
     metrics.insert(
         "members_age_36_60".to_string(),
-        crate::api::handlers::questionnaire::sum_f64_from_json(
+        crate::api::handlers::questionnaire::sum_split_or_aggregate(
             answers,
             &[
                 "age_36_60_male",
@@ -446,7 +446,7 @@ fn metrics_from_answers(answers: &serde_json::Value) -> HashMap<String, f64> {
     );
     metrics.insert(
         "members_age_61plus".to_string(),
-        crate::api::handlers::questionnaire::sum_f64_from_json(
+        crate::api::handlers::questionnaire::sum_split_or_aggregate(
             answers,
             &[
                 "age_61plus_male",
