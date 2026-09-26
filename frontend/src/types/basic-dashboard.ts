@@ -136,6 +136,8 @@ export interface BasicDashboardParams {
   region?: string;
   sector?: string;
   cooperativeId?: string;
+  federationId?: string;
+  apexId?: string;
   currency?: "usd" | "native";
 }
 

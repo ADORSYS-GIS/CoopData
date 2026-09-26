@@ -44,6 +44,19 @@ pub async fn get_basic_dashboard(
         cooperative_ids = vec![id];
     }
 
+    if params.federation_id.is_some() || params.apex_id.is_some() {
+        cooperative_ids = crate::api::handlers::financial_statement::filter_cooperatives(
+            &state,
+            cooperative_ids,
+            None,
+            None,
+            None,
+            params.federation_id,
+            params.apex_id,
+        )
+        .await?;
+    }
+
     let admin_view = !claims.has_role("cooperative");
     let response = build(
         &state,

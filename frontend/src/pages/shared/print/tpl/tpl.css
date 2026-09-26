@@ -483,6 +483,9 @@
   padding: 1.5mm 0;
   border-bottom: 0.5pt dotted var(--line);
 }
+.tpl .toc.tight td {
+  padding: 0.7mm 0;
+}
 .tpl .toc td.n {
   width: 12mm;
   font-family: Caladea, serif;

@@ -13,6 +13,8 @@ interface ConsolidatedNameInput {
   /** Name of the apex or federation the report is about. */
   entityName?: string | null;
   year?: string | number | null;
+  /** `questionnaire` marks a report built from questionnaire returns. */
+  method?: "standard" | "questionnaire";
 }
 
 /**
@@ -24,11 +26,13 @@ export const consolidatedFilename = ({
   level,
   entityName,
   year,
+  method = "standard",
 }: ConsolidatedNameInput): string => {
   const suffix = year ? `_${year}` : "";
-  if (level === "ministry") return `ministry_national_report${suffix}.pdf`;
+  const kind = method === "questionnaire" ? "questionnaire_report" : "report";
+  if (level === "ministry") return `ministry_national_${kind}${suffix}.pdf`;
   const entity = entityName ? slug(entityName) : "";
-  return `${entity ? `${entity}_` : ""}${level}_report${suffix}.pdf`;
+  return `${entity ? `${entity}_` : ""}${level}_${kind}${suffix}.pdf`;
 };
 
 export const individualFilename = (

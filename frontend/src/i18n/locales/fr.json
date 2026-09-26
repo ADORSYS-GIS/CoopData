@@ -4246,7 +4246,18 @@
     "regenerateAndExport": "Régénérer & Exporter",
     "regenerating": "Régénération…",
     "regeneratedAndDownloaded": "Rapport régénéré et téléchargé !",
-    "regenerateTooltip": "Forcer une nouvelle génération de PDF, en remplaçant la version mise en cache"
+    "regenerateTooltip": "Forcer une nouvelle génération de PDF, en remplaçant la version mise en cache",
+    "method": {
+      "title": "Type de rapport",
+      "choose": "Les deux types ont des données pour cette sélection. Choisissez le rapport à exporter.",
+      "auto": "Seul ce type a des données pour cette sélection, il est donc choisi pour vous.",
+      "none": "Aucune soumission approuvée pour cette sélection.",
+      "standard": "Rapport standard",
+      "standardDesc": "Établi à partir des états financiers ({{count}} soumissions approuvées)",
+      "questionnaire": "Rapport questionnaire",
+      "questionnaireDesc": "Établi à partir des réponses au questionnaire ({{count}} soumissions approuvées)",
+      "summary": "Type de rapport"
+    }
   },
   "analyticsFilter": {
     "year": "Année",

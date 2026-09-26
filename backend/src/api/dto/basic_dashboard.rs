@@ -15,6 +15,10 @@ pub struct BasicDashboardParams {
     pub sector: Option<String>,
     /// Restrict to one cooperative (individual view).
     pub cooperative_id: Option<Uuid>,
+    /// Restrict to the cooperatives of one federation.
+    pub federation_id: Option<Uuid>,
+    /// Restrict to the cooperatives of one apex.
+    pub apex_id: Option<Uuid>,
     /// `usd` (default, converted with the submission's rate) or `native` (as entered).
     pub currency: Option<String>,
 }

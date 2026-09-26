@@ -4276,7 +4276,18 @@
     "regenerateAndExport": "Regenerate & Export",
     "regenerating": "Regenerating...",
     "regeneratedAndDownloaded": "Report regenerated and downloaded!",
-    "regenerateTooltip": "Force a fresh PDF generation, replacing the cached version"
+    "regenerateTooltip": "Force a fresh PDF generation, replacing the cached version",
+    "method": {
+      "title": "Report type",
+      "choose": "Both types have data for this selection. Choose which report to export.",
+      "auto": "Only this type has data for this selection, so it is selected for you.",
+      "none": "No approved submissions for this selection.",
+      "standard": "Standard report",
+      "standardDesc": "Built from financial statements ({{count}} approved submissions)",
+      "questionnaire": "Questionnaire report",
+      "questionnaireDesc": "Built from questionnaire answers ({{count}} approved submissions)",
+      "summary": "Report type"
+    }
   },
   "analyticsFilter": {
     "year": "Year",

@@ -36,6 +36,22 @@ describe("consolidatedFilename", () => {
   });
 });
 
+describe("consolidatedFilename for questionnaire reports", () => {
+  it("marks the method so the two reports never share a name", () => {
+    expect(
+      consolidatedFilename({
+        level: "apex",
+        entityName: "Southern Sacco",
+        year: 2026,
+        method: "questionnaire",
+      }),
+    ).toBe("southern_sacco_apex_questionnaire_report_2026.pdf");
+    expect(consolidatedFilename({ level: "ministry", year: 2026, method: "questionnaire" })).toBe(
+      "ministry_national_questionnaire_report_2026.pdf",
+    );
+  });
+});
+
 describe("individualFilename", () => {
   it("uses the cooperative name and year", () => {
     expect(individualFilename("Lubombo Sacco", 2026)).toBe("lubombo_sacco_2026.pdf");

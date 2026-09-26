@@ -20,6 +20,8 @@ export const buildBasicDashboardQuery = (
   if (params.region) query.region = params.region;
   if (params.sector) query.sector = params.sector;
   if (params.cooperativeId) query.cooperative_id = params.cooperativeId;
+  if (params.federationId) query.federation_id = params.federationId;
+  if (params.apexId) query.apex_id = params.apexId;
   if (params.currency) query.currency = params.currency;
   return query;
 };
@@ -29,14 +31,20 @@ export const buildBasicDashboardQuery = (
  * share and demographics are all computed server-side from the questionnaire
  * answers, so the page never re-derives ratios in the browser.
  */
-export const useBasicDashboard = (params: BasicDashboardParams, enabled = true) =>
+export const useBasicDashboard = (
+  params: BasicDashboardParams,
+  enabled = true,
+  tokenOverride?: string,
+) =>
   useOfflineQuery<BasicDashboardResponse>({
     queryKey: ["basic-dashboard", "v1", params],
     cacheTable: "analytics",
     cacheKey: `basic-dashboard-v1-${JSON.stringify(params)}`,
     queryFn: async () => {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (apiClient as any).GET("/api/v1/analytics/basic-dashboard", {
+        headers,
         params: { query: buildBasicDashboardQuery(params) },
       });
       if (error) throw new Error(extractErrorMessage(error));

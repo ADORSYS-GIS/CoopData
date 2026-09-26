@@ -3479,7 +3479,18 @@
     "regenerateAndExport": "Regenerar & Exportar",
     "regenerating": "A regenerar...",
     "regeneratedAndDownloaded": "Relatório regenerado e descarregado!",
-    "regenerateTooltip": "Forçar uma nova geração de PDF, substituindo a versão em cache"
+    "regenerateTooltip": "Forçar uma nova geração de PDF, substituindo a versão em cache",
+    "method": {
+      "title": "Tipo de relatório",
+      "choose": "Os dois tipos têm dados para esta seleção. Escolha o relatório a exportar.",
+      "auto": "Só este tipo tem dados para esta seleção, por isso foi escolhido para si.",
+      "none": "Não há submissões aprovadas para esta seleção.",
+      "standard": "Relatório padrão",
+      "standardDesc": "Elaborado a partir das demonstrações financeiras ({{count}} submissões aprovadas)",
+      "questionnaire": "Relatório de questionário",
+      "questionnaireDesc": "Elaborado a partir das respostas ao questionário ({{count}} submissões aprovadas)",
+      "summary": "Tipo de relatório"
+    }
   },
   "analyticsFilter": {
     "year": "Ano",

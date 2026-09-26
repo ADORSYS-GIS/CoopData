@@ -189,6 +189,42 @@ Rules:
 - Text is English only, like the other reports. The old sheets used the i18n keys `questionnaireReport.*`; those keys are now unused.
 - Tests: `quest/text.test.ts` (ratings, verdict, concerns, recommendations).
 
+## 6c. Consolidated questionnaire report (apex, federation, ministry)
+
+A second consolidated report, built only from the questionnaire returns of the cooperatives in scope. The statement-based consolidated report is unchanged.
+
+### Choosing the report type
+The export dialog (`components/reports/report-export-panel.tsx`) has a last step, **Report type**, for consolidated reports (`method-picker.tsx`, logic in `lib/report-method.ts`):
+- After the year is chosen, approved submissions for the selection (federation, apex and year) are counted by method: `questionnaire`, or any other method as "standard".
+- If only one type has data, it is selected automatically and the step says so.
+- If both have data, the user must choose before the export button is enabled.
+- If neither has data, the step says there are no approved submissions.
+- The export URL gets `method=questionnaire` for the questionnaire report. The file name carries `questionnaire` (`..._apex_questionnaire_report_2026.pdf`).
+- One cooperative uses one method per year, so a cooperative is in one report or the other for a given year, never both.
+
+### Backend
+- `GET /api/v1/{apex|federation|ministry}/export` accepts `method`. With `method=questionnaire` it renders `/print/questionnaire-consolidated?token=&year=&scope=&id=&name=` and caches the PDF under `.../apex_{id}_{year}_questionnaire.pdf` (likewise `federation_...` and `ministry_{year}_questionnaire.pdf`), so the two reports never overwrite each other. The automatic exports that run on approval still produce only the standard report.
+- `GET /api/v1/analytics/basic-dashboard` accepts `apex_id` and `federation_id` (same filtering as the period series). The dashboard already had a consolidated level.
+
+### Report content (`pages/shared/print/questcons/`)
+Route `routes/print.questionnaire-consolidated.tsx` loads the dashboard with the print token and renders `QuestionnaireConsolidatedReport`.
+
+Sections: Executive Summary (verdict, eight tiles, how many cooperatives meet each limit, strengths and concerns), Coverage and Portfolio Structure (P1 and P2 market share by cooperative, P3 coverage, P4 cooperatives by PAR band), Membership, Savings and Lending, Portfolio Quality and Risk, Liquidity and Capital, Financial Structure and Profitability, Asset Trend (with two or more periods), Cooperative Overview (table of every cooperative that filed, 16 per page, limit breaches in red), Findings and Recommendations, Annex A (indicators that are estimated or not reported), Annex B (definitions). The membership to structure sections are the same pages as the individual questionnaire report, which is not changed.
+
+How the figures are computed:
+- Indicators, series and demographics come from the dashboard, which sums the answers of all cooperatives in scope for the selected period and computes ratios from the sums.
+- Coverage: cooperatives that filed (`cooperatives_reporting`) against cooperatives in scope (`cooperatives_in_scope`).
+- Limits (`questcons/stats.ts`): PAR over 30 days at most 5%, liquidity at least the platform minimum (15%), institutional capital at least its minimum (8%). A cooperative without a value counts as "not reported", not as failing.
+- Market share: cooperatives ranked by assets and by loans; the six largest are named and the rest are grouped as Other.
+- Recommendations are generated from the counts (`questcons/text.ts`).
+
+Limits of this report:
+- The backend reports one period. With no period given, it takes the latest period of the chosen year, so a cooperative that answered for another frequency in that year is not counted. The Basis of preparation states this.
+- Amounts are in USD converted at each submission's frozen rate.
+- There are no AI narratives for the consolidated questionnaire report.
+- The `openapi.json` file was not regenerated; the dashboard hook calls the endpoint through the untyped client, as before.
+- Tests: `questcons/stats.test.ts`, `lib/report-method.test.ts`, `lib/report-filename.test.ts`.
+
 ## 7. Operations
 
 - **Regenerating PDFs.** Exports are cached in object storage under `EXPORT_PREFIX` (`exports/v4` in `backend/src/services/export_generator.rs`). Change the version whenever the layout changes; old files are then ignored and new ones are generated on the next export. The individual export also accepts `?regenerate=true`.
@@ -215,6 +251,8 @@ pages/shared/print/cons/pagesE.tsx      portfolio structure and key indicators p
 routes/print.apex.$id.tsx, print.federation.$id.tsx, print.ministry.tsx  load the series
 backend/src/services/export_generator.rs  EXPORT_PREFIX v2 -> v4
 pages/shared/print/quest/               questionnaire report in the template
+pages/shared/print/questcons/           consolidated questionnaire report
+components/reports/method-picker.tsx     report type step of the export dialog
 ```
 
 Merging note: this branch also contains the `questionaire-report` work (period series endpoint, questionnaire KPI dashboard).

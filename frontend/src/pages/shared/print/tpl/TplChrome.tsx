@@ -102,7 +102,7 @@ export function FrontMatter({
       </table>
 
       <h3>Contents</h3>
-      <table className="toc">
+      <table className={toc.length > 11 ? "toc tight" : "toc"}>
         <tbody>
           {toc.map((entry) => (
             <tr key={entry.no}>

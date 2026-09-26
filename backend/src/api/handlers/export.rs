@@ -20,6 +20,9 @@ pub struct ExportQuery {
     pub apex_id: Option<Uuid>,
     #[serde(alias = "year")]
     pub reporting_year: Option<i32>,
+    /// `questionnaire` exports the report built from questionnaire answers;
+    /// anything else (or nothing) exports the statement-based report.
+    pub method: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize, Default)]
@@ -177,9 +180,15 @@ pub async fn export_bulk_consolidated(
         ));
     }
 
+    let questionnaire = query
+        .method
+        .as_deref()
+        .is_some_and(|m| m.eq_ignore_ascii_case("questionnaire"));
+    let tag = if questionnaire { "_questionnaire" } else { "" };
+
     // Bucket checks
     if let (Some(apex_id), Some(year)) = (query.apex_id, query.reporting_year) {
-        let filename = format!("apex_{}_{}.pdf", apex_id, year);
+        let filename = format!("apex_{}_{}{}.pdf", apex_id, year, tag);
         let storage_key = format!("{EXPORT_PREFIX}/apex/{}/{}", apex_id, filename);
         if let Ok(bytes) = state.storage.get_object(&storage_key).await {
             tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket HIT for Apex export");
@@ -194,7 +203,7 @@ pub async fn export_bulk_consolidated(
             return Ok(res);
         }
     } else if let (Some(fed_id), Some(year)) = (query.federation_id, query.reporting_year) {
-        let filename = format!("federation_{}_{}.pdf", fed_id, year);
+        let filename = format!("federation_{}_{}{}.pdf", fed_id, year, tag);
         let storage_key = format!("{EXPORT_PREFIX}/federation/{}/{}", fed_id, filename);
         if let Ok(bytes) = state.storage.get_object(&storage_key).await {
             tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket HIT for Federation export");
@@ -210,7 +219,7 @@ pub async fn export_bulk_consolidated(
         }
     } else if query.apex_id.is_none() && query.federation_id.is_none() {
         if let Some(year) = query.reporting_year {
-            let filename = format!("ministry_{}.pdf", year);
+            let filename = format!("ministry_{}{}.pdf", year, tag);
             let storage_key = format!("{EXPORT_PREFIX}/ministry/{}", filename);
             if let Ok(bytes) = state.storage.get_object(&storage_key).await {
                 tracing::info!(reporting_year = year, "Bucket HIT for Ministry export");
@@ -231,15 +240,15 @@ pub async fn export_bulk_consolidated(
     let (storage_key, display_filename) = if let Some(year) = query.reporting_year {
         match (query.apex_id, query.federation_id) {
             (Some(aid), _) => {
-                let fn_ = format!("apex_{}_{}.pdf", aid, year);
+                let fn_ = format!("apex_{}_{}{}.pdf", aid, year, tag);
                 (format!("{EXPORT_PREFIX}/apex/{}/{}", aid, fn_), fn_)
             }
             (_, Some(fid)) => {
-                let fn_ = format!("federation_{}_{}.pdf", fid, year);
+                let fn_ = format!("federation_{}_{}{}.pdf", fid, year, tag);
                 (format!("{EXPORT_PREFIX}/federation/{}/{}", fid, fn_), fn_)
             }
             (None, None) => {
-                let fn_ = format!("ministry_{}.pdf", year);
+                let fn_ = format!("ministry_{}{}.pdf", year, tag);
                 (format!("{EXPORT_PREFIX}/ministry/{}", fn_), fn_)
             }
         }
@@ -251,6 +260,11 @@ pub async fn export_bulk_consolidated(
 
     let token = state.keycloak.get_admin_token().await?;
     let year = query.reporting_year.unwrap_or_default();
+    let (route, scope_query) = if questionnaire {
+        ("print/questionnaire-consolidated", true)
+    } else {
+        ("", false)
+    };
     let print_url = if let Some(apex_id) = query.apex_id {
         let name = state
             .apex_repo
@@ -258,14 +272,26 @@ pub async fn export_bulk_consolidated(
             .await?
             .map(|apex| apex.display_name)
             .unwrap_or_default();
-        format!(
-            "{}/print/apex/{}?token={}&year={}&name={}",
-            state.config.gotenberg_frontend_url,
-            apex_id,
-            token,
-            year,
-            urlencoding::encode(&name)
-        )
+        if scope_query {
+            format!(
+                "{}/{}?token={}&year={}&scope=apex&id={}&name={}",
+                state.config.gotenberg_frontend_url,
+                route,
+                token,
+                year,
+                apex_id,
+                urlencoding::encode(&name)
+            )
+        } else {
+            format!(
+                "{}/print/apex/{}?token={}&year={}&name={}",
+                state.config.gotenberg_frontend_url,
+                apex_id,
+                token,
+                year,
+                urlencoding::encode(&name)
+            )
+        }
     } else if let Some(fed_id) = query.federation_id {
         let name = state
             .federation_repo
@@ -273,13 +299,30 @@ pub async fn export_bulk_consolidated(
             .await?
             .map(|federation| federation.display_name)
             .unwrap_or_default();
+        if scope_query {
+            format!(
+                "{}/{}?token={}&year={}&scope=federation&id={}&name={}",
+                state.config.gotenberg_frontend_url,
+                route,
+                token,
+                year,
+                fed_id,
+                urlencoding::encode(&name)
+            )
+        } else {
+            format!(
+                "{}/print/federation/{}?token={}&year={}&name={}",
+                state.config.gotenberg_frontend_url,
+                fed_id,
+                token,
+                year,
+                urlencoding::encode(&name)
+            )
+        }
+    } else if scope_query {
         format!(
-            "{}/print/federation/{}?token={}&year={}&name={}",
-            state.config.gotenberg_frontend_url,
-            fed_id,
-            token,
-            year,
-            urlencoding::encode(&name)
+            "{}/{}?token={}&year={}&scope=ministry",
+            state.config.gotenberg_frontend_url, route, token, year
         )
     } else {
         format!(
