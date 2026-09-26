@@ -15,7 +15,7 @@ Four report types share one template (teal and red, running header and footer, D
 | Federation consolidated | `cons/ConsolidatedTplReport.tsx` (tier `Federation`) | `/print/federation/$id` |
 | Ministry consolidated | `cons/ConsolidatedTplReport.tsx` (tier `Ministry`) | `/print/ministry` |
 
-The backend renders each print route to PDF through Gotenberg (`generate_pdf_via_gotenberg` in `backend/src/services/export_generator.rs`). It opens the route with an admin token, waits for `window.isReady === true` (set by `useGotenbergReady`), and stores the result under `exports/v3/...`.
+The backend renders each print route to PDF through Gotenberg (`generate_pdf_via_gotenberg` in `backend/src/services/export_generator.rs`). It opens the route with an admin token, waits for `window.isReady === true` (set by `useGotenbergReady`), and stores the result under `exports/v4/...`.
 
 ## 2. Page framework (`tpl/`)
 
@@ -173,11 +173,25 @@ What was verified, and how:
 - **No sector-wide totals** (from the earlier deck) because the data is not collected. Radar charts, gauges, waterfall and monthly views were left out on purpose to keep the reports short.
 - **Currency symbol, registration number, region and institution type** are not shown because the data is not available.
 - **Report text is English only.** The rest of the application is translated (en, fr, pt).
-- **Individual questionnaire report** (basic tier) still uses its own layout under `components/questionnaire/`.
+
+## 6b. Questionnaire (basic tier) report
+
+The report for a cooperative that answered the questionnaire now uses the same template (`quest/`, route `/print/questionnaire/$id`, wrapper `pages/shared/QuestionnaireReportPrint.tsx`). It replaces the earlier Tailwind sheets, which were deleted.
+
+Data: `useQuestionnaireReport` returns the basic dashboard for the submission (`BasicDashboardResponse`: indicators with value, prior value, change, formula and source fields; series per period; demographics; thresholds). Narratives come from `useQuestionnaireNarratives` and, when present, replace the generated text of the matching box.
+
+Sections: Executive Summary (verdict, eight tiles, regulatory minimums, strengths and concerns), Membership, Governance and Inclusion (M1 gender, M2 age band, gender and governance table), Savings and Lending Portfolio (P1), Portfolio Quality and Risk (overdue table, R1 and R2 PAR lines), Liquidity and Capital (L1, L2), Financial Structure and Profitability (F1 funding, F2 net income), Asset Trend (T1, only with two or more periods), Findings and Recommendations, Annex A (indicators that are estimated or not reported, with formula and source fields), Annex B (definitions of every indicator).
+
+Rules:
+- Ratings use the platform limits: PAR over 30 days 5% (watch to 10%), PAR over 90 days 2% (watch to 5%), and the liquidity and institutional capital minimums returned in `thresholds` (15% and 8%). Watch is within 80% of a minimum.
+- Liquidity is liquid assets over member savings. Institutional capital is retained earnings plus statutory reserves plus donations, over total assets. Both differ from the statement-based reports, which use total assets for liquidity; the Basis of preparation and Annex B say so.
+- Amounts use the currency of the dashboard scope (USD with the frozen rate, or the native currency).
+- Text is English only, like the other reports. The old sheets used the i18n keys `questionnaireReport.*`; those keys are now unused.
+- Tests: `quest/text.test.ts` (ratings, verdict, concerns, recommendations).
 
 ## 7. Operations
 
-- **Regenerating PDFs.** Exports are cached in object storage under `EXPORT_PREFIX` (`exports/v3` in `backend/src/services/export_generator.rs`). Change the version whenever the layout changes; old files are then ignored and new ones are generated on the next export. The individual export also accepts `?regenerate=true`.
+- **Regenerating PDFs.** Exports are cached in object storage under `EXPORT_PREFIX` (`exports/v4` in `backend/src/services/export_generator.rs`). Change the version whenever the layout changes; old files are then ignored and new ones are generated on the next export. The individual export also accepts `?regenerate=true`.
 - **File names** are built from the entity name and year (`frontend/src/lib/report-filename.ts`). Print URLs carry `token`, `year` and `name`.
 - **Adding a page.** Write a function that returns a `PageSpec` (or `null` when there is no data), keep the content inside one A4 body, and add it to the list in `CooperativeTplReport.tsx` or `ConsolidatedTplReport.tsx`. Use `optional()` (individual) or the `n + 1` pattern (consolidated) so section numbers stay continuous.
 - **Adding a chart.** Add an SVG component to `tpl/TplTrend.tsx` or `tpl/TplCharts.tsx`. Use `viewBox="0 0 380 190"` for a half-page chart and `0 0 780 ...` for a full-width one, Carlito font, and the palette from `TplCharts.tsx`.
@@ -199,7 +213,8 @@ pages/shared/print/coop/pages5.tsx      structure figures, peer page
 pages/shared/print/cons/indicators.ts   key-indicator tiles, market-share slices
 pages/shared/print/cons/pagesE.tsx      portfolio structure and key indicators pages
 routes/print.apex.$id.tsx, print.federation.$id.tsx, print.ministry.tsx  load the series
-backend/src/services/export_generator.rs  EXPORT_PREFIX v2 -> v3
+backend/src/services/export_generator.rs  EXPORT_PREFIX v2 -> v4
+pages/shared/print/quest/               questionnaire report in the template
 ```
 
-Merging note: this branch also contains the `questionaire-report` work (period series endpoint, questionnaire KPI dashboard). `components/AiInsightBox.tsx` was restored because the questionnaire report sheets use it.
+Merging note: this branch also contains the `questionaire-report` work (period series endpoint, questionnaire KPI dashboard).

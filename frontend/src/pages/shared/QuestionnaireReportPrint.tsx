@@ -8,17 +8,7 @@ import {
   useQuestionnaireReport,
 } from "@/hooks/reports/useQuestionnaireReport";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
-import {
-  QuestionnaireCoverPage,
-  QuestionnaireExecutiveSummary,
-  QuestionnaireLiquidityCapitalSheet,
-  QuestionnaireMembershipSheet,
-  QuestionnaireMethodologySheet,
-  QuestionnairePortfolioSheet,
-  QuestionnaireRiskSheet,
-  QuestionnaireStructureSheet,
-  QuestionnaireTrendsSheet,
-} from "./print/components/questionnaire";
+import { QuestionnaireTplReport } from "./print/quest/QuestionnaireTplReport";
 
 interface Props {
   submissionId: string;
@@ -67,24 +57,14 @@ export const QuestionnaireReportPrint: React.FC<Props> = ({ submissionId, tokenO
     );
   }
 
-  const props = {
-    dashboard,
-    submissionId,
-    coopName: submission?.cooperative_name ?? "COOPERATIVE",
-    narratives,
-  };
-
   return (
-    <div className="print-report bg-white text-slate-900 font-sans print:w-[210mm]">
-      <QuestionnaireCoverPage {...props} />
-      <QuestionnaireExecutiveSummary {...props} />
-      <QuestionnaireMembershipSheet {...props} />
-      <QuestionnairePortfolioSheet {...props} />
-      <QuestionnaireRiskSheet {...props} />
-      <QuestionnaireLiquidityCapitalSheet {...props} />
-      <QuestionnaireStructureSheet {...props} />
-      <QuestionnaireTrendsSheet {...props} />
-      <QuestionnaireMethodologySheet {...props} />
-    </div>
+    <QuestionnaireTplReport
+      dashboard={dashboard}
+      submissionId={submissionId}
+      coopName={submission?.cooperative_name ?? "COOPERATIVE"}
+      narratives={narratives}
+      apexName={submission?.apex_name}
+      status={submission?.status}
+    />
   );
 };
