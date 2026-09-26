@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { formatUsd } from "@/lib/currency";
+import { compactNumber } from "@/lib/basic-dashboard";
+import { AXIS_PROPS, TOOLTIP_STYLE } from "@/components/analytics/basic/chart-config";
 import {
   ResponsiveContainer,
   BarChart,
@@ -14,7 +16,8 @@ import {
   type NationalOverviewParams,
 } from "@/hooks/analytics/useNationalOverview";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
-import { Card } from "@/components/app-shell";
+import { accountValuesAt } from "@/lib/statement-grid";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import {
   Select,
   SelectContent,
@@ -38,7 +41,7 @@ interface MonthOption {
 
 function buildMonthOptions(t: (key: string) => string): MonthOption[] {
   return [
-    { value: "all", label: t("analytics.yearTotal") },
+    { value: "all", label: t("analytics.latestReported") },
     { value: "1", label: "31. Jan " },
     { value: "2", label: "28. Feb " },
     { value: "3", label: "31. Mar " },
@@ -95,7 +98,12 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
 
   // Fetch raw comparative statement line items (scoped to filtered coops)
   const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
-    { reportingYear, cooperativeIds },
+    {
+      reportingYear,
+      cooperativeIds,
+      periodType: filterParams?.periodType,
+      periodValue: filterParams?.periodValue,
+    },
     !!cooperativeIds,
   );
 
@@ -107,23 +115,12 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
     if (!comparative?.grids) return [];
 
     return comparative.grids.map((grid) => {
-      const lineItems = grid.line_items || [];
-
-      // Filter by selected month if not "all". Annual-frequency submissions
-      // store their figures at month=0 (there is no monthly breakdown), so
-      // that row must match whichever specific month is selected — without
-      // this, every annual submission showed as entirely blank here since
-      // `String(0) !== "12"` (the default selection) never matched.
-      const filtered =
-        selectedMonth === "all"
-          ? lineItems
-          : lineItems.filter((item) => String(item.month) === selectedMonth || item.month === 0);
-
-      // Sum values for the selected metric code
+      const values = accountValuesAt(
+        grid.line_items || [],
+        selectedMonth === "all" ? null : Number(selectedMonth),
+      );
       const targetCode = parseInt(selectedMetric, 10);
-      const sum = filtered
-        .filter((item) => item.account_code === targetCode)
-        .reduce((acc, curr) => acc + curr.value_usd, 0);
+      const sum = values ? (values[targetCode] ?? null) : null;
 
       return {
         cooperative_id: grid.cooperative_id,
@@ -143,28 +140,28 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
 
   // Compute total sum of all cooperative values for percentage calculations
   const totalSum = useMemo(() => {
-    return dataList.reduce((sum, item) => sum + Math.max(0, item.value), 0);
+    return dataList.reduce((sum, item) => sum + Math.max(0, item.value ?? 0), 0);
   }, [dataList]);
 
   // Sort and limit cooperatives
   const rankedCoops = useMemo(() => {
     const list = [...dataList];
-    list.sort((a, b) => b.value - a.value);
+    list.sort((a, b) => (b.value ?? -Infinity) - (a.value ?? -Infinity));
     return list;
   }, [dataList]);
 
   // Formatting helper
-  const formatValue = (val: number) => {
-    return formatUsd(val);
-  };
+  const formatValue = (val: number | null) => (val === null ? "—" : formatUsd(val));
 
   // Chart data mapping
   const chartData = useMemo(() => {
-    return rankedCoops.map((c) => ({
-      name: c.name.length > 20 ? `${c.name.substring(0, 20)}...` : c.name,
-      fullName: c.name,
-      value: c.value / 1_000_000, // Millions
-    }));
+    return rankedCoops
+      .filter((c) => c.value !== null)
+      .map((c) => ({
+        name: c.name.length > 18 ? `${c.name.substring(0, 18)}…` : c.name,
+        fullName: c.name,
+        value: c.value,
+      }));
   }, [rankedCoops]);
 
   if (isOverviewLoading || isCompLoading) {
@@ -275,7 +272,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         <div className="lg:col-span-2">
           <Card
             title={t("analytics.coopContributionShares")}
-            info="Each cooperative's share of the network total for the principal financial statement accounts (assets, loans, savings, equity), from approved statements converted to USD. Shares sum to 100% across the cooperatives shown."
+            info={t("analytics.rankingSharesInfo")}
             subtitle={t("analytics.spreadsheetBreakdown")}
           >
             {rankedCoops.length > 0 ? (
@@ -291,7 +288,9 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                   <tbody className="divide-y divide-border">
                     {rankedCoops.map((coop) => {
                       const contribPct =
-                        totalSum > 0 ? (Math.max(0, coop.value) / totalSum) * 100 : 0;
+                        totalSum > 0 && coop.value !== null
+                          ? `${((Math.max(0, coop.value) / totalSum) * 100).toFixed(2)}%`
+                          : "—";
 
                       return (
                         <tr
@@ -301,11 +300,11 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                           <td className="py-2.5 px-3 font-semibold text-foreground truncate max-w-[180px]">
                             {coop.name}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-foreground">
                             {formatValue(coop.value)}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-medium text-accent bg-accent/5">
-                            {contribPct.toFixed(2)}%
+                          <td className="py-2.5 px-3 text-right font-mono font-medium text-primary">
+                            {contribPct}
                           </td>
                         </tr>
                       );
@@ -325,43 +324,43 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
         <div className="lg:col-span-3">
           <Card
             title={t("analytics.rankingPrincipalAccounts")}
-            info="Ranking of cooperatives by value of the principal accounts from the approved financial statement, in USD at the configured exchange rate. Only cooperatives with an approved statement for the selected period appear."
+            info={t("analytics.rankingChartInfo")}
             subtitle={t("analytics.valueContributionSubtitle")}
           >
             {chartData.length > 0 ? (
-              <div className="h-[430px] w-full mt-4">
+              <div
+                className="mt-4 w-full"
+                style={{ height: Math.max(280, chartData.length * 44 + 40) }}
+              >
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 65 }}>
-                    <defs>
-                      <linearGradient id="rankingBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.4} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                  <BarChart
+                    data={chartData}
+                    layout="vertical"
+                    margin={{ top: 4, right: 24, left: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      horizontal={false}
+                    />
                     <XAxis
-                      dataKey="name"
-                      stroke="currentColor"
-                      fontSize={9}
-                      opacity={0.8}
-                      angle={-45}
-                      textAnchor="end"
-                      interval={0}
-                      height={75}
+                      type="number"
+                      {...AXIS_PROPS}
+                      tickFormatter={(value: number) => `$${compactNumber(value)}`}
                     />
-                    <YAxis stroke="currentColor" fontSize={10} opacity={0.8} />
+                    <YAxis type="category" dataKey="name" width={120} {...AXIS_PROPS} />
                     <ChartTooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--background))",
-                        borderColor: "hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(val: unknown) => [
-                        `${Number(val).toFixed(2)}M`,
-                        t("analytics.valueMillions"),
-                      ]}
+                      contentStyle={TOOLTIP_STYLE}
+                      cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                      formatter={(val: number) => [formatUsd(val), activeMetricInfo?.label ?? ""]}
+                      labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
                     />
-                    <Bar dataKey="value" fill="url(#rankingBarGrad)" radius={[2, 2, 0, 0]} />
+                    <Bar
+                      dataKey="value"
+                      fill="var(--chart-1)"
+                      radius={[0, 4, 4, 0]}
+                      maxBarSize={28}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

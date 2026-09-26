@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
+import { accountValuesAt } from "@/lib/statement-grid";
 import {
   useNationalOverview,
   type NationalOverviewParams,
 } from "@/hooks/analytics/useNationalOverview";
-import { Card } from "@/components/app-shell";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import {
   Select,
   SelectContent,
@@ -32,14 +33,10 @@ interface ClassificationRow {
   computeFormula?: (coopData: Record<number, number>) => number;
 }
 
-function describeRow(row: { codes: number[]; computeFormula?: unknown }): string {
-  if (row.computeFormula) {
-    return "Calculated from the other rows of this grid (see the account codes in those rows). Values come from the approved financial statement and are shown in USD at the configured exchange rate.";
-  }
-  if (row.codes.length === 0) {
-    return "Not reported: the financial statement does not provide this breakdown, so no value is shown rather than a fabricated zero.";
-  }
-  return `Source: financial statement account code${row.codes.length > 1 ? "s" : ""} ${row.codes.join(", ")}, summed for the cooperative and shown in USD at the configured exchange rate.`;
+function describeRow(row: { codes: number[]; computeFormula?: unknown }, t: TFunction): string {
+  if (row.computeFormula) return t("analytics.gridTip.calculated");
+  if (row.codes.length === 0) return t("analytics.gridTip.notReportedLoans");
+  return t("analytics.gridTip.source", { codes: row.codes.join(", ") });
 }
 
 function buildClassificationRows(t: TFunction): ClassificationRow[] {
@@ -187,8 +184,8 @@ function buildClassificationRows(t: TFunction): ClassificationRow[] {
   rows.push({
     label: t("analytics.pcLoanLossProvisionsHeader"),
     isHeader: true,
-    codes: [1250, 1251, 1252],
-    multiplier: -1,
+    codes: [],
+    computeFormula: (coop) => Math.abs(coop[1250] || 0),
   });
 
   // 7. Total Net
@@ -203,7 +200,7 @@ function buildClassificationRows(t: TFunction): ClassificationRow[] {
         (coop[1203] || 0) +
         (coop[1204] || 0) +
         (coop[1205] || 0);
-      const provs = (coop[1250] || 0) + (coop[1251] || 0) + (coop[1252] || 0);
+      const provs = Math.abs(coop[1250] || 0);
       return gross - provs;
     },
   });
@@ -253,7 +250,12 @@ export function PortfolioClassification({
 
   // Fetch raw comparative statement line items (scoped to filtered coops)
   const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
-    { reportingYear, cooperativeIds },
+    {
+      reportingYear,
+      cooperativeIds,
+      periodType: filterParams?.periodType,
+      periodValue: filterParams?.periodValue,
+    },
     !!cooperativeIds,
   );
 
@@ -269,26 +271,14 @@ export function PortfolioClassification({
     if (!comparative?.grids) return [];
 
     return comparative.grids.map((grid) => {
-      const lineItems = grid.line_items || [];
-      // Annual-frequency submissions store figures at month=0 (no monthly
-      // breakdown exists), so that row must match whichever month is
-      // selected here — otherwise every annual submission renders blank.
-      const filtered = lineItems.filter(
-        (item) => String(item.month) === selectedMonth || item.month === 0,
-      );
-
-      // Sum values per account code
-      const map: Record<number, number> = {};
-      filtered.forEach((item) => {
-        if (item.account_code) {
-          map[item.account_code] = (map[item.account_code] || 0) + item.value_usd;
-        }
-      });
+      const values = accountValuesAt(grid.line_items || [], Number(selectedMonth));
+      const map: Record<number, number> = values ?? {};
 
       return {
         id: grid.cooperative_id,
         name: grid.cooperative_name,
         codeValues: map,
+        reported: values !== null,
       };
     });
   }, [comparative, selectedMonth]);
@@ -422,7 +412,7 @@ export function PortfolioClassification({
       {/* Grid Comparative Table */}
       <Card
         title={t("analytics.pcGridTitle")}
-        info="Loan portfolio by performance status per cooperative, from the approved financial statement (accounts 1201 performing, 1202-1204 arrears, 1205 non-performing, 1250-1252 provisions), in USD. Breakdowns by loan purpose and days past due are not on a standard balance sheet, so they read n/r (not reported)."
+        info={t("analytics.pcGridInfo")}
         subtitle={t("analytics.sideBySideComparison")}
       >
         {filteredMatrices.length > 0 ? (
@@ -451,11 +441,12 @@ export function PortfolioClassification({
                         <td className="py-2.5 px-4 sticky left-0 bg-background border-r border-border font-sans font-bold text-primary uppercase text-[10px] tracking-wide">
                           <span className="inline-flex items-center gap-1.5">
                             {row.label}
-                            <InfoTooltip text={describeRow(row)} />
+                            <InfoTooltip text={describeRow(row, t)} />
                           </span>
                         </td>
                         {filteredMatrices.map((coop) => {
-                          const notReported = !row.computeFormula && row.codes.length === 0;
+                          const notReported =
+                            !coop.reported || (!row.computeFormula && row.codes.length === 0);
                           const val = row.computeFormula
                             ? row.computeFormula(coop.codeValues)
                             : row.codes.reduce(
@@ -470,7 +461,7 @@ export function PortfolioClassification({
                               {notReported ? (
                                 <span
                                   className="text-muted-foreground/60 font-sans"
-                                  title="Not reported: the financial statement does not break the loan book down by loan purpose and days past due."
+                                  title={t("analytics.gridTip.notReportedLoans")}
                                 >
                                   n/r
                                 </span>
@@ -489,7 +480,7 @@ export function PortfolioClassification({
                       <td className="py-2 px-4 sticky left-0 bg-background border-r border-border font-sans text-muted-foreground font-medium pl-6">
                         <span className="inline-flex items-center gap-1.5">
                           {row.label}
-                          <InfoTooltip text={describeRow(row)} />
+                          <InfoTooltip text={describeRow(row, t)} />
                         </span>
                       </td>
                       {filteredMatrices.map((coop) => {
@@ -500,10 +491,10 @@ export function PortfolioClassification({
                         const val = rawSum * (row.multiplier || 1);
                         return (
                           <td key={coop.id} className="py-2 px-4 text-right text-slate-700">
-                            {row.codes.length === 0 ? (
+                            {!coop.reported || row.codes.length === 0 ? (
                               <span
                                 className="text-muted-foreground/60 font-sans"
-                                title="Not reported: the financial statement does not break the loan book down by loan purpose and days past due."
+                                title={t("analytics.gridTip.notReportedLoans")}
                               >
                                 n/r
                               </span>

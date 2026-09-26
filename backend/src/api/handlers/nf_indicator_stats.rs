@@ -394,13 +394,11 @@ pub async fn get_consolidated_nf_statistics(
         .map(|fs| (fs.submission_id, fs.currency))
         .collect();
 
-    let mut coop_count = 0;
-    let mut total_savings_pen_pct = 0.0;
-    let mut total_credit_pen_pct = 0.0;
-    let mut total_on_time_pct = 0.0;
-    let mut total_arrears_pct = 0.0;
-    let mut total_fd_pen_pct = 0.0;
-    let mut total_early_wd_pct = 0.0;
+    let mut savings_penetration_members = 0.0_f64;
+    let mut credit_penetration_members = 0.0_f64;
+    let mut fd_penetration_members = 0.0_f64;
+    let mut on_time_loans = 0.0_f64;
+    let mut early_withdrawals = 0.0_f64;
 
     for submission in year_filtered {
         let stats_res = if let Some(records) = records_by_sub.get(&submission.id) {
@@ -415,8 +413,6 @@ pub async fn get_consolidated_nf_statistics(
         };
 
         if let Ok(mut stats) = stats_res {
-            coop_count += 1;
-
             let submission_currency = currency_by_submission
                 .get(&submission.id)
                 .cloned()
@@ -577,28 +573,35 @@ pub async fn get_consolidated_nf_statistics(
                 0.0
             };
 
-            // Sum up other percentages to average later
-            total_savings_pen_pct += stats.savings.savings_penetration_pct;
-            total_credit_pen_pct += stats.loans.credit_penetration_pct;
-            total_on_time_pct += stats.loans.on_time_repayment_pct;
-            total_arrears_pct += stats.loans.arrears_rate_pct;
-
-            total_fd_pen_pct += stats.fixed_deposits.fd_penetration_pct;
-            total_early_wd_pct += stats.fixed_deposits.early_withdrawal_pct;
+            let members = stats.membership.total as f64;
+            savings_penetration_members += stats.savings.savings_penetration_pct / 100.0 * members;
+            credit_penetration_members += stats.loans.credit_penetration_pct / 100.0 * members;
+            fd_penetration_members += stats.fixed_deposits.fd_penetration_pct / 100.0 * members;
+            on_time_loans +=
+                stats.loans.on_time_repayment_pct / 100.0 * stats.loans.active_loans as f64;
+            early_withdrawals += stats.fixed_deposits.early_withdrawal_pct / 100.0
+                * stats.fixed_deposits.total_fds as f64;
         }
     }
 
-    if coop_count > 0 {
-        let f_count = coop_count as f64;
-
-        consolidated_stats.savings.savings_penetration_pct = total_savings_pen_pct / f_count;
-
-        consolidated_stats.loans.credit_penetration_pct = total_credit_pen_pct / f_count;
-        consolidated_stats.loans.on_time_repayment_pct = total_on_time_pct / f_count;
-        consolidated_stats.loans.arrears_rate_pct = total_arrears_pct / f_count;
-
-        consolidated_stats.fixed_deposits.fd_penetration_pct = total_fd_pen_pct / f_count;
-        consolidated_stats.fixed_deposits.early_withdrawal_pct = total_early_wd_pct / f_count;
+    let network_members = consolidated_stats.membership.total as f64;
+    if network_members > 0.0 {
+        consolidated_stats.savings.savings_penetration_pct =
+            savings_penetration_members / network_members * 100.0;
+        consolidated_stats.loans.credit_penetration_pct =
+            credit_penetration_members / network_members * 100.0;
+        consolidated_stats.fixed_deposits.fd_penetration_pct =
+            fd_penetration_members / network_members * 100.0;
+    }
+    let network_loans = consolidated_stats.loans.active_loans as f64;
+    if network_loans > 0.0 {
+        consolidated_stats.loans.on_time_repayment_pct = on_time_loans / network_loans * 100.0;
+        consolidated_stats.loans.arrears_rate_pct =
+            consolidated_stats.loans.arrears as f64 / network_loans * 100.0;
+    }
+    if consolidated_stats.fixed_deposits.total_fds > 0 {
+        consolidated_stats.fixed_deposits.early_withdrawal_pct =
+            early_withdrawals / consolidated_stats.fixed_deposits.total_fds as f64 * 100.0;
     }
 
     // Recompute savings rates
@@ -624,16 +627,17 @@ pub async fn get_consolidated_nf_statistics(
     }
 
     // Recompute fixed deposits ratios
-    if consolidated_stats.fixed_deposits.matured_fds > 0 {
+    let matured_or_rolled = consolidated_stats.fixed_deposits.matured_fds
+        + consolidated_stats.fixed_deposits.rolled_over_fds;
+    if matured_or_rolled > 0 {
         consolidated_stats.fixed_deposits.rollover_rate_pct =
-            (consolidated_stats.fixed_deposits.rolled_over_fds as f64
-                / consolidated_stats.fixed_deposits.matured_fds as f64)
+            (consolidated_stats.fixed_deposits.rolled_over_fds as f64 / matured_or_rolled as f64)
                 * 100.0;
     }
-    if consolidated_stats.fixed_deposits.active_fds > 0 {
+    if consolidated_stats.fixed_deposits.total_fds > 0 {
         consolidated_stats.fixed_deposits.concentration_risk_pct =
             (consolidated_stats.fixed_deposits.single_depositor_count as f64
-                / consolidated_stats.fixed_deposits.active_fds as f64)
+                / consolidated_stats.fixed_deposits.total_fds as f64)
                 * 100.0;
     }
 

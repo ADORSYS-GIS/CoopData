@@ -463,7 +463,11 @@ impl NfIndicatorEngine {
         let multiple_loan_count = all.iter().filter(|l| l.multiple_loans_flag).count() as u64;
         let large_borrower_count = all.iter().filter(|l| l.large_borrower_flag).count() as u64;
 
-        let total_balance: f64 = all.iter().filter_map(|l| l.balance.to_f64()).sum();
+        let total_balance: f64 = all
+            .iter()
+            .filter(|l| l.loan_status != LoanStatus::WrittenOff)
+            .filter_map(|l| l.balance.to_f64())
+            .sum();
         let total_loan_amount: f64 = all.iter().filter_map(|l| l.loan_amount.to_f64()).sum();
         let average_loan_size = if active_loans > 0 {
             total_balance / active_loans as f64

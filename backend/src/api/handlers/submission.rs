@@ -130,12 +130,20 @@ pub async fn create_submission(
         });
     }
 
+    let year_submissions = state
+        .submission_repo
+        .find_all_by_cooperative_and_year(coop.id, body.reporting_year)
+        .await?;
+    crate::services::period_rules::check_frequency(&year_submissions, period_type, None)
+        .map_err(AppError::Conflict)?;
+
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
     let submission_method_val = if coop.tier == "basic" {
         "questionnaire".to_string()
     } else {
-        body.submission_method.clone()
+        crate::services::period_rules::locked_method(&year_submissions)
+            .unwrap_or_else(|| body.submission_method.clone())
     };
 
     let creator_name = claims
@@ -2493,6 +2501,13 @@ pub async fn update_submission_method(
         }
     }
 
+    let year_submissions = state
+        .submission_repo
+        .find_all_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year)
+        .await?;
+    crate::services::period_rules::check_method(&year_submissions, &method, Some(submission.id))
+        .map_err(AppError::Conflict)?;
+
     if submission.status != SubmissionStatus::Draft {
         return Err(AppError::BadRequest(format!(
             "Cannot change submission method when submission is in '{}' status",
@@ -2612,6 +2627,13 @@ pub async fn create_apex_submission(
         });
     }
 
+    let year_submissions = state
+        .submission_repo
+        .find_all_by_cooperative_and_year(coop.id, body.reporting_year)
+        .await?;
+    crate::services::period_rules::check_frequency(&year_submissions, period_type, None)
+        .map_err(AppError::Conflict)?;
+
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
     let creator_name = claims
         .name
@@ -2621,7 +2643,8 @@ pub async fn create_apex_submission(
     let submission_method_val = if coop.tier == "basic" {
         "questionnaire".to_string()
     } else {
-        body.submission_method.clone()
+        crate::services::period_rules::locked_method(&year_submissions)
+            .unwrap_or_else(|| body.submission_method.clone())
     };
 
     let mut model = ActiveModel {

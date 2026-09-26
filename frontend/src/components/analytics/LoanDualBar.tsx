@@ -34,9 +34,6 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
       name: t("analytics.loanValueK"),
       Total: Math.round(data.total_loan_amount / 1000),
       Outstanding: Math.round(data.total_balance / 1000),
-      Arrears: Math.round(
-        (data.total_balance * (data.arrears / Math.max(data.total_loans, 1))) / 1000,
-      ),
     },
   ];
 
@@ -147,13 +144,6 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
               dataKey="Outstanding"
               name={t("analytics.outstanding")}
               fill="var(--chart-2)"
-              radius={[4, 4, 0, 0]}
-              barSize={30}
-            />
-            <Bar
-              dataKey="Arrears"
-              name={t("analytics.arrears")}
-              fill="var(--destructive)"
               radius={[4, 4, 0, 0]}
               barSize={30}
             />

@@ -1,3 +1,4 @@
+import { PieTooltip } from "@/components/analytics/PieTooltip";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useTranslation } from "react-i18next";
 import type { MembershipStats } from "@/hooks/analytics/useNfStatistics";
@@ -38,15 +39,7 @@ export function GenderStatusDoughnuts({ data }: GenderStatusDoughnutsProps) {
                 <Cell key={d.name} fill={d.fill} />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                fontSize: "12px",
-              }}
-              itemStyle={{ color: "var(--foreground)" }}
-            />
+            <Tooltip content={<PieTooltip total={total} />} />
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

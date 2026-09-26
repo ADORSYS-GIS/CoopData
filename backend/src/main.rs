@@ -461,9 +461,11 @@ async fn backfill_computed_kpis(state: &AppState) -> coop_data_backend::AppResul
     let mut backfilled_count = 0;
     for sub in non_draft_subs {
         let existing = state.kpi_record_repo.find_by_submission(sub.id).await?;
-        if existing.is_empty() {
+        if existing.is_empty()
+            || coop_data_backend::services::submission_workflow::kpi_rows_are_stale(&existing)
+        {
             tracing::info!(
-                "Backfilling KPIs for submission reference {:?}, year {}",
+                "Computing KPIs for submission reference {:?}, year {}",
                 sub.reference,
                 sub.reporting_year
             );

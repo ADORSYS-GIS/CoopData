@@ -78,7 +78,7 @@ pub async fn export_single_submission(
             Err(_) => {
                 tracing::info!(submission_id = %id, "Cache miss — generating PDF");
                 let generated_bytes =
-                    crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
+                    crate::services::export_generator::ExportGenerator::generate_submission_pdf(
                         &state, id,
                     )
                     .await?;
@@ -92,10 +92,8 @@ pub async fn export_single_submission(
     } else {
         tracing::info!(submission_id = %id, "Force-regenerating PDF (regenerate=true)");
         let generated_bytes =
-            crate::services::export_generator::ExportGenerator::generate_cooperative_pdf(
-                &state, id,
-            )
-            .await?;
+            crate::services::export_generator::ExportGenerator::generate_submission_pdf(&state, id)
+                .await?;
         state
             .storage
             .store(&storage_key, &generated_bytes, "application/pdf")
@@ -393,6 +391,20 @@ pub async fn generate_submission_narratives(
         return Err(AppError::Forbidden(
             "Access denied to this cooperative's submission".into(),
         ));
+    }
+
+    if crate::services::questionnaire_report::is_questionnaire_method(&submission.submission_method)
+    {
+        let narratives =
+            crate::services::export_generator::ExportGenerator::generate_questionnaire_narratives(
+                &state, id,
+            )
+            .await?;
+        state
+            .submission_repo
+            .update_metadata(id, serde_json::json!({ "ai_narratives": narratives }))
+            .await?;
+        return Ok(axum::Json(serde_json::json!(narratives)));
     }
 
     let coop = state

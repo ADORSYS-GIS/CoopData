@@ -46,15 +46,15 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
   }, [data]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+    <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
       {/* Header section with Balance */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex items-start gap-1.5">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">
               {t("analytics.portfolioOverview")}
             </span>
-            <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
+            <h3 className="text-3xl font-extrabold text-foreground mt-1">
               ${(totalBalance / 1_000).toLocaleString(undefined, { maximumFractionDigits: 0 })}K
             </h3>
           </div>
@@ -65,7 +65,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
       {/* Chart Canvas */}
       <div className="h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorOverviewSavings" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.15} />
@@ -84,19 +84,9 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               tickLine={false}
               axisLine={false}
             />
-            {/* Left Axis for Savings and Loans */}
+            {/* One shared axis: all three series are USD balances and must be read on the same scale */}
             <YAxis
               yAxisId="left"
-              stroke="var(--muted-foreground)"
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={formatYAxis}
-            />
-            {/* Right Axis for Deposits */}
-            <YAxis
-              yAxisId="right"
-              orientation="right"
               stroke="var(--muted-foreground)"
               fontSize={11}
               tickLine={false}
@@ -145,7 +135,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
 
             {/* Deposits (Member Savings/Deposits) - Solid yellow line */}
             <Line
-              yAxisId="right"
+              yAxisId="left"
               type="monotone"
               dataKey="savings"
               name={t("analytics.seriesMemberDeposits")}

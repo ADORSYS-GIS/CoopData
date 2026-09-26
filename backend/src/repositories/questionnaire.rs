@@ -59,6 +59,7 @@ impl QuestionnaireRepository {
         cooperative_id: Uuid,
         questionnaire_type: String,
         reporting_year: i32,
+        (period_type, period_value): (String, String),
         answers: serde_json::Value,
     ) -> AppResult<questionnaire_response::Model> {
         use crate::entities::questionnaire_response::ActiveModel;
@@ -76,6 +77,8 @@ impl QuestionnaireRepository {
             cooperative_id: Set(cooperative_id),
             questionnaire_type: Set(questionnaire_type.clone()),
             reporting_year: Set(reporting_year),
+            period_type: Set(period_type),
+            period_value: Set(period_value),
             answers: Set(answers),
             created_at: Set(now),
             updated_at: Set(now),
@@ -89,6 +92,8 @@ impl QuestionnaireRepository {
                 ])
                 .update_columns([
                     questionnaire_response::Column::Answers,
+                    questionnaire_response::Column::PeriodType,
+                    questionnaire_response::Column::PeriodValue,
                     questionnaire_response::Column::UpdatedAt,
                 ])
                 .to_owned(),
@@ -105,6 +110,21 @@ impl QuestionnaireRepository {
             .await
             .map_err(AppError::DatabaseError)?;
         Ok(result.rows_affected)
+    }
+
+    /// Every questionnaire response (all periods, all types) of the given cooperatives.
+    pub async fn find_by_cooperatives(
+        &self,
+        cooperative_ids: Vec<Uuid>,
+    ) -> AppResult<Vec<questionnaire_response::Model>> {
+        if cooperative_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        questionnaire_response::Entity::find()
+            .filter(QuestionnaireResponseColumn::CooperativeId.is_in(cooperative_ids))
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
     }
 
     pub async fn find_responses_with_filters(

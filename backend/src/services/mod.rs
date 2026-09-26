@@ -1,6 +1,7 @@
 pub mod abnormality_detector;
 pub mod ai_extraction;
 pub mod audit;
+pub mod basic_dashboard;
 pub mod benchmark;
 pub mod cache;
 pub mod coa_rollup;
@@ -15,6 +16,10 @@ pub mod nf_excel_parser;
 pub mod nf_indicator_engine;
 pub mod object_storage;
 pub mod pdf_templates;
+pub mod period_rules;
+pub mod period_series;
+pub mod questionnaire_kpi;
+pub mod questionnaire_report;
 pub mod report_narrative;
 pub mod submission_workflow;
 pub mod verification_token;

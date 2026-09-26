@@ -41,7 +41,7 @@ impl ExportGenerator {
 
     /// Generates PDF format and stores it in the bucket
     async fn generate_all_formats(state: &AppState, submission_id: Uuid) -> AppResult<()> {
-        let pdf_bytes = Self::generate_cooperative_pdf(state, submission_id).await?;
+        let pdf_bytes = Self::generate_submission_pdf(state, submission_id).await?;
 
         tracing::info!(
             submission_id = %submission_id,
