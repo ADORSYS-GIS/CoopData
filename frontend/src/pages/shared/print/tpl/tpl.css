@@ -635,7 +635,8 @@
   display: block;
   height: auto;
 }
-.tpl .two > div {
+.tpl .two > div,
+.tpl .two > figure {
   min-width: 0;
 }
 .tpl .tag-r {

@@ -31,13 +31,19 @@ const unlessAll = (value?: string): string | undefined =>
  * Statement totals per period of the selected frequency, so charts follow the
  * frequency filter: yearly shows years, quarterly shows quarters, and so on.
  */
-export const usePeriodSeries = (params: PeriodSeriesQuery, enabled = true) =>
+export const usePeriodSeries = (
+  params: PeriodSeriesQuery,
+  enabled = true,
+  tokenOverride?: string,
+) =>
   useOfflineQuery<PeriodSeriesResponse>({
     queryKey: ["period-series", "v1", params],
     cacheTable: "analytics",
     cacheKey: `period-series-v1-${JSON.stringify(params)}`,
     queryFn: async () => {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/analytics/period-series", {
+        headers,
         params: {
           query: {
             reporting_year: params.reportingYear,

@@ -1,3 +1,4 @@
+import type { PeriodSeriesPoint } from "@/hooks/analytics/usePeriodSeries";
 import type { CoopKpiRow, NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import {
   avgKpi,
@@ -19,6 +20,8 @@ export interface ConsInput {
   year: number;
   data: NationalOverviewResponse;
   priorData?: NationalOverviewResponse;
+  /** Statement totals per year for the scope, oldest first. */
+  trend?: readonly PeriodSeriesPoint[];
   /** AI executive narrative; replaces the generated paragraph when present. */
   narrative?: string | null;
 }

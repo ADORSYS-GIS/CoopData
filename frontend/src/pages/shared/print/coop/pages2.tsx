@@ -10,10 +10,12 @@ import { chunk } from "@/pages/shared/print/consolidated/stats";
 import { HBarPairs, LIGHT, RED, TEAL, VBarGroups } from "@/pages/shared/print/tpl/TplCharts";
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
+import { StructureFigures } from "@/pages/shared/print/coop/pages5";
 import { Fn, Figure } from "@/pages/shared/print/tpl/TplParts";
 
 const ROWS_PER_PAGE = 28;
 const FIGURE_ROOM = 22;
+const POSITION_FIGURE_ROOM = 10;
 
 interface Row {
   kind: "grp" | "line" | "total" | "grand";
@@ -144,7 +146,7 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
   ];
   const pages = paginate(rows);
   const lastRows = pages[pages.length - 1]?.length ?? 0;
-  const figureOnLast = lastRows <= FIGURE_ROOM;
+  const figureOnLast = lastRows <= POSITION_FIGURE_ROOM;
   const assets = s.totals.assets;
   const netLoans = a.props.kpisData.kpis.find(
     (k) => k.name.toLowerCase() === "net_loan_portfolio",
@@ -156,42 +158,45 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
   const priorOf = (name: string) => priorKpis.find((k) => k.name.toLowerCase() === name)?.value;
   const m = (v: number | undefined) => (v === undefined ? null : v / 1_000_000);
   const figure = (
-    <Figure
-      caption={
-        <>
-          <b>Figure 1.</b> Balance-sheet structure, FY {a.year - 1} vs FY {a.year} (million).
-        </>
-      }
-    >
-      <HBarPairs
-        unit="million"
-        priorLabel={`FY ${a.year - 1}`}
-        currentLabel={`FY ${a.year}`}
-        rows={[
-          { label: "Total assets", prior: m(assets.prior), current: m(assets.current) ?? 0 },
-          {
-            label: "Net loan portfolio",
-            prior: m(priorOf("net_loan_portfolio")),
-            current: m(netLoans) ?? 0,
-          },
-          {
-            label: "Member savings",
-            prior: m(priorOf("total_member_deposits")),
-            current: m(savings) ?? 0,
-          },
-          {
-            label: "Total liabilities",
-            prior: m(s.totals.liabilities.prior),
-            current: m(s.totals.liabilities.current) ?? 0,
-          },
-          {
-            label: "Total equity",
-            prior: m(s.totals.equity.prior),
-            current: m(s.totals.equity.current) ?? 0,
-          },
-        ]}
-      />
-    </Figure>
+    <>
+      <Figure
+        caption={
+          <>
+            <b>Figure 1.</b> Balance-sheet structure, FY {a.year - 1} vs FY {a.year} (million).
+          </>
+        }
+      >
+        <HBarPairs
+          unit="million"
+          priorLabel={`FY ${a.year - 1}`}
+          currentLabel={`FY ${a.year}`}
+          rows={[
+            { label: "Total assets", prior: m(assets.prior), current: m(assets.current) ?? 0 },
+            {
+              label: "Net loan portfolio",
+              prior: m(priorOf("net_loan_portfolio")),
+              current: m(netLoans) ?? 0,
+            },
+            {
+              label: "Member savings",
+              prior: m(priorOf("total_member_deposits")),
+              current: m(savings) ?? 0,
+            },
+            {
+              label: "Total liabilities",
+              prior: m(s.totals.liabilities.prior),
+              current: m(s.totals.liabilities.current) ?? 0,
+            },
+            {
+              label: "Total equity",
+              prior: m(s.totals.equity.prior),
+              current: m(s.totals.equity.current) ?? 0,
+            },
+          ]}
+        />
+      </Figure>
+      <StructureFigures a={a} />
+    </>
   );
   const growth = changePct(assets.current, assets.prior);
   const intro = (

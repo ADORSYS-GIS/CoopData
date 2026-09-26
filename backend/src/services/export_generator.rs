@@ -10,7 +10,7 @@ pub struct ExportGenerator;
 
 /// Storage prefix of generated PDFs. Raise the version whenever the report layout
 /// changes: old cached PDFs are then ignored and every report is generated afresh.
-pub const EXPORT_PREFIX: &str = "exports/v2";
+pub const EXPORT_PREFIX: &str = "exports/v3";
 
 impl ExportGenerator {
     /// Spawns a background task to generate exports when a submission is approved

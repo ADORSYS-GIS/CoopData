@@ -1,10 +1,12 @@
 import type { CoopAnalysis } from "@/pages/shared/print/coop/analysis";
 import { fmtInt, fmtMillions, fmtPct, kpiOf } from "@/pages/shared/print/coop/data";
 import { recommendationsOf } from "@/pages/shared/print/coop/text";
+import { arrearsAgeOf } from "@/pages/shared/print/coop/structure";
 import { ShareBars } from "@/pages/shared/print/tpl/TplCharts";
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { Fn, Figure, FindList, Note } from "@/pages/shared/print/tpl/TplParts";
+import { BarChart, Donut } from "@/pages/shared/print/tpl/TplTrend";
 
 const ARREARS = /arrear|overdue|delinq|non-?perf|npl/i;
 
@@ -27,6 +29,8 @@ export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
       .reduce((s, c) => s + c.count, 0);
     const conflict = (par30?.current ?? 0) === 0 && inArrears > 0;
     const actions = recommendationsOf(a).slice(0, 4);
+    const ageing = arrearsAgeOf(a.statement);
+    const hasAgeing = ageing.some((slice) => slice.value > 0);
 
     return (
       <>
@@ -123,32 +127,50 @@ export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
             </table>
           </div>
         </div>
-        {categories.length > 0 && (
-          <>
-            <h3>Loan register by category</h3>
-            <table className="tbl compact">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th className="num">Loans</th>
-                  <th className="num">Balance</th>
-                  <th className="num">Share of balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((c) => (
-                  <tr key={c.category}>
-                    <td>{c.category}</td>
-                    <td className="num">{fmtInt(c.count)}</td>
-                    <td className="num">{fmtInt(c.balance)}</td>
-                    <td className="num">
-                      {fmtPct(balance > 0 ? (c.balance / balance) * 100 : null)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
+        {(hasAgeing || categories.length > 0) && (
+          <div className="two">
+            {hasAgeing ? (
+              <Figure
+                caption={
+                  <>
+                    <b>Figure L1.</b> Loan book by days overdue, from the general ledger (loan lines
+                    1201 to 1205).
+                  </>
+                }
+              >
+                <Donut slices={ageing} format={fmtInt} />
+              </Figure>
+            ) : (
+              <div />
+            )}
+            {categories.length > 0 && (
+              <div>
+                <h3 style={{ marginTop: 0 }}>Loan register by category</h3>
+                <table className="tbl compact">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th className="num">Loans</th>
+                      <th className="num">Balance</th>
+                      <th className="num">Share of balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.map((c) => (
+                      <tr key={c.category}>
+                        <td>{c.category}</td>
+                        <td className="num">{fmtInt(c.count)}</td>
+                        <td className="num">{fmtInt(c.balance)}</td>
+                        <td className="num">
+                          {fmtPct(balance > 0 ? (c.balance / balance) * 100 : null)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
         {conflict && (
           <Note title="Supervisory concern.">
@@ -177,6 +199,16 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
     const agm = m.agm_attendance ?? 0;
     const savingsLines = a.statement.liabilities.filter((l) => l.code >= 2100 && l.code <= 2199);
     const deposits = savingsLines.reduce((s, l) => s + (l.current ?? 0), 0);
+    const bands = a.props.nfStats?.membership;
+    const ageBands = bands
+      ? [
+          { label: "Under 18", value: bands.under_18 },
+          { label: "18–35", value: bands.age_18_35 },
+          { label: "36–50", value: bands.age_36_50 },
+          { label: "Over 50", value: bands.over_50 },
+        ]
+      : [];
+    const hasAgeBands = ageBands.some((band) => band.value > 0);
     const rows = [
       ...(male + female > 0
         ? [
@@ -227,16 +259,50 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
             <p style={{ margin: 0 }}>{a.props.narratives.non_financial}</p>
           </div>
         )}
-        {rows.length > 0 && (
-          <Figure
-            caption={
-              <>
-                <b>Figure 3.</b> Membership profile by gender, age and status (share of members).
-              </>
-            }
-          >
-            <ShareBars rows={rows} />
-          </Figure>
+        {hasAgeBands && male + female > 0 ? (
+          <div className="two">
+            <Figure
+              caption={
+                <>
+                  <b>Figure M1.</b> Members by gender.
+                </>
+              }
+            >
+              <Donut
+                slices={[
+                  { label: "Women", value: female },
+                  { label: "Men", value: male },
+                ]}
+                format={fmtInt}
+              />
+            </Figure>
+            <Figure
+              caption={
+                <>
+                  <b>Figure M2.</b> Members by age band, from the member ledger.
+                </>
+              }
+            >
+              <BarChart
+                unit="members"
+                format={(value) => String(Math.round(value))}
+                labels={ageBands.map((band) => band.label)}
+                values={ageBands.map((band) => band.value)}
+              />
+            </Figure>
+          </div>
+        ) : (
+          rows.length > 0 && (
+            <Figure
+              caption={
+                <>
+                  <b>Figure 3.</b> Membership profile by gender, age and status (share of members).
+                </>
+              }
+            >
+              <ShareBars rows={rows} />
+            </Figure>
+          )
         )}
         <div className="two">
           <div>

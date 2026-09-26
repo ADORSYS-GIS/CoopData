@@ -4,9 +4,12 @@ import { analyse, type ConsInput } from "@/pages/shared/print/cons/analysis";
 import { executivePage, financialPage } from "@/pages/shared/print/cons/pagesA";
 import { cooperativePages, sectorApexPages } from "@/pages/shared/print/cons/pagesB";
 import { pearlsPages, socialPage } from "@/pages/shared/print/cons/pagesC";
+import { indicatorsPage, portfolioStructurePage } from "@/pages/shared/print/cons/pagesE";
 import { annexAPages, annexBPage, findingsPage } from "@/pages/shared/print/cons/pagesD";
 import type { Tier } from "@/pages/shared/print/consolidated/stats";
 import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument";
+import { trendPage } from "@/pages/shared/print/tpl/TrendPage";
+import { trendOf } from "@/pages/shared/print/tpl/trend";
 
 const ISSUER: Record<Tier, string> = {
   Apex: "Apex organisation",
@@ -37,6 +40,19 @@ const buildSections = (input: ConsInput): PageSpec[] => {
 
   pages.push(executivePage(a, next()));
   pages.push(financialPage(a, next()));
+  const trend = trendOf(input.trend);
+  const scopeText = input.tier === "Apex" ? "the apex portfolio" : "the supervised sector";
+  const series = trendPage({ rows: trend, no: String(n + 1), scope: scopeText });
+  if (series) {
+    n += 1;
+    pages.push(series);
+  }
+  const structure = portfolioStructurePage(a, String(n + 1));
+  if (structure) {
+    n += 1;
+    pages.push(structure);
+  }
+  pages.push(indicatorsPage(a, next(), trend));
   if (input.tier === "Apex") {
     pages.push(...cooperativePages(a, next()));
   } else {

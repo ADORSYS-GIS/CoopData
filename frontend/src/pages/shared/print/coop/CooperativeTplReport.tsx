@@ -5,8 +5,11 @@ import { analyseCoop } from "@/pages/shared/print/coop/analysis";
 import { executivePage, scorecardPage } from "@/pages/shared/print/coop/pages1";
 import { performancePages, positionPages } from "@/pages/shared/print/coop/pages2";
 import { loanQualityPage, membershipPage } from "@/pages/shared/print/coop/pages3";
+import { peerPage } from "@/pages/shared/print/coop/pages5";
 import { annexAPages, annexBPage, findingsPage } from "@/pages/shared/print/coop/pages4";
 import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument";
+import { trendPage } from "@/pages/shared/print/tpl/TrendPage";
+import { trendOf } from "@/pages/shared/print/tpl/trend";
 
 const issued = () =>
   new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -24,6 +27,11 @@ export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
 
   let n = 0;
   const next = () => String(++n);
+  const optional = (build: (no: string) => PageSpec | null): PageSpec[] => {
+    const spec = build(String(n + 1));
+    if (spec) n += 1;
+    return spec ? [spec] : [];
+  };
   const pages: PageSpec[] = [
     executivePage(a, next()),
     scorecardPage(a, next()),
@@ -31,6 +39,8 @@ export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
     ...performancePages(a, next()),
     loanQualityPage(a, next()),
     membershipPage(a, next()),
+    ...optional((no) => trendPage({ rows: trendOf(props.trend), no, scope: "the cooperative" })),
+    ...optional((no) => peerPage(a, no)),
     findingsPage(a, next()),
     ...annexAPages(a, "A"),
     annexBPage(a, "B"),

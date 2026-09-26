@@ -7,7 +7,7 @@ const INK = "#4A5560";
 const NICE_STEPS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
 
 /** Rounds up to a round axis maximum such as 300 or 2.5. */
-const niceMax = (value: number): number => {
+export const niceMax = (value: number): number => {
   if (value <= 0) return 1;
   const base = 10 ** Math.floor(Math.log10(value));
   const step = NICE_STEPS.find((candidate) => candidate * base >= value) ?? 10;

@@ -11,6 +11,9 @@ import {
   MembershipStatsResponse,
 } from "@/hooks/submissions/useCooperativeKpis";
 import { useSubmissionNarratives } from "@/hooks/submissions/useSubmissionNarratives";
+import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
+import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
+import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
 import type { ReportDataProps } from "./print/components/types";
 import { CooperativeTplReport } from "./print/coop/CooperativeTplReport";
@@ -44,6 +47,32 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
   );
   const { data: narratives } = useSubmissionNarratives(submissionId, tokenOverride);
 
+  const scope = submission
+    ? {
+        cooperativeId: submission.cooperative_id,
+        reportingYear: submission.reporting_year,
+        periodType: submission.period_type,
+        periodValue: submission.period_value,
+      }
+    : {};
+  const ready = Boolean(submission);
+  const { data: trendData, isLoading: trendLoading } = usePeriodSeries(scope, ready, tokenOverride);
+  const { data: nfStats, isLoading: nfLoading } = useNfStatistics(
+    false,
+    scope,
+    ready,
+    tokenOverride,
+  );
+  const { data: peersData, isLoading: peersLoading } = useNationalOverview(
+    {
+      reportingYear: submission?.reporting_year,
+      periodType: submission?.period_type,
+      periodValue: submission?.period_value,
+    },
+    ready,
+    tokenOverride,
+  );
+
   const coopName = submission?.cooperative_name ?? "COOPERATIVE";
 
   const kpiMap = useMemo(() => {
@@ -52,7 +81,13 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
   }, [kpisData]);
 
   const criticalLoading = subLoading || kpisLoading || lineItemsLoading;
-  const allLoading = criticalLoading || portfolioLoading || membershipLoading;
+  const allLoading =
+    criticalLoading ||
+    portfolioLoading ||
+    membershipLoading ||
+    trendLoading ||
+    nfLoading ||
+    peersLoading;
 
   useGotenbergReady(!allLoading);
 
@@ -104,6 +139,9 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     coopName,
     kpiMap,
     narratives,
+    trend: trendData?.points,
+    nfStats,
+    peers: peersData?.cooperatives,
   };
 
   return <CooperativeTplReport {...reportData} />;
