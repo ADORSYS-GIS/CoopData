@@ -6,10 +6,10 @@
  * full non-financial consolidation panel.
  */
 import { useMemo } from "react";
-import { Card } from "@/components/app-shell";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
+import { CollapsibleSection } from "@/components/analytics/national/CollapsibleSection";
+import { MetricsGridCards } from "@/components/analytics/MetricsGridCards";
 import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
-import { CooperativeDeepDive } from "@/components/analytics/CooperativeDeepDive";
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
 import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDoughnutCharts";
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
@@ -17,6 +17,7 @@ import { NonFinancialConsolidation } from "@/components/analytics/non-financial-
 import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
 import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
 import { CooperativeRanking } from "@/components/analytics/CooperativeRanking";
+import { aggregateLoanGap } from "@/lib/loan-gap";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
@@ -27,10 +28,9 @@ import { Spinner } from "@/components/ui/spinner";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
-  onFilterChange: (id: string, value: string) => void;
 }
 
-export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
+export function MinistryAnalyticsView({ filterValues }: Props) {
   const { t } = useOrganizationLabelsContext();
   const year = Number(filterValues.year);
 
@@ -53,45 +53,10 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
   const { data: networkTrend } = useMonthlyTrend(params, filterValues.cooperativeId === "all");
   const { data: ministryStats } = useMinistryStats();
 
-  const hasSelected = filterValues.cooperativeId !== "all";
-  const coops = overview?.cooperatives ?? [];
+  const coops = useMemo(() => overview?.cooperatives ?? [], [overview]);
   const nfSummary = overview?.non_financial_summary;
 
-  // Aggregate financial metrics for Loan Provisioning Gap at the national level
-  const aggMetrics = useMemo(() => {
-    let totalGLP = 0;
-    let sumPar30 = 0;
-    let sumProvisions = 0;
-    let countPar30 = 0;
-    let countProvisions = 0;
-
-    coops.forEach((c) => {
-      const glp = c.kpis["gross_loan_portfolio"]?.value ?? 0;
-      const par30 = c.kpis["par30"]?.value;
-      const prov = c.kpis["loan_loss_coverage"]?.value;
-
-      totalGLP += glp;
-      if (par30 !== undefined) {
-        sumPar30 += par30;
-        countPar30++;
-      }
-      if (prov !== undefined) {
-        sumProvisions += prov;
-        countProvisions++;
-      }
-    });
-
-    return {
-      totalGLP,
-      avgPar30: countPar30 > 0 ? sumPar30 / countPar30 : 0,
-      avgProvisions: countProvisions > 0 ? sumProvisions / countProvisions : 0,
-    };
-  }, [coops]);
-
-  const selectedCoopRow = useMemo(
-    () => coops.find((c) => c.cooperative_id === filterValues.cooperativeId),
-    [coops, filterValues.cooperativeId],
-  );
+  const aggMetrics = useMemo(() => aggregateLoanGap(coops), [coops]);
 
   if (isLoading) {
     return (
@@ -101,26 +66,13 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
     );
   }
 
-  if (hasSelected && selectedCoopRow) {
-    return (
-      <CooperativeDeepDive
-        cooperativeId={selectedCoopRow.cooperative_id}
-        submissionId={selectedCoopRow.submission_id}
-        cooperativeName={selectedCoopRow.name}
-        cooperativeRegion={selectedCoopRow.region}
-        cooperativeType={selectedCoopRow.institution_type}
-        reportingYear={year}
-        onClose={() => onFilterChange("cooperativeId", "all")}
-      />
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Ministry headline stats */}
       {ministryStats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
+        <MetricsGridCards
+          columns={4}
+          metrics={[
             {
               label: t("ministryAnalytics.totalCooperatives"),
               value: ministryStats.total_cooperatives?.toLocaleString() ?? "—",
@@ -141,23 +93,8 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
               value: ministryStats.approved_count?.toLocaleString() ?? "—",
               tooltip: t("ministryAnalytics.approvedTooltip"),
             },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-surface p-4 shadow-sm"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {stat.label}
-                </p>
-                <InfoTooltip text={stat.tooltip} className="size-3" />
-              </div>
-              <p className="font-heading text-2xl font-bold text-foreground num mt-1">
-                {stat.value}
-              </p>
-            </div>
-          ))}
-        </div>
+          ]}
+        />
       )}
 
       <NetworkConsolidatedMetrics
@@ -165,61 +102,68 @@ export function MinistryAnalyticsView({ filterValues, onFilterChange }: Props) {
         networkTrend={networkTrend}
         totalCooperatives={overview?.total_cooperatives ?? 0}
         cooperativesWithData={overview?.cooperatives_with_data ?? 0}
+        seriesQuery={params}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Macro distribution */}
-        <Card
-          title={t("ministryAnalytics.nationalPortfolio")}
-          subtitle={t("ministryAnalytics.nationalPortfolioSub")}
-          info={t("ministryAnalytics.nationalPortfolioInfo")}
-        >
-          <RegionalGroupedBar cooperatives={coops} />
-        </Card>
-
-        {/* National loan gap */}
-        {coops.length > 0 && (
+      <CollapsibleSection id="analytics-regional-0" title={t("analytics.section.regional")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Macro distribution */}
           <Card
-            title={t("ministryAnalytics.loanProvisioningGap")}
-            subtitle={t("ministryAnalytics.loanProvisioningGapSub")}
-            info={t("ministryAnalytics.loanProvisioningGapInfo")}
+            title={t("ministryAnalytics.nationalPortfolio")}
+            subtitle={t("ministryAnalytics.nationalPortfolioSub")}
+            info={t("ministryAnalytics.nationalPortfolioInfo")}
           >
-            <LoanProvisioningWaterfall
-              glp={aggMetrics.totalGLP}
-              par30_pct={aggMetrics.avgPar30}
-              provisions_pct={aggMetrics.avgProvisions}
-            />
+            <RegionalGroupedBar cooperatives={coops} />
           </Card>
-        )}
-      </div>
+
+          {/* National loan gap */}
+          {coops.length > 0 && (
+            <Card
+              title={t("ministryAnalytics.loanProvisioningGap")}
+              subtitle={t("ministryAnalytics.loanProvisioningGapSub")}
+              info={t("ministryAnalytics.loanProvisioningGapInfo")}
+            >
+              <LoanProvisioningWaterfall
+                glp={aggMetrics.totalGLP}
+                par30_pct={aggMetrics.par30Pct}
+                provisions_pct={aggMetrics.provisionsPct}
+              />
+            </Card>
+          )}
+        </div>
+      </CollapsibleSection>
 
       {/* Top & bottom performers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card
-          title={t("ministryAnalytics.roaLeaderboard")}
-          subtitle={t("ministryAnalytics.roaLeaderboardSub")}
-          info={t("ministryAnalytics.roaLeaderboardInfo")}
-        >
-          <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
-        </Card>
-        <Card
-          title={t("ministryAnalytics.carLeaderboard")}
-          subtitle={t("ministryAnalytics.carLeaderboardSub")}
-          info={t("ministryAnalytics.carLeaderboardInfo")}
-        >
-          <TopBottomLeaderboard cooperatives={coops} sortByKpi="capital_adequacy_ratio" />
-        </Card>
-      </div>
+      <CollapsibleSection id="analytics-leaderboards-1" title={t("analytics.section.leaderboards")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card
+            title={t("ministryAnalytics.roaLeaderboard")}
+            subtitle={t("ministryAnalytics.roaLeaderboardSub")}
+            info={t("ministryAnalytics.roaLeaderboardInfo")}
+          >
+            <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
+          </Card>
+          <Card
+            title={t("ministryAnalytics.carLeaderboard")}
+            subtitle={t("ministryAnalytics.carLeaderboardSub")}
+            info={t("ministryAnalytics.carLeaderboardInfo")}
+          >
+            <TopBottomLeaderboard cooperatives={coops} sortByKpi="capital_adequacy_ratio" />
+          </Card>
+        </div>
+      </CollapsibleSection>
 
       {/* Traffic-light compliance distribution */}
       {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-        <Card
-          title={t("ministryAnalytics.kpiTrafficLight")}
-          subtitle={t("ministryAnalytics.kpiTrafficLightSub")}
-          info={t("ministryAnalytics.kpiTrafficLightInfo")}
-        >
-          <ComplianceDoughnutCharts distributions={overview.distributions} />
-        </Card>
+        <CollapsibleSection id="analytics-compliance" title={t("analytics.section.compliance")}>
+          <Card
+            title={t("ministryAnalytics.kpiTrafficLight")}
+            subtitle={t("ministryAnalytics.kpiTrafficLightSub")}
+            info={t("ministryAnalytics.kpiTrafficLightInfo")}
+          >
+            <ComplianceDoughnutCharts distributions={overview.distributions} />
+          </Card>
+        </CollapsibleSection>
       )}
 
       {coops.length === 0 && (

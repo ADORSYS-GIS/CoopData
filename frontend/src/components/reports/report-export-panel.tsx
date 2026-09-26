@@ -11,6 +11,11 @@ import {
   useFederationSubmissions,
   useMinistrySubmissions,
 } from "@/hooks/submissions/useSubmissions";
+import {
+  consolidatedFilename,
+  individualFilename,
+  type ConsolidatedLevel,
+} from "@/lib/report-filename";
 import type { components } from "@/openapi-client/api";
 
 import {
@@ -22,6 +27,13 @@ import {
   FORMAT_LABELS,
   EXPORTABLE_STATUSES,
 } from "./types";
+import {
+  countByMethod,
+  methodsWithData,
+  resolveMethod,
+  type ReportMethod,
+} from "@/lib/report-method";
+import { MethodPicker } from "./method-picker";
 import { StepIndicator } from "./step-indicator";
 import { SelectionSummary } from "./selection-summary";
 import { ActiveStepPicker } from "./active-step-picker";
@@ -46,6 +58,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const [selectedCoopId, setSelectedCoopId] = useState<string>("");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedMethod, setSelectedMethod] = useState<ReportMethod | "">("");
 
   const [isExporting, setIsExporting] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -105,6 +118,51 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const needsCoopSelector = isIndividual && role !== "cooperative";
   const needsSubmissionSelector = isIndividual;
   const needsYearSelector = !isIndividual;
+  const needsMethodSelector = selectedOption?.scope === "consolidated";
+
+  // Which kinds of report have approved data for the selection made so far
+  const availableMethods = useMemo(() => {
+    if (!needsMethodSelector || !selectedYear) return [];
+    const inScope = rawSubmissions.filter((s) => {
+      if (s.status.toLowerCase() !== "approved") return false;
+      if (String(s.reporting_year) !== selectedYear) return false;
+      if (needsFedSelector && selectedFedId && s.federation_id !== selectedFedId) return false;
+      if (needsApexSelector && selectedApexId && s.apex_id !== selectedApexId) return false;
+      return true;
+    });
+    return methodsWithData(countByMethod(inScope));
+  }, [
+    needsMethodSelector,
+    selectedYear,
+    rawSubmissions,
+    needsFedSelector,
+    selectedFedId,
+    needsApexSelector,
+    selectedApexId,
+  ]);
+
+  const methodOptions = useMemo(() => {
+    const counts = countByMethod(
+      rawSubmissions.filter(
+        (s) =>
+          s.status.toLowerCase() === "approved" &&
+          String(s.reporting_year) === selectedYear &&
+          (!needsFedSelector || !selectedFedId || s.federation_id === selectedFedId) &&
+          (!needsApexSelector || !selectedApexId || s.apex_id === selectedApexId),
+      ),
+    );
+    return availableMethods.map((id) => ({ id, count: counts[id] }));
+  }, [
+    availableMethods,
+    rawSubmissions,
+    selectedYear,
+    needsFedSelector,
+    selectedFedId,
+    needsApexSelector,
+    selectedApexId,
+  ]);
+
+  const effectiveMethod = resolveMethod(selectedMethod, availableMethods);
 
   // Dynamically determine available reporting years
   const availableYears = useMemo(() => {
@@ -225,6 +283,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsCoopSelector) list.push({ key: "coop", label: "Cooperative" });
     if (needsSubmissionSelector) list.push({ key: "submission", label: "Submission" });
     if (needsYearSelector) list.push({ key: "year", label: "Year" });
+    if (needsMethodSelector) list.push({ key: "method", label: "Report type" });
     return list;
   }, [
     needsFedSelector,
@@ -232,6 +291,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     needsCoopSelector,
     needsSubmissionSelector,
     needsYearSelector,
+    needsMethodSelector,
   ]);
 
   const currentStepIndex = useMemo(() => {
@@ -244,6 +304,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     if (needsSubmissionSelector && !selectedSubmissionId) return idx;
     if (needsSubmissionSelector) idx++;
     if (needsYearSelector && !selectedYear) return idx;
+    if (needsYearSelector) idx++;
     return idx;
   }, [
     needsFedSelector,
@@ -272,6 +333,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     setSelectedCoopId("");
     setSelectedSubmissionId("");
     setSelectedYear("");
+    setSelectedMethod("");
     setIsModalOpen(true);
   }
 
@@ -284,6 +346,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const isCoopSelected = !needsCoopSelector || !!selectedCoopId;
   const isSubmissionSelected = !needsSubmissionSelector || !!selectedSubmissionId;
   const isYearSelected = !needsYearSelector || !!selectedYear;
+  const isMethodSelected = !needsMethodSelector || !!effectiveMethod;
 
   const canExport =
     !isExporting &&
@@ -292,7 +355,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     isApexSelected &&
     isCoopSelected &&
     isSubmissionSelected &&
-    isYearSelected;
+    isYearSelected &&
+    isMethodSelected;
 
   const handleExport = async () => {
     if (!selectedOption || !canExport) return;
@@ -316,6 +380,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
         if (selectedYear) {
           queryParams.append("reporting_year", selectedYear);
         }
+        if (effectiveMethod === "questionnaire") {
+          queryParams.append("method", "questionnaire");
+        }
 
         if (role === "apex") url = `${baseUrl}/api/v1/apex/export?${queryParams}`;
         else if (role === "federation") url = `${baseUrl}/api/v1/federation/export?${queryParams}`;
@@ -333,12 +400,30 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
       if (isIndividual && selectedSubmissionId) {
         const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
-        const nameClean = (sub?.cooperative_name ?? "cooperative")
-          .replace(/[^a-z0-9]/gi, "_")
-          .toLowerCase();
-        filename = `${nameClean}_${sub?.reporting_year ?? "report"}.pdf`;
+        filename = individualFilename(sub?.cooperative_name, sub?.reporting_year);
       } else {
-        filename = `${role}_consolidated_report.pdf`;
+        const level =
+          selectedOption.id === "apex-consolidated"
+            ? "apex"
+            : selectedOption.id === "federation-consolidated"
+              ? "federation"
+              : selectedOption.id === "national-consolidated"
+                ? "ministry"
+                : (role as ConsolidatedLevel);
+        const entityName =
+          level === "apex"
+            ? (apexList.find((a) => a.id === selectedApexId)?.name ??
+              rawSubmissions.find((sub) => sub.apex_name)?.apex_name)
+            : level === "federation"
+              ? (federationList.find((f) => f.id === selectedFedId)?.name ??
+                rawSubmissions.find((sub) => sub.federation_name)?.federation_name)
+              : undefined;
+        filename = consolidatedFilename({
+          level,
+          entityName,
+          year: selectedYear,
+          method: effectiveMethod || undefined,
+        });
       }
 
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -379,10 +464,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
       const blob = await response.blob();
       const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
-      const nameClean = (sub?.cooperative_name ?? "cooperative")
-        .replace(/[^a-z0-9]/gi, "_")
-        .toLowerCase();
-      const filename = `${nameClean}_${sub?.reporting_year ?? "report"}.pdf`;
+      const filename = individualFilename(sub?.cooperative_name, sub?.reporting_year);
 
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -534,7 +616,10 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 }}
                 needsYearSelector={needsYearSelector}
                 selectedYear={selectedYear}
-                onClearYear={() => setSelectedYear("")}
+                onClearYear={() => {
+                  setSelectedYear("");
+                  setSelectedMethod("");
+                }}
               />
 
               {/* Active Step Picker */}
@@ -568,9 +653,20 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   onSelectSubmission={(id) => setSelectedSubmissionId(id)}
                   availableYears={availableYears}
                   selectedYear={selectedYear}
-                  onSelectYear={(year) => setSelectedYear(year)}
+                  onSelectYear={(year) => {
+                    setSelectedYear(year);
+                    setSelectedMethod("");
+                  }}
                 />
               </div>
+
+              {activeStepKey === "method" && needsMethodSelector && selectedYear && (
+                <MethodPicker
+                  options={methodOptions}
+                  value={effectiveMethod}
+                  onSelect={setSelectedMethod}
+                />
+              )}
 
               {/* Scope info for consolidated */}
               {activeStepKey === steps[steps.length - 1]?.key &&

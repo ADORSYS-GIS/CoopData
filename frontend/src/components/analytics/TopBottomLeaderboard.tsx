@@ -1,10 +1,13 @@
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
 import { ShieldCheck, Target } from "lucide-react";
+import { isReportedKpi } from "@/lib/kpi-reported";
+import { rankPerformers } from "@/lib/leaderboard";
 import { useTranslation } from "react-i18next";
 
 interface TopBottomLeaderboardProps {
   cooperatives: CoopKpiRow[];
   sortByKpi: string;
+  higherIsBetter?: boolean;
 }
 
 function KpiChip({ status }: { status: string | null }) {
@@ -14,16 +17,19 @@ function KpiChip({ status }: { status: string | null }) {
   return <span className="size-2.5 rounded-full bg-muted-foreground shrink-0" />;
 }
 
-export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeaderboardProps) {
+export function TopBottomLeaderboard({
+  cooperatives,
+  sortByKpi,
+  higherIsBetter = true,
+}: TopBottomLeaderboardProps) {
   const { t } = useTranslation();
-  const withData = cooperatives.filter((c) => c.has_data && c.kpis[sortByKpi] !== undefined);
+  const withData = cooperatives.filter((c) => c.has_data && isReportedKpi(c.kpis[sortByKpi]));
 
-  const sorted = [...withData].sort((a, b) => {
-    return a.kpis[sortByKpi].value - b.kpis[sortByKpi].value;
-  });
-
-  const top5 = sorted.slice(0, 5);
-  const bottom5 = sorted.slice(-5).reverse();
+  const { top: top5, bottom: bottom5 } = rankPerformers(
+    withData,
+    (c) => c.kpis[sortByKpi].value,
+    higherIsBetter,
+  );
 
   if (withData.length === 0) {
     return (
@@ -55,7 +61,7 @@ export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeade
           <span className="font-heading font-bold num">{coop.kpis[sortByKpi].formatted}</span>
           <KpiChip status={coop.kpis[sortByKpi].status} />
         </div>
-        {coop.kpis["capital_adequacy_ratio"] && (
+        {isReportedKpi(coop.kpis["capital_adequacy_ratio"]) && (
           <span className="text-[10px] text-muted-foreground">
             {t("analytics.carPrefix")} {coop.kpis["capital_adequacy_ratio"].formatted}
           </span>
@@ -79,7 +85,15 @@ export function TopBottomLeaderboard({ cooperatives, sortByKpi }: TopBottomLeade
           <Target className="size-4 text-destructive" />
           <h3 className="font-bold text-sm text-destructive">{t("analytics.watchListBottom5")}</h3>
         </div>
-        <div className="flex-1 p-1">{bottom5.map((c, i) => renderRow(c, i))}</div>
+        <div className="flex-1 p-1">
+          {bottom5.length > 0 ? (
+            bottom5.map((c, i) => renderRow(c, i))
+          ) : (
+            <p className="p-4 text-center text-xs text-muted-foreground">
+              {t("analytics.watchListEmpty")}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

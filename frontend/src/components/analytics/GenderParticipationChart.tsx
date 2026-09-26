@@ -1,5 +1,6 @@
+import { PieTooltip } from "@/components/analytics/PieTooltip";
 import React from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useTranslation } from "react-i18next";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
@@ -31,13 +32,13 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
   const primaryPct = hasData ? data.female_pct || 0 : 0;
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-6 h-full flex flex-col justify-between">
+    <div className="bg-surface border border-border rounded-xl p-5 space-y-6 h-full flex flex-col justify-between">
       <div className="flex items-start gap-1.5">
         <div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">
             {t("analytics.genderParticipation")}
           </span>
-          <span className="text-xs text-slate-500 font-medium block mt-0.5">
+          <span className="text-xs text-muted-foreground font-medium block mt-0.5">
             {t("analytics.membershipBreakdown")}
           </span>
         </div>
@@ -46,7 +47,7 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
 
       {!hasData ? (
         <div className="flex-1 flex items-center justify-center text-center py-8">
-          <p className="text-xs text-slate-400 max-w-[200px]">
+          <p className="text-xs text-muted-foreground max-w-[200px]">
             {t("analytics.genderParticipationNoData")}
           </p>
         </div>
@@ -69,31 +70,38 @@ export function GenderParticipationChart({ data }: GenderParticipationChartProps
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
+                <Tooltip
+                  content={
+                    <PieTooltip
+                      total={100}
+                      showPercent={false}
+                      format={(v) => `${v.toFixed(1)}%`}
+                    />
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
 
             {/* Center Label */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center mt-1">
-              <span className="text-2xl font-extrabold text-slate-900 dark:text-white">
+            <div className="pointer-events-none absolute inset-0 mt-1 flex flex-col items-center justify-center">
+              <span className="text-2xl font-extrabold text-foreground">
                 {primaryPct.toFixed(1)}%
               </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 {t("analytics.genderWomen")}
               </span>
             </div>
           </div>
 
           {/* Detailed Legend table below */}
-          <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">
+          <div className="divide-y divide-border text-xs font-medium text-muted-foreground">
             {chartData.map((item, idx) => (
               <div key={idx} className="flex justify-between items-center py-2">
                 <span className="flex items-center gap-2">
                   <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                   {item.name}
                 </span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {item.value.toFixed(1)}%
-                </span>
+                <span className="font-bold text-foreground">{item.value.toFixed(1)}%</span>
               </div>
             ))}
           </div>

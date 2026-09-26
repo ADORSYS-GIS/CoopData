@@ -2210,7 +2210,11 @@ pub async fn get_monthly_trend(
         })
         .collect();
 
-    let has_monthly_breakdown = line_items.iter().any(|item| item.month > 0);
+    let monthly_statement_ids: std::collections::HashSet<Uuid> = line_items
+        .iter()
+        .filter(|item| item.month > 0)
+        .map(|item| item.financial_statement_id)
+        .collect();
 
     // Resolve each statement's parent totals (2100 Member Deposits, 1200
     // Gross Loans, 1999 Total Assets) via the chart-of-accounts rollup
@@ -2235,7 +2239,7 @@ pub async fn get_monthly_trend(
         std::collections::HashMap<i32, f64>,
     > = std::collections::HashMap::new();
     for item in &line_items {
-        if item.month == 0 && has_monthly_breakdown {
+        if item.month == 0 && monthly_statement_ids.contains(&item.financial_statement_id) {
             continue;
         }
         if let (Some(code), Some(val)) = (item.account_code, item.value.and_then(|d| d.to_f64())) {

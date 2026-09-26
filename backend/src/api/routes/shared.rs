@@ -25,6 +25,10 @@ pub fn shared_routes() -> Router<AppState> {
             "/benchmarks",
             get(crate::api::handlers::financial_statement::get_benchmarks),
         )
+        .route(
+            "/analytics/period-series",
+            get(crate::api::handlers::period_series::get_period_series),
+        )
         // Monthly trend analytics — accessible to all authenticated roles
         .route(
             "/analytics/monthly-trend",
@@ -63,6 +67,10 @@ pub fn shared_routes() -> Router<AppState> {
         .route(
             "/analytics/questionnaire",
             get(crate::api::handlers::questionnaire::get_questionnaire_analytics),
+        )
+        .route(
+            "/analytics/basic-dashboard",
+            get(crate::api::handlers::basic_dashboard::get_basic_dashboard),
         )
         .route(
             "/analytics/comparative-statements",

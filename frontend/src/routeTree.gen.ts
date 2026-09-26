@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as PrintQuestionnaireConsolidatedRouteImport } from './routes/print.questionnaire-consolidated'
 import { Route as PrintMinistryRouteImport } from './routes/print.ministry'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/app.submissions'
@@ -38,6 +39,7 @@ import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
+import { Route as PrintQuestionnaireIdRouteImport } from './routes/print.questionnaire.$id'
 import { Route as PrintFederationIdRouteImport } from './routes/print.federation.$id'
 import { Route as PrintCooperativeIdRouteImport } from './routes/print.cooperative.$id'
 import { Route as PrintApexIdRouteImport } from './routes/print.apex.$id'
@@ -75,6 +77,12 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const PrintQuestionnaireConsolidatedRoute =
+  PrintQuestionnaireConsolidatedRouteImport.update({
+    id: '/print/questionnaire-consolidated',
+    path: '/print/questionnaire-consolidated',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PrintMinistryRoute = PrintMinistryRouteImport.update({
   id: '/print/ministry',
   path: '/print/ministry',
@@ -196,6 +204,11 @@ const AppUsersIndexRoute = AppUsersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppUsersRoute,
 } as any)
+const PrintQuestionnaireIdRoute = PrintQuestionnaireIdRouteImport.update({
+  id: '/print/questionnaire/$id',
+  path: '/print/questionnaire/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrintFederationIdRoute = PrintFederationIdRouteImport.update({
   id: '/print/federation/$id',
   path: '/print/federation/$id',
@@ -285,6 +298,7 @@ export interface FileRoutesByFullPath {
   '/app/submissions': typeof AppSubmissionsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/print/ministry': typeof PrintMinistryRoute
+  '/print/questionnaire-consolidated': typeof PrintQuestionnaireConsolidatedRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
@@ -294,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/print/apex/$id': typeof PrintApexIdRoute
   '/print/cooperative/$id': typeof PrintCooperativeIdRoute
   '/print/federation/$id': typeof PrintFederationIdRoute
+  '/print/questionnaire/$id': typeof PrintQuestionnaireIdRoute
   '/app/users/': typeof AppUsersIndexRoute
   '/app/submissions/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
   '/app/submissions/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
@@ -325,6 +340,7 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app/submissions': typeof AppSubmissionsRoute
   '/print/ministry': typeof PrintMinistryRoute
+  '/print/questionnaire-consolidated': typeof PrintQuestionnaireConsolidatedRoute
   '/app': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
@@ -333,6 +349,7 @@ export interface FileRoutesByTo {
   '/print/apex/$id': typeof PrintApexIdRoute
   '/print/cooperative/$id': typeof PrintCooperativeIdRoute
   '/print/federation/$id': typeof PrintFederationIdRoute
+  '/print/questionnaire/$id': typeof PrintQuestionnaireIdRoute
   '/app/users': typeof AppUsersIndexRoute
   '/app/submissions/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
   '/app/submissions/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
@@ -367,6 +384,7 @@ export interface FileRoutesById {
   '/app/submissions': typeof AppSubmissionsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/print/ministry': typeof PrintMinistryRoute
+  '/print/questionnaire-consolidated': typeof PrintQuestionnaireConsolidatedRoute
   '/app/': typeof AppIndexRoute
   '/app/cooperative-members/$cooperativeId': typeof AppCooperativeMembersCooperativeIdRoute
   '/app/cooperative-profile/$cooperativeId': typeof AppCooperativeProfileCooperativeIdRoute
@@ -376,6 +394,7 @@ export interface FileRoutesById {
   '/print/apex/$id': typeof PrintApexIdRoute
   '/print/cooperative/$id': typeof PrintCooperativeIdRoute
   '/print/federation/$id': typeof PrintFederationIdRoute
+  '/print/questionnaire/$id': typeof PrintQuestionnaireIdRoute
   '/app/users/': typeof AppUsersIndexRoute
   '/app/submissions_/$id/manual-entry': typeof AppSubmissionsIdManualEntryRoute
   '/app/submissions_/$id/questionnaire': typeof AppSubmissionsIdQuestionnaireRoute
@@ -411,6 +430,7 @@ export interface FileRouteTypes {
     | '/app/submissions'
     | '/app/users'
     | '/print/ministry'
+    | '/print/questionnaire-consolidated'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
@@ -420,6 +440,7 @@ export interface FileRouteTypes {
     | '/print/apex/$id'
     | '/print/cooperative/$id'
     | '/print/federation/$id'
+    | '/print/questionnaire/$id'
     | '/app/users/'
     | '/app/submissions/$id/manual-entry'
     | '/app/submissions/$id/questionnaire'
@@ -451,6 +472,7 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/submissions'
     | '/print/ministry'
+    | '/print/questionnaire-consolidated'
     | '/app'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
@@ -459,6 +481,7 @@ export interface FileRouteTypes {
     | '/print/apex/$id'
     | '/print/cooperative/$id'
     | '/print/federation/$id'
+    | '/print/questionnaire/$id'
     | '/app/users'
     | '/app/submissions/$id/manual-entry'
     | '/app/submissions/$id/questionnaire'
@@ -492,6 +515,7 @@ export interface FileRouteTypes {
     | '/app/submissions'
     | '/app/users'
     | '/print/ministry'
+    | '/print/questionnaire-consolidated'
     | '/app/'
     | '/app/cooperative-members/$cooperativeId'
     | '/app/cooperative-profile/$cooperativeId'
@@ -501,6 +525,7 @@ export interface FileRouteTypes {
     | '/print/apex/$id'
     | '/print/cooperative/$id'
     | '/print/federation/$id'
+    | '/print/questionnaire/$id'
     | '/app/users/'
     | '/app/submissions_/$id/manual-entry'
     | '/app/submissions_/$id/questionnaire'
@@ -513,9 +538,11 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   PrintMinistryRoute: typeof PrintMinistryRoute
+  PrintQuestionnaireConsolidatedRoute: typeof PrintQuestionnaireConsolidatedRoute
   PrintApexIdRoute: typeof PrintApexIdRoute
   PrintCooperativeIdRoute: typeof PrintCooperativeIdRoute
   PrintFederationIdRoute: typeof PrintFederationIdRoute
+  PrintQuestionnaireIdRoute: typeof PrintQuestionnaireIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -554,6 +581,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/print/questionnaire-consolidated': {
+      id: '/print/questionnaire-consolidated'
+      path: '/print/questionnaire-consolidated'
+      fullPath: '/print/questionnaire-consolidated'
+      preLoaderRoute: typeof PrintQuestionnaireConsolidatedRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/print/ministry': {
       id: '/print/ministry'
@@ -722,6 +756,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/users/'
       preLoaderRoute: typeof AppUsersIndexRouteImport
       parentRoute: typeof AppUsersRoute
+    }
+    '/print/questionnaire/$id': {
+      id: '/print/questionnaire/$id'
+      path: '/print/questionnaire/$id'
+      fullPath: '/print/questionnaire/$id'
+      preLoaderRoute: typeof PrintQuestionnaireIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/print/federation/$id': {
       id: '/print/federation/$id'
@@ -902,9 +943,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   PrintMinistryRoute: PrintMinistryRoute,
+  PrintQuestionnaireConsolidatedRoute: PrintQuestionnaireConsolidatedRoute,
   PrintApexIdRoute: PrintApexIdRoute,
   PrintCooperativeIdRoute: PrintCooperativeIdRoute,
   PrintFederationIdRoute: PrintFederationIdRoute,
+  PrintQuestionnaireIdRoute: PrintQuestionnaireIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

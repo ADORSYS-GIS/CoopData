@@ -1350,3 +1350,55 @@ impl SubmissionWorkflow {
         Ok(())
     }
 }
+
+/// KPI rows computed before this instant used earlier formulas (PAR > 30 counted
+/// the 1-30 day bucket, provisions had the wrong sign, income used one month).
+/// Raise it whenever a KPI formula changes so startup recomputes stored rows.
+pub const KPI_FORMULAS_EFFECTIVE_AT: &str = "2026-09-25T17:00:00Z";
+
+pub fn kpi_rows_are_stale(rows: &[crate::entities::kpi_record::Model]) -> bool {
+    let Ok(cutoff) = chrono::DateTime::parse_from_rfc3339(KPI_FORMULAS_EFFECTIVE_AT) else {
+        return false;
+    };
+    rows.iter().any(|row| row.created_at < cutoff)
+}
+
+#[cfg(test)]
+mod kpi_staleness_tests {
+    use super::*;
+    use crate::entities::kpi_record;
+
+    fn row(created: &str) -> kpi_record::Model {
+        let at = chrono::DateTime::parse_from_rfc3339(created).unwrap();
+        kpi_record::Model {
+            id: Uuid::new_v4(),
+            cooperative_id: Uuid::nil(),
+            submission_id: Uuid::nil(),
+            reporting_year: 2026,
+            kpi_name: "par30".into(),
+            kpi_type: "financial".into(),
+            value: 1.0,
+            formatted: "1.0%".into(),
+            unit: "percent".into(),
+            status: None,
+            description: String::new(),
+            created_at: at,
+            updated_at: at,
+        }
+    }
+
+    #[test]
+    fn rows_computed_before_the_cutoff_are_stale() {
+        assert!(kpi_rows_are_stale(&[row("2026-09-24T10:00:00Z")]));
+    }
+
+    #[test]
+    fn rows_computed_after_the_cutoff_are_current() {
+        assert!(!kpi_rows_are_stale(&[row("2026-09-26T10:00:00Z")]));
+    }
+
+    #[test]
+    fn no_rows_are_not_stale() {
+        assert!(!kpi_rows_are_stale(&[]));
+    }
+}

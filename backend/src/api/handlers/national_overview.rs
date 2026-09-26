@@ -251,6 +251,17 @@ async fn compute_coop_rows(
         .into_iter()
         .map(|statement| (statement.submission_id, statement))
         .collect();
+    let mut approved_submissions = approved_submissions;
+    approved_submissions.sort_by_key(|s| {
+        std::cmp::Reverse(
+            crate::services::period_series::period_key(
+                s.period_type,
+                s.reporting_year,
+                &s.period_value,
+            )
+            .unwrap_or((s.reporting_year, 0)),
+        )
+    });
     for submission in approved_submissions {
         if let Some(statement) = statements_by_submission.get(&submission.id) {
             fs_map
@@ -613,6 +624,31 @@ async fn compute_coop_rows(
     Ok(coop_rows)
 }
 
+/// The statement of the cooperative's newest period, so a cooperative that
+/// filed several periods in the year is never shown from an arbitrary one.
+fn latest_statement_of<'a>(
+    cooperative_id: Uuid,
+    statements: &'a [crate::entities::financial_statement::Model],
+    submissions: &[crate::entities::submission::Model],
+) -> Option<&'a crate::entities::financial_statement::Model> {
+    statements
+        .iter()
+        .filter_map(|fs| {
+            let sub = submissions
+                .iter()
+                .find(|s| s.id == fs.submission_id && s.cooperative_id == cooperative_id)?;
+            let key = crate::services::period_series::period_key(
+                sub.period_type,
+                sub.reporting_year,
+                &sub.period_value,
+            )
+            .unwrap_or((sub.reporting_year, 0));
+            Some((key, fs))
+        })
+        .max_by_key(|(key, _)| *key)
+        .map(|(_, fs)| fs)
+}
+
 fn pct(part: u64, total: u64) -> f64 {
     if total == 0 {
         return 0.0;
@@ -834,7 +870,9 @@ fn get_kpi_value(row: &CoopKpiRow, key: &str) -> Option<f64> {
     path = "/api/v1/analytics/comparative-statements",
     params(
         ("reporting_year" = Option<i32>, Query, description = "Reporting year"),
-        ("cooperative_ids" = Option<String>, Query, description = "Comma-separated cooperative UUIDs to filter")
+        ("cooperative_ids" = Option<String>, Query, description = "Comma-separated cooperative UUIDs to filter"),
+        ("period_type" = Option<String>, Query, description = "Period type (YEARLY, QUARTERLY, MONTHLY, SEMI_ANNUAL)"),
+        ("period_value" = Option<String>, Query, description = "Period value (for example Q1, 08, H1)")
     ),
     responses(
         (status = 200, description = "Comparative statements grid", body = ComparativeStatementsResponse),
@@ -896,6 +934,13 @@ pub async fn get_comparative_statements(
         .filter(|s| {
             s.reporting_year == year
                 && s.status == crate::entities::enums::SubmissionStatus::Approved
+                && params.period_type.as_deref().map_or(true, |pt| {
+                    pt.eq_ignore_ascii_case("all")
+                        || s.period_type.as_str().eq_ignore_ascii_case(pt)
+                })
+                && params.period_value.as_deref().map_or(true, |pv| {
+                    pv.eq_ignore_ascii_case("all") || s.period_value.eq_ignore_ascii_case(pv)
+                })
         })
         .collect();
 
@@ -929,14 +974,6 @@ pub async fn get_comparative_statements(
             .push(item);
     }
 
-    // Map financial statement ID to cooperative ID
-    let mut fs_to_coop: HashMap<Uuid, Uuid> = HashMap::new();
-    for fs in &financial_statements {
-        if let Some(sub) = year_submissions.iter().find(|s| s.id == fs.submission_id) {
-            fs_to_coop.insert(fs.id, sub.cooperative_id);
-        }
-    }
-
     // Chart-of-accounts rollup rules (e.g. 1200 "Gross Loans" = sum of
     // 1201-1205) and the USD exchange rates — loaded once, applied per
     // cooperative below, so every grid (Rankings/Portfolio
@@ -953,9 +990,7 @@ pub async fn get_comparative_statements(
 
     for coop in cooperatives {
         // Find if they have a financial statement for this year
-        let fs_opt = financial_statements
-            .iter()
-            .find(|fs| fs_to_coop.get(&fs.id) == Some(&coop.id));
+        let fs_opt = latest_statement_of(coop.id, &financial_statements, &year_submissions);
 
         let mut grid_items = vec![];
         let mut currency = crate::entities::enums::Currency::Szl;
