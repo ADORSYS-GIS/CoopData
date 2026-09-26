@@ -13,7 +13,11 @@ export const Route = createFileRoute("/print/federation/$id")({
 function PrintComponent() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
-  const { token, year } = Route.useSearch() as { token?: string; year?: string };
+  const { token, year, name } = Route.useSearch() as {
+    token?: string;
+    year?: string;
+    name?: string;
+  };
 
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
   const { data: federation } = useFederation(id, token);
@@ -53,7 +57,7 @@ function PrintComponent() {
 
   return (
     <FederationReportPrint
-      entityName={federation?.name ?? "Federation"}
+      entityName={name || federation?.name || "Federation"}
       year={currentYear}
       data={overviewData}
       priorData={priorData}

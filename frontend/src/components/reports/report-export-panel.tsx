@@ -11,6 +11,11 @@ import {
   useFederationSubmissions,
   useMinistrySubmissions,
 } from "@/hooks/submissions/useSubmissions";
+import {
+  consolidatedFilename,
+  individualFilename,
+  type ConsolidatedLevel,
+} from "@/lib/report-filename";
 import type { components } from "@/openapi-client/api";
 
 import {
@@ -333,12 +338,25 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
       if (isIndividual && selectedSubmissionId) {
         const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
-        const nameClean = (sub?.cooperative_name ?? "cooperative")
-          .replace(/[^a-z0-9]/gi, "_")
-          .toLowerCase();
-        filename = `${nameClean}_${sub?.reporting_year ?? "report"}.pdf`;
+        filename = individualFilename(sub?.cooperative_name, sub?.reporting_year);
       } else {
-        filename = `${role}_consolidated_report.pdf`;
+        const level =
+          selectedOption.id === "apex-consolidated"
+            ? "apex"
+            : selectedOption.id === "federation-consolidated"
+              ? "federation"
+              : selectedOption.id === "national-consolidated"
+                ? "ministry"
+                : (role as ConsolidatedLevel);
+        const entityName =
+          level === "apex"
+            ? (apexList.find((a) => a.id === selectedApexId)?.name ??
+              rawSubmissions.find((sub) => sub.apex_name)?.apex_name)
+            : level === "federation"
+              ? (federationList.find((f) => f.id === selectedFedId)?.name ??
+                rawSubmissions.find((sub) => sub.federation_name)?.federation_name)
+              : undefined;
+        filename = consolidatedFilename({ level, entityName, year: selectedYear });
       }
 
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -379,10 +397,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
       const blob = await response.blob();
       const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
-      const nameClean = (sub?.cooperative_name ?? "cooperative")
-        .replace(/[^a-z0-9]/gi, "_")
-        .toLowerCase();
-      const filename = `${nameClean}_${sub?.reporting_year ?? "report"}.pdf`;
+      const filename = individualFilename(sub?.cooperative_name, sub?.reporting_year);
 
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");

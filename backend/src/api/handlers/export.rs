@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
+use crate::services::export_generator::EXPORT_PREFIX;
 use crate::AppState;
 
 #[derive(Debug, serde::Deserialize)]
@@ -66,7 +67,7 @@ pub async fn export_single_submission(
     }
 
     let filename = format!("submission_{}.pdf", id);
-    let storage_key = format!("exports/individual/{}/{}", id, filename);
+    let storage_key = format!("{EXPORT_PREFIX}/individual/{}/{}", id, filename);
 
     let bytes = if !query.regenerate {
         match state.storage.get_object(&storage_key).await {
@@ -181,7 +182,7 @@ pub async fn export_bulk_consolidated(
     // Bucket checks
     if let (Some(apex_id), Some(year)) = (query.apex_id, query.reporting_year) {
         let filename = format!("apex_{}_{}.pdf", apex_id, year);
-        let storage_key = format!("exports/apex/{}/{}", apex_id, filename);
+        let storage_key = format!("{EXPORT_PREFIX}/apex/{}/{}", apex_id, filename);
         if let Ok(bytes) = state.storage.get_object(&storage_key).await {
             tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket HIT for Apex export");
             let res = Response::builder()
@@ -196,7 +197,7 @@ pub async fn export_bulk_consolidated(
         }
     } else if let (Some(fed_id), Some(year)) = (query.federation_id, query.reporting_year) {
         let filename = format!("federation_{}_{}.pdf", fed_id, year);
-        let storage_key = format!("exports/federation/{}/{}", fed_id, filename);
+        let storage_key = format!("{EXPORT_PREFIX}/federation/{}/{}", fed_id, filename);
         if let Ok(bytes) = state.storage.get_object(&storage_key).await {
             tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket HIT for Federation export");
             let res = Response::builder()
@@ -212,7 +213,7 @@ pub async fn export_bulk_consolidated(
     } else if query.apex_id.is_none() && query.federation_id.is_none() {
         if let Some(year) = query.reporting_year {
             let filename = format!("ministry_{}.pdf", year);
-            let storage_key = format!("exports/ministry/{}", filename);
+            let storage_key = format!("{EXPORT_PREFIX}/ministry/{}", filename);
             if let Ok(bytes) = state.storage.get_object(&storage_key).await {
                 tracing::info!(reporting_year = year, "Bucket HIT for Ministry export");
                 let res = Response::builder()
@@ -233,15 +234,15 @@ pub async fn export_bulk_consolidated(
         match (query.apex_id, query.federation_id) {
             (Some(aid), _) => {
                 let fn_ = format!("apex_{}_{}.pdf", aid, year);
-                (format!("exports/apex/{}/{}", aid, fn_), fn_)
+                (format!("{EXPORT_PREFIX}/apex/{}/{}", aid, fn_), fn_)
             }
             (_, Some(fid)) => {
                 let fn_ = format!("federation_{}_{}.pdf", fid, year);
-                (format!("exports/federation/{}/{}", fid, fn_), fn_)
+                (format!("{EXPORT_PREFIX}/federation/{}/{}", fid, fn_), fn_)
             }
             (None, None) => {
                 let fn_ = format!("ministry_{}.pdf", year);
-                (format!("exports/ministry/{}", fn_), fn_)
+                (format!("{EXPORT_PREFIX}/ministry/{}", fn_), fn_)
             }
         }
     } else {
@@ -251,20 +252,41 @@ pub async fn export_bulk_consolidated(
     };
 
     let token = state.keycloak.get_admin_token().await?;
+    let year = query.reporting_year.unwrap_or_default();
     let print_url = if let Some(apex_id) = query.apex_id {
+        let name = state
+            .apex_repo
+            .find_by_id(apex_id)
+            .await?
+            .map(|apex| apex.display_name)
+            .unwrap_or_default();
         format!(
-            "{}/print/apex/{}?token={}",
-            state.config.gotenberg_frontend_url, apex_id, token
+            "{}/print/apex/{}?token={}&year={}&name={}",
+            state.config.gotenberg_frontend_url,
+            apex_id,
+            token,
+            year,
+            urlencoding::encode(&name)
         )
     } else if let Some(fed_id) = query.federation_id {
+        let name = state
+            .federation_repo
+            .find_by_id(fed_id)
+            .await?
+            .map(|federation| federation.display_name)
+            .unwrap_or_default();
         format!(
-            "{}/print/federation/{}?token={}",
-            state.config.gotenberg_frontend_url, fed_id, token
+            "{}/print/federation/{}?token={}&year={}&name={}",
+            state.config.gotenberg_frontend_url,
+            fed_id,
+            token,
+            year,
+            urlencoding::encode(&name)
         )
     } else {
         format!(
-            "{}/print/ministry?token={}",
-            state.config.gotenberg_frontend_url, token
+            "{}/print/ministry?token={}&year={}",
+            state.config.gotenberg_frontend_url, token, year
         )
     };
 

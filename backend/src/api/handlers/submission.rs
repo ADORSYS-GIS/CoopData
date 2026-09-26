@@ -19,6 +19,7 @@ use crate::api::dto::submission::{
 };
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
+use crate::services::export_generator::EXPORT_PREFIX;
 
 use crate::entities::enums::SubmissionStatus;
 use crate::entities::submission::ActiveModel;
@@ -1105,7 +1106,10 @@ pub async fn apex_approve_submission(
 
             for sub in future_subs {
                 // Delete stale cached PDF from object storage (best-effort)
-                let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                let pdf_key = format!(
+                    "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
+                    sub.id, sub.id
+                );
                 let _ = state.storage.delete_object(&pdf_key).await;
 
                 // Queue background regeneration so the next download gets fresh data
@@ -1704,7 +1708,10 @@ pub async fn ministry_approve_submission(
 
             for sub in future_subs {
                 // Delete stale cached PDF from object storage (best-effort)
-                let pdf_key = format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
+                let pdf_key = format!(
+                    "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
+                    sub.id, sub.id
+                );
                 let _ = state.storage.delete_object(&pdf_key).await;
 
                 // Queue background regeneration so the next download gets fresh data

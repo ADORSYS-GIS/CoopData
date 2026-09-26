@@ -13,7 +13,11 @@ export const Route = createFileRoute("/print/apex/$id")({
 function PrintComponent() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
-  const { token, year } = Route.useSearch() as { token?: string; year?: string };
+  const { token, year, name } = Route.useSearch() as {
+    token?: string;
+    year?: string;
+    name?: string;
+  };
 
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
   const { data: apex } = useApex(id, token);
@@ -54,7 +58,9 @@ function PrintComponent() {
   return (
     <ConsolidatedReportPrint
       tier="Apex"
-      entityName={apex?.name ?? "Apex"}
+      entityName={
+        name || apex?.name || overviewData.cooperatives[0]?.apex_name || "Apex organisation"
+      }
       year={currentYear}
       data={overviewData}
       priorData={priorData}
