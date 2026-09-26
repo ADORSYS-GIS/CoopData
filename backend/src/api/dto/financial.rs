@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::api::dto::common::RateUsed;
 use crate::entities::balance_sheet_line_item::Model as LineItemModel;
 use crate::entities::chart_of_account::Model as CoaModel;
 use crate::entities::enums::PeriodType;
@@ -201,7 +202,7 @@ pub struct MonthlyTrendResponse {
     pub year: i32,
     pub months: Vec<MonthlyTrendPoint>,
     /// Distinct USD conversion rates applied across the submissions included.
-    pub rates_used: Vec<crate::api::dto::common::RateUsed>,
+    pub rates_used: Vec<RateUsed>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

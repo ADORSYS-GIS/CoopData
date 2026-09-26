@@ -93,6 +93,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
     intelligence: [
       "/app/reports",
       "/app/analytics",
+      "/app/basic-analytics",
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],

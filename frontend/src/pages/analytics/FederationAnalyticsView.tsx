@@ -6,17 +6,18 @@
  */
 import { useMemo } from "react";
 import {} from "lucide-react";
-import { Card } from "@/components/app-shell";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
 import { TopBottomLeaderboard } from "@/components/analytics/TopBottomLeaderboard";
 import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDoughnutCharts";
-import { CooperativeDeepDive } from "@/components/analytics/CooperativeDeepDive";
+import { CollapsibleSection } from "@/components/analytics/national/CollapsibleSection";
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
 import { ApexRadarChart } from "@/components/analytics/ApexRadarChart";
 import { LoanProvisioningWaterfall } from "@/components/analytics/LoanProvisioningWaterfall";
 import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
 import { CooperativeRanking } from "@/components/analytics/CooperativeRanking";
 import { ApexDistributionBar } from "@/components/analytics/ApexDistributionBar";
+import { aggregateLoanGap } from "@/lib/loan-gap";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
@@ -26,10 +27,9 @@ import { Spinner } from "@/components/ui/spinner";
 
 interface Props {
   filterValues: AnalyticsFilterValues;
-  onFilterChange: (id: string, value: string) => void;
 }
 
-export function FederationAnalyticsView({ filterValues, onFilterChange }: Props) {
+export function FederationAnalyticsView({ filterValues }: Props) {
   const { t } = useOrganizationLabelsContext();
   const year = Number(filterValues.year);
 
@@ -49,44 +49,9 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
   const { data: overview, isLoading } = useNationalOverview(params);
   const { data: nfStats } = useNfStatistics(false, params);
   const { data: networkTrend } = useMonthlyTrend(params, filterValues.cooperativeId === "all");
-  const hasSelected = filterValues.cooperativeId !== "all";
-  const coops = overview?.cooperatives ?? [];
+  const coops = useMemo(() => overview?.cooperatives ?? [], [overview]);
 
-  // Aggregate financial metrics for Loan Provisioning Gap at the federation level
-  const aggMetrics = useMemo(() => {
-    let totalGLP = 0;
-    let sumPar30 = 0;
-    let sumProvisions = 0;
-    let countPar30 = 0;
-    let countProvisions = 0;
-
-    coops.forEach((c) => {
-      const glp = c.kpis["gross_loan_portfolio"]?.value ?? 0;
-      const par30 = c.kpis["par30"]?.value;
-      const prov = c.kpis["loan_loss_coverage"]?.value;
-
-      totalGLP += glp;
-      if (par30 !== undefined) {
-        sumPar30 += par30;
-        countPar30++;
-      }
-      if (prov !== undefined) {
-        sumProvisions += prov;
-        countProvisions++;
-      }
-    });
-
-    return {
-      totalGLP,
-      avgPar30: countPar30 > 0 ? sumPar30 / countPar30 : 0,
-      avgProvisions: countProvisions > 0 ? sumProvisions / countProvisions : 0,
-    };
-  }, [coops]);
-
-  const selectedCoopRow = useMemo(
-    () => coops.find((c) => c.cooperative_id === filterValues.cooperativeId),
-    [coops, filterValues.cooperativeId],
-  );
+  const aggMetrics = useMemo(() => aggregateLoanGap(coops), [coops]);
 
   const totalApexes = useMemo(() => {
     const apexSet = new Set<string>();
@@ -104,20 +69,6 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
     );
   }
 
-  if (hasSelected && selectedCoopRow) {
-    return (
-      <CooperativeDeepDive
-        cooperativeId={selectedCoopRow.cooperative_id}
-        submissionId={selectedCoopRow.submission_id}
-        cooperativeName={selectedCoopRow.name}
-        cooperativeRegion={selectedCoopRow.region}
-        cooperativeType={selectedCoopRow.institution_type}
-        reportingYear={year}
-        onClose={() => onFilterChange("cooperativeId", "all")}
-      />
-    );
-  }
-
   return (
     <div className="space-y-6">
       <NetworkConsolidatedMetrics
@@ -125,82 +76,95 @@ export function FederationAnalyticsView({ filterValues, onFilterChange }: Props)
         networkTrend={networkTrend}
         totalCooperatives={overview?.total_cooperatives ?? 0}
         cooperativesWithData={overview?.cooperatives_with_data ?? 0}
+        seriesQuery={params}
         totalApexes={totalApexes}
       />
 
       {/* Apex & Regional Distributions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card
-          title={t("federationAnalytics.apexDistTitle")}
-          subtitle={t("federationAnalytics.apexDistSubtitle")}
-          info={t("federationAnalytics.apexDistInfo")}
-        >
-          <ApexDistributionBar cooperatives={coops} />
-        </Card>
-
-        <Card
-          title={t("federationAnalytics.regionalPortfolioTitle")}
-          subtitle={t("federationAnalytics.regionalPortfolioSubtitle")}
-          info={t("federationAnalytics.regionalPortfolioInfo")}
-        >
-          <RegionalGroupedBar cooperatives={coops} />
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Efficiency leaderboard (OER — lower = better) */}
-        <Card
-          title={t("federationAnalytics.oerRankingTitle")}
-          subtitle={t("federationAnalytics.oerRankingSubtitle")}
-          info={t("federationAnalytics.oerRankingInfo")}
-        >
-          <TopBottomLeaderboard cooperatives={coops} sortByKpi="operating_expense_ratio" />
-        </Card>
-
-        {/* ROA leaderboard */}
-        <Card
-          title={t("federationAnalytics.profitabilityRankingTitle")}
-          subtitle={t("federationAnalytics.profitabilityRankingSubtitle")}
-          info={t("federationAnalytics.profitabilityRankingInfo")}
-        >
-          <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {coops.length > 0 && (
+      <CollapsibleSection id="analytics-regional-0" title={t("analytics.section.regional")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card
-            title={t("federationAnalytics.radarTitle")}
-            subtitle={t("federationAnalytics.radarSubtitle")}
-            info={t("federationAnalytics.radarInfo")}
+            title={t("federationAnalytics.apexDistTitle")}
+            subtitle={t("federationAnalytics.apexDistSubtitle")}
+            info={t("federationAnalytics.apexDistInfo")}
           >
-            <ApexRadarChart data={coops} />
+            <ApexDistributionBar cooperatives={coops} />
           </Card>
-        )}
-        {coops.length > 0 && (
+
           <Card
-            title={t("federationAnalytics.loanGapTitle")}
-            subtitle={t("federationAnalytics.loanGapSubtitle")}
-            info={t("federationAnalytics.loanGapInfo")}
+            title={t("federationAnalytics.regionalPortfolioTitle")}
+            subtitle={t("federationAnalytics.regionalPortfolioSubtitle")}
+            info={t("federationAnalytics.regionalPortfolioInfo")}
           >
-            <LoanProvisioningWaterfall
-              glp={aggMetrics.totalGLP}
-              par30_pct={aggMetrics.avgPar30}
-              provisions_pct={aggMetrics.avgProvisions}
+            <RegionalGroupedBar cooperatives={coops} />
+          </Card>
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="analytics-leaderboards-1" title={t("analytics.section.leaderboards")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Efficiency leaderboard (OER — lower = better) */}
+          <Card
+            title={t("federationAnalytics.oerRankingTitle")}
+            subtitle={t("federationAnalytics.oerRankingSubtitle")}
+            info={t("federationAnalytics.oerRankingInfo")}
+          >
+            <TopBottomLeaderboard
+              cooperatives={coops}
+              sortByKpi="operating_expense_ratio"
+              higherIsBetter={false}
             />
           </Card>
-        )}
-      </div>
+
+          {/* ROA leaderboard */}
+          <Card
+            title={t("federationAnalytics.profitabilityRankingTitle")}
+            subtitle={t("federationAnalytics.profitabilityRankingSubtitle")}
+            info={t("federationAnalytics.profitabilityRankingInfo")}
+          >
+            <TopBottomLeaderboard cooperatives={coops} sortByKpi="roa" />
+          </Card>
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection id="analytics-comparison-2" title={t("analytics.section.comparison")}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {coops.length > 0 && (
+            <Card
+              title={t("federationAnalytics.radarTitle")}
+              subtitle={t("federationAnalytics.radarSubtitle")}
+              info={t("federationAnalytics.radarInfo")}
+            >
+              <ApexRadarChart data={coops} />
+            </Card>
+          )}
+          {coops.length > 0 && (
+            <Card
+              title={t("federationAnalytics.loanGapTitle")}
+              subtitle={t("federationAnalytics.loanGapSubtitle")}
+              info={t("federationAnalytics.loanGapInfo")}
+            >
+              <LoanProvisioningWaterfall
+                glp={aggMetrics.totalGLP}
+                par30_pct={aggMetrics.par30Pct}
+                provisions_pct={aggMetrics.provisionsPct}
+              />
+            </Card>
+          )}
+        </div>
+      </CollapsibleSection>
 
       {/* Traffic-light compliance bars */}
       {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-        <Card
-          title={t("federationAnalytics.complianceTitle")}
-          subtitle={t("federationAnalytics.complianceSubtitle")}
-          info={t("federationAnalytics.complianceInfo")}
-        >
-          <ComplianceDoughnutCharts distributions={overview.distributions} />
-        </Card>
+        <CollapsibleSection id="analytics-compliance" title={t("analytics.section.compliance")}>
+          <Card
+            title={t("federationAnalytics.complianceTitle")}
+            subtitle={t("federationAnalytics.complianceSubtitle")}
+            info={t("federationAnalytics.complianceInfo")}
+          >
+            <ComplianceDoughnutCharts distributions={overview.distributions} />
+          </Card>
+        </CollapsibleSection>
       )}
 
       {coops.length === 0 && (

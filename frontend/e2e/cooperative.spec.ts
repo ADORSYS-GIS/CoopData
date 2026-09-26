@@ -56,7 +56,9 @@ test.describe("Cooperative user navigation", () => {
   test("should see Analytics in sidebar nav", async ({ page }) => {
     await page.goto("/app/dashboard");
     await dismissErrorOverlay(page);
-    await expect(page.getByRole("link", { name: /Analytics/ })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: "Analytics", exact: true })).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("should NOT see Federations in sidebar nav", async ({ page }) => {

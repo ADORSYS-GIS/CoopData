@@ -1,6 +1,7 @@
 pub mod apex;
 pub mod audit;
 pub mod basic_benchmark;
+pub mod basic_dashboard;
 pub mod cooperative;
 pub mod custom_kpi;
 pub mod exchange_rate;
@@ -16,7 +17,9 @@ pub mod non_financial;
 pub mod non_financial_indicator;
 pub mod organization_label;
 pub mod organizations;
+pub mod period_series;
 pub mod questionnaire;
+pub mod questionnaire_report;
 pub mod questionnaire_template;
 pub mod submission;
 pub mod upload;

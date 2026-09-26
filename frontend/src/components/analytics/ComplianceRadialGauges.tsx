@@ -2,10 +2,23 @@ import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis, Tooltip
 import { useTranslation } from "react-i18next";
 
 interface ComplianceRadialGaugesProps {
-  carValue: number; // Capital Adequacy Ratio (%)
-  liquidityValue: number; // Liquidity Ratio (%)
-  nplValue: number; // NPL Ratio (%)
+  carValue?: number; // Capital adequacy ratio (%), undefined when not reported
+  liquidityValue?: number; // Liquid assets to total assets (%), undefined when not reported
+  nplValue?: number; // Loans overdue more than 90 days (%), undefined when not reported
 }
+
+interface Gauge {
+  name: string;
+  value: number;
+  fill: string;
+  target: number;
+  max: number;
+  rawValue: string;
+  lowerIsBetter: boolean;
+}
+
+const statusFill = (good: boolean, warn: boolean): string =>
+  good ? "var(--success)" : warn ? "var(--warning)" : "var(--destructive)";
 
 export function ComplianceRadialGauges({
   carValue,
@@ -13,43 +26,50 @@ export function ComplianceRadialGauges({
   nplValue,
 }: ComplianceRadialGaugesProps) {
   const { t } = useTranslation();
-  // Gauges:
-  // CAR Target > 15%, Max 30% for dial
-  // Liquidity Target > 20%, Max 100% for dial
-  // NPL Target < 5%, Max 20% for dial (inverted visually so green is full? Actually standard gauge is fine)
-
-  const gauges = [
-    {
-      name: t("analytics.gaugeCapitalAdequacy"),
-      value: Math.min(carValue, 30),
-      fill:
-        carValue >= 15
-          ? "var(--success)"
-          : carValue >= 10
-            ? "var(--warning)"
-            : "var(--destructive)",
-      target: 15,
-      max: 30,
-      rawValue: carValue.toFixed(1) + "%",
-    },
-    {
-      name: t("analytics.gaugeLiquidity"),
-      value: Math.min(liquidityValue, 100),
-      fill: liquidityValue >= 20 ? "var(--success)" : "var(--destructive)",
-      target: 20,
-      max: 100,
-      rawValue: liquidityValue.toFixed(1) + "%",
-    },
-    {
-      name: t("analytics.gaugeNonPerformingLoans"),
-      value: Math.min(nplValue, 20),
-      fill:
-        nplValue <= 5 ? "var(--success)" : nplValue <= 10 ? "var(--warning)" : "var(--destructive)",
-      target: 5,
-      max: 20,
-      rawValue: nplValue.toFixed(1) + "%",
-    },
+  const candidates: (Gauge | null)[] = [
+    carValue === undefined
+      ? null
+      : {
+          name: t("analytics.gaugeCapitalAdequacy"),
+          value: Math.min(carValue, 30),
+          fill: statusFill(carValue >= 10, carValue >= 8),
+          target: 10,
+          max: 30,
+          rawValue: carValue.toFixed(1) + "%",
+          lowerIsBetter: false,
+        },
+    liquidityValue === undefined
+      ? null
+      : {
+          name: t("analytics.gaugeLiquidity"),
+          value: Math.min(liquidityValue, 100),
+          fill: statusFill(liquidityValue >= 15, liquidityValue >= 10),
+          target: 15,
+          max: 100,
+          rawValue: liquidityValue.toFixed(1) + "%",
+          lowerIsBetter: false,
+        },
+    nplValue === undefined
+      ? null
+      : {
+          name: t("analytics.gaugeNonPerformingLoans"),
+          value: Math.min(nplValue, 20),
+          fill: statusFill(nplValue <= 2, nplValue <= 5),
+          target: 2,
+          max: 20,
+          rawValue: nplValue.toFixed(1) + "%",
+          lowerIsBetter: true,
+        },
   ];
+  const gauges = candidates.filter((gauge): gauge is Gauge => gauge !== null);
+
+  if (gauges.length === 0) {
+    return (
+      <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+        {t("analytics.stmt.notReported")}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[200px]">
@@ -95,7 +115,7 @@ export function ComplianceRadialGauges({
               </span>
               <span className="text-[10px] text-muted-foreground">
                 {t("analytics.targetPrefix")}
-                {gauge.name === t("analytics.gaugeNonPerformingLoans") ? "<" : ">"}
+                {gauge.lowerIsBetter ? "<" : ">"}
                 {gauge.target}%
               </span>
             </div>

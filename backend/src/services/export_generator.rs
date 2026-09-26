@@ -1,5 +1,4 @@
 use crate::error::AppResult;
-use crate::services::pdf_templates;
 use crate::services::report_narrative;
 use crate::AppState;
 use rust_decimal::prelude::ToPrimitive;
@@ -8,6 +7,10 @@ use sea_orm::EntityTrait;
 use uuid::Uuid;
 
 pub struct ExportGenerator;
+
+/// Storage prefix of generated PDFs. Raise the version whenever the report layout
+/// changes: old cached PDFs are then ignored and every report is generated afresh.
+pub const EXPORT_PREFIX: &str = "exports/v4";
 
 impl ExportGenerator {
     /// Spawns a background task to generate exports when a submission is approved
@@ -38,7 +41,7 @@ impl ExportGenerator {
 
     /// Generates PDF format and stores it in the bucket
     async fn generate_all_formats(state: &AppState, submission_id: Uuid) -> AppResult<()> {
-        let pdf_bytes = Self::generate_cooperative_pdf(state, submission_id).await?;
+        let pdf_bytes = Self::generate_submission_pdf(state, submission_id).await?;
 
         tracing::info!(
             submission_id = %submission_id,
@@ -48,7 +51,7 @@ impl ExportGenerator {
         );
 
         let pdf_key = format!(
-            "exports/individual/{}/submission_{}.pdf",
+            "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
             submission_id, submission_id
         );
 
@@ -404,45 +407,22 @@ impl ExportGenerator {
                 clean_url
             );
 
+            // Margins are set to 0 here — all header/footer/page-margin layout is
+            // handled entirely by CSS @page margin-box rules inside the frontend
+            // print stylesheet. This gives pixel-perfect control and eliminates the
+            // empty-space issues caused by mixing Gotenberg injection with CSS layout.
             let form_clone = reqwest::multipart::Form::new()
                 .text("url", print_url.to_string())
                 .text("waitForExpression", "window.isReady === true")
                 .text("paperWidth", "8.27")
                 .text("paperHeight", "11.69")
-                .text("marginTop", "0.5")
-                .text("marginBottom", "0.5")
+                .text("marginTop", "0")
+                .text("marginBottom", "0")
                 .text("marginLeft", "0")
                 .text("marginRight", "0")
                 .text("printBackground", "true")
-                .text("emulateMediaType", "screen")
-                .part(
-                    "headerHtml",
-                    reqwest::multipart::Part::bytes(
-                        pdf_templates::PDF_HEADER_HTML.as_bytes().to_vec(),
-                    )
-                    .file_name("header.html")
-                    .mime_str("text/html")
-                    .map_err(|e| {
-                        crate::error::AppError::InternalServerError(format!(
-                            "Invalid header mime: {}",
-                            e
-                        ))
-                    })?,
-                )
-                .part(
-                    "footerHtml",
-                    reqwest::multipart::Part::bytes(
-                        pdf_templates::PDF_FOOTER_HTML.as_bytes().to_vec(),
-                    )
-                    .file_name("footer.html")
-                    .mime_str("text/html")
-                    .map_err(|e| {
-                        crate::error::AppError::InternalServerError(format!(
-                            "Invalid footer mime: {}",
-                            e
-                        ))
-                    })?,
-                );
+                .text("emulateMediaType", "print")
+                .text("preferCssPageSize", "true");
 
             let response = client
                 .post(format!(
@@ -643,11 +623,12 @@ impl ExportGenerator {
         let token = state.keycloak.get_admin_token().await?;
         tracing::info!(apex_id = %apex_id, "[export] 🔗 Building Gotenberg URL...");
         let print_url = format!(
-            "{}/print/apex/{}?token={}&year={}{}",
+            "{}/print/apex/{}?token={}&year={}&name={}{}",
             state.config.gotenberg_frontend_url,
             apex.keycloak_id,
             token,
             reporting_year,
+            urlencoding::encode(&apex.display_name),
             narrative_params
         );
 
@@ -662,7 +643,7 @@ impl ExportGenerator {
         );
 
         let pdf_key = format!(
-            "exports/apex/{}/apex_{}_{}.pdf",
+            "{EXPORT_PREFIX}/apex/{}/apex_{}_{}.pdf",
             apex_id, apex_id, reporting_year
         );
 
@@ -828,11 +809,12 @@ impl ExportGenerator {
         let token = state.keycloak.get_admin_token().await?;
         tracing::info!(federation_id = %federation_id, "[export] 🔗 Building Gotenberg URL...");
         let print_url = format!(
-            "{}/print/federation/{}?token={}&year={}{}",
+            "{}/print/federation/{}?token={}&year={}&name={}{}",
             state.config.gotenberg_frontend_url,
             federation.keycloak_id,
             token,
             reporting_year,
+            urlencoding::encode(&federation.display_name),
             narrative_params
         );
 
@@ -847,7 +829,7 @@ impl ExportGenerator {
         );
 
         let pdf_key = format!(
-            "exports/federation/{}/federation_{}_{}.pdf",
+            "{EXPORT_PREFIX}/federation/{}/federation_{}_{}.pdf",
             federation_id, federation_id, reporting_year
         );
 
@@ -1011,7 +993,7 @@ impl ExportGenerator {
             pdf_bytes.len()
         );
 
-        let pdf_key = format!("exports/ministry/ministry_{}.pdf", reporting_year);
+        let pdf_key = format!("{EXPORT_PREFIX}/ministry/ministry_{}.pdf", reporting_year);
 
         tracing::info!(
             pdf_key = %pdf_key,

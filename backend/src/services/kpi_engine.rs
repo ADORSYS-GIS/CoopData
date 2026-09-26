@@ -98,11 +98,16 @@ impl ComputedKpiSet {
 
 // ── Engine ───────────────────────────────────────────────────────────────────
 
+/// Shown instead of a figure when the statement lacks the inputs.
+pub const NOT_REPORTED: &str = "—";
+
 pub struct KpiEngine;
 
 impl KpiEngine {
-    /// Compute all financial KPIs from balance sheet line items.
-    /// Filters to only use items matching the latest month present in the input.
+    /// Compute all financial KPIs from statement line items.
+    /// Balance-sheet figures use the latest month reported; income and expense
+    /// figures are summed over every reported month (month 0 is ignored when
+    /// monthly rows exist).
     pub fn compute(line_items: &[LineItemModel]) -> ComputedKpiSet {
         let max_month = line_items.iter().map(|item| item.month).max().unwrap_or(0);
         let filtered_items: Vec<_> = line_items
@@ -111,6 +116,12 @@ impl KpiEngine {
             .cloned()
             .collect();
         let items = &filtered_items;
+        let flow_items: Vec<_> = line_items
+            .iter()
+            .filter(|item| max_month == 0 || item.month > 0)
+            .cloned()
+            .collect();
+        let flows = &flow_items;
 
         // ── Aggregate by account code ────────────────────────────────────────
         let liquid_assets = {
@@ -137,14 +148,15 @@ impl KpiEngine {
                 glp_performing + glp_arrears_1_30 + glp_arrears_31_60 + glp_arrears_61_90 + glp_npl
             }
         };
-        let arrears_30_plus = glp_arrears_31_60 + glp_arrears_61_90 + glp_npl + glp_arrears_1_30;
+        let arrears_30_plus = glp_arrears_31_60 + glp_arrears_61_90 + glp_npl;
         let provisions = {
             let parent = Self::sum_code(items, 1250);
-            if parent.abs() > 0.001 {
+            let stored = if parent.abs() > 0.001 {
                 parent
             } else {
                 Self::sum_codes(items, &[1251, 1252])
-            }
+            };
+            stored.abs()
         };
         let net_lp = gross_lp - provisions;
 
@@ -153,7 +165,7 @@ impl KpiEngine {
             if parent.abs() > 0.001 {
                 parent
             } else {
-                liquid_assets + gross_lp + provisions + Self::sum_code(items, 1300)
+                liquid_assets + gross_lp - provisions + Self::sum_code(items, 1300)
             }
         };
         let member_deposits = {
@@ -173,10 +185,10 @@ impl KpiEngine {
             }
         };
 
-        let financial_income = Self::sum_codes(items, &[4101, 4102]);
-        let other_income = Self::sum_code(items, 4201);
+        let financial_income = Self::sum_codes(flows, &[4101, 4102]);
+        let other_income = Self::sum_code(flows, 4201);
         let total_income = {
-            let parent = Self::sum_code(items, 4999);
+            let parent = Self::sum_code(flows, 4999);
             if parent.abs() > 0.001 {
                 parent
             } else {
@@ -184,11 +196,11 @@ impl KpiEngine {
             }
         };
 
-        let financial_expenses = Self::sum_codes(items, &[5101, 5102]);
-        let operating_expenses = Self::sum_codes(items, &[5201, 5202, 5203, 5204]);
-        let credit_loss_expense = Self::sum_code(items, 5301);
+        let financial_expenses = Self::sum_codes(flows, &[5101, 5102]);
+        let operating_expenses = Self::sum_codes(flows, &[5201, 5202, 5203, 5204]);
+        let credit_loss_expense = Self::sum_code(flows, 5301);
         let total_expenses = {
-            let parent = Self::sum_code(items, 5999);
+            let parent = Self::sum_code(flows, 5999);
             if parent.abs() > 0.001 {
                 parent
             } else {
@@ -197,155 +209,174 @@ impl KpiEngine {
         };
 
         let net_surplus = {
-            let parent = Self::sum_code(items, 6999);
+            let parent = Self::sum_code(flows, 6999);
             if parent.abs() > 0.001 {
                 parent
+            } else if total_income.abs() > 0.001 || total_expenses.abs() > 0.001 {
+                total_income - total_expenses
             } else {
                 Self::sum_code(items, 3302)
             }
         };
 
-        // ── Compute ratios (guard all divisions) ─────────────────────────────
-        let par30_val = Self::safe_div(arrears_30_plus, gross_lp) * 100.0;
-        let par90_val = Self::safe_div(glp_npl, gross_lp) * 100.0;
-        let llc_val = Self::safe_div(provisions, arrears_30_plus) * 100.0;
-        let roa_val = Self::safe_div(net_surplus, total_assets) * 100.0;
-        let roe_val = Self::safe_div(net_surplus, total_equity) * 100.0;
-        let oer_val = Self::safe_div(operating_expenses, total_assets) * 100.0;
-        let car_val = Self::safe_div(total_equity, total_assets) * 100.0;
-        let lfr_val = Self::safe_div(liquid_assets, total_assets) * 100.0;
-        let oss_val = Self::safe_div(total_income, total_expenses) * 100.0;
-        let nim_val = Self::safe_div(financial_income - financial_expenses, total_assets) * 100.0;
-        let dtl_val = Self::safe_div(member_deposits, gross_lp) * 100.0;
+        // ── Compute ratios: None when the inputs were not reported ───────────
+        let has_income_statement =
+            total_income.abs() > 0.001 || total_expenses.abs() > 0.001 || net_surplus.abs() > 0.001;
+        let flow = |value: Option<f64>| value.filter(|_| has_income_statement);
+        let par30_val = Self::ratio_pct(arrears_30_plus, gross_lp);
+        let par90_val = Self::ratio_pct(glp_npl, gross_lp);
+        let llc_val = Self::ratio_pct(provisions, arrears_30_plus);
+        let roa_val = flow(Self::ratio_pct(net_surplus, total_assets));
+        let roe_val = flow(Self::ratio_pct(net_surplus, total_equity));
+        let oer_val = flow(Self::ratio_pct(operating_expenses, total_assets));
+        let car_val = Self::ratio_pct(total_equity, total_assets);
+        let lfr_val = Self::ratio_pct(liquid_assets, total_assets);
+        let oss_val = flow(Self::ratio_pct(total_income, total_expenses));
+        let nim_val = flow(Self::ratio_pct(
+            financial_income - financial_expenses,
+            total_assets,
+        ));
+        let dtl_val = Self::ratio_pct(member_deposits, gross_lp);
 
-        ComputedKpiSet {
+        let mut set = ComputedKpiSet {
             total_assets: Self::kpi_currency(
                 total_assets,
                 "total_assets",
-                "Total value of all assets owned by the cooperative",
+                "Everything the cooperative owns. It shows the overall size of the cooperative. Taken from the approved financial statement at the latest month reported. Formula: total assets (1999).",
                 None,
                 None,
             ),
             gross_loan_portfolio: Self::kpi_currency(
                 gross_lp,
                 "gross_loan_portfolio",
-                "Total outstanding loan balance including arrears",
+                "The amount members still owe on loans, including overdue loans, before provisions. It is the main earning asset. Taken from the approved financial statement at the latest month reported. Formula: loans and advances (1200).",
                 None,
                 None,
             ),
             net_loan_portfolio: Self::kpi_currency(
                 net_lp,
                 "net_loan_portfolio",
-                "Gross Loan Portfolio minus Loan Loss Provisions",
+                "The loan book after setting aside money for expected losses, a more prudent view of what will be recovered. Taken from the approved financial statement. Formula: gross loan portfolio minus provisions.",
                 None,
                 None,
             ),
             total_member_deposits: Self::kpi_currency(
                 member_deposits,
                 "total_member_deposits",
-                "Total member savings and deposits",
+                "The money members hold as savings with the cooperative. It is the main source of funds for lending. Taken from the approved financial statement at the latest month reported. Formula: member deposits and savings (2100).",
                 None,
                 None,
             ),
             total_equity: Self::kpi_currency(
                 total_equity,
                 "total_equity",
-                "Total institutional capital and reserves",
+                "What is left for members after all debts are paid: shares, reserves and retained earnings. It shows net worth. Taken from the approved financial statement at the latest month reported. Formula: total equity (3999).",
                 None,
                 None,
             ),
             net_surplus: Self::kpi_currency(
-                net_surplus,
+                if has_income_statement {
+                    net_surplus
+                } else {
+                    0.0
+                },
                 "net_surplus",
-                "Net income after all expenses (Total Income - Total Expenses)",
+                "What is left after all expenses. Positive is a surplus, negative a loss. Shown as not reported when the statement has no income lines. Taken from the approved financial statement, summed over the months reported. Formula: net surplus (6999), otherwise total income minus total expenses.",
                 None,
                 None,
             ),
             par30: Self::kpi_percent(
                 par30_val,
                 "par30",
-                "Portfolio at Risk >30 days (loans in arrears >30 days / gross loan portfolio)",
-                Some(Self::status_lower_better(par30_val, 5.0, 10.0)),
+                "The share of the loan book that is more than 30 days late. A high value means many loans may not be repaid, so lower is better. Loans only 1 to 30 days late are not counted. Taken from the approved financial statement at the latest month reported. Formula: loans overdue more than 30 days divided by gross loans (1203, 1204, 1205 over 1200).",
+                par30_val.map(|v| Self::status_lower_better(v, 5.0, 10.0)),
                 Some(5.0),
             ),
             par90: Self::kpi_percent(
                 par90_val,
                 "par90",
-                "Portfolio at Risk >90 days",
-                Some(Self::status_lower_better(par90_val, 2.0, 5.0)),
+                "The share of the loan book that is more than 90 days late. These loans are unlikely to be recovered, so lower is better. Taken from the approved financial statement at the latest month reported. Formula: non-performing loans divided by gross loans (1205 over 1200).",
+                par90_val.map(|v| Self::status_lower_better(v, 2.0, 5.0)),
                 Some(2.0),
             ),
             npl_ratio: Self::kpi_percent(
                 par90_val,
                 "npl_ratio",
-                "Non-Performing Loans (>90 days) as percentage of gross portfolio",
-                Some(Self::status_lower_better(par90_val, 2.0, 5.0)),
+                "The share of the loan book that is non-performing, meaning more than 90 days late. Lower is better. Taken from the approved financial statement at the latest month reported. Formula: non-performing loans divided by gross loans (1205 over 1200).",
+                par90_val.map(|v| Self::status_lower_better(v, 2.0, 5.0)),
                 Some(2.0),
             ),
             loan_loss_coverage: Self::kpi_percent(
                 llc_val,
                 "loan_loss_coverage",
-                "Loan loss provisions / Loans in arrears >30 days",
-                Some(Self::status_higher_better(llc_val, 100.0, 80.0)),
+                "How much of the seriously late loans is covered by provisions. Around 100 percent or more means expected losses are fully set aside; higher is safer. Shown as not reported when there are no loans over 30 days late. Formula: provisions divided by loans overdue more than 30 days.",
+                llc_val.map(|v| Self::status_higher_better(v, 100.0, 80.0)),
                 Some(100.0),
             ),
             roa: Self::kpi_percent(
                 roa_val,
                 "roa",
-                "Return on Assets (Net Surplus / Total Assets)",
-                Some(Self::status_higher_better(roa_val, 3.0, 1.0)),
+                "How much surplus is made for each unit of assets. Higher means assets are used more profitably. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: net surplus divided by total assets.",
+                roa_val.map(|v| Self::status_higher_better(v, 3.0, 1.0)),
                 Some(3.0),
             ),
             roe: Self::kpi_percent(
                 roe_val,
                 "roe",
-                "Return on Equity (Net Surplus / Total Equity)",
-                Some(Self::status_higher_better(roe_val, 8.0, 4.0)),
+                "How much surplus is made for each unit of members' equity. Higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: net surplus divided by total equity.",
+                roe_val.map(|v| Self::status_higher_better(v, 8.0, 4.0)),
                 Some(8.0),
             ),
             operating_expense_ratio: Self::kpi_percent(
                 oer_val,
                 "operating_expense_ratio",
-                "Operating Expenses / Total Assets",
-                Some(Self::status_lower_better(oer_val, 5.0, 8.0)),
+                "The running costs of the cooperative compared with its size. Lower means a leaner operation. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: operating expenses divided by total assets.",
+                oer_val.map(|v| Self::status_lower_better(v, 5.0, 8.0)),
                 Some(5.0),
             ),
             capital_adequacy_ratio: Self::kpi_percent(
                 car_val,
                 "capital_adequacy_ratio",
-                "Total Equity / Total Assets",
-                Some(Self::status_higher_better(car_val, 10.0, 8.0)),
+                "How much of the assets belongs to members rather than creditors. Higher means a stronger cushion against losses. Taken from the approved financial statement at the latest month reported. Formula: total equity divided by total assets.",
+                car_val.map(|v| Self::status_higher_better(v, 10.0, 8.0)),
                 Some(10.0),
             ),
             liquid_funds_ratio: Self::kpi_percent(
                 lfr_val,
                 "liquid_funds_ratio",
-                "Liquid Assets / Total Assets",
-                Some(Self::status_higher_better(lfr_val, 15.0, 10.0)),
+                "The share of assets held as cash and bank balances, available at short notice. Higher is safer. This is measured against total assets, not against member savings. Taken from the approved financial statement at the latest month reported. Formula: liquid assets divided by total assets.",
+                lfr_val.map(|v| Self::status_higher_better(v, 15.0, 10.0)),
                 Some(15.0),
             ),
             operational_self_sufficiency: Self::kpi_percent(
                 oss_val,
                 "operational_self_sufficiency",
-                "Total Income / Total Operating Expenses",
-                Some(Self::status_higher_better(oss_val, 110.0, 100.0)),
+                "Whether income covers costs. Above 100 percent the cooperative covers its costs from its own income; higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, summed over the months reported. Formula: total income divided by total expenses.",
+                oss_val.map(|v| Self::status_higher_better(v, 110.0, 100.0)),
                 Some(110.0),
             ),
             net_interest_margin: Self::kpi_percent(
                 nim_val,
                 "net_interest_margin",
-                "(Financial Income - Financial Expenses) / Total Assets",
+                "What the cooperative earns from lending and investing after paying interest, compared with its size. Higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: financial income minus financial expenses, divided by total assets.",
                 None,
                 None,
             ),
             deposits_to_loans: Self::kpi_percent(
                 dtl_val,
                 "deposits_to_loans",
-                "Total Member Deposits / Gross Loan Portfolio",
+                "How much members have saved for each unit lent. Below 100 percent means loans exceed savings and are funded by other sources. Taken from the approved financial statement at the latest month reported. Formula: member savings divided by gross loan portfolio.",
                 None,
                 None,
             ),
+        };
+        if !has_income_statement {
+            set.net_surplus.formatted = NOT_REPORTED.to_string();
         }
+        if total_assets.abs() < f64::EPSILON {
+            set.total_assets.formatted = NOT_REPORTED.to_string();
+        }
+        set
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
@@ -364,14 +395,10 @@ impl KpiEngine {
         codes.iter().map(|&code| Self::sum_code(items, code)).sum()
     }
 
-    /// Safe division — returns 0.0 when denominator is zero or near-zero.
+    /// Percentage, or None when the denominator is zero or missing.
     #[inline]
-    fn safe_div(numerator: f64, denominator: f64) -> f64 {
-        if denominator.abs() < f64::EPSILON {
-            0.0
-        } else {
-            numerator / denominator
-        }
+    fn ratio_pct(numerator: f64, denominator: f64) -> Option<f64> {
+        (denominator.abs() >= f64::EPSILON).then(|| numerator / denominator * 100.0)
     }
 
     /// Status threshold where lower values are better (e.g. PAR, OER).
@@ -400,13 +427,13 @@ impl KpiEngine {
         let abs = value.abs();
         let sign = if value < 0.0 { "-" } else { "" };
         if abs >= 1_000_000_000.0 {
-            format!("{sign}${:.2}B", abs / 1_000_000_000.0)
+            format!("{sign}{:.2}B", abs / 1_000_000_000.0)
         } else if abs >= 1_000_000.0 {
-            format!("{sign}${:.1}M", abs / 1_000_000.0)
+            format!("{sign}{:.1}M", abs / 1_000_000.0)
         } else if abs >= 1_000.0 {
-            format!("{sign}${:.0}K", abs / 1_000.0)
+            format!("{sign}{:.0}K", abs / 1_000.0)
         } else {
-            format!("{sign}${abs:.0}")
+            format!("{sign}{abs:.0}")
         }
     }
 
@@ -429,7 +456,7 @@ impl KpiEngine {
     }
 
     fn kpi_percent(
-        value: f64,
+        value: Option<f64>,
         name: &str,
         description: &str,
         status: Option<String>,
@@ -437,10 +464,10 @@ impl KpiEngine {
     ) -> KpiValue {
         KpiValue {
             name: name.to_string(),
-            value,
-            formatted: format!("{:.1}%", value),
+            value: value.unwrap_or(0.0),
+            formatted: value.map_or_else(|| NOT_REPORTED.to_string(), |v| format!("{v:.1}%")),
             unit: "percent".to_string(),
-            status,
+            status: value.and(status),
             benchmark,
             description: description.to_string(),
         }
@@ -503,9 +530,6 @@ mod tests {
 
     #[test]
     fn test_par30_computed_correctly() {
-        // GLP: 1000 performing + 100 arrears (31-60) + 50 npl = 1150
-        // arrears_30_plus = 100 + 0 + 0 + 50 = 150 (codes 1202+1203+1204+1205)
-        // par30 = 150 / 1150 * 100 = 13.04%
         let items = vec![
             make_item(1201, 1000.0),
             make_item(1203, 100.0),
@@ -515,15 +539,86 @@ mod tests {
             make_item(6999, 100.0),  // net surplus
         ];
         let result = KpiEngine::compute(&items);
-        let expected = (1202_f64 + 100.0 + 0.0 + 50.0) / 1150.0 * 100.0;
-        // codes 1202=0, 1203=100, 1204=0, 1205=50 → arrears_30_plus=150
         let par30 = 150.0 / 1150.0 * 100.0;
         assert!(
             (result.par30.value - par30).abs() < 0.001,
             "PAR30 was {}",
             result.par30.value
         );
-        let _ = expected; // suppress warning
+    }
+
+    #[test]
+    fn test_income_is_summed_over_reported_months() {
+        let mut items = Vec::new();
+        for month in 1..=3_i16 {
+            let mut assets = make_item(1999, 10_000.0);
+            assets.month = month;
+            let mut income = make_item(4999, 100.0);
+            income.month = month;
+            let mut expenses = make_item(5999, 70.0);
+            expenses.month = month;
+            items.extend([assets, income, expenses]);
+        }
+        let mut annual_total = make_item(6999, 9_999.0);
+        annual_total.month = 0;
+        items.push(annual_total);
+
+        let result = KpiEngine::compute(&items);
+
+        assert!((result.net_surplus.value - 90.0).abs() < 0.001);
+        assert!((result.roa.value - 0.9).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_provisions_stored_negative_reduce_net_loans_and_cover_arrears() {
+        let items = vec![
+            make_item(1200, 1000.0),
+            make_item(1203, 100.0),
+            make_item(1250, -50.0),
+        ];
+        let result = KpiEngine::compute(&items);
+        assert!((result.net_loan_portfolio.value - 950.0).abs() < 0.001);
+        assert!((result.loan_loss_coverage.value - 50.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_total_assets_fallback_subtracts_provisions() {
+        let items = vec![
+            make_item(1100, 200.0),
+            make_item(1200, 1000.0),
+            make_item(1250, -50.0),
+            make_item(1300, 100.0),
+        ];
+        let result = KpiEngine::compute(&items);
+        assert!((result.total_assets.value - 1250.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_ratios_without_inputs_are_not_reported_instead_of_zero() {
+        let items = vec![make_item(1999, 1000.0), make_item(3999, 200.0)];
+        let result = KpiEngine::compute(&items);
+        assert_eq!(result.roa.formatted, NOT_REPORTED);
+        assert_eq!(result.roa.status, None);
+        assert_eq!(result.par30.formatted, NOT_REPORTED);
+        assert_eq!(result.loan_loss_coverage.status, None);
+        assert_eq!(result.net_surplus.formatted, NOT_REPORTED);
+        assert_eq!(result.capital_adequacy_ratio.formatted, "20.0%");
+    }
+
+    #[test]
+    fn test_par30_excludes_one_to_thirty_day_bucket() {
+        let items = vec![
+            make_item(1201, 800.0),
+            make_item(1202, 100.0),
+            make_item(1203, 40.0),
+            make_item(1204, 40.0),
+            make_item(1205, 20.0),
+            make_item(1250, 50.0),
+        ];
+        let result = KpiEngine::compute(&items);
+        assert!((result.par30.value - 10.0).abs() < 0.001);
+        assert!((result.par90.value - 2.0).abs() < 0.001);
+        assert!((result.loan_loss_coverage.value - 50.0).abs() < 0.001);
     }
 
     #[test]
