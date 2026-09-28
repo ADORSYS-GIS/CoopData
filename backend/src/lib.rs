@@ -18,14 +18,13 @@ pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository,
     BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
-    CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
-    FederationRepository, FinancialStatementRepository, FixedDepositRepository,
-    KpiRecordRepository, LoanRepository, MemberRepository, MinistryReportNarrativesRepository,
-    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
-    OrganizationLabelRepository, OrganizationRepository, QuestionnaireRepository,
-    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
-    UserRepository,
+    CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
+    FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
+    MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
+    NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository,
+    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
+    UploadedFileRepository, UserRepository,
 };
 pub use services::ai_extraction::{Extractor, FinancialStatementExtractor, NfHeaderMapper};
 pub use services::keycloak::KeycloakService;

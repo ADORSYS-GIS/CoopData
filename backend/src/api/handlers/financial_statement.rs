@@ -2299,13 +2299,7 @@ pub async fn get_monthly_trend(
         "Monthly trend computed"
     );
 
-    Ok((
-        StatusCode::OK,
-        Json(MonthlyTrendResponse {
-            year,
-            months,
-        }),
-    ))
+    Ok((StatusCode::OK, Json(MonthlyTrendResponse { year, months })))
 }
 
 #[utoipa::path(
