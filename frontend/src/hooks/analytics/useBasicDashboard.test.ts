@@ -12,7 +12,6 @@ describe("buildBasicDashboardQuery", () => {
         region: "Manzini",
         sector: "Finance",
         cooperativeId: "abc",
-        currency: "zar",
       }),
     ).toEqual({
       reporting_year: 2026,
@@ -21,7 +20,6 @@ describe("buildBasicDashboardQuery", () => {
       region: "Manzini",
       sector: "Finance",
       cooperative_id: "abc",
-      currency: "zar",
     });
   });
 

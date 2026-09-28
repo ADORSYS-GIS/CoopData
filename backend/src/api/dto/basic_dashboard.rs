@@ -19,8 +19,6 @@ pub struct BasicDashboardParams {
     pub federation_id: Option<Uuid>,
     /// Restrict to the cooperatives of one apex.
     pub apex_id: Option<Uuid>,
-    /// `zar` (default, converted with the submission's rate) or `native` (as entered).
-    pub currency: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]

@@ -408,7 +408,6 @@ pub async fn dashboard_for_submission(
                 cooperative_id: Some(submission.cooperative_id),
                 federation_id: None,
                 apex_id: None,
-                currency: None,
             },
             cooperative_ids: vec![submission.cooperative_id],
             admin_view: false,

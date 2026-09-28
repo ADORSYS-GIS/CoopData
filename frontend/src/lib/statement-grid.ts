@@ -1,6 +1,6 @@
 export interface GridLine {
   account_code?: number | null;
-  value_zar: number;
+  value: number;
   month: number;
 }
 
@@ -24,7 +24,7 @@ export const accountValuesAt = (
   const values: AccountValues = {};
   const add = (line: GridLine): void => {
     const code = line.account_code as number;
-    values[code] = (values[code] ?? 0) + line.value_zar;
+    values[code] = (values[code] ?? 0) + line.value;
   };
 
   if (monthly.length === 0) {

@@ -138,7 +138,6 @@ export interface BasicDashboardParams {
   cooperativeId?: string;
   federationId?: string;
   apexId?: string;
-  currency?: "zar" | "native";
 }
 
 /** Every indicator key the backend can return, in display order per group. */

@@ -163,27 +163,6 @@ export function BasicFilterBar({
           )}
         </>
       )}
-      <div
-        className="flex items-center gap-1 rounded-lg border border-border bg-background p-0.5 text-xs font-bold"
-        role="group"
-        aria-label={f("currency")}
-      >
-        {(["zar", "native"] as const).map((currency) => (
-          <button
-            key={currency}
-            type="button"
-            onClick={() => onChange({ currency })}
-            aria-pressed={state.currency === currency}
-            className={`rounded-md px-2.5 py-1 ${
-              state.currency === currency
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground"
-            }`}
-          >
-            {f(currency)}
-          </button>
-        ))}
-      </div>
       {(filtered ||
         state.region !== ALL ||
         state.sector !== ALL ||

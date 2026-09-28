@@ -168,7 +168,7 @@ export function BasicAnalyticsDashboard() {
         <BasicFilterBar
           state={filters}
           onChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
-          onClear={() => setFilters((prev) => ({ ...DEFAULT_FILTERS, currency: prev.currency }))}
+          onClear={() => setFilters(DEFAULT_FILTERS)}
           availablePeriods={data?.scope.available_periods ?? []}
           cooperatives={cooperativeOptions}
           regions={REGIONS}

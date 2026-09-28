@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { accountValuesAt, provisionAmount } from "@/lib/statement-grid";
 
-const line = (account_code: number, month: number, value_zar: number) => ({
+const line = (account_code: number, month: number, value: number) => ({
   account_code,
   month,
-  value_zar,
+  value,
 });
 
 describe("accountValuesAt", () => {

@@ -209,7 +209,7 @@ describe("filters", () => {
   });
 
   it("omits unset filters when building request params", () => {
-    expect(filtersToParams(DEFAULT_FILTERS)).toEqual({ currency: "zar" });
+    expect(filtersToParams(DEFAULT_FILTERS)).toEqual({});
     expect(
       filtersToParams({
         ...DEFAULT_FILTERS,
@@ -218,10 +218,8 @@ describe("filters", () => {
         periodValue: "Q1",
         region: "Manzini",
         cooperativeId: "abc",
-        currency: "native",
       }),
     ).toEqual({
-      currency: "native",
       reportingYear: 2026,
       periodType: "QUARTERLY",
       periodValue: "Q1",

@@ -1,5 +1,4 @@
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
-import type { RateUsed } from "@/lib/currency";
 import { apiClient } from "@/openapi-client";
 
 export interface CooperativeLineItem {
@@ -7,8 +6,6 @@ export interface CooperativeLineItem {
   account_name: string;
   /** Amount in the statement's native currency, as printed in the source document. */
   value: number;
-  /** Amount converted to SZL server-side at the submission's frozen (or current) rate. */
-  value_zar: number;
   month: number;
   is_derived?: boolean;
 }
@@ -20,7 +17,6 @@ export interface CooperativeStatementGrid {
   currency?: string;
   is_validated?: boolean;
   has_unmapped_items?: boolean;
-  rate_used?: RateUsed | null;
 }
 
 export interface ComparativeStatementsResponse {

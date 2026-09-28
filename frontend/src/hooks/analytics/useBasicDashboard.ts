@@ -22,7 +22,6 @@ export const buildBasicDashboardQuery = (
   if (params.cooperativeId) query.cooperative_id = params.cooperativeId;
   if (params.federationId) query.federation_id = params.federationId;
   if (params.apexId) query.apex_id = params.apexId;
-  if (params.currency) query.currency = params.currency;
   return query;
 };
 
