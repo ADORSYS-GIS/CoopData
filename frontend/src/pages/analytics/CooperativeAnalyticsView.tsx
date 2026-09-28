@@ -76,8 +76,6 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
     ],
     [nfStats, series, t],
   );
-  const searching = query.trim().length > 0;
-
   if (!latest) {
     return (
       <Card
@@ -100,16 +98,16 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         groups={groups}
         query={query}
         noResults={t("basicDashboard.search.noResults", { query })}
+        chartsSlot={
+          <CooperativeCharts
+            kpiMap={kpiMap}
+            hasKpis={!!kpisData}
+            nfStats={nfStats}
+            points={series?.points}
+            seriesQuery={seriesQuery}
+          />
+        }
       />
-      {!searching && (
-        <CooperativeCharts
-          kpiMap={kpiMap}
-          hasKpis={!!kpisData}
-          nfStats={nfStats}
-          points={series?.points}
-          seriesQuery={seriesQuery}
-        />
-      )}
       {!hasApproved && (
         <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4 dark:border-warning/30 dark:bg-warning/20">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-warning" />

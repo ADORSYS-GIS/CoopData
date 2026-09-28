@@ -18,6 +18,8 @@ export interface NetworkConsolidatedMetricsProps {
   cooperativesWithData: number;
   totalApexes?: number;
   seriesQuery: PeriodSeriesQuery;
+  /** Page-specific chart sections rendered alongside the network charts, before the other stat groups. */
+  extraCharts?: React.ReactNode;
 }
 
 export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProps> = ({
@@ -26,6 +28,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
   totalCooperatives,
   cooperativesWithData,
   seriesQuery,
+  extraCharts,
 }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
@@ -51,7 +54,17 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
         : [],
     [nfStats, networkTrend, cooperativesWithData, totalCooperatives, t],
   );
-  const searching = query.trim().length > 0;
+  const chartsSlot = (
+    <>
+      <NationalCharts nfStats={nfStats} seriesQuery={seriesQuery} />
+      {(networkTrend?.rates_used ?? []).length > 0 && (
+        <p className="text-[11px] text-muted-foreground">
+          {(networkTrend?.rates_used ?? []).map(describeRate).join(" · ")}
+        </p>
+      )}
+      {extraCharts}
+    </>
+  );
 
   return (
     <div className="space-y-6">
@@ -61,13 +74,8 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
         groups={groups}
         query={query}
         noResults={t("basicDashboard.search.noResults", { query })}
+        chartsSlot={chartsSlot}
       />
-      {!searching && (networkTrend?.rates_used ?? []).length > 0 && (
-        <p className="text-[11px] text-muted-foreground">
-          {(networkTrend?.rates_used ?? []).map(describeRate).join(" · ")}
-        </p>
-      )}
-      {!searching && <NationalCharts nfStats={nfStats} seriesQuery={seriesQuery} />}
     </div>
   );
 };

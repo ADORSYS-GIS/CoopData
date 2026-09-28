@@ -70,7 +70,6 @@ function DashboardBody({ data, query }: { data: BasicDashboardResponse; query: s
           >
             <HeadlineStrip indicators={data.indicators} scope={scope} />
           </CollapsibleSection>
-          <IndicatorGroupSection indicators={data.indicators} scope={scope} />
 
           <CollapsibleSection id="basic-trends" title={t("basicDashboard.sections.trends")}>
             <div className="space-y-6">
@@ -139,6 +138,8 @@ function DashboardBody({ data, query }: { data: BasicDashboardResponse; query: s
               />
             </div>
           </CollapsibleSection>
+
+          <IndicatorGroupSection indicators={data.indicators} scope={scope} />
         </>
       )}
     </div>
