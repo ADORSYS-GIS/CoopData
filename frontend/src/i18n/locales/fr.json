@@ -1448,7 +1448,9 @@
     "placeholderDepositId": "FD-001",
     "placeholderSavingsId": "SAV-001",
     "draftSavedLocally": "Draft saved locally on this device",
-    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online",
+    "stepIncomplete": "Étape incomplète",
+    "financialIncomplete": "Données financières incomplètes"
   },
   "financial": {
     "liquidAssets": "Actifs liquides",
@@ -1738,7 +1740,13 @@
     "sectionFixedDeposits": "Fixed deposits only",
     "sectionFarmCoop": "Farm cooperative only",
     "sectionHint": "Upload one workbook containing all tables, or pick a single section to upload one Excel file for it.",
-    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
+    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first.",
+    "clickToCollapse": "Cliquer pour réduire",
+    "clickToExpand": "Cliquer pour développer",
+    "howToFix": "Comment corriger",
+    "openFullView": "Ouvrir la vue complète",
+    "showingCount": "Affichage de {count}",
+    "noMatchingErrors": "Aucune erreur correspondante"
   },
   "analytics": {
     "filter": {
@@ -2561,7 +2569,24 @@
       "manufacturing": "Fabrication"
     },
     "periodFinancialBreakdown": "Votre ventilation financière et variation par période",
-    "valueSzZar": "Valeur (ZAR)"
+    "valueSzZar": "Valeur (ZAR)",
+    "searchCooperative": "Rechercher une coopérative",
+    "noCooperativeFound": "Aucune coopérative trouvée",
+    "searchComparison": "Rechercher une comparaison",
+    "noComparisonFound": "Aucune comparaison trouvée",
+    "searchKpiMetric": "Rechercher un indicateur KPI",
+    "noKpiFound": "Aucun indicateur trouvé",
+    "nationalAverageDesc": "Moyenne nationale",
+    "regionAverageDesc": "Moyenne régionale",
+    "sectorAvgDesc": "Moyenne du secteur",
+    "sectorRegionalAvgDesc": "Moyenne régionale du secteur",
+    "averagesGroup": "Moyennes",
+    "cooperativesGroup": "Coopératives",
+    "genderParticipationNoData": "Aucune donnée de participation par genre",
+    "seriesLiquidAssets": "Actifs liquides",
+    "seriesGrossLoans": "Portefeuille de prêts brut",
+    "seriesMemberDeposits": "Dépôts des membres",
+    "totalSavingsBalanceNote": "Solde total de l'épargne"
   },
   "cooperativeDashboard": {
     "title": "Tableau de bord de la coopérative",
@@ -3481,7 +3506,10 @@
     "toastDeleted": "« {{name}} » supprimée",
     "toastDeletedDesc": "Fédération retirée du registre.",
     "toastDeleteFailed": "Échec de la suppression de la fédération",
-    "toastExporting": "Exportation des données de fédération en CSV…"
+    "toastExporting": "Exportation des données de fédération en CSV…",
+    "errorDuplicateFederation": "Une fédération portant ce nom existe déjà.",
+    "errorGenericCreate": "Impossible de créer la fédération.",
+    "pageOf": "Page {current} sur {total}"
   },
   "memberList": {
     "tableHeaders": {
@@ -3807,7 +3835,9 @@
     "metaLabel": "Titre / Libellé du modèle",
     "metaPlaceholder": "ex. Questionnaire des coopératives primaires financières v1",
     "selectSectionPrompt": "Sélectionnez une section à gauche pour commencer à configurer ses champs.",
-    "translatingAs": "Édition de la traduction {{lang}}"
+    "translatingAs": "Édition de la traduction {{lang}}",
+    "deleteFieldTitle": "Supprimer ce champ ?",
+    "deleteFieldDescription": "Cette action est irréversible. Le champ sera retiré du modèle."
   },
   "questionnaireAnalytics": {
     "regions": {
@@ -4837,7 +4867,8 @@
       "pages": "Pages",
       "codesFound": "Codes trouvés",
       "confidence": "Confiance",
-      "scanning": "Scan"
+      "scanning": "Scan",
+      "files": "{count} fichier(s)"
     },
     "confidenceLevel": {
       "high": "Élevée",
@@ -4876,7 +4907,16 @@
     "toastTooLarge": "Fichier trop volumineux. La taille maximale est de 50 Mo.",
     "toastSelected": "Fichier sélectionné : {{name}}",
     "toastExtracted": "{{count}} lignes extraites de {{name}}",
-    "toastConfirmed": "{{name}} : {{count}} enregistrements valides prêts pour la soumission"
+    "toastConfirmed": "{{name}} : {{count}} enregistrements valides prêts pour la soumission",
+    "toastExtractionFailed": "L'extraction a échoué pour certains fichiers.",
+    "toastNoSubmission": "Aucune soumission trouvée pour ce fichier.",
+    "toastNoData": "Aucune donnée extraite de ce fichier.",
+    "toastFailed": "Échec du traitement du fichier.",
+    "flagged": "Signalé",
+    "flaggedWarning": "Certains éléments ont été signalés pour vérification.",
+    "dropMore": "Déposer plus de fichiers",
+    "uploading": "Téléversement en cours…",
+    "fileSpec": "Format accepté : {format}"
   },
   "localizedField": {
     "toggle": "Traduire",

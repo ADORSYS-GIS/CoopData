@@ -942,37 +942,43 @@
           "description": "Layisha futsi uhlole sitatimende setimali esihlolwe",
           "pendingAction": "Layisha Ifayela",
           "progressAction": "Hlola & Maka Kulungele",
-          "readyAction": "Buka Sitatimende"
+          "readyAction": "Buka Sitatimende",
+          "pendingActionManual": "Enter Manually"
         },
         "members": {
           "label": "Irejistri Yebulunga",
           "description": "Irejistri yemalunga lasebentako, bantfu labasha, besifazane, nabasemakhaya",
           "pendingAction": "Layisha i-Excel",
-          "readyAction": "Buka Irejistri"
+          "readyAction": "Buka Irejistri",
+          "pendingActionManual": "Enter Manually"
         },
         "savings": {
           "label": "Ibhalensi Yekonga",
           "description": "Imininingwane yama-akhawunti emalunga ekonga nemaphesenti",
           "pendingAction": "Layisha i-Excel",
-          "readyAction": "Buka Imali Yekonga"
+          "readyAction": "Buka Imali Yekonga",
+          "pendingActionManual": "Enter Manually"
         },
         "loans": {
           "label": "Incwadi Yemaloli",
           "description": "Simo samanje semaloli, amabhalansi, nokuhlukaniswa kwezingozi",
           "pendingAction": "Layisha i-Excel",
-          "readyAction": "Buka Emaloli"
+          "readyAction": "Buka Emaloli",
+          "pendingActionManual": "Enter Manually"
         },
         "fixed_deposits": {
           "label": "Emadiphozithi Lacinile",
           "description": "Emadiphozithi esikhatsi, ama-akhawunti avuseleliwe, nemaphesenti",
           "pendingAction": "Layisha i-Excel",
-          "readyAction": "Buka Emadiphozithi"
+          "readyAction": "Buka Emadiphozithi",
+          "pendingActionManual": "Enter Manually"
         },
         "farm_coop": {
           "label": "Data Yekhopharethi Yelimu (Akudingeki)",
           "description": "Izinhlobo zokukhiqiza, imisebenzi netinkhombandlela tekuhambisana",
           "pendingAction": "Layisha i-Excel",
-          "readyAction": "Buka Data Yelimu"
+          "readyAction": "Buka Data Yelimu",
+          "pendingActionManual": "Enter Manually"
         }
       },
       "actions": {
@@ -1442,7 +1448,9 @@
     "placeholderDepositId": "FD-001",
     "placeholderSavingsId": "SAV-001",
     "draftSavedLocally": "Draft saved locally on this device",
-    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online",
+    "stepIncomplete": "Please complete this step before proceeding to the next one.",
+    "financialIncomplete": "All fields must be filled before submitting. {{count}} field(s) still empty."
   },
   "financial": {
     "liquidAssets": "Imphahla Enyakazayo",
@@ -1732,7 +1740,13 @@
     "sectionFixedDeposits": "Fixed deposits only",
     "sectionFarmCoop": "Farm cooperative only",
     "sectionHint": "Upload one workbook containing all tables, or pick a single section to upload one Excel file for it.",
-    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
+    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first.",
+    "clickToCollapse": "Click to collapse",
+    "clickToExpand": "Click to expand",
+    "howToFix": "How to fix",
+    "openFullView": "Full View",
+    "showingCount": "Showing {{count}}",
+    "noMatchingErrors": "No matching errors found."
   },
   "analytics": {
     "filter": {
@@ -2346,7 +2360,233 @@
     "loadErrorTitle": "Kwehluleka Kulayisha Datha Yekuhlukanisa",
     "loadErrorDesc": "Kwenteka liphutsa ngesikhatsi kulayishwa kuhlukanisa kwekusebenta. Sicela utame futsi.",
     "periodFinancialBreakdown": "Ukuhlukaniswa kwakho kwetimali nemehluko ngesikhatsi",
-    "valueSzZar": "Inani (ZAR)"
+    "valueSzZar": "Inani (ZAR)",
+    "totalSavingsBalance": "Member Ledger Savings Balance",
+    "searchCooperative": "Search cooperative...",
+    "noCooperativeFound": "No cooperative found.",
+    "searchComparison": "Search comparison target...",
+    "noComparisonFound": "No comparison found.",
+    "searchKpiMetric": "Search metric or ratio...",
+    "noKpiFound": "No metric found.",
+    "nationalAverageDesc": "Average across all cooperatives in the system",
+    "regionAverageDesc": "Average for cooperatives in this region",
+    "sectorAvgDesc": "Average for cooperatives in this sector (nationally)",
+    "sectorRegionalAvgDesc": "Average for cooperatives in this sector within this region",
+    "averagesGroup": "System Averages",
+    "cooperativesGroup": "Individual Cooperatives",
+    "genderParticipationTooltip": "The share of members who are women, men or another gender. It shows how well the membership is balanced. Taken from the gender recorded in the uploaded member ledger of the approved submission; members without a recorded gender are left out of the percentages. Formula: members of each gender divided by all members, as a percentage.",
+    "genderParticipationNoData": "No membership gender data recorded for this period.",
+    "netTotalSavings": "Member Ledger Savings",
+    "netTotalLoans": "Member Ledger Loans",
+    "netFixedDeposits": "Member Ledger Fixed Deposits",
+    "portfolioOverviewTooltip": "The overall size of the cooperative month by month. It shows how the balance sheet grows or shrinks. Taken from approved financial statements, in ZAR, at each month's end. Total assets already include the loans and liquid assets shown in the other charts, so they are not added to them. Formula: total assets (1999).",
+    "savingsLiquidFunds": "Liquid assets",
+    "savingsLoansDepositsTooltip": "Three balance-sheet amounts month by month: liquid assets, gross loans and member savings. The line shows whether cash and loans exceed savings. Taken from approved financial statements, in ZAR, at each month's end. The bars are separate figures and are not meant to add up to total assets. Formula for the line: liquid assets plus gross loans minus member savings (1100 plus 1200 minus 2100).",
+    "netVariation": "Liquid + loans - deposits",
+    "seriesLiquidAssets": "Liquid assets",
+    "seriesGrossLoans": "Gross loans",
+    "seriesMemberDeposits": "Member deposits",
+    "totalSavingsBalanceNote": "From the uploaded savings register, not the balance sheet",
+    "headline": {
+      "totalAssets": "Total assets",
+      "totalAssetsTooltip": "Everything the cooperatives in view own. It shows the overall size of the network. Taken from approved financial statements at the latest month reported, converted to ZAR at each submission's frozen rate. Formula: total assets (1999).",
+      "equityToAssets": "Equity / assets",
+      "equityToAssetsTooltip": "How much of the assets belongs to members rather than to creditors. Higher is safer; negative means debts exceed assets. Taken from approved statements at the latest month reported. Formula: total equity divided by total assets, as a percentage (3999 over 1999)."
+    },
+    "watchListEmpty": "Not enough cooperatives to build a watch list.",
+    "legendNoStatus": "No status",
+    "complianceCoops": "{{value}} coops",
+    "stmt": {
+      "group": {
+        "profitability": "Profitability",
+        "loanQuality": "Loan quality",
+        "liquidity": "Liquidity",
+        "structure": "Financial structure",
+        "capital": "Capital"
+      },
+      "notReported": "Not reported",
+      "vsPrevious": "{{change}}",
+      "vsPreviousPp": "{{change}} pp",
+      "label": {
+        "totalIncome": "Total income",
+        "totalExpenditure": "Total expenditure",
+        "netIncome": "Net income",
+        "roa": "Return on assets",
+        "roe": "Return on equity",
+        "expensesToIncome": "Expenses to income",
+        "selfSufficiency": "Operational self-sufficiency",
+        "netInterestMargin": "Net interest margin",
+        "grossLoans": "Gross loan portfolio (statement)",
+        "netLoans": "Net loan portfolio",
+        "par30": "PAR > 30 days",
+        "par60": "PAR > 60 days",
+        "par90": "PAR > 90 days",
+        "valueAtRisk": "Value at risk (> 30 days)",
+        "provisions": "Loan loss provisions",
+        "provisionCoverage": "Provision coverage",
+        "liquidAssets": "Liquid assets",
+        "liquidityToSavings": "Liquidity to member savings",
+        "liquidityGap": "Gap to minimum liquidity (15%)",
+        "totalAssets": "Total assets (statement)",
+        "earningAssetRatio": "Earning asset ratio",
+        "memberSavingsRatio": "Members' savings ratio",
+        "memberShareRatio": "Members' share ratio",
+        "borrowedFundsRatio": "Borrowed funds ratio",
+        "loansToSavings": "Loans to savings ratio",
+        "institutionalCapital": "Institutional capital",
+        "institutionalCapitalToAssets": "Institutional capital to assets",
+        "capitalExcess": "Excess / deficiency vs 8% minimum",
+        "totalEquity": "Total equity",
+        "shareCapital": "Share capital",
+        "retainedEarnings": "Retained earnings",
+        "statutoryReserve": "Statutory reserve"
+      },
+      "tip": {
+        "totalIncome": "All the money earned by the cooperatives in the period, mainly loan interest and fees. It is the top line of profitability. Taken from approved financial statements and added up over the months reported, in ZAR. Formula: total income (4999) summed over the months reported.",
+        "totalExpenditure": "All the money spent to run the cooperatives in the period, including interest paid, staff and administration. Lower is better for the same income. Taken from approved financial statements and added up over the months reported, in ZAR. Formula: total expenses (5999) summed over the months reported.",
+        "netIncome": "What is left after all expenses. A positive value is a surplus, a negative value a loss. Taken from approved financial statements over the months reported, in ZAR. Formula: net surplus (6999) as reported, otherwise total income minus total expenses.",
+        "roa": "How much surplus is made for each unit of assets. Higher means assets are used more profitably. Taken from approved statements, for the period covered and not annualised, so a quarter reads lower than a year. Formula: net income divided by total assets, as a percentage.",
+        "roe": "How much surplus is made for each unit of members' equity. Higher means members' capital works harder. Taken from approved statements, for the period covered and not annualised. Formula: net income divided by total equity, as a percentage.",
+        "expensesToIncome": "How much of every unit earned goes on expenses. Below 100 percent means a surplus; lower is better. Taken from approved statements over the months reported. Formula: total expenses divided by total income, as a percentage.",
+        "selfSufficiency": "Whether income covers costs. Above 100 percent the cooperatives cover their costs from their own income; higher is better. Taken from approved statements over the months reported. Formula: total income divided by total expenses, as a percentage.",
+        "netInterestMargin": "What the cooperatives earn from lending and investing after paying interest to savers and lenders, compared with their size. Higher is better. Taken from approved statements, for the period covered and not annualised. Formula: financial income (4100) minus financial expenses (5100), divided by total assets, as a percentage.",
+        "grossLoans": "The total amount members owe on loans, including overdue loans, before provisions. It is the main earning asset. Taken from approved financial statements at the period end, in ZAR. Formula: loans and advances (1200).",
+        "netLoans": "The loan book after setting aside money for expected losses. It is a more prudent view of what will really be recovered. Taken from approved statements at the period end, in ZAR. Formula: gross loans minus the allowance for loan losses (1250).",
+        "par30": "Portfolio at risk over 30 days: the share of the loan book that is more than 30 days late. A high value means many loans may not be repaid, so lower is better. Loans only 1 to 30 days late are not counted. Taken from approved statements at the period end. Formula: loans overdue more than 30 days divided by gross loans, as a percentage (1203, 1204, 1205 over 1200).",
+        "par60": "The share of the loan book that is more than 60 days late. It is a more serious warning than the 30 day measure; lower is better. Taken from approved statements at the period end. Formula: loans overdue more than 60 days divided by gross loans, as a percentage (1204, 1205 over 1200).",
+        "par90": "The share of the loan book that is non-performing, more than 90 days late. These loans are unlikely to be recovered; lower is better. Taken from approved statements at the period end. Formula: non-performing loans divided by gross loans, as a percentage (1205 over 1200).",
+        "valueAtRisk": "The money value of loans that are more than 30 days late. It is the amount behind the PAR over 30 days figure. Taken from approved statements at the period end, in ZAR. Formula: loans overdue more than 30 days (1203 plus 1204 plus 1205).",
+        "provisions": "Money set aside to absorb expected loan losses. It protects members' savings if borrowers do not repay. Taken from approved statements at the period end, shown as a positive amount in ZAR. Formula: allowance for loan losses (1250), general plus specific.",
+        "provisionCoverage": "How much of the seriously late loans is covered by provisions. Around 100 percent or more means expected losses are fully set aside; higher is safer. Taken from approved statements at the period end. Formula: provisions divided by loans overdue more than 30 days, as a percentage.",
+        "liquidAssets": "Cash and bank balances that can quickly be used to pay members. It shows the ability to meet withdrawals. Taken from approved statements at the period end, in ZAR. Formula: liquid assets (1100), which are cash, bank and short-term investments.",
+        "liquidityToSavings": "How much of members' savings could be repaid at once from liquid assets. The regulatory minimum is 15 percent, so higher is safer. Taken from approved statements at the period end. Formula: liquid assets divided by member savings, as a percentage (1100 over 2100).",
+        "liquidityGap": "How far liquidity is from the 15 percent minimum. Zero or negative means the minimum is met; a positive value is a shortfall. Formula: 15 percent minus the liquidity ratio, in percentage points.",
+        "totalAssets": "Everything the cooperatives own. It shows their overall size. Taken from approved financial statements at the period end, in ZAR. Formula: total assets (1999), which are liquid assets plus gross loans less provisions plus other assets.",
+        "earningAssetRatio": "The share of assets that are lent out or held as liquid funds rather than tied up in buildings and equipment. Higher means more of the money is available for members. Taken from approved statements at the period end. Formula: gross loans plus liquid assets, divided by total assets, as a percentage.",
+        "memberSavingsRatio": "The share of assets funded by member savings. A high share means the cooperatives rely mostly on their own members' money. Taken from approved statements at the period end. Formula: member savings divided by total assets, as a percentage (2100 over 1999).",
+        "memberShareRatio": "The share of assets funded by the shares members have bought. It shows how much members own directly. Taken from approved statements at the period end. Formula: member shares divided by total assets, as a percentage (3100 over 1999).",
+        "borrowedFundsRatio": "The share of assets funded by money borrowed from outside lenders. A high share means more dependence on lenders and more risk. Taken from approved statements at the period end. Formula: borrowings divided by total assets, as a percentage (2200 over 1999).",
+        "loansToSavings": "How much has been lent for each unit saved by members. Around 100 percent or more means savings are fully lent out, leaving less cash for withdrawals. Taken from approved statements at the period end. Formula: gross loans divided by member savings, as a percentage (1200 over 2100).",
+        "institutionalCapital": "The cooperatives' own reserves built up over time, which absorb losses. It excludes the shares members bought. Taken from approved statements at the period end, in ZAR. Formula: reserves (3200) plus retained earnings (3300).",
+        "institutionalCapitalToAssets": "How much of the assets is backed by the cooperatives' own reserves. The regulatory minimum is 8 percent; higher means a stronger cushion against losses. Taken from approved statements at the period end. Formula: institutional capital divided by total assets, as a percentage.",
+        "capitalExcess": "How far the institutional capital ratio is above or below the 8 percent minimum. Positive means the minimum is exceeded; negative is a deficiency. Formula: institutional capital ratio minus 8 percent, in percentage points.",
+        "totalEquity": "What is left for members after all debts are paid: shares, reserves and retained earnings. It shows net worth. Taken from approved statements at the period end, in ZAR. Formula: total equity (3999).",
+        "shareCapital": "The money members paid in by buying shares. It is their direct stake in the cooperatives. Taken from approved statements at the period end, in ZAR. Formula: member shares (3100).",
+        "retainedEarnings": "Surpluses kept in the cooperatives from past years instead of being paid out. They build the cooperatives' own strength. Taken from approved statements at the period end, in ZAR. Formula: retained earnings (3300).",
+        "statutoryReserve": "Reserves that must be set aside by law or by the rules of the cooperative to protect against losses. Taken from approved statements at the period end, in ZAR. Formula: statutory reserve (3201)."
+      }
+    },
+    "ledger": {
+      "womenBorrowers": "Women borrowers (%)",
+      "youthBorrowers": "Youth borrowers (%)",
+      "ruralBorrowers": "Rural borrowers (%)",
+      "restructuredLoans": "Restructured loans (%)",
+      "writtenOffLoans": "Written-off loans",
+      "dormantSavings": "Dormant savings accounts (%)",
+      "zeroBalance": "Zero-balance accounts (%)",
+      "averageSavings": "Average savings per account",
+      "earlyFdWithdrawal": "Early fixed-deposit withdrawals (%)",
+      "womenBorrowersTip": "The share of active loans held by women. It shows whether women have fair access to credit. Taken from the borrower flag in the uploaded loan ledger. Formula: loans to women divided by active loans, as a percentage.",
+      "youthBorrowersTip": "The share of active loans held by young borrowers. It shows whether young people can get credit. Taken from the youth borrower flag in the uploaded loan ledger. Formula: loans to youth borrowers divided by active loans, as a percentage.",
+      "ruralBorrowersTip": "The share of active loans held by borrowers living in rural areas. It shows whether credit reaches the countryside. Taken from the rural flag in the uploaded loan ledger. Formula: loans to rural borrowers divided by active loans, as a percentage.",
+      "restructuredLoansTip": "The share of loans whose repayment terms were changed because the borrower struggled to pay. A high share can hide weak loans. Taken from the loan status in the uploaded loan ledger. Formula: restructured loans divided by all loans, as a percentage.",
+      "writtenOffLoansTip": "The number of loans the cooperative has given up collecting. It shows past credit losses. Taken from the loan status in the uploaded loan ledger. Formula: loans with status written off.",
+      "dormantSavingsTip": "The share of savings accounts that are dormant, meaning unused. A high share means many members are not engaged. Taken from the account status in the uploaded savings ledger. Formula: dormant accounts divided by all savings accounts, as a percentage.",
+      "zeroBalanceTip": "The share of savings accounts that hold no money. It shows accounts opened but not used. Taken from the zero balance flag in the uploaded savings ledger. Formula: accounts with a zero balance divided by all savings accounts, as a percentage.",
+      "averageSavingsTip": "The typical amount held per savings account. It shows how deep savings are. Taken from the uploaded savings ledger, in ZAR. Formula: total savings balance divided by the number of savings accounts.",
+      "earlyFdWithdrawalTip": "The share of fixed deposits taken out before their end date. A high share means members did not keep their money locked in as planned. Taken from the early withdrawal flag in the uploaded fixed deposit ledger. Formula: early withdrawals divided by all fixed deposits, as a percentage."
+    },
+    "section": {
+      "expand": "Expand {{title}}",
+      "collapse": "Collapse {{title}}",
+      "portfolio": "Portfolio",
+      "trends": "Financial structure and profitability",
+      "loans": "Loans and inclusion",
+      "members": "Members",
+      "compliance": "Regulatory compliance",
+      "regional": "Regional distribution and loan quality",
+      "leaderboards": "Leaderboards",
+      "comparison": "Peer comparison",
+      "hide": "Hide",
+      "show": "Show",
+      "keyIndicators": "Key indicators"
+    },
+    "latestReported": "Latest reported month",
+    "rankingSharesInfo": "Each cooperative's share of the network total for the account and month chosen above. It shows which cooperatives carry the most weight. Taken from approved financial statements in ZAR; a cooperative with no figure for that month shows a dash and is left out of the shares. Formula: the cooperative's value divided by the sum of all values shown, as a percentage.",
+    "rankingChartInfo": "Cooperatives ranked from the largest to the smallest for the account and month chosen above. It shows how concentrated the sector is. Taken from approved financial statements in ZAR, at each submission's frozen exchange rate. Only cooperatives with a figure for that month appear. Balance sheet accounts show the balance at that month end; the latest reported month uses each cooperative's most recent month.",
+    "pcGridInfo": "Each cooperative's loan book split by repayment status: performing, in arrears, non-performing, then provisions and the net portfolio. It shows where credit risk sits. Taken from approved financial statements at the month chosen, in ZAR. Rows by loan purpose or days past due are not on a standard balance sheet and read n/r, not reported. Formula: net portfolio is gross loans minus provisions.",
+    "incomeGridInfo": "Each cooperative's income statement side by side: what it earned, what it spent and the surplus. Balance-sheet-only statements show n/r or a dash, never a made-up zero. Taken from approved financial statements in ZAR, added up from January to the month chosen. Formula: net surplus equals total revenues minus interest and operating expenses and credit loss provisions.",
+    "indicatorsGridInfo": "Key health ratios of each cooperative: capital, asset quality, late loans, provisions, efficiency, profitability and liquidity. They let you compare cooperatives of different sizes. Every ratio is computed from the approved financial statement at the month chosen; profitability ratios use income from January to that month, are not annualised, and show a dash when the statement has no income lines. Each row names its formula.",
+    "gridTip": {
+      "calculated": "A total worked out from the other rows of this grid. It uses approved financial statement figures in ZAR at the month chosen. Formula: see the account codes in the rows above it.",
+      "notReportedLoans": "Not reported. The financial statement does not split the loan book by loan purpose and days past due, so no figure is shown instead of a made-up zero.",
+      "notReportedSection": "A section heading. The figures are on the rows below and in the totals.",
+      "source": "Approved financial statement, account code {{codes}}, at the month chosen and in ZAR. Formula: the value of that account."
+    },
+    "indicatorTip": {
+      "car": "How much of the assets belongs to members rather than creditors. Higher means a stronger cushion against losses. Approved statement at the month chosen. Formula: total equity divided by total assets, as a percentage.",
+      "earning": "The share of assets that is lent out as loans. Higher means more of the assets are working. Approved statement at the month chosen. Formula: gross loans divided by total assets, as a percentage.",
+      "earningLiab": "How much has been lent for each unit of member savings. Around 100 percent or more means savings are fully lent. Approved statement at the month chosen. Formula: gross loans divided by member savings, as a percentage.",
+      "npl": "The share of the loan book that is non-performing, more than 90 days late. Lower is better. Approved statement at the month chosen. Formula: non-performing loans divided by gross loans, as a percentage (1205 over 1200).",
+      "par30": "The share of the loan book that is more than 30 days late. Lower is better; loans 1 to 30 days late are not counted. Approved statement at the month chosen. Formula: loans overdue more than 30 days divided by gross loans, as a percentage (1203, 1204, 1205 over 1200).",
+      "early": "The share of the loan book that is 1 to 90 days late, before loans become non-performing. It is an early warning sign. Approved statement at the month chosen. Formula: loans in arrears up to 90 days divided by gross loans, as a percentage (1202, 1203, 1204 over 1200).",
+      "coverage": "How much of the seriously late loans is covered by provisions. Around 100 percent or more is fully covered; higher is safer. Approved statement at the month chosen. Formula: provisions divided by loans overdue more than 30 days, as a percentage.",
+      "opex": "The running costs of the cooperative compared with its size. Lower means a leaner operation. Approved statement, with expenses added from January to the month chosen, not annualised. A dash means no income lines were reported. Formula: operating expenses divided by total assets, as a percentage (5201 to 5204 over 1999).",
+      "opexMargin": "How much of the interest margin is used up by running costs. Below 100 percent the margin covers the costs; lower is better. Approved statement, added from January to the month chosen. A dash means the margin is zero or negative, or no income was reported. Formula: operating expenses divided by financial income minus financial expenses, as a percentage.",
+      "roa": "How much surplus is made for each unit of assets. Higher is better. Approved statement, with income added from January to the month chosen, not annualised. A dash means no income lines were reported. Formula: net surplus divided by total assets, as a percentage.",
+      "roe": "How much surplus is made for each unit of members' equity. Higher is better. Approved statement, with income added from January to the month chosen, not annualised. A dash means no income lines were reported. Formula: net surplus divided by total equity, as a percentage.",
+      "oss": "Whether income covers costs. Above 100 percent the cooperative covers its costs from its own income; higher is better. Approved statement, added from January to the month chosen. A dash means no income lines were reported. Formula: total income divided by total expenses, as a percentage.",
+      "liquid": "The share of assets held as cash and bank balances. It shows how much is available at short notice. Approved statement at the month chosen. Formula: liquid assets divided by total assets, as a percentage (1100 over 1999).",
+      "loansDeposits": "How much has been lent for each unit of member savings. Around 100 percent or more means savings are fully lent, leaving less cash for withdrawals. Approved statement at the month chosen. Formula: gross loans divided by member savings, as a percentage (1200 over 2100)."
+    },
+    "netOfAccountsPct": "{{pct}}% of accounts",
+    "kpiName": {
+      "total_assets": "Total assets",
+      "gross_loan_portfolio": "Gross loan portfolio",
+      "net_loan_portfolio": "Net loan portfolio",
+      "total_member_deposits": "Total member deposits",
+      "total_equity": "Total equity",
+      "net_surplus": "Net surplus",
+      "par30": "PAR > 30 days",
+      "par90": "PAR > 90 days",
+      "npl_ratio": "Non-performing loans",
+      "loan_loss_coverage": "Loan loss coverage",
+      "roa": "Return on assets",
+      "roe": "Return on equity",
+      "operating_expense_ratio": "Operating expense ratio",
+      "capital_adequacy_ratio": "Capital adequacy ratio",
+      "liquid_funds_ratio": "Liquid funds ratio",
+      "operational_self_sufficiency": "Operational self-sufficiency",
+      "net_interest_margin": "Net interest margin",
+      "deposits_to_loans": "Deposits to loans"
+    },
+    "kpiHelp": {
+      "total_assets": "Everything the cooperative owns. It shows the overall size of the cooperative. Taken from the approved financial statement at the latest month reported. Formula: total assets.",
+      "gross_loan_portfolio": "The amount members still owe on loans, including overdue loans, before provisions. It is the main earning asset. Taken from the approved financial statement at the latest month reported. Formula: loans and advances.",
+      "net_loan_portfolio": "The loan book after setting aside money for expected losses, a more prudent view of what will be recovered. Taken from the approved financial statement. Formula: gross loan portfolio minus provisions.",
+      "total_member_deposits": "The money members hold as savings with the cooperative. It is the main source of funds for lending. Taken from the approved financial statement at the latest month reported. Formula: member deposits and savings.",
+      "total_equity": "What is left for members after all debts are paid: shares, reserves and retained earnings. It shows net worth. Taken from the approved financial statement at the latest month reported. Formula: total equity.",
+      "net_surplus": "What is left after all expenses. Positive is a surplus, negative a loss. Shown as not reported when the statement has no income lines. Taken from the approved financial statement, summed over the months reported. Formula: net surplus, otherwise total income minus total expenses.",
+      "par30": "The share of the loan book that is more than 30 days late. A high value means many loans may not be repaid, so lower is better. Loans only 1 to 30 days late are not counted. Taken from the approved financial statement at the latest month reported. Formula: loans overdue more than 30 days divided by gross loans.",
+      "par90": "The share of the loan book that is more than 90 days late. These loans are unlikely to be recovered, so lower is better. Taken from the approved financial statement at the latest month reported. Formula: non-performing loans divided by gross loans.",
+      "npl_ratio": "The share of the loan book that is non-performing, meaning more than 90 days late. Lower is better. Taken from the approved financial statement at the latest month reported. Formula: non-performing loans divided by gross loans.",
+      "loan_loss_coverage": "How much of the seriously late loans is covered by provisions. Around 100 percent or more means expected losses are fully set aside; higher is safer. Shown as not reported when there are no loans over 30 days late. Formula: provisions divided by loans overdue more than 30 days.",
+      "roa": "How much surplus is made for each unit of assets. Higher means assets are used more profitably. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: net surplus divided by total assets.",
+      "roe": "How much surplus is made for each unit of members' equity. Higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: net surplus divided by total equity.",
+      "operating_expense_ratio": "The running costs of the cooperative compared with its size. Lower means a leaner operation. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: operating expenses divided by total assets.",
+      "capital_adequacy_ratio": "How much of the assets belongs to members rather than creditors. Higher means a stronger cushion against losses. Taken from the approved financial statement at the latest month reported. Formula: total equity divided by total assets.",
+      "liquid_funds_ratio": "The share of assets held as cash and bank balances, available at short notice. Higher is safer. This is measured against total assets, not against member savings. Taken from the approved financial statement at the latest month reported. Formula: liquid assets divided by total assets.",
+      "operational_self_sufficiency": "Whether income covers costs. Above 100 percent the cooperative covers its costs from its own income; higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, summed over the months reported. Formula: total income divided by total expenses.",
+      "net_interest_margin": "What the cooperative earns from lending and investing after paying interest, compared with its size. Higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: financial income minus financial expenses, divided by total assets.",
+      "deposits_to_loans": "How much members have saved for each unit lent. Below 100 percent means loans exceed savings and are funded by other sources. Taken from the approved financial statement at the latest month reported. Formula: member savings divided by gross loan portfolio."
+    },
+    "sector": {
+      "agriculture": "Agriculture",
+      "finance": "Finance",
+      "housing": "Housing",
+      "transport": "Transport",
+      "manufacturing": "Manufacturing"
+    }
   },
   "cooperativeDashboard": {
     "title": "Ideshibhodi Yekhopharethi",
@@ -3266,7 +3506,10 @@
     "toastDeleted": "Kususwe \"{{name}}\"",
     "toastDeletedDesc": "Ifederesheni isusiwe kurejistri.",
     "toastDeleteFailed": "Kwehlulekile kususa ifederesheni",
-    "toastExporting": "Kukhipha data yefederesheni njenge-CSV..."
+    "toastExporting": "Kukhipha data yefederesheni njenge-CSV...",
+    "errorDuplicateFederation": "A federation with this name or domain already exists. Please use a different name or domain.",
+    "errorGenericCreate": "Registration could not be completed. Please try again or contact support if the issue persists.",
+    "pageOf": "Page {{page}} of {{total}}"
   },
   "memberList": {
     "tableHeaders": {
@@ -3592,7 +3835,9 @@
     "metaLabel": "Sihloko / Ilebula Yetemplate",
     "metaPlaceholder": "isib. Umbuzo Wemakhopharethi Etimali Ayisisekelo v1",
     "selectSectionPrompt": "Khetha isigaba kwesokunxele ukuze uqale ukuhlela tinsimu taso.",
-    "translatingAs": "Kuhlela ukuhumusha kwa-{{lang}}"
+    "translatingAs": "Kuhlela ukuhumusha kwa-{{lang}}",
+    "deleteFieldTitle": "Delete Question",
+    "deleteFieldDescription": "Are you sure you want to delete this question? This action cannot be undone."
   },
   "questionnaireAnalytics": {
     "regions": {
@@ -4038,7 +4283,18 @@
     "regenerateAndExport": "Yenta Kabusha & Khipha",
     "regenerating": "Kuyenta Kabusha...",
     "regeneratedAndDownloaded": "Umbiko wentelwe kabusha futsi ulayishwe phansi!",
-    "regenerateTooltip": "Cosha ukukhiqizwa kwe-PDF lokutsha, ukususa inguqulo ebe igciniwe"
+    "regenerateTooltip": "Cosha ukukhiqizwa kwe-PDF lokutsha, ukususa inguqulo ebe igciniwe",
+    "method": {
+      "title": "Report type",
+      "choose": "Both types have data for this selection. Choose which report to export.",
+      "auto": "Only this type has data for this selection, so it is selected for you.",
+      "none": "No approved submissions for this selection.",
+      "standard": "Standard report",
+      "standardDesc": "Built from financial statements ({{count}} approved submissions)",
+      "questionnaire": "Questionnaire report",
+      "questionnaireDesc": "Built from questionnaire answers ({{count}} approved submissions)",
+      "summary": "Report type"
+    }
   },
   "analyticsFilter": {
     "year": "Unyaka",
@@ -4611,7 +4867,8 @@
       "pages": "Amakhasi",
       "codesFound": "Amakhodi Atholakele",
       "confidence": "Ukuqiniseka",
-      "scanning": "Kuskena"
+      "scanning": "Kuskena",
+      "files": "Files"
     },
     "confidenceLevel": {
       "high": "Ephezulu",
@@ -4650,7 +4907,16 @@
     "toastTooLarge": "Ifayela likhulu kakhulu. Usayizi omkhulu ungu-50 MB.",
     "toastSelected": "Ifayela likhethiwe: {{name}}",
     "toastExtracted": "Kukhishiwe {{count}} imigqa kusuka ku-{{name}}",
-    "toastConfirmed": "{{name}}: {{count}} amarekhodi avumelekile alungele ukufaka"
+    "toastConfirmed": "{{name}}: {{count}} amarekhodi avumelekile alungele ukufaka",
+    "toastExtractionFailed": "Extraction failed: {{error}}",
+    "toastNoSubmission": "No draft submission found. Create a submission first before uploading.",
+    "toastNoData": "No extracted data to apply.",
+    "toastFailed": "Upload failed. Please try again.",
+    "flagged": "Flagged",
+    "flaggedWarning": "{{count}} line item(s) were flagged for low confidence or were unmapped — please verify them manually.",
+    "dropMore": "Drop more files or click to add",
+    "uploading": "Uploading...",
+    "fileSpec": "Upload one or more financial statement documents (balance sheet, income statement). Multiple files are combined into a single extraction."
   },
   "localizedField": {
     "toggle": "Húmusha",
@@ -4732,5 +4998,430 @@
   "errors": {
     "rateLimited": "Imizamo leminyenti. Sicela uphindze emva kwemizuzwana {{seconds}}.",
     "rateLimitedTitle": "Cala kancane"
+  },
+  "basicDashboard": {
+    "title": "Basic Analytics",
+    "subtitle": "KPIs, trends and charts computed from the questionnaire submissions",
+    "loading": "Loading analytics...",
+    "loadError": "Could not load the dashboard: {{error}}",
+    "empty": "No questionnaire data found for the selected filters.",
+    "search": {
+      "placeholder": "Search indicators (e.g. PAR, liquidity, members)",
+      "clear": "Clear search",
+      "noResults": "No indicator matches \"{{query}}\"."
+    },
+    "filters": {
+      "year": "Year",
+      "periodType": "Frequency",
+      "period": "Period",
+      "region": "Region",
+      "sector": "Sector",
+      "cooperative": "Cooperative",
+      "currency": "Currency",
+      "allPeriods": "Latest available",
+      "allRegions": "All regions",
+      "allSectors": "All sectors",
+      "allCooperatives": "All cooperatives",
+      "yearly": "Yearly",
+      "semiAnnual": "Half-yearly",
+      "quarterly": "Quarterly",
+      "monthly": "Monthly",
+      "native": "Native",
+      "clear": "Clear filters",
+      "regions": {
+        "Manzini": "Manzini",
+        "Hhohho": "Hhohho",
+        "Shiselweni": "Shiselweni",
+        "Lubombo": "Lubombo"
+      },
+      "sectors": {
+        "Agriculture": "Agriculture",
+        "Finance": "Finance",
+        "Housing": "Housing",
+        "Transport": "Transport",
+        "Manufacturing": "Manufacturing"
+      },
+      "zar": "ZAR"
+    },
+    "scope": {
+      "individual": "Individual view",
+      "consolidated": "Consolidated view",
+      "reporting": "{{reporting}} of {{total}} cooperatives reporting",
+      "period": "Period: {{period}}",
+      "currency": "Amounts in {{currency}}",
+      "rate": "Converted at {{rate}}"
+    },
+    "groups": {
+      "membership": "Membership",
+      "savings": "Savings",
+      "loans": "Loan portfolio",
+      "risk": "Portfolio risk",
+      "liquidity": "Liquidity",
+      "structure": "Financial structure",
+      "capital": "Institutional capital",
+      "profitability": "Profitability",
+      "governance": "Governance"
+    },
+    "indicators": {
+      "registered_members": "Registered members",
+      "active_members": "Active members",
+      "inactive_members": "Inactive members",
+      "active_members_pct": "Active members (%)",
+      "women_members_pct": "Women members (%)",
+      "youth_members_pct": "Youth members 18-35 (%)",
+      "number_of_groups": "Number of groups",
+      "total_deposits": "Total member deposits",
+      "deposit_accounts": "Deposit accounts",
+      "avg_savings_per_account": "Average savings per account",
+      "gross_loan_portfolio": "Gross loan portfolio",
+      "loans_outstanding_count": "Loans outstanding",
+      "avg_loan_balance": "Average loan balance",
+      "total_disbursed_active": "Total disbursed (active loans)",
+      "loans_awaiting_approval": "Loans awaiting approval",
+      "loans_in_arrears_count": "Loans in arrears",
+      "projected_interest_earnings": "Projected loan interest earnings",
+      "female_borrowers_pct": "Female borrowers (%)",
+      "total_overdrafts": "Total overdrafts",
+      "par_gt_7_pct": "PAR > 7 days",
+      "par_gt_30_pct": "PAR > 30 days",
+      "par_gt_90_pct": "PAR > 90 days",
+      "par_30_90_pct": "PAR 31-90 days",
+      "par_180_360_pct": "PAR 180-360 days",
+      "portfolio_at_risk_pct": "Portfolio at risk",
+      "value_at_risk": "Value at risk",
+      "var_gt_7": "VAR > 7 days",
+      "var_gt_30": "VAR > 30 days",
+      "var_gt_90": "VAR > 90 days",
+      "interest_in_suspense": "Interest in suspense",
+      "interest_payable": "Interest payable",
+      "written_off_loans": "Written-off loans",
+      "liquid_assets": "Liquid assets",
+      "liquidity_ratio_pct": "Liquidity to member savings",
+      "liquidity_minimum_pct": "Minimum liquidity",
+      "liquidity_gap_pct": "Gap to minimum liquidity",
+      "total_assets": "Total assets",
+      "earning_asset_ratio": "Earning asset ratio",
+      "member_savings_ratio": "Members' savings ratio",
+      "member_share_ratio": "Members' share ratio",
+      "borrowed_funds_ratio": "Borrowed funds ratio",
+      "loans_to_savings_ratio": "Loans to savings ratio",
+      "institutional_capital": "Institutional capital",
+      "institutional_capital_ratio_pct": "Institutional capital to assets",
+      "institutional_capital_minimum_pct": "Minimum institutional capital",
+      "institutional_capital_excess_pct": "Excess / deficiency vs minimum",
+      "total_equity": "Total equity",
+      "share_capital": "Share capital",
+      "retained_earnings": "Retained earnings",
+      "statutory_reserves": "Statutory reserves",
+      "total_income": "Total income",
+      "total_expenditure": "Total expenditure",
+      "net_income": "Net income",
+      "return_on_assets_pct": "Return on assets",
+      "operating_expense_ratio_pct": "Expenses to income",
+      "board_women_pct": "Women on board (%)",
+      "executive_women_pct": "Women on executive (%)",
+      "credit_committee_women_pct": "Women on credit committee (%)",
+      "agm_attendance_pct": "AGM attendance (%)"
+    },
+    "status": {
+      "approximate": "Approximate",
+      "notReported": "Not reported",
+      "notReportedHint": "This figure cannot be computed because the questionnaire fields it needs were not answered.",
+      "approximateHint": "Estimated from the closest available questionnaire fields."
+    },
+    "tooltip": {
+      "formula": "Formula",
+      "sources": "Source fields",
+      "note": "Note",
+      "previous": "Previous period: {{value}}",
+      "vsPrevious": "vs previous period",
+      "source": "Source"
+    },
+    "charts": {
+      "assetEvolution": {
+        "title": "Asset evolution",
+        "subtitle": "Total assets by period",
+        "info": "How the total size of the cooperatives in scope changes from one reporting period to the next. Growth means the balance sheet is expanding. Taken from the questionnaire of each period and added up over the cooperatives in scope. Formula: non-current assets plus current assets."
+      },
+      "savingsTrend": {
+        "title": "Savings trend",
+        "subtitle": "Member savings by period",
+        "info": "How the money members hold as savings changes over time. Rising savings mean growing member trust and more funds to lend. Taken from the questionnaire of each period and added up over the cooperatives in scope. Formula: net savings value of women plus of men."
+      },
+      "loanPortfolio": {
+        "title": "Loan portfolio",
+        "subtitle": "Outstanding loans by period",
+        "info": "How the amount members owe on loans changes over time. Growth means more lending, which is good only if repayment stays healthy. Taken from the questionnaire of each period and added up over the cooperatives in scope. Formula: outstanding loan value of women plus of men."
+      },
+      "parTrend": {
+        "title": "Portfolio at risk",
+        "subtitle": "PAR trend by period",
+        "info": "The share of the loan book that is late, by how many days. It shows whether repayment problems are growing or shrinking; lower is better. Taken from the overdue-days buckets of the questionnaire of each period, using summed amounts. Formula: balance overdue for each measure divided by gross loans, as a percentage."
+      },
+      "liquidity": {
+        "title": "Liquidity to member savings",
+        "subtitle": "Maintained liquidity versus the regulatory minimum",
+        "info": "How much of members' savings could be paid back at once from cash and bank balances, compared with the 15 percent minimum. The line shows the gap: above zero is a shortfall. Taken from the questionnaire of each period. Formula: liquid assets divided by member savings, as a percentage."
+      },
+      "financialStructure": {
+        "title": "Effective financial structure",
+        "subtitle": "How assets are funded and deployed",
+        "info": "How the cooperative's assets are put to work and how they are funded. The bars show earning assets, member savings and member shares as a share of total assets; the line on the right axis shows borrowed funds. Taken from the questionnaire of each period. Formula: each item divided by total assets, as a percentage."
+      },
+      "profitability": {
+        "title": "Profitability",
+        "subtitle": "Net income by period",
+        "info": "Whether the cooperatives made a surplus or a loss in each period. Bars above zero are surplus. Taken from the questionnaire of each period. Formula: net income as reported, otherwise total income minus total expenditure."
+      },
+      "institutionalCapital": {
+        "title": "Institutional capital to assets",
+        "subtitle": "Institutional capital versus the minimum ratio",
+        "info": "How much of the assets is backed by the cooperative's own reserves, compared with the 8 percent minimum. The line shows the excess or deficiency. Taken from the questionnaire of each period. Formula: retained earnings plus statutory reserves plus donations, divided by total assets, as a percentage."
+      },
+      "marketShareAssets": {
+        "title": "Market share by total assets",
+        "subtitle": "Share of each cooperative in consolidated assets",
+        "info": "How much of the total assets in view each cooperative holds. It shows which cooperatives weigh most. Taken from the questionnaire of the selected period; cooperatives that did not report assets are left out. Formula: the cooperative's total assets divided by the total assets of all cooperatives shown, as a percentage."
+      },
+      "marketShareLoans": {
+        "title": "Market share by loans and advances",
+        "subtitle": "Share of each cooperative in the consolidated loan book",
+        "info": "How much of the total loans in view each cooperative holds. It shows which cooperatives lend the most. Taken from the questionnaire of the selected period; cooperatives that did not report loans are left out. Formula: the cooperative's outstanding loans divided by the outstanding loans of all cooperatives shown, as a percentage."
+      },
+      "demographics": {
+        "title": "Membership profile",
+        "subtitle": "Gender and age of members",
+        "info": "Who the members are: registered and active members by gender, and registered members by age band. It shows how balanced and how young the membership is. Taken from the questionnaire of the selected period and added up over the cooperatives in scope. The age bands are 18 to 25, 26 to 35, 36 to 60 and over 60."
+      },
+      "governance": {
+        "title": "Women in governance",
+        "subtitle": "Share of women in leadership bodies",
+        "info": "How many women sit on the board, the executive committee and the credit committee. It shows whether women take part in decisions. Taken from the questionnaire of the selected period. Formula: women on each body divided by all its members, as a percentage."
+      },
+      "ranking": {
+        "title": "Cooperative ranking",
+        "subtitle": "Key ratios per cooperative",
+        "info": "The main figures of each cooperative for the selected period, side by side. A dash means the cooperative did not report the figure. Colours compare PAR over 30 days with the tolerance (green up to 5 percent, amber up to 10, red above) and liquidity and capital with their regulatory minimums of 15 and 8 percent. Taken from the questionnaire of the selected period."
+      },
+      "noData": "No data for this chart yet.",
+      "series": {
+        "assets": "Total assets",
+        "savings": "Member savings",
+        "loans": "Gross loans",
+        "par30": "PAR > 30 days",
+        "par90": "PAR > 90 days",
+        "portfolioAtRisk": "Portfolio at risk",
+        "maintained": "Maintained liquidity",
+        "minimum": "Minimum",
+        "gap": "Gap",
+        "earning": "Earning assets",
+        "memberSavings": "Members' savings",
+        "memberShares": "Members' shares",
+        "borrowed": "Borrowed funds",
+        "netIncome": "Net income",
+        "capital": "Institutional capital",
+        "excess": "Excess / deficiency"
+      },
+      "other": "Other"
+    },
+    "demographics": {
+      "registered": "Registered",
+      "active": "Active",
+      "male": "Male",
+      "female": "Female",
+      "age1825": "18-25",
+      "age2635": "26-35",
+      "age3660": "36-60",
+      "age61": "61+",
+      "board": "Board",
+      "executive": "Executive",
+      "creditCommittee": "Credit committee",
+      "womenShare": "Women share"
+    },
+    "table": {
+      "cooperative": "Cooperative",
+      "members": "Members",
+      "assets": "Total assets",
+      "deposits": "Deposits",
+      "loans": "Gross loans",
+      "par30": "PAR > 30",
+      "liquidity": "Liquidity",
+      "capital": "Inst. capital",
+      "netIncome": "Net income",
+      "region": "Region",
+      "sector": "Sector",
+      "sortBy": "Sort by {{column}}"
+    },
+    "sections": {
+      "trends": "Trends and ratios",
+      "marketShare": "Market share",
+      "members": "Membership and governance",
+      "ranking": "Cooperative ranking",
+      "keyIndicators": "Key indicators"
+    },
+    "help": {
+      "registered_members": "Everyone enrolled as a member, women and men together. It shows the size of the membership base. Taken from the questionnaire of the selected period and added up across the cooperatives in scope. Formula: registered women plus registered men.",
+      "active_members": "Members who are currently active, meaning they take part in the cooperative. A value close to the registered members means an engaged base. Taken from the questionnaire of the selected period. Formula: active women plus active men.",
+      "inactive_members": "Registered members who are not active. A high number suggests members have drifted away and may need to be re-engaged. Taken from the questionnaire of the selected period. Formula: registered members minus active members.",
+      "active_members_pct": "The share of registered members who are active. Higher is better, because it shows how engaged the membership is. Taken from the questionnaire of the selected period. Formula: active members divided by registered members, as a percentage.",
+      "women_members_pct": "The share of registered members who are women. It shows how well women are included in the membership. Taken from the questionnaire of the selected period. Formula: registered women divided by registered members, as a percentage.",
+      "youth_members_pct": "The share of registered members aged 18 to 35. It shows how well the cooperative reaches young people. Taken from the age bands of the questionnaire, so it is only as complete as those bands. Formula: members aged 18 to 25 plus members aged 26 to 35, divided by registered members, as a percentage.",
+      "number_of_groups": "The number of member groups (such as savings or credit groups) that the cooperative reports. It shows how members are organised. Entered directly in the questionnaire of the selected period. Formula: the reported number of groups.",
+      "total_deposits": "The money members hold as savings with the cooperative. It is the main source of funds for lending. Taken from the questionnaire of the selected period. Formula: net savings value of women plus net savings value of men.",
+      "deposit_accounts": "The number of savings accounts held by members. It shows how widely savings are used. Taken from the questionnaire of the selected period. Formula: savings accounts of women plus savings accounts of men.",
+      "avg_savings_per_account": "The typical amount saved per account. It shows how deep savings are, not only how many accounts exist. Taken from the questionnaire of the selected period. Formula: total member savings divided by savings accounts.",
+      "gross_loan_portfolio": "The total amount members still owe on loans, including overdue loans, before any provisions. It is the cooperative's main earning asset. Taken from the questionnaire of the selected period; if the outstanding values are missing it is estimated from the amount owed by members. Formula: outstanding loan value of women plus of men.",
+      "loans_outstanding_count": "The number of loans that are still being repaid. It shows how many members are borrowing. Taken from the questionnaire of the selected period; when it is not entered, the number of loan accounts issued is used and the figure is marked approximate. Formula: the reported number of loans outstanding.",
+      "avg_loan_balance": "The typical balance still owed per loan. It shows the size of the loans the cooperative gives. Taken from the questionnaire of the selected period; approximate when the number of loans outstanding is itself estimated. Formula: gross loan portfolio divided by loans outstanding.",
+      "total_disbursed_active": "The original amount lent out on loans that are still active. Compared with the outstanding balance, it shows how much has already been repaid. Entered in the questionnaire of the selected period. Formula: the reported total disbursed on active loans.",
+      "loans_awaiting_approval": "The number of loan applications waiting for a decision. A long queue can point to slow approval. Entered in the questionnaire of the selected period. Formula: the reported number of loans awaiting approval.",
+      "loans_in_arrears_count": "The number of loans with at least one late payment. It shows how many borrowers are struggling, whatever the amount. Entered in the questionnaire of the selected period. Formula: the reported number of loans in arrears.",
+      "projected_interest_earnings": "A rough estimate of the interest the loan book could earn. It is approximate only, because real earnings depend on the repayment schedules. Built from the questionnaire's average interest rate, average term and interest method. Formula: gross loans times the monthly rate times the average term, halved for the share of loans on reducing balance.",
+      "female_borrowers_pct": "The share of borrowers who are women. It shows whether women get fair access to credit. Taken from the questionnaire of the selected period; when the number of women borrowers is not entered, loan accounts issued to women are used and the figure is marked approximate. Formula: women borrowers divided by loans outstanding, as a percentage.",
+      "total_overdrafts": "The total amount of overdrafts granted to members. Overdrafts are short-term and can be risky if they are not cleared. Entered in the questionnaire of the selected period. Formula: the reported total overdrafts.",
+      "par_gt_7_pct": "The share of the loan book that is more than 7 days late. It is an early warning of repayment problems. Needs the overdue-days buckets of the Loan Quality section, otherwise it is not reported. Formula: balance overdue more than 7 days divided by gross loans, as a percentage.",
+      "par_gt_30_pct": "Portfolio at risk over 30 days: the share of the loan book that is more than 30 days late. A high value means many loans may not be repaid, so lower is better. Uses the overdue-days buckets; if they are empty, the 31 to 365 day delinquency field is used and the figure is marked approximate. Formula: balance overdue more than 30 days divided by gross loans, as a percentage.",
+      "par_gt_90_pct": "The share of the loan book that is more than 90 days late. These loans are unlikely to be recovered, so lower is better. Needs the overdue-days buckets of the Loan Quality section. Formula: balance overdue more than 90 days divided by gross loans, as a percentage.",
+      "par_30_90_pct": "The share of the loan book that is between 31 and 90 days late. It shows loans that are seriously late but not yet in the worst group. Needs the overdue-days buckets of the Loan Quality section. Formula: balance overdue 31 to 90 days divided by gross loans, as a percentage.",
+      "par_180_360_pct": "The share of the loan book that is between 181 and 360 days late. These loans are very old and most likely need to be written off. Needs the overdue-days buckets of the Loan Quality section. Formula: balance overdue 181 to 360 days divided by gross loans, as a percentage.",
+      "portfolio_at_risk_pct": "The share of the loan book that is late by any number of days. It is the broadest measure of repayment trouble, so lower is better. Approximate when it relies on the delinquency fields instead of the overdue-days buckets. Formula: all overdue balance divided by gross loans, as a percentage.",
+      "value_at_risk": "The money value of all loans that are late by any number of days. It shows how much of the loan book is exposed. Approximate when it relies on the delinquency fields. Formula: the balance of all overdue loans.",
+      "var_gt_7": "The money value of loans more than 7 days late. Needs the overdue-days buckets of the Loan Quality section. Formula: balance overdue more than 7 days.",
+      "var_gt_30": "The money value of loans more than 30 days late. It is the amount behind the portfolio at risk over 30 days. Approximate when only the 31 to 365 day delinquency field is available. Formula: balance overdue more than 30 days.",
+      "var_gt_90": "The money value of loans more than 90 days late, the ones least likely to be recovered. Needs the overdue-days buckets of the Loan Quality section. Formula: balance overdue more than 90 days.",
+      "interest_in_suspense": "Interest charged on loans but not counted as income because the borrower is not paying. A high amount signals weak loans. Entered in the questionnaire of the selected period. Formula: the reported interest in suspense.",
+      "interest_payable": "Interest the cooperative owes but has not yet paid, for example on member savings or borrowings. Entered in the questionnaire of the selected period. Formula: the reported interest payable.",
+      "written_off_loans": "The value of loans the cooperative has given up trying to collect and removed from its books. It shows past credit losses. Entered in the questionnaire of the selected period. Formula: the reported written-off loans.",
+      "liquid_assets": "Cash and money in the bank that can be used quickly to pay members. It shows the cooperative's ability to meet withdrawals. Taken from the questionnaire of the selected period. Formula: cash on hand plus cash at bank plus money in bank investments.",
+      "liquidity_ratio_pct": "How much of members' savings the cooperative could pay back immediately from cash and bank balances. The regulatory minimum is 15 percent, so higher is safer. Taken from the questionnaire of the selected period. Formula: liquid assets divided by member savings, as a percentage.",
+      "liquidity_minimum_pct": "The minimum liquidity a cooperative must keep, set by regulation at 15 percent of member savings. It is a fixed reference value, not reported by the cooperative. Formula: fixed regulatory minimum of liquid assets to member savings.",
+      "liquidity_gap_pct": "How far the cooperative is from the 15 percent liquidity minimum. A positive value is a shortfall that needs attention; zero or negative means the minimum is met. Formula: the minimum liquidity minus the liquidity ratio, in percentage points.",
+      "total_assets": "Everything the cooperative owns. It shows the overall size of the cooperative. Taken from the questionnaire of the selected period. Formula: non-current assets plus total current assets.",
+      "earning_asset_ratio": "The share of assets that earn income, mainly loans and investments. Higher means more of the cooperative's money is put to work. Taken from the questionnaire of the selected period. Formula: loans plus investments, divided by total assets, as a percentage.",
+      "member_savings_ratio": "The share of assets that is funded by member savings. A high share means the cooperative relies mostly on its members' money. Taken from the questionnaire of the selected period. Formula: member savings divided by total assets, as a percentage.",
+      "member_share_ratio": "The share of assets that is funded by the shares members have bought. It shows how much members own directly. Taken from the questionnaire of the selected period. Formula: member share capital divided by total assets, as a percentage.",
+      "borrowed_funds_ratio": "The share of assets that is funded by money borrowed from outside. A high share means more dependence on lenders and more risk. Taken from the questionnaire of the selected period. Formula: borrowed funds divided by total assets, as a percentage.",
+      "loans_to_savings_ratio": "How much has been lent out for each unit saved. Around 100 percent or more means savings are fully lent, which leaves less cash for withdrawals. Taken from the questionnaire of the selected period. Formula: gross loan portfolio divided by member savings, as a percentage.",
+      "institutional_capital": "The cooperative's own reserves built up over time, which absorb losses. It excludes the shares members bought. Taken from the questionnaire of the selected period. Formula: retained earnings plus statutory reserves plus donations and grants.",
+      "institutional_capital_ratio_pct": "How much of the cooperative's assets is backed by its own reserves. The regulatory minimum is 8 percent, so higher means a stronger cushion against losses. Taken from the questionnaire of the selected period. Formula: institutional capital divided by total assets, as a percentage.",
+      "institutional_capital_minimum_pct": "The minimum institutional capital a cooperative must hold, set by regulation at 8 percent of total assets. It is a fixed reference value, not reported by the cooperative. Formula: fixed regulatory minimum of institutional capital to assets.",
+      "institutional_capital_excess_pct": "How far the institutional capital ratio is above or below the 8 percent minimum. Positive means the minimum is exceeded; negative is a deficiency that needs attention. Formula: institutional capital ratio minus the minimum, in percentage points.",
+      "total_equity": "What is left for the members after all debts are paid. It shows the cooperative's net worth. Taken from the questionnaire of the selected period; when it is not entered it is worked out from assets and liabilities and marked approximate. Formula: total equity as reported, otherwise total assets minus liabilities.",
+      "share_capital": "The money members have paid in by buying shares. It is the members' direct stake in the cooperative. Entered in the questionnaire of the selected period. Formula: the reported total share capital.",
+      "retained_earnings": "Surpluses kept in the cooperative from past years instead of being paid out. They build the cooperative's own strength. Entered in the questionnaire of the selected period. Formula: the reported retained earnings.",
+      "statutory_reserves": "Reserves the cooperative must set aside by law or by its rules to protect against losses. Entered in the questionnaire of the selected period. Formula: the reported accumulated statutory reserves.",
+      "total_income": "All the money the cooperative earned during the year, mainly from loan interest and fees. Entered in the questionnaire of the selected period. Formula: the reported current year total income.",
+      "total_expenditure": "All the money the cooperative spent during the year to run its business. Entered in the questionnaire of the selected period. Formula: the reported current year total expenditure.",
+      "net_income": "What is left after all expenses are paid. A positive value is a surplus, a negative value is a loss. Taken from the questionnaire of the selected period. Formula: net income as reported, otherwise total income minus total expenditure.",
+      "return_on_assets_pct": "How much surplus the cooperative makes for each unit of assets it holds. Higher means assets are used more profitably. Taken from the questionnaire of the selected period, for the period covered and not annualised. Formula: net income divided by total assets, as a percentage.",
+      "operating_expense_ratio_pct": "How much of each unit earned is spent on expenses. Below 100 percent the cooperative makes a surplus; lower is better. Taken from the questionnaire of the selected period. Formula: total expenditure divided by total income, as a percentage.",
+      "board_women_pct": "The share of board members who are women. It shows whether women take part in the top decisions. Taken from the questionnaire of the selected period. Formula: women on the board divided by all board members, as a percentage.",
+      "executive_women_pct": "The share of executive committee members who are women. It shows whether women take part in daily management. Taken from the questionnaire of the selected period. Formula: women on the executive divided by all executive members, as a percentage.",
+      "credit_committee_women_pct": "The share of credit committee members who are women. It shows whether women take part in lending decisions. Taken from the questionnaire of the selected period. Formula: women on the credit committee divided by all its members, as a percentage.",
+      "agm_attendance_pct": "The share of active members who came to the last Annual General Meeting. It shows how much members take part in governance. Taken from the questionnaire of the selected period. Formula: members who attended the last meeting divided by active members, as a percentage."
+    }
+  },
+  "questionnaireReport": {
+    "aiInsight": "AI Insight",
+    "aiSummary": "AI Executive Summary",
+    "aiRecommendations": "AI Outlook and Recommendations",
+    "cover": {
+      "kicker": "Periodic performance assessment",
+      "description": "KPIs, regulatory ratios and trends computed from the cooperative's questionnaire return.",
+      "period": "Reporting period",
+      "currency": "Currency"
+    },
+    "summary": {
+      "page": "Summary",
+      "title": "Executive Summary",
+      "fallback": "The AI summary is not available for this report. The figures below are computed directly from the questionnaire.",
+      "keyFigures": "Key figures",
+      "regulatory": "Regulatory minimums",
+      "measure": "Measure",
+      "maintained": "Maintained",
+      "minimum": "Minimum",
+      "result": "Result",
+      "met": "Met",
+      "shortfall": "Below minimum",
+      "coverage": "{{reported}} of {{total}} indicators could be computed from the questionnaire answers."
+    },
+    "membership": {
+      "page": "Membership",
+      "title": "Membership and Governance",
+      "fallback": "Membership and governance figures are computed from the questionnaire.",
+      "gender": "Gender balance",
+      "age": "Members by age band"
+    },
+    "portfolio": {
+      "page": "Portfolio",
+      "title": "Savings and Loan Portfolio",
+      "fallback": "Savings and loan figures are computed from the questionnaire.",
+      "panel": "Core indicators",
+      "legend": "An approximation sign (≈) marks an estimate. A dash means the indicator was not reported."
+    },
+    "risk": {
+      "page": "Portfolio quality",
+      "title": "Portfolio Quality and Risk",
+      "fallback": "Portfolio at risk is computed from the overdue balances in the questionnaire.",
+      "buckets": "Overdue balances",
+      "bucket": "Days overdue",
+      "rate": "Share of gross loans",
+      "amount": "Amount",
+      "bucketLabels": {
+        "gt7": "More than 7 days",
+        "gt30": "More than 30 days",
+        "d30to90": "31 to 90 days",
+        "gt90": "More than 90 days",
+        "d180to360": "181 to 360 days",
+        "total": "All overdue loans"
+      }
+    },
+    "liquidity": {
+      "page": "Liquidity and capital",
+      "title": "Liquidity and Institutional Capital",
+      "fallback": "Liquidity and institutional capital are compared with their regulatory minimums."
+    },
+    "structure": {
+      "page": "Structure",
+      "title": "Financial Structure and Profitability",
+      "fallback": "Structure ratios and profitability are computed from the questionnaire."
+    },
+    "trends": {
+      "page": "Trends",
+      "title": "Trends and Outlook",
+      "currentAssets": "Total assets are {{value}} at {{period}}.",
+      "needHistory": "Earlier periods are needed to show the trend.",
+      "outlook": "Outlook",
+      "fallback": "The AI outlook is not available for this report."
+    },
+    "methodology": {
+      "page": "Methodology",
+      "title": "Methodology and Data Coverage",
+      "intro": "{{reported}} of {{total}} indicators were computed. The indicators below are estimated or were not reported.",
+      "allComputed": "All indicators were computed from reported answers.",
+      "indicator": "Indicator",
+      "status": "Status",
+      "value": "Value",
+      "formula": "Formula",
+      "fields": "Questionnaire fields",
+      "notes": "Percentages are taken over the totals of the cooperative. Amounts are converted with the exchange rate frozen when the submission was approved."
+    }
+  },
+  "periodReminders": {
+    "title": "Incomplete reporting for {{year}}",
+    "message": "You report {{frequency}} for {{year}}. Still to submit: {{periods}}.",
+    "dismiss": "Dismiss reminder",
+    "notifications": "Reporting reminders",
+    "none": "You are up to date.",
+    "goToSubmissions": "Go to submissions",
+    "bell": "Reporting reminders ({{count}})",
+    "frequency": {
+      "yearly": "yearly",
+      "quarterly": "quarterly",
+      "monthly": "monthly",
+      "semiAnnual": "semi-annually"
+    },
+    "lockedFrequency": "{{year}} is already set to {{frequency}} reporting.",
+    "lockedFrequencyDrafts": "{{year}} is set to {{frequency}} reporting. Delete your draft submissions for that year to change it."
   }
 }

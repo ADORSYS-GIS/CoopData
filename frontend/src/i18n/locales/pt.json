@@ -942,37 +942,43 @@
           "description": "Carregar e rever demonstração financeira auditada",
           "pendingAction": "Carregar Ficheiro",
           "progressAction": "Rever e Marcar como Pronto",
-          "readyAction": "Ver Demonstração"
+          "readyAction": "Ver Demonstração",
+          "pendingActionManual": "Ação manual pendente"
         },
         "members": {
           "label": "Registo de Membros",
           "description": "Registo de membros ativos, jovens, mulheres e rurais",
           "pendingAction": "Carregar Excel",
-          "readyAction": "Ver Registo"
+          "readyAction": "Ver Registo",
+          "pendingActionManual": "Ação manual pendente"
         },
         "savings": {
           "label": "Livro de Poupanças",
           "description": "Detalhes das contas de poupança dos membros e frequências",
           "pendingAction": "Carregar Excel",
-          "readyAction": "Ver Poupanças"
+          "readyAction": "Ver Poupanças",
+          "pendingActionManual": "Ação manual pendente"
         },
         "loans": {
           "label": "Livro de Empréstimos",
           "description": "Estado atual dos empréstimos, saldos e classificações de risco",
           "pendingAction": "Carregar Excel",
-          "readyAction": "Ver Empréstimos"
+          "readyAction": "Ver Empréstimos",
+          "pendingActionManual": "Ação manual pendente"
         },
         "fixed_deposits": {
           "label": "Depósitos a Prazo",
           "description": "Depósitos a prazo, contas renovadas e vencimentos",
           "pendingAction": "Carregar Excel",
-          "readyAction": "Ver Depósitos"
+          "readyAction": "Ver Depósitos",
+          "pendingActionManual": "Ação manual pendente"
         },
         "farm_coop": {
           "label": "Dados de Cooperativa Agrícola (Opcional)",
           "description": "Tipos de produção, atividades e métricas de conformidade",
           "pendingAction": "Carregar Excel",
-          "readyAction": "Ver Dados Agrícolas"
+          "readyAction": "Ver Dados Agrícolas",
+          "pendingActionManual": "Ação manual pendente"
         }
       },
       "actions": {
@@ -1442,7 +1448,9 @@
     "placeholderDepositId": "FD-001",
     "placeholderSavingsId": "SAV-001",
     "draftSavedLocally": "Draft saved locally on this device",
-    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online",
+    "stepIncomplete": "Etapa incompleta",
+    "financialIncomplete": "Dados financeiros incompletos"
   },
   "financial": {
     "liquidAssets": "Ativos Líquidos",
@@ -1732,7 +1740,13 @@
     "sectionFixedDeposits": "Fixed deposits only",
     "sectionFarmCoop": "Farm cooperative only",
     "sectionHint": "Upload one workbook containing all tables, or pick a single section to upload one Excel file for it.",
-    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
+    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first.",
+    "clickToCollapse": "Clique para recolher",
+    "clickToExpand": "Clique para expandir",
+    "howToFix": "Como corrigir",
+    "openFullView": "Abrir visão completa",
+    "showingCount": "Exibindo {count}",
+    "noMatchingErrors": "Nenhum erro correspondente"
   },
   "analytics": {
     "filter": {
@@ -2555,7 +2569,24 @@
       "manufacturing": "Indústria"
     },
     "periodFinancialBreakdown": "A sua divisão financeira e variação por período",
-    "valueSzZar": "Valor (ZAR)"
+    "valueSzZar": "Valor (ZAR)",
+    "searchCooperative": "Pesquisar cooperativa",
+    "noCooperativeFound": "Nenhuma cooperativa encontrada",
+    "searchComparison": "Pesquisar comparação",
+    "noComparisonFound": "Nenhuma comparação encontrada",
+    "searchKpiMetric": "Pesquisar indicador KPI",
+    "noKpiFound": "Nenhum indicador encontrado",
+    "nationalAverageDesc": "Média nacional",
+    "regionAverageDesc": "Média regional",
+    "sectorAvgDesc": "Média do setor",
+    "sectorRegionalAvgDesc": "Média regional do setor",
+    "averagesGroup": "Médias",
+    "cooperativesGroup": "Cooperativas",
+    "genderParticipationNoData": "Sem dados de participação por gênero",
+    "seriesLiquidAssets": "Ativos líquidos",
+    "seriesGrossLoans": "Carteira de empréstimos bruta",
+    "seriesMemberDeposits": "Depósitos de membros",
+    "totalSavingsBalanceNote": "Saldo total de poupança"
   },
   "cooperativeDashboard": {
     "title": "Painel da Cooperativa",
@@ -4070,7 +4101,8 @@
       "pages": "Páginas",
       "codesFound": "Códigos Encontrados",
       "confidence": "Confiança",
-      "scanning": "A digitalizar"
+      "scanning": "A digitalizar",
+      "files": "{count} arquivo(s)"
     },
     "confidenceLevel": {
       "high": "Alta",
@@ -4109,7 +4141,16 @@
     "toastTooLarge": "Ficheiro demasiado grande. O tamanho máximo é 50 MB.",
     "toastSelected": "Ficheiro selecionado: {{name}}",
     "toastExtracted": "Extraídas {{count}} linhas de {{name}}",
-    "toastConfirmed": "{{name}}: {{count}} registos válidos prontos para submissão"
+    "toastConfirmed": "{{name}}: {{count}} registos válidos prontos para submissão",
+    "toastExtractionFailed": "A extração falhou para alguns arquivos.",
+    "toastNoSubmission": "Nenhuma submissão encontrada para este arquivo.",
+    "toastNoData": "Nenhum dado extraído deste arquivo.",
+    "toastFailed": "Falha ao processar o arquivo.",
+    "flagged": "Sinalizado",
+    "flaggedWarning": "Alguns itens foram sinalizados para verificação.",
+    "dropMore": "Solte mais arquivos",
+    "uploading": "Enviando…",
+    "fileSpec": "Formato aceito: {format}"
   },
   "federationsPage": {
     "zod": {
@@ -4180,7 +4221,10 @@
     "toastDeleted": "Deleted \"{{name}}\"",
     "toastDeletedDesc": "Federation removed from registry.",
     "toastDeleteFailed": "Failed to delete federation",
-    "toastExporting": "Exporting federation data as CSV..."
+    "toastExporting": "Exporting federation data as CSV...",
+    "errorDuplicateFederation": "Já existe uma federação com este nome.",
+    "errorGenericCreate": "Não foi possível criar a federação.",
+    "pageOf": "Página {current} de {total}"
   },
   "memberList": {
     "tableHeaders": {
@@ -4506,7 +4550,9 @@
     "metaLabel": "Template Title / Label",
     "metaPlaceholder": "e.g. Financial Primary Cooperatives Questionnaire v1",
     "selectSectionPrompt": "Select a section on the left to start configuring its fields.",
-    "translatingAs": "Editando tradução para {{lang}}"
+    "translatingAs": "Editando tradução para {{lang}}",
+    "deleteFieldTitle": "Excluir este campo?",
+    "deleteFieldDescription": "Esta ação é irreversível. O campo será removido do modelo."
   },
   "questionnaireAnalytics": {
     "regions": {
