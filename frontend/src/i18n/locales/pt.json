@@ -2548,6 +2548,13 @@
       "operational_self_sufficiency": "Indica se as receitas cobrem os custos. Acima de 100 por cento a cooperativa cobre os custos com as suas receitas: maior é melhor. Não reportado quando a demonstração não tem linhas de receitas. Retirado da demonstração aprovada, somado nos meses reportados. Fórmula: receitas totais divididas pelas despesas totais.",
       "net_interest_margin": "O que a cooperativa ganha com crédito e investimentos depois de pagar juros, face à sua dimensão. Maior é melhor. Não reportado quando a demonstração não tem linhas de receitas. Retirado da demonstração aprovada, para o período coberto e sem anualização. Fórmula: receitas financeiras menos despesas financeiras, divididas pelos ativos totais.",
       "deposits_to_loans": "Quanto os membros pouparam por cada unidade emprestada. Abaixo de 100 por cento o crédito excede a poupança e é financiado por outras fontes. Retirado da demonstração financeira aprovada, no último mês reportado. Fórmula: poupança dos membros dividida pela carteira de crédito bruta."
+    },
+    "sector": {
+      "agriculture": "Agricultura",
+      "finance": "Finanças",
+      "housing": "Habitação",
+      "transport": "Transporte",
+      "manufacturing": "Indústria"
     }
   },
   "cooperativeDashboard": {
@@ -4575,11 +4582,11 @@
     "allApexes": "All Apexes",
     "allCooperatives": "All Cooperatives",
     "sector": {
-      "agriculture": "Agriculture",
-      "finance": "Finance",
-      "housing": "Housing",
-      "transport": "Transport",
-      "manufacturing": "Manufacturing"
+      "agriculture": "Agricultura",
+      "finance": "Finanças",
+      "housing": "Habitação",
+      "transport": "Transporte",
+      "manufacturing": "Indústria"
     },
     "filter": {
       "federation": "Federation",

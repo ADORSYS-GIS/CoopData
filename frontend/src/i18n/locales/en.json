@@ -2579,6 +2579,13 @@
       "operational_self_sufficiency": "Whether income covers costs. Above 100 percent the cooperative covers its costs from its own income; higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, summed over the months reported. Formula: total income divided by total expenses.",
       "net_interest_margin": "What the cooperative earns from lending and investing after paying interest, compared with its size. Higher is better. Shown as not reported when the statement has no income lines. Taken from the approved statement, for the period covered and not annualised. Formula: financial income minus financial expenses, divided by total assets.",
       "deposits_to_loans": "How much members have saved for each unit lent. Below 100 percent means loans exceed savings and are funded by other sources. Taken from the approved financial statement at the latest month reported. Formula: member savings divided by gross loan portfolio."
+    },
+    "sector": {
+      "agriculture": "Agriculture",
+      "finance": "Finance",
+      "housing": "Housing",
+      "transport": "Transport",
+      "manufacturing": "Manufacturing"
     }
   },
   "cooperativeDashboard": {

@@ -1575,9 +1575,21 @@ fn build_pdf_response(
 
 // ── S4-T6: Ministry stats endpoint ───────────────────────────────────────────
 
+#[derive(Debug, Default, serde::Deserialize, utoipa::IntoParams)]
+pub struct MinistryStatsQuery {
+    /// Restrict the counts to one reporting year; omitted counts every year.
+    pub reporting_year: Option<i32>,
+    pub cooperative_id: Option<Uuid>,
+    pub region: Option<String>,
+    pub sector: Option<String>,
+    pub federation_id: Option<Uuid>,
+    pub apex_id: Option<Uuid>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/ministry/stats",
+    params(MinistryStatsQuery),
     responses(
         (status = 200, description = "Ministry-level dashboard statistics", body = MinistryStatsResponse),
         (status = 403, description = "Forbidden")
@@ -1586,19 +1598,35 @@ fn build_pdf_response(
 )]
 pub async fn get_ministry_stats(
     State(state): State<AppState>,
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<MinistryStatsQuery>,
 ) -> AppResult<impl IntoResponse> {
     use crate::entities::enums::SubmissionStatus;
 
-    // Count all cooperatives via cooperative_repo
-    let all_coops = state.cooperative_repo.list_all().await.unwrap_or_default();
-    let total_cooperatives = all_coops.len() as i64;
+    // Count cooperatives in the caller's scope, narrowed by the hierarchy filter.
+    let caller_coop_ids = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(
+        &state, &claims,
+    )
+    .await?;
+    let all_coop_ids: Vec<Uuid> = filter_cooperatives(
+        &state,
+        caller_coop_ids,
+        query.cooperative_id,
+        query.region,
+        query.sector,
+        query.federation_id,
+        query.apex_id,
+    )
+    .await?;
+    let total_cooperatives = all_coop_ids.len() as i64;
 
-    let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
-    let all_submissions = state
+    let mut all_submissions = state
         .submission_repo
         .find_by_cooperative_ids(all_coop_ids)
         .await?;
+    if let Some(year) = query.reporting_year {
+        all_submissions.retain(|s| s.reporting_year == year);
+    }
 
     let total_submissions = all_submissions.len() as i64;
     let pending_review_count = all_submissions

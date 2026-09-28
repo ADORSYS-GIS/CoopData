@@ -33,6 +33,7 @@ interface Props {
 export function MinistryAnalyticsView({ filterValues }: Props) {
   const { t } = useOrganizationLabelsContext();
   const year = Number(filterValues.year);
+  const reportingYear = Number.isFinite(year) ? year : undefined;
 
   const params = useMemo(
     () => ({
@@ -51,7 +52,18 @@ export function MinistryAnalyticsView({ filterValues }: Props) {
   const { data: overview, isLoading } = useNationalOverview(params);
   const { data: nfStats } = useNfStatistics(false, params);
   const { data: networkTrend } = useMonthlyTrend(params, filterValues.cooperativeId === "all");
-  const { data: ministryStats } = useMinistryStats();
+  const ministryStatsParams = useMemo(
+    () => ({
+      reportingYear,
+      cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
+      apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
+      federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,
+      region: filterValues.region !== "all" ? filterValues.region : undefined,
+      sector: filterValues.sector !== "all" ? filterValues.sector : undefined,
+    }),
+    [filterValues, reportingYear],
+  );
+  const { data: ministryStats } = useMinistryStats(ministryStatsParams);
 
   const coops = useMemo(() => overview?.cooperatives ?? [], [overview]);
   const nfSummary = overview?.non_financial_summary;

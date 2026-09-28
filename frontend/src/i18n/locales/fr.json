@@ -2554,6 +2554,13 @@
       "operational_self_sufficiency": "Indique si les produits couvrent les charges. Au-dessus de 100 %, la coopérative couvre ses coûts avec ses propres produits : plus haut est mieux. Non déclaré si l'état ne contient aucune ligne de produits. Tiré de l'état approuvé, cumulé sur les mois déclarés. Formule : produits totaux divisés par charges totales.",
       "net_interest_margin": "Ce que la coopérative gagne sur les prêts et placements après paiement des intérêts, par rapport à sa taille. Plus haut est mieux. Non déclaré si l'état ne contient aucune ligne de produits. Tiré de l'état approuvé, pour la période couverte, non annualisé. Formule : produits financiers moins charges financières, divisés par le total des actifs.",
       "deposits_to_loans": "Combien les membres ont épargné pour chaque unité prêtée. Sous 100 %, les prêts dépassent l'épargne et sont financés par d'autres sources. Tiré de l'état financier approuvé, au dernier mois déclaré. Formule : épargne des membres divisée par le portefeuille de prêts brut."
+    },
+    "sector": {
+      "agriculture": "Agriculture",
+      "finance": "Finance",
+      "housing": "Logement",
+      "transport": "Transport",
+      "manufacturing": "Fabrication"
     }
   },
   "cooperativeDashboard": {
