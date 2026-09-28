@@ -9,7 +9,7 @@ export interface BasicFilterState {
   region: string;
   sector: string;
   cooperativeId: string;
-  currency: "usd" | "native";
+  currency: "zar" | "native";
 }
 
 export const DEFAULT_FILTERS: BasicFilterState = {
@@ -19,7 +19,7 @@ export const DEFAULT_FILTERS: BasicFilterState = {
   region: ALL,
   sector: ALL,
   cooperativeId: ALL,
-  currency: "usd",
+  currency: "zar",
 };
 
 export const REGIONS = ["Hhohho", "Lubombo", "Manzini", "Shiselweni"];

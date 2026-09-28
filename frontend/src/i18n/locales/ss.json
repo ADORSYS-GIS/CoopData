@@ -1978,11 +1978,10 @@
     "coopContributionShares": "Amasheya Emnikelo Wemakhopharethi",
     "spreadsheetBreakdown": "Ukuhlukaniswa kwespreadsheet kwama-akhawunti amakhulu",
     "entity": "Inhlangano",
-    "valueSzUsd": "Inani (USD)",
     "sharePct": "Isheya (%)",
     "noCoopsFound": "Akukho makhopharethi atholakele.",
     "rankingPrincipalAccounts": "Izinga Lama-akhawunti Amakhulu",
-    "valueContributionSubtitle": "Umnikelo wenani welikhopharethi ngayinye (USD ezigidini)",
+    "valueContributionSubtitle": "Umnikelo wenani welikhopharethi ngayinye (ZAR ezigidini)",
     "valueMillions": "Inani (Ezigidini)",
     "noStatementData": "Akukho data yesitatimende ehambisana nokukhetha kwakho.",
     "assemblingPerformanceStats": "Kuhlanganisa izibalo zokusebenta...",
@@ -2344,9 +2343,10 @@
     "depositsLabel": "Emadiphozithi",
     "savingsShort": "Imali Yekonga",
     "savingsLoansDepositsTitle": "Imali Yekonga, Emaloli & Emadiphozithi",
-    "monthlyFinancialBreakdown": "Ukuhlukaniswa kwakho kwetimali ngenyanga & umehluko",
     "loadErrorTitle": "Kwehluleka Kulayisha Datha Yekuhlukanisa",
-    "loadErrorDesc": "Kwenteka liphutsa ngesikhatsi kulayishwa kuhlukanisa kwekusebenta. Sicela utame futsi."
+    "loadErrorDesc": "Kwenteka liphutsa ngesikhatsi kulayishwa kuhlukanisa kwekusebenta. Sicela utame futsi.",
+    "periodFinancialBreakdown": "Ukuhlukaniswa kwakho kwetimali nemehluko ngesikhatsi",
+    "valueSzZar": "Inani (ZAR)"
   },
   "cooperativeDashboard": {
     "title": "Ideshibhodi Yekhopharethi",

@@ -176,9 +176,6 @@ pub async fn create_submission(
         created_by_name: Set(creator_name.clone()),
         edited_by: Set(submitted_by),
         edited_by_name: Set(creator_name),
-        rate_to_usd: Set(None),
-        rate_effective_date: Set(None),
-        rate_source: Set(None),
     };
 
     let submission = {
@@ -2672,9 +2669,6 @@ pub async fn create_apex_submission(
         created_by_name: Set(creator_name.clone()),
         edited_by: Set(submitted_by),
         edited_by_name: Set(creator_name),
-        rate_to_usd: Set(None),
-        rate_effective_date: Set(None),
-        rate_source: Set(None),
     };
 
     let submission = {

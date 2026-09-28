@@ -67,9 +67,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
           {(networkTrend?.rates_used ?? []).map(describeRate).join(" · ")}
         </p>
       )}
-      {!searching && (
-        <NationalCharts nfStats={nfStats} networkTrend={networkTrend} seriesQuery={seriesQuery} />
-      )}
+      {!searching && <NationalCharts nfStats={nfStats} seriesQuery={seriesQuery} />}
     </div>
   );
 };

@@ -252,7 +252,7 @@ fn fmt_trends(ctx: &QuestionnaireNarrativeContext) -> String {
 
 fn header(ctx: &QuestionnaireNarrativeContext) -> String {
     format!(
-        "COOPERATIVE:\n- Name: {}\n- Region: {}\n- Sector: {}\n- Institution type: {}\n- Registration number: {}\n- Reporting period: {}\n- Currency: {} (converted from SZL when USD)\n",
+        "COOPERATIVE:\n- Name: {}\n- Region: {}\n- Sector: {}\n- Institution type: {}\n- Registration number: {}\n- Reporting period: {}\n- Currency: {}\n",
         ctx.coop_name, ctx.region, ctx.sector, ctx.institution_type, ctx.reg_no, ctx.period_label, ctx.currency
     )
 }
@@ -560,9 +560,8 @@ mod tests {
                 period_type: Some("QUARTERLY".into()),
                 period_value: Some("Q2".into()),
                 period_label: "Q2 2025".into(),
-                currency: "USD".into(),
+                currency: "SZL".into(),
                 native_currency: "SZL".into(),
-                rate_to_usd: Some(18.5),
                 available_periods: vec![],
             },
             thresholds: DashboardThresholds {
@@ -684,7 +683,7 @@ mod tests {
     #[test]
     fn indicator_table_marks_missing_values_and_changes() {
         let table = fmt_indicator_table(&context(), &["structure", "risk"]);
-        assert!(table.contains("| total_assets | USD 120 | USD 100 | +20.0% | computed |"));
+        assert!(table.contains("| total_assets | SZL 120 | SZL 100 | +20.0% | computed |"));
         assert!(table.contains("| par_gt_90_pct | not reported | - | - | not_reported |"));
     }
 

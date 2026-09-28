@@ -1,6 +1,6 @@
 export interface GridLine {
   account_code?: number | null;
-  value_usd: number;
+  value_zar: number;
   month: number;
 }
 
@@ -9,7 +9,7 @@ export type AccountValues = Record<number, number>;
 const FIRST_FLOW_CODE = 4000;
 
 /**
- * Account values of one statement at a chosen month, in USD. Balance-sheet
+ * Account values of one statement at a chosen month, in SZL. Balance-sheet
  * accounts come from that month; income and expense accounts are summed from
  * January to that month. An annual statement (month 0 only) answers for any
  * month. A month the statement does not cover returns null, never zeros.
@@ -24,7 +24,7 @@ export const accountValuesAt = (
   const values: AccountValues = {};
   const add = (line: GridLine): void => {
     const code = line.account_code as number;
-    values[code] = (values[code] ?? 0) + line.value_usd;
+    values[code] = (values[code] ?? 0) + line.value_zar;
   };
 
   if (monthly.length === 0) {

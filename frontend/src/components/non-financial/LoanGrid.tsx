@@ -9,7 +9,7 @@ interface LoanGridProps {
   loans: LoanResponse[];
   isLoading?: boolean;
   isReadOnly?: boolean;
-  rateToUsd?: number | null;
+  rateToZar?: number | null;
   errorRowIds?: string[];
   onEdit?: (loan: LoanResponse) => void;
   onDelete?: (id: string) => void;
@@ -19,7 +19,7 @@ export function LoanGrid({
   loans,
   isLoading,
   isReadOnly,
-  rateToUsd,
+  rateToZar,
   errorRowIds,
   onEdit,
   onDelete,
@@ -27,7 +27,7 @@ export function LoanGrid({
   const { t } = useTranslation();
   const columns = useLoanColumns(
     isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
-    rateToUsd,
+    rateToZar,
   );
 
   const errorSet = new Set(errorRowIds ?? []);

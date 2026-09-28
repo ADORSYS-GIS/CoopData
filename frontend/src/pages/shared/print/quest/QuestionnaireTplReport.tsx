@@ -83,7 +83,7 @@ export const QuestionnaireTplReport: FC<Props> = ({ apexName, status, ...props }
           ["Reporting period", a.period, "Submission ref.", a.ref],
           ["Date of issue", date, "Submission status", state],
           ["Reporting currency", currency, "Data collection", "Questionnaire (basic tier)"],
-          ["Benchmark framework", "WOCCU PEARLS (adapted)", "Version", "1.0"],
+          ["Benchmark framework", "PEARLS (adapted)", "Version", "1.0"],
         ],
         basis:
           "This assessment is compiled from the questionnaire the cooperative answered through the Coop Data platform. It is not based on financial statements. Some indicators are estimated from grouped answers and some cannot be computed when a question was left unanswered; both are listed in Annex A. Liquidity is measured against member savings and institutional capital against total assets, as defined in Annex B. Figures have not been independently audited.",

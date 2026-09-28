@@ -5,24 +5,24 @@ import { apiClient } from "@/openapi-client";
 export interface MonthlyTrendPoint {
   month: number;
   month_label: string;
-  /** Member savings/deposits (COA 2100), USD. */
+  /** Member savings/deposits (COA 2100), SZL. */
   savings: number;
-  /** Gross loan portfolio (COA 1200), USD. */
+  /** Gross loan portfolio (COA 1200), SZL. */
   loans: number;
   /** Liquid assets (COA 1100) — cash/near-cash, distinct from total assets. */
   liquid_assets: number;
   /** Total assets (COA 1999) — already includes loans and liquid_assets. */
   assets: number;
-  /** Total liabilities (COA 2999), USD. */
+  /** Total liabilities (COA 2999), SZL. */
   liabilities: number;
-  /** Total equity (COA 3999), USD. May be negative. */
+  /** Total equity (COA 3999), SZL. May be negative. */
   equity: number;
 }
 
 export interface MonthlyTrendResponse {
   year: number;
   months: MonthlyTrendPoint[];
-  /** Distinct USD conversion rates applied to the submissions included. */
+  /** Distinct SZL conversion rates applied to the submissions included. */
   rates_used?: RateUsed[];
 }
 

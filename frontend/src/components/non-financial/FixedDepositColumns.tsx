@@ -5,7 +5,7 @@ import { SortableHeader } from "@/components/ui/data-table";
 import { Pencil, Trash2 } from "lucide-react";
 import type { FixedDepositResponse } from "@/types/non-financial";
 import { useTranslation } from "react-i18next";
-import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
+import { useSzlFormatter } from "@/hooks/shared/useExchangeRates";
 
 interface FixedDepositActions {
   onEdit?: (fd: FixedDepositResponse) => void;
@@ -14,10 +14,10 @@ interface FixedDepositActions {
 
 export function useFixedDepositColumns(
   actions?: FixedDepositActions,
-  rateToUsd?: number | null,
+  rateToZar?: number | null,
 ): ColumnDef<FixedDepositResponse>[] {
   const { t } = useTranslation();
-  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL", rateToUsd);
+  const { format: formatCurrency, formatOriginal } = useSzlFormatter("SZL", rateToZar);
   return [
     {
       accessorKey: "fixed_deposit_id",

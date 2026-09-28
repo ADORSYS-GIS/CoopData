@@ -12,7 +12,6 @@ import { buildMetricGroups } from "@/components/analytics/national/metrics";
 import { PanelSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
-import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
 import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
@@ -59,7 +58,6 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
   };
 
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(latest?.id);
-  const { data: trend } = useMonthlyTrend(scope, hasApproved);
   const { data: nfStats } = useNfStatistics(isCooperative, scope, hasApproved);
 
   const kpiMap = useMemo(
@@ -108,7 +106,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
           kpiMap={kpiMap}
           hasKpis={!!kpisData}
           nfStats={nfStats}
-          trend={trend}
+          points={series?.points}
           seriesQuery={seriesQuery}
         />
       )}

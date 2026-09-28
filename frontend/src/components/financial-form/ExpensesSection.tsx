@@ -91,7 +91,7 @@ export function ExpensesSection({
           <Calculator className="size-4 text-muted-foreground" />
           <span className="text-muted-foreground">{t("financial.totalFinancialExpenses")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalFinancialExpenses)}
+            SZL {formatNumber(totals.totalFinancialExpenses)}
           </span>
         </div>
       </div>
@@ -177,7 +177,7 @@ export function ExpensesSection({
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalOperatingExpenses")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalOperatingExpenses)}
+            SZL {formatNumber(totals.totalOperatingExpenses)}
           </span>
         </div>
       </div>
@@ -221,7 +221,7 @@ export function ExpensesSection({
           <span className="font-semibold text-foreground">{t("financial.totalExpenses")}</span>
         </div>
         <span className="text-xl font-bold text-destructive">
-          ${formatNumber(totals.totalExpenses)}
+          SZL {formatNumber(totals.totalExpenses)}
         </span>
       </div>
     </div>

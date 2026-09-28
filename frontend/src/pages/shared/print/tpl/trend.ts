@@ -59,8 +59,8 @@ export interface AmountUnit {
 /** Millions for large amounts, thousands for small ones, so small figures do not round to zero. */
 export const unitFor = (largest: number): AmountUnit =>
   largest >= 1_000_000
-    ? { divisor: 1_000_000, label: "USD million" }
-    : { divisor: 1_000, label: "USD thousand" };
+    ? { divisor: 1_000_000, label: "SZL million" }
+    : { divisor: 1_000, label: "SZL thousand" };
 
 /** Amount in the chosen unit, to two decimals. */
 export const scaled = (value: number, unit: AmountUnit): number =>

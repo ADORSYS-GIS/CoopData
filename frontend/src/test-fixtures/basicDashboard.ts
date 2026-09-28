@@ -36,9 +36,9 @@ export const basicDashboardFixture: BasicDashboardResponse = {
     period_type: "QUARTERLY",
     period_value: "Q1",
     period_label: "Q1 2026",
-    currency: "USD",
+    currency: "SZL",
     native_currency: "SZL",
-    rate_to_usd: 18.5,
+    rate_to_zar: 18.5,
     available_periods: [
       { reporting_year: 2026, period_type: "QUARTERLY", period_value: "Q1", label: "Q1 2026" },
       { reporting_year: 2025, period_type: "QUARTERLY", period_value: "Q4", label: "Q4 2025" },

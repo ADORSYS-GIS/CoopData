@@ -14,7 +14,7 @@ Basic Analytics page, and produces a PDF report per questionnaire submission.
    year no longer collide.
 2. `services/questionnaire_kpi` merges the two forms (financial answers win),
    parses them into `Inputs` and derives every indicator. Pure functions, no I/O.
-3. `services/basic_dashboard::build` selects the period, converts money to USD
+3. `services/basic_dashboard::build` selects the period, converts money to ZAR
    with each submission's frozen rate (or the current SZL rate), consolidates
    and builds the previous-period comparison, the series and the market share.
 4. `GET /api/v1/analytics/basic-dashboard` exposes the result. Cooperatives see
@@ -60,7 +60,7 @@ chronological periods of the selected period type, ending at the selected one.
 
 ## Known limits
 
-- The questionnaires are entered in SZL. The dashboard converts to USD by
+- The questionnaires are entered in SZL. The dashboard converts to ZAR by
   default and can show the entered currency.
 - Sector-wide figures outside the SACCO returns (banks, insurance, capital
   markets, FSP licensing) cannot come from these forms.

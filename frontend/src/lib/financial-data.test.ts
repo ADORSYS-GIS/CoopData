@@ -32,7 +32,7 @@ function createMinimalBalanceSheet(overrides: Partial<BalanceSheet> = {}): Balan
     cooperativeId: "coop-001",
     cooperativeName: "Test Cooperative",
     submissionDate: "2024-12-31",
-    currency: "USD",
+    currency: "SZL",
     accountingYear: "calendar",
     liquidAssets: {
       cashOnHand: 1000,
@@ -439,9 +439,9 @@ describe("createEmptyBalanceSheet", () => {
     expect(bs.memberDeposits.voluntarySavings).toBe(0);
   });
 
-  it("sets default currency to USD", () => {
+  it("sets default currency to SZL", () => {
     const bs = createEmptyBalanceSheet();
-    expect(bs.currency).toBe("USD");
+    expect(bs.currency).toBe("SZL");
   });
 
   it("sets default accounting year to calendar", () => {

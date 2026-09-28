@@ -379,15 +379,15 @@ pub enum Currency {
     #[default]
     #[sea_orm(string_value = "SZL")]
     Szl,
-    #[sea_orm(string_value = "USD")]
-    Usd,
+    #[sea_orm(string_value = "ZAR")]
+    Zar,
 }
 
 impl Currency {
     pub fn as_str(&self) -> &'static str {
         match self {
             Currency::Szl => "SZL",
-            Currency::Usd => "USD",
+            Currency::Zar => "ZAR",
         }
     }
 }

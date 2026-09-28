@@ -7,8 +7,8 @@ export interface CooperativeLineItem {
   account_name: string;
   /** Amount in the statement's native currency, as printed in the source document. */
   value: number;
-  /** Amount converted to USD server-side at the submission's frozen (or current) rate. */
-  value_usd: number;
+  /** Amount converted to SZL server-side at the submission's frozen (or current) rate. */
+  value_zar: number;
   month: number;
   is_derived?: boolean;
 }

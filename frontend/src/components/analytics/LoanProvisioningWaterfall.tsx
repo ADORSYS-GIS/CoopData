@@ -69,9 +69,9 @@ export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Pr
   ];
 
   const formatCurrency = (val: number) => {
-    if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
-    if (val >= 1000) return `$${(val / 1000).toFixed(1)}K`;
-    return `$${val.toFixed(0)}`;
+    if (val >= 1000000) return `SZL ${(val / 1000000).toFixed(1)}M`;
+    if (val >= 1000) return `SZL ${(val / 1000).toFixed(1)}K`;
+    return `SZL ${val.toFixed(0)}`;
   };
 
   return (

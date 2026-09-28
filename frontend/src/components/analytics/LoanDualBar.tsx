@@ -120,7 +120,7 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `$${v}K`}
+              tickFormatter={(v) => `SZL ${v}K`}
             />
             <Tooltip
               contentStyle={{
@@ -129,7 +129,7 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
-              formatter={(val: number) => [`$${val}K`]}
+              formatter={(val: number) => [`SZL ${val}K`]}
               cursor={{ fill: "var(--muted)", opacity: 0.3 }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />

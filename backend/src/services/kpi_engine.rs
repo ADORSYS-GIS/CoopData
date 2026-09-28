@@ -427,13 +427,13 @@ impl KpiEngine {
         let abs = value.abs();
         let sign = if value < 0.0 { "-" } else { "" };
         if abs >= 1_000_000_000.0 {
-            format!("{sign}{:.2}B", abs / 1_000_000_000.0)
+            format!("SZL {sign}{:.2}B", abs / 1_000_000_000.0)
         } else if abs >= 1_000_000.0 {
-            format!("{sign}{:.1}M", abs / 1_000_000.0)
+            format!("SZL {sign}{:.1}M", abs / 1_000_000.0)
         } else if abs >= 1_000.0 {
-            format!("{sign}{:.0}K", abs / 1_000.0)
+            format!("SZL {sign}{:.0}K", abs / 1_000.0)
         } else {
-            format!("{sign}{abs:.0}")
+            format!("SZL {sign}{abs:.0}")
         }
     }
 
@@ -641,11 +641,11 @@ mod tests {
 
     #[test]
     fn test_currency_formatting() {
-        assert_eq!(KpiEngine::format_currency(1_500_000_000.0), "$1.50B");
-        assert_eq!(KpiEngine::format_currency(6_400_000.0), "$6.4M");
-        assert_eq!(KpiEngine::format_currency(420_000.0), "$420K");
-        assert_eq!(KpiEngine::format_currency(500.0), "$500");
-        assert_eq!(KpiEngine::format_currency(-2_000_000.0), "-$2.0M");
+        assert_eq!(KpiEngine::format_currency(1_500_000_000.0), "SZL 1.50B");
+        assert_eq!(KpiEngine::format_currency(6_400_000.0), "SZL 6.4M");
+        assert_eq!(KpiEngine::format_currency(420_000.0), "SZL 420K");
+        assert_eq!(KpiEngine::format_currency(500.0), "SZL 500");
+        assert_eq!(KpiEngine::format_currency(-2_000_000.0), "SZL -2.0M");
     }
 
     #[test]

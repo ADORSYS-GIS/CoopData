@@ -407,11 +407,9 @@ pub async fn create_manual_financial_statement(
     let fs_id = Uuid::new_v4();
     let accounting_year =
         AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar);
-    let currency = if body.currency == "USD" {
-        Currency::Usd
-    } else {
-        Currency::Szl
-    };
+    // Only SZL is accepted: the platform no longer offers or converts
+    // another reporting currency (see services::currency).
+    let currency = Currency::Szl;
 
     // ── Build line item active models in memory (no DB calls yet) ───────────────
     let mut line_item_models: Vec<LineItemModel> = Vec::new();
@@ -1604,10 +1602,8 @@ pub async fn get_ministry_stats(
     use crate::entities::enums::SubmissionStatus;
 
     // Count cooperatives in the caller's scope, narrowed by the hierarchy filter.
-    let caller_coop_ids = crate::api::handlers::cooperative::resolve_caller_cooperative_ids(
-        &state, &claims,
-    )
-    .await?;
+    let caller_coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
     let all_coop_ids: Vec<Uuid> = filter_cooperatives(
         &state,
         caller_coop_ids,
@@ -2254,11 +2250,6 @@ pub async fn get_monthly_trend(
     // real ~$5.2M. Resolving one authoritative value per code per
     // statement/month avoids both.
     let coa = state.coa_repo.find_all().await?;
-    let rates = state.currency_service.load_rates().await?;
-    let current_rates = state.exchange_rate_repo.find_all().await?;
-    let submission_by_id: std::collections::HashMap<Uuid, &crate::entities::submission::Model> =
-        year_filtered.iter().map(|s| (s.id, *s)).collect();
-    let mut rates_used: Vec<crate::api::dto::common::RateUsed> = Vec::new();
     let fs_by_id: std::collections::HashMap<Uuid, &crate::entities::financial_statement::Model> =
         financial_statements.iter().map(|fs| (fs.id, fs)).collect();
 
@@ -2287,31 +2278,17 @@ pub async fn get_monthly_trend(
         if month_idx >= 12 {
             continue;
         }
-        let Some(fs) = fs_by_id.get(fs_id) else {
+        if !fs_by_id.contains_key(fs_id) {
             continue;
-        };
-        let fs_submission = submission_by_id.get(&fs.submission_id).copied();
-        let frozen_rate = fs_submission.and_then(crate::services::currency::frozen_rate_of);
-        if let Some(used) = crate::api::handlers::exchange_rate::rate_used_for(
-            &fs.currency,
-            fs_submission,
-            &current_rates,
-        ) {
-            if !rates_used.contains(&used) {
-                rates_used.push(used);
-            }
         }
         let resolved = crate::services::coa_rollup::resolve(raw, &coa);
-        let to_usd = |code: i32| {
-            let v = resolved.get(&code).copied().unwrap_or(0.0);
-            crate::services::currency::to_usd_frozen(v, &fs.currency, frozen_rate, &rates)
-        };
-        months[month_idx].savings += to_usd(2100);
-        months[month_idx].loans += to_usd(1200);
-        months[month_idx].liquid_assets += to_usd(1100);
-        months[month_idx].assets += to_usd(1999);
-        months[month_idx].liabilities += to_usd(2999);
-        months[month_idx].equity += to_usd(3999);
+        let value_of = |code: i32| resolved.get(&code).copied().unwrap_or(0.0);
+        months[month_idx].savings += value_of(2100);
+        months[month_idx].loans += value_of(1200);
+        months[month_idx].liquid_assets += value_of(1100);
+        months[month_idx].assets += value_of(1999);
+        months[month_idx].liabilities += value_of(2999);
+        months[month_idx].equity += value_of(3999);
     }
 
     tracing::info!(
@@ -2327,7 +2304,6 @@ pub async fn get_monthly_trend(
         Json(MonthlyTrendResponse {
             year,
             months,
-            rates_used,
         }),
     ))
 }

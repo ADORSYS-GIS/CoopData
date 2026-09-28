@@ -158,7 +158,7 @@ function Hero() {
             {[
               ["12,842", t("landing.hero.statRegCoops")],
               ["2.4M", t("landing.hero.statActiveMembers")],
-              ["$1.2B", t("landing.hero.statCombinedAssets")],
+              ["SZL 1.2B", t("landing.hero.statCombinedAssets")],
             ].map(([v, l]) => (
               <div key={l}>
                 <dt className="font-heading text-2xl font-bold tracking-tight text-foreground num">
@@ -206,7 +206,7 @@ function HeroPanel() {
         />
         <MiniKpi
           label={t("landing.heroPanel.loanPortfolio")}
-          value="$842M"
+          value="SZL 842M"
           delta="1.2% NPL"
           tone="warning"
         />
@@ -280,7 +280,7 @@ function TrustStrip() {
   const partners = [
     { src: "/partner-1.png", alt: "Partner 1" },
     { src: "/partner-2.png", alt: "Partner 2" },
-    { src: "/partner-5.png", alt: "Partner 5" },
+    { src: "/partner-11.png", alt: "Partner 5" },
   ];
 
   return (
@@ -379,7 +379,7 @@ function Stats() {
   const stats = [
     { v: "12,842", l: t("landing.hero.statRegCoops"), s: t("landing.stats.regionsSub") },
     { v: "2.4M", l: t("landing.hero.statActiveMembers"), s: t("landing.stats.membersSub") },
-    { v: "$1.2B", l: t("landing.stats.combinedSavings"), s: t("landing.stats.savingsSub") },
+    { v: "SZL 1.2B", l: t("landing.stats.combinedSavings"), s: t("landing.stats.savingsSub") },
     { v: "92.4", l: t("landing.stats.nationalCompliance"), s: t("landing.stats.complianceSub") },
   ];
   return (

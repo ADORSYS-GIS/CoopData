@@ -168,7 +168,7 @@ export function BasicFilterBar({
         role="group"
         aria-label={f("currency")}
       >
-        {(["usd", "native"] as const).map((currency) => (
+        {(["zar", "native"] as const).map((currency) => (
           <button
             key={currency}
             type="button"

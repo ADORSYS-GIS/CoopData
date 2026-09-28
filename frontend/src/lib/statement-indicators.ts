@@ -25,7 +25,7 @@ export interface StatementPoint {
 export type IndicatorGroup =
   "profitability" | "loanQuality" | "liquidity" | "structure" | "capital";
 
-export type IndicatorUnit = "usd" | "pct" | "pct2";
+export type IndicatorUnit = "zar" | "pct" | "pct2";
 
 export interface StatementIndicator {
   key: string;
@@ -61,21 +61,21 @@ const DEFINITIONS: Definition[] = [
   {
     key: "totalIncome",
     group: "profitability",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: true,
     compute: (p) => p.total_income,
   },
   {
     key: "totalExpenditure",
     group: "profitability",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: false,
     compute: (p) => p.total_expenses,
   },
   {
     key: "netIncome",
     group: "profitability",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: true,
     compute: (p) => p.net_income,
   },
@@ -119,14 +119,14 @@ const DEFINITIONS: Definition[] = [
   {
     key: "grossLoans",
     group: "loanQuality",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: null,
     compute: (p) => p.loans,
   },
   {
     key: "netLoans",
     group: "loanQuality",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: null,
     compute: (p) => p.loans - p.provisions,
   },
@@ -154,14 +154,14 @@ const DEFINITIONS: Definition[] = [
   {
     key: "valueAtRisk",
     group: "loanQuality",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: false,
     compute: arrears30,
   },
   {
     key: "provisions",
     group: "loanQuality",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: null,
     compute: (p) => p.provisions,
   },
@@ -176,7 +176,7 @@ const DEFINITIONS: Definition[] = [
   {
     key: "liquidAssets",
     group: "liquidity",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: null,
     compute: (p) => p.liquid_assets,
   },
@@ -201,7 +201,7 @@ const DEFINITIONS: Definition[] = [
   {
     key: "totalAssets",
     group: "structure",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: null,
     compute: (p) => p.assets,
   },
@@ -244,7 +244,7 @@ const DEFINITIONS: Definition[] = [
   {
     key: "institutionalCapital",
     group: "capital",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: true,
     compute: institutionalCapital,
   },
@@ -268,28 +268,28 @@ const DEFINITIONS: Definition[] = [
   {
     key: "totalEquity",
     group: "capital",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: true,
     compute: (p) => p.equity,
   },
   {
     key: "shareCapital",
     group: "capital",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: null,
     compute: (p) => p.share_capital,
   },
   {
     key: "retainedEarnings",
     group: "capital",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: true,
     compute: (p) => p.retained_earnings,
   },
   {
     key: "statutoryReserve",
     group: "capital",
-    unit: "usd",
+    unit: "zar",
     higherIsBetter: true,
     compute: (p) => p.statutory_reserve,
   },
@@ -332,7 +332,7 @@ const changeOf = (
   before: number | null,
 ): number | null => {
   if (now === null || before === null) return null;
-  if (unit !== "usd") return now - before;
+  if (unit !== "zar") return now - before;
   return before !== 0 ? ((now - before) / Math.abs(before)) * 100 : null;
 };
 

@@ -129,7 +129,7 @@ export const indicatorsPage = (a: Analysis, no: string, trend: readonly TrendRow
       <p className="src">
         Members, borrowers and their breakdowns come from the member and loan ledgers of the
         cooperatives that submitted them. The portfolio-at-risk amounts come from the approved
-        financial statements, converted to USD.
+        financial statements, converted to SZL.
       </p>
     </>
   ),

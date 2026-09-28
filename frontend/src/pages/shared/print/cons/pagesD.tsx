@@ -163,8 +163,8 @@ export const annexBPage = (no: string): PageSpec => ({
         </tbody>
       </table>
       <p className="src">
-        Benchmarks follow the WOCCU PEARLS monitoring system as configured on the Coop Data
-        platform. Supervisory authorities may apply stricter national prudential limits.
+        Benchmarks follow the PEARLS monitoring system as configured on the Coop Data platform.
+        Supervisory authorities may apply stricter national prudential limits.
       </p>
       <EndOfReport />
     </>
