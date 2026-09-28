@@ -123,7 +123,7 @@ export const ConsolidatedTplReport: FC<ConsInput> = (input) => {
             "Classification",
             "Official — confidential",
           ],
-          ["Benchmark framework", "WOCCU PEARLS (adapted)", "Version", "1.0"],
+          ["Benchmark framework", "PEARLS (adapted)", "Version", "1.0"],
         ],
         basisTitle: "Purpose and basis of preparation",
         basis: `This report shows ${tier === "Ministry" ? "Ministry leadership" : tier === "Federation" ? "federation leadership" : "the apex organisation"} the condition of the supervised cooperative sector. It is compiled from annual returns submitted through the Coop Data platform. "Average" indicators are simple averages of the cooperatives' ratios; where an aggregate ratio (the ratio of sector totals) can be derived, it is shown beside the average. Figures that could not be reconciled are flagged and explained in Annex A. Figures have not been independently audited.`,

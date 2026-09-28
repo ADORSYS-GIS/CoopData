@@ -1,22 +1,27 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { YearPickerFilter } from "@/components/shared/YearPickerFilter";
 import { Scale } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { usePeriodOptions } from "@/hooks/analytics/usePeriodOptions";
+import { useUserRole } from "@/lib/auth";
+import { LATEST } from "@/lib/analytics-filters";
 
 export const BenchmarkingPage: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+  const role = useUserRole();
 
-  const yearOptions = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
+  // Same source of years as Analytics: reporting years with an approved
+  // statement in the caller's scope, so the picker opens back to 2000 and
+  // defaults to the latest year that actually has data.
+  const periods = usePeriodOptions(role);
+  const dataYears = useMemo(() => periods.map((p) => p.reporting_year), [periods]);
+  const latestDataYear = dataYears.length > 0 ? Math.max(...dataYears) : currentYear;
+
+  const [year, setYear] = useState<string>(LATEST);
+  const selectedYear = year === LATEST ? latestDataYear : Number(year);
 
   return (
     <AppShell title={t("benchmarking.title")} subtitle={t("benchmarking.subtitle")}>
@@ -35,27 +40,18 @@ export const BenchmarkingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="w-full sm:w-48">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">
-              {t("benchmarking.reportingYear")}
-            </label>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t("benchmarking.selectYear")} />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y} value={y}>
-                    {t("benchmarking.calendarYear", { year: y })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <YearPickerFilter
+            label={t("benchmarking.reportingYear")}
+            value={year}
+            onValueChange={setYear}
+            latestValue={LATEST}
+            latestLabel={t("basicDashboard.filters.allPeriods")}
+            currentYear={currentYear}
+          />
         </div>
 
         {/* Benchmarking Comparison Widget */}
-        <CooperativeComparison reportingYear={Number(selectedYear)} />
+        <CooperativeComparison reportingYear={selectedYear} />
       </div>
     </AppShell>
   );

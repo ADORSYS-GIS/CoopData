@@ -9,7 +9,6 @@ export interface BasicFilterState {
   region: string;
   sector: string;
   cooperativeId: string;
-  currency: "usd" | "native";
 }
 
 export const DEFAULT_FILTERS: BasicFilterState = {
@@ -19,7 +18,6 @@ export const DEFAULT_FILTERS: BasicFilterState = {
   region: ALL,
   sector: ALL,
   cooperativeId: ALL,
-  currency: "usd",
 };
 
 export const REGIONS = ["Hhohho", "Lubombo", "Manzini", "Shiselweni"];
@@ -61,7 +59,7 @@ export const periodOptions = (
   );
 
 export const filtersToParams = (state: BasicFilterState): BasicDashboardParams => {
-  const params: BasicDashboardParams = { currency: state.currency };
+  const params: BasicDashboardParams = {};
   if (state.year !== ALL) params.reportingYear = Number(state.year);
   if (state.periodType !== ALL) params.periodType = state.periodType;
   if (state.periodValue !== ALL) params.periodValue = state.periodValue;

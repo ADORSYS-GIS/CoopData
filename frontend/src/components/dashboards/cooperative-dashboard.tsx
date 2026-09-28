@@ -296,7 +296,7 @@ export function CooperativeDashboard() {
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                      tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
+                      tickFormatter={(val) => `SZL ${(val / 1000).toFixed(0)}k`}
                     />
                     <Tooltip
                       cursor={{ fill: "var(--muted)", opacity: 0.2 }}
@@ -307,7 +307,10 @@ export function CooperativeDashboard() {
                         fontSize: 12,
                         color: "var(--foreground)",
                       }}
-                      formatter={(val: number) => [`$${val.toLocaleString()}`, t("common.amount")]}
+                      formatter={(val: number) => [
+                        `SZL ${val.toLocaleString()}`,
+                        t("common.amount"),
+                      ]}
                     />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       {financialOverview.map((entry, index) => (

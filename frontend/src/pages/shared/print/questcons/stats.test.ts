@@ -25,7 +25,7 @@ const dashboard = (rows: CooperativeRow[], inScope = rows.length): BasicDashboar
       cooperatives_reporting: rows.length,
       cooperatives_in_scope: inScope,
       period_label: "2025",
-      currency: "USD",
+      currency: "SZL",
     },
     thresholds: { liquidity_minimum_pct: 15, institutional_capital_minimum_pct: 8 },
     indicators: [],

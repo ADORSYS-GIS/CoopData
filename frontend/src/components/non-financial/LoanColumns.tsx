@@ -5,7 +5,7 @@ import { SortableHeader } from "@/components/ui/data-table";
 import { Pencil, Trash2 } from "lucide-react";
 import type { LoanResponse } from "@/types/non-financial";
 import { useTranslation } from "react-i18next";
-import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
+import { useSzlFormatter } from "@/hooks/shared/useExchangeRates";
 
 const loanStatusVariant = (status: string) => {
   if (status === "Performing") return "default" as const;
@@ -21,10 +21,10 @@ interface LoanActions {
 
 export function useLoanColumns(
   actions?: LoanActions,
-  rateToUsd?: number | null,
+  rateToZar?: number | null,
 ): ColumnDef<LoanResponse>[] {
   const { t } = useTranslation();
-  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL", rateToUsd);
+  const { format: formatCurrency, formatOriginal } = useSzlFormatter("SZL", rateToZar);
   return [
     {
       accessorKey: "loan_id",

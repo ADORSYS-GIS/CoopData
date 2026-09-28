@@ -975,15 +975,13 @@ pub async fn get_comparative_statements(
     }
 
     // Chart-of-accounts rollup rules (e.g. 1200 "Gross Loans" = sum of
-    // 1201-1205) and the USD exchange rates — loaded once, applied per
+    // 1201-1205), in the currency reported — loaded once, applied per
     // cooperative below, so every grid (Rankings/Portfolio
     // Classification/Income Statement/Financial Indicators) sees
     // consistently-resolved parent totals in a single display currency
     // instead of blank cells whenever a source document only populated
     // child account codes.
     let coa = state.coa_repo.find_all().await?;
-    let rates = state.currency_service.load_rates().await?;
-    let current_rates = state.exchange_rate_repo.find_all().await?;
 
     // Build the grids response
     let mut grids = vec![];
@@ -996,17 +994,9 @@ pub async fn get_comparative_statements(
         let mut currency = crate::entities::enums::Currency::Szl;
         let mut is_validated = false;
         let mut has_unmapped_items = false;
-        let mut rate_used = None;
 
         if let Some(fs) = fs_opt {
             currency = fs.currency.clone();
-            let fs_submission = year_submissions.iter().find(|s| s.id == fs.submission_id);
-            let frozen_rate = fs_submission.and_then(crate::services::currency::frozen_rate_of);
-            rate_used = crate::api::handlers::exchange_rate::rate_used_for(
-                &currency,
-                fs_submission,
-                &current_rates,
-            );
             is_validated = fs.is_validated;
 
             if let Some(items) = items_by_fs.get(&fs.id) {
@@ -1026,12 +1016,6 @@ pub async fn get_comparative_statements(
                         account_code: item.account_code,
                         account_name: item.account_name.clone(),
                         value: item.value.and_then(|v| v.to_f64()).unwrap_or(0.0),
-                        value_usd: crate::services::currency::to_usd_frozen(
-                            item.value.and_then(|v| v.to_f64()).unwrap_or(0.0),
-                            &currency,
-                            frozen_rate,
-                            &rates,
-                        ),
                         month: item.month as i32,
                         is_derived: false,
                     });
@@ -1058,12 +1042,6 @@ pub async fn get_comparative_statements(
                             account_code: Some(account.account_code),
                             account_name: account.account_name.clone(),
                             value,
-                            value_usd: crate::services::currency::to_usd_frozen(
-                                value,
-                                &currency,
-                                frozen_rate,
-                                &rates,
-                            ),
                             month: *month,
                             is_derived: true,
                         });
@@ -1079,7 +1057,6 @@ pub async fn get_comparative_statements(
             currency: currency.as_str().to_string(),
             is_validated,
             has_unmapped_items,
-            rate_used,
         });
     }
 

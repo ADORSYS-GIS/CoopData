@@ -77,9 +77,9 @@ interface SubmissionReviewPanelProps {
 // ─────────────────────────────────────────────────────────────────────
 
 const formatCurrency = (n: number) => {
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-  return `$${n.toFixed(0)}`;
+  if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
+  return `SZL ${n.toFixed(0)}`;
 };
 
 const statusTone = (status: SubmissionStatus) => {

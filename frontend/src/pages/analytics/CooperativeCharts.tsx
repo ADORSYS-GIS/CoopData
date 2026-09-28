@@ -15,15 +15,16 @@ import { PortfolioOverviewChart } from "@/components/analytics/PortfolioOverview
 import { SavingsLoansDepositsChart } from "@/components/analytics/SavingsLoansDepositsChart";
 import { SavingsRadialGauges } from "@/components/analytics/SavingsRadialGauges";
 import { PeriodSeriesCharts } from "@/components/analytics/national/PeriodSeriesCharts";
-import type { PeriodSeriesQuery } from "@/hooks/analytics/usePeriodSeries";
-import type { MonthlyTrendResponse } from "@/hooks/analytics/useMonthlyTrend";
+import type { PeriodSeriesPoint, PeriodSeriesQuery } from "@/hooks/analytics/usePeriodSeries";
 import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
+import { toPortfolioTrend } from "@/lib/period-series";
 
 interface CooperativeChartsProps {
   kpiMap: Record<string, number>;
   hasKpis: boolean;
   nfStats?: NfStatisticsResponse;
-  trend?: Pick<MonthlyTrendResponse, "months">;
+  /** Statement totals per period, in the frequency the filters chose. */
+  points?: readonly PeriodSeriesPoint[];
   seriesQuery: PeriodSeriesQuery;
 }
 
@@ -41,22 +42,12 @@ export function CooperativeCharts({
   kpiMap,
   hasKpis,
   nfStats,
-  trend,
+  points,
   seriesQuery,
 }: CooperativeChartsProps) {
   const { t } = useTranslation();
   const membership = nfStats?.membership;
-  const points = useMemo(
-    () =>
-      (trend?.months ?? []).map((m) => ({
-        month: m.month_label,
-        liquidity: m.liquid_assets,
-        savings: m.savings,
-        loans: m.loans,
-        totalAssets: m.assets,
-      })),
-    [trend],
-  );
+  const trend = useMemo(() => toPortfolioTrend(points ?? []), [points]);
 
   return (
     <div className="space-y-6">
@@ -64,7 +55,7 @@ export function CooperativeCharts({
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <div className="lg:col-span-3">
-              <PortfolioOverviewChart data={points} />
+              <PortfolioOverviewChart data={trend} />
             </div>
             <div className="lg:col-span-2">
               <GenderParticipationChart data={membership ?? EMPTY_GENDER} />
@@ -72,7 +63,7 @@ export function CooperativeCharts({
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <SavingsLoansDepositsChart data={points} />
+            <SavingsLoansDepositsChart data={trend} />
             {nfStats?.savings && (
               <Card
                 title={t("cooperativeAnalytics.savingsPortfolioTitle")}

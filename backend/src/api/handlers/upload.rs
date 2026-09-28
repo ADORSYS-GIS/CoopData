@@ -163,11 +163,10 @@ pub async fn upload_financial_statement(
 
     let accounting_year =
         AccountingYear::parse(&accounting_year_str).unwrap_or(AccountingYear::Calendar);
-    let currency = if currency_str == "USD" {
-        Currency::Usd
-    } else {
-        Currency::Szl
-    };
+    // Only SZL is accepted: the platform no longer offers or converts
+    // another reporting currency (see services::currency).
+    let currency = Currency::Szl;
+    let _ = &currency_str;
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
     let fs_id = Uuid::new_v4();
     let job_id = Uuid::new_v4();

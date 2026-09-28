@@ -29,7 +29,7 @@ export interface DashboardScope {
   period_label: string;
   currency: string;
   native_currency: string;
-  rate_to_usd: number | null;
+  rate_to_zar: number | null;
   available_periods: PeriodOption[];
 }
 
@@ -138,7 +138,6 @@ export interface BasicDashboardParams {
   cooperativeId?: string;
   federationId?: string;
   apexId?: string;
-  currency?: "usd" | "native";
 }
 
 /** Every indicator key the backend can return, in display order per group. */

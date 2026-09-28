@@ -27,7 +27,7 @@ const movement = (rows: TrendRow[], pick: (row: TrendRow) => number, noun: strin
   const last = rows[rows.length - 1];
   if (!first || !last || pick(first) === 0) return "";
   const change = ((pick(last) - pick(first)) / Math.abs(pick(first))) * 100;
-  return `${noun} ${change >= 0 ? "rose" : "fell"} ${Math.abs(change).toFixed(1)}% from USD ${fmtMillions(pick(first))} in ${first.label} to USD ${fmtMillions(pick(last))} in ${last.label}.`;
+  return `${noun} ${change >= 0 ? "rose" : "fell"} ${Math.abs(change).toFixed(1)}% from SZL ${fmtMillions(pick(first))} in ${first.label} to SZL ${fmtMillions(pick(last))} in ${last.label}.`;
 };
 
 /** Returns null when fewer than two periods carry a statement, so no trend page is drawn. */
@@ -115,7 +115,7 @@ export const trendPage = ({ rows, no, scope }: TrendPageProps): PageSpec | null 
         </div>
         <p className="src">
           Source: approved financial statements. Balances are taken at the latest month of each
-          period. Amounts are shown in USD so that periods and cooperatives reporting in different
+          period. Amounts are shown in SZL so that periods and cooperatives reporting in different
           currencies can be compared; the statement tables elsewhere in this report use the currency
           reported by the cooperative.
         </p>

@@ -55,7 +55,6 @@ import { useChartOfAccounts } from "@/hooks/submissions/useFinancialStatement";
 // the account_name display column (used even before the hook resolves).
 import { ACCOUNT_CODES } from "@/lib/financial-data";
 import { Spinner } from "@/components/ui/spinner";
-import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
 import { useSubmissionRate } from "@/hooks/shared/useSubmissionRate";
 import { describeRate } from "@/lib/currency";
 
@@ -294,9 +293,7 @@ export const FinancialStatementEditor: React.FC<{
   const navigate = useNavigate();
   const { isOnline } = useNetworkStatus();
   const { data: fs } = useFinancialStatement(fsId);
-  const statementCurrency = fs?.currency ?? "SZL";
-  const { rateUsed, rateToUsd } = useSubmissionRate(fs?.submission_id);
-  const { format: formatUsdValue, ready: usdReady } = useUsdFormatter(statementCurrency, rateToUsd);
+  const { rateUsed } = useSubmissionRate(fs?.submission_id);
   const { data: items = [], isLoading: itemsLoading } = useLineItems(fsId);
   const updateItems = useUpdateLineItems(fsId);
   const validate = useValidateExtraction();
@@ -974,14 +971,6 @@ export const FinancialStatementEditor: React.FC<{
                                       <Edit3 className="size-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
                                     )}
                                   </button>
-                                  {usdReady &&
-                                    statementCurrency !== "USD" &&
-                                    monthItem.value !== null &&
-                                    monthItem.value !== undefined && (
-                                      <span className="text-[10px] font-mono text-muted-foreground">
-                                        ≈ {formatUsdValue(monthItem.value)}
-                                      </span>
-                                    )}
                                 </div>
                               )
                             ) : (

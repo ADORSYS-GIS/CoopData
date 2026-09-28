@@ -32,3 +32,26 @@ export const toStructureSeries = (points: readonly PeriodSeriesPoint[]): SeriesP
 
 export const toProfitabilitySeries = (points: readonly PeriodSeriesPoint[]): SeriesPoint[] =>
   points.map((p) => toSeriesPoint(p, { net_income: p.net_income }));
+
+export interface PortfolioTrendPoint {
+  /** Period label in the chosen frequency: a year, "Q1 2026", "H1 2026", a month. */
+  period: string;
+  liquidity: number;
+  loans: number;
+  savings: number;
+  totalAssets: number;
+}
+
+/**
+ * Portfolio-overview trend points, one per reporting period in the frequency
+ * the caller asked for (yearly stays yearly, quarterly stays quarterly), unlike
+ * the older monthly-trend endpoint which always laid points out over 12 months.
+ */
+export const toPortfolioTrend = (points: readonly PeriodSeriesPoint[]): PortfolioTrendPoint[] =>
+  points.map((p) => ({
+    period: p.period_label,
+    liquidity: p.liquid_assets,
+    loans: p.loans,
+    savings: p.savings,
+    totalAssets: p.assets,
+  }));

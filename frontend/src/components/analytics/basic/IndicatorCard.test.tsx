@@ -12,7 +12,7 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-const scope = { currency: "USD" };
+const scope = { currency: "SZL" };
 
 describe("IndicatorCard", () => {
   it("shows the formatted value and the delta with the right colour class", () => {

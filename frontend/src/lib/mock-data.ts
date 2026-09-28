@@ -7,7 +7,7 @@ export const KPI = {
   totalMembers: 2_412_300,
   womenShare: 0.541,
   youthShare: 0.378,
-  loanPortfolio: 842_100_000, // USD
+  loanPortfolio: 842_100_000, // SZL
   savingsPortfolio: 1_204_000_000,
   growthYoY: 0.072,
   complianceScore: 92.4,
@@ -51,7 +51,7 @@ export type Cooperative = {
   sector: string;
   region: string;
   members: number;
-  portfolio: number; // USD
+  portfolio: number; // SZL
   compliance: "Verified" | "Pending" | "Non-Compliant" | "Under Review";
   status: "Active" | "Inactive" | "Suspended";
   registeredOn: string;
@@ -673,10 +673,10 @@ export const APEXES: Apex[] = [
 ];
 
 export function formatCurrency(n: number) {
-  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-  return `$${n}`;
+  if (n >= 1e9) return `SZL ${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
+  return `SZL ${n}`;
 }
 
 export function formatNumber(n: number) {

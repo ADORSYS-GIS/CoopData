@@ -33,7 +33,7 @@ const byPosition = (a: FilterConfig, b: FilterConfig): number =>
 /**
  * Same inline filter pills as Basic Analytics: year, frequency and period
  * default to "Latest available", followed by the hierarchy filters the role can
- * use. Figures on this dashboard are always shown in USD.
+ * use. Figures on this dashboard are always shown in SZL.
  */
 export function AnalyticsFilterBar({
   filters,
@@ -111,7 +111,7 @@ export function AnalyticsFilterBar({
       })}
       <div className="flex items-center rounded-lg border border-border bg-background p-0.5 text-xs font-bold">
         <span className="rounded-md bg-primary px-2.5 py-1 text-primary-foreground">
-          {f("usd")}
+          {f("zar")}
         </span>
       </div>
       {isFiltered && (

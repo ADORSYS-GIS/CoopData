@@ -116,7 +116,7 @@ export const QuestionnaireConsolidatedReport: FC<Props> = ({
             filed,
           ],
           ["Reporting currency", currency, "Date of issue", date],
-          ["Benchmark framework", "WOCCU PEARLS (adapted)", "Reference", ref],
+          ["Benchmark framework", "PEARLS (adapted)", "Reference", ref],
         ],
         basisTitle: "Purpose and basis of preparation",
         basis:

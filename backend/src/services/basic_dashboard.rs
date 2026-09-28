@@ -10,10 +10,9 @@ use crate::api::dto::basic_dashboard::{
     DashboardThresholds, Demographics, GenderCount, MarketShare, PeriodOption, SeriesPoint,
     ShareRow,
 };
-use crate::entities::enums::{Currency, SubmissionStatus};
+use crate::entities::enums::SubmissionStatus;
 use crate::entities::{cooperative, questionnaire_response, submission};
 use crate::error::AppResult;
-use crate::services::currency::{frozen_rate_of, to_usd_frozen};
 use crate::services::questionnaire_kpi::{
     build_indicators, merge_answers, ratio_pct, series_values, with_previous, Derived, Inputs,
     INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
@@ -87,20 +86,9 @@ struct CoopPeriod {
     inputs: Inputs,
 }
 
-fn conversion_factor(sub: &submission::Model, usd: bool, rates: &HashMap<Currency, f64>) -> f64 {
-    if !usd {
-        return 1.0;
-    }
-    to_usd_frozen(1.0, &Currency::Szl, frozen_rate_of(sub), rates)
-}
-
 pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDashboardResponse> {
-    let usd = !req
-        .params
-        .currency
-        .as_deref()
-        .is_some_and(|c| c.eq_ignore_ascii_case("native"));
-    let rates = state.currency_service.load_rates().await?;
+    // The platform no longer standardizes onto a comparison currency: every
+    // figure is shown as reported, which is always SZL today.
 
     let coops: Vec<cooperative::Model> = state
         .cooperative_repo
@@ -170,12 +158,10 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         };
         entries
             .iter()
-            .filter_map(|(coop_id, ((fin, nf), sub_id))| {
+            .filter_map(|(coop_id, (fin_nf, _sub_id))| {
+                let (fin, nf) = fin_nf;
                 let coop = coop_by_id.get(coop_id)?;
-                let mut inputs = Inputs::from_answers(&merge_answers(fin.as_ref(), nf.as_ref()));
-                if let Some(sub) = submissions.get(sub_id) {
-                    inputs.scale_money(conversion_factor(sub, usd, &rates));
-                }
+                let inputs = Inputs::from_answers(&merge_answers(fin.as_ref(), nf.as_ref()));
                 Some(CoopPeriod {
                     coop: (*coop).clone(),
                     inputs,
@@ -316,21 +302,6 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         loan_accounts: gender(i.loan_acc_m, i.loan_acc_f),
     };
 
-    let rate_to_usd = usd
-        .then(|| {
-            selected
-                .as_ref()
-                .and_then(|k| by_period.get(k))
-                .and_then(|m| m.values().next())
-                .and_then(|(_, sid)| {
-                    submissions
-                        .get(sid)
-                        .map(|s| 1.0 / conversion_factor(s, true, &rates))
-                })
-        })
-        .flatten()
-        .filter(|r| r.is_finite());
-
     let reporting: HashSet<Uuid> = current.iter().map(|c| c.coop.id).collect();
     Ok(BasicDashboardResponse {
         scope: DashboardScope {
@@ -346,9 +317,8 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
             period_type: selected.as_ref().map(|k| k.period_type.clone()),
             period_value: selected.as_ref().map(|k| k.period_value.clone()),
             period_label: selected.as_ref().map(period_label).unwrap_or_default(),
-            currency: if usd { "USD" } else { NATIVE_CURRENCY }.to_string(),
+            currency: NATIVE_CURRENCY.to_string(),
             native_currency: NATIVE_CURRENCY.to_string(),
-            rate_to_usd,
             available_periods,
         },
         thresholds: DashboardThresholds {

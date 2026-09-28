@@ -62,8 +62,8 @@ describe("trendOf", () => {
 
 describe("unitFor", () => {
   it("uses millions for large amounts and thousands for small ones", () => {
-    expect(unitFor(2_500_000).label).toBe("USD million");
-    expect(unitFor(80_000).label).toBe("USD thousand");
+    expect(unitFor(2_500_000).label).toBe("SZL million");
+    expect(unitFor(80_000).label).toBe("SZL thousand");
   });
 
   it("scales an amount to two decimals in the chosen unit", () => {

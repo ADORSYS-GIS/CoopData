@@ -1,6 +1,7 @@
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
 import type { SavingsStats } from "@/hooks/analytics/useNfStatistics";
 import { useTranslation } from "react-i18next";
+import { compactNumber } from "@/lib/basic-dashboard";
 
 interface SavingsRadialGaugesProps {
   data: SavingsStats;
@@ -72,7 +73,7 @@ export function SavingsRadialGauges({ data }: SavingsRadialGaugesProps) {
         </p>
         <p className="text-xs text-muted-foreground">{t("analytics.totalSavingsBalanceNote")}</p>
         <p className="font-heading text-2xl font-bold text-foreground num mt-1">
-          ${data.total_balance.toLocaleString()}
+          SZL {compactNumber(data.total_balance)}
         </p>
       </div>
     </div>

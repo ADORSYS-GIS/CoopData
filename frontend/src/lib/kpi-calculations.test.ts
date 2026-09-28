@@ -21,7 +21,7 @@ function createMinimalBalanceSheet(): BalanceSheet {
     cooperativeId: "coop-001",
     cooperativeName: "Test Cooperative",
     submissionDate: "2024-12-31",
-    currency: "USD",
+    currency: "SZL",
     accountingYear: "calendar",
     liquidAssets: {
       cashOnHand: 1000,
@@ -224,7 +224,7 @@ describe("calculateFinancialKPIs", () => {
   it("formats currency values correctly", () => {
     const bs = createMinimalBalanceSheet();
     const kpis = calculateFinancialKPIs(bs);
-    expect(kpis.totalAssets.formatted).toMatch(/\$/);
+    expect(kpis.totalAssets.formatted).toMatch(/^SZL /);
   });
 
   it("formats percent values with % symbol", () => {

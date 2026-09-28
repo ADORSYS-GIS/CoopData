@@ -421,7 +421,7 @@ erDiagram
 | `review_tier` | `cooperative`, `apex`, `federation`, `ministry` |
 | `review_action` | `validated_extraction`, `submitted`, `approved`, `returned`, `rejected`, `commented` |
 | `account_category` | `assets`, `liabilities`, `equity`, `income`, `expenses`, `surplus` |
-| `currency` | `SZL`, `USD` |
+| `currency` | `SZL`, `ZAR` |
 | `accounting_year` | `calendar` (Jan→Dec), `fiscal` (Jun→Jul) |
 | `cooperative_type` | `sacco`, `multipurpose`, `farm`, `housing`, `transport`, `finance`, `other` |
 | `member_status` | `Active`, `Dormant`, `Exited` |
@@ -640,7 +640,7 @@ erDiagram
 | `cooperative_id` FK | Denormalized for scoped queries |
 | `reporting_year` | 2025 |
 | `accounting_year` | calendar vs fiscal — governs what `month=1` means |
-| `currency` | SZL/USD |
+| `currency` | SZL/ZAR |
 | `is_validated` | Coop confirmed AI extraction |
 | `validation_errors` JSONB | Array of validation errors |
 
