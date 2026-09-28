@@ -407,11 +407,9 @@ pub async fn create_manual_financial_statement(
     let fs_id = Uuid::new_v4();
     let accounting_year =
         AccountingYear::parse(&body.accounting_year).unwrap_or(AccountingYear::Calendar);
-    let currency = if body.currency == "USD" {
-        Currency::Usd
-    } else {
-        Currency::Szl
-    };
+    // Only SZL is accepted: the platform no longer offers or converts
+    // another reporting currency (see services::currency).
+    let currency = Currency::Szl;
 
     // ── Build line item active models in memory (no DB calls yet) ───────────────
     let mut line_item_models: Vec<LineItemModel> = Vec::new();
@@ -1575,9 +1573,21 @@ fn build_pdf_response(
 
 // ── S4-T6: Ministry stats endpoint ───────────────────────────────────────────
 
+#[derive(Debug, Default, serde::Deserialize, utoipa::IntoParams)]
+pub struct MinistryStatsQuery {
+    /// Restrict the counts to one reporting year; omitted counts every year.
+    pub reporting_year: Option<i32>,
+    pub cooperative_id: Option<Uuid>,
+    pub region: Option<String>,
+    pub sector: Option<String>,
+    pub federation_id: Option<Uuid>,
+    pub apex_id: Option<Uuid>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/ministry/stats",
+    params(MinistryStatsQuery),
     responses(
         (status = 200, description = "Ministry-level dashboard statistics", body = MinistryStatsResponse),
         (status = 403, description = "Forbidden")
@@ -1586,19 +1596,33 @@ fn build_pdf_response(
 )]
 pub async fn get_ministry_stats(
     State(state): State<AppState>,
-    Extension(_claims): Extension<Arc<Claims>>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<MinistryStatsQuery>,
 ) -> AppResult<impl IntoResponse> {
     use crate::entities::enums::SubmissionStatus;
 
-    // Count all cooperatives via cooperative_repo
-    let all_coops = state.cooperative_repo.list_all().await.unwrap_or_default();
-    let total_cooperatives = all_coops.len() as i64;
+    // Count cooperatives in the caller's scope, narrowed by the hierarchy filter.
+    let caller_coop_ids =
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+    let all_coop_ids: Vec<Uuid> = filter_cooperatives(
+        &state,
+        caller_coop_ids,
+        query.cooperative_id,
+        query.region,
+        query.sector,
+        query.federation_id,
+        query.apex_id,
+    )
+    .await?;
+    let total_cooperatives = all_coop_ids.len() as i64;
 
-    let all_coop_ids: Vec<Uuid> = all_coops.iter().map(|c| c.id).collect();
-    let all_submissions = state
+    let mut all_submissions = state
         .submission_repo
         .find_by_cooperative_ids(all_coop_ids)
         .await?;
+    if let Some(year) = query.reporting_year {
+        all_submissions.retain(|s| s.reporting_year == year);
+    }
 
     let total_submissions = all_submissions.len() as i64;
     let pending_review_count = all_submissions
@@ -2226,11 +2250,6 @@ pub async fn get_monthly_trend(
     // real ~$5.2M. Resolving one authoritative value per code per
     // statement/month avoids both.
     let coa = state.coa_repo.find_all().await?;
-    let rates = state.currency_service.load_rates().await?;
-    let current_rates = state.exchange_rate_repo.find_all().await?;
-    let submission_by_id: std::collections::HashMap<Uuid, &crate::entities::submission::Model> =
-        year_filtered.iter().map(|s| (s.id, *s)).collect();
-    let mut rates_used: Vec<crate::api::dto::common::RateUsed> = Vec::new();
     let fs_by_id: std::collections::HashMap<Uuid, &crate::entities::financial_statement::Model> =
         financial_statements.iter().map(|fs| (fs.id, fs)).collect();
 
@@ -2259,31 +2278,17 @@ pub async fn get_monthly_trend(
         if month_idx >= 12 {
             continue;
         }
-        let Some(fs) = fs_by_id.get(fs_id) else {
+        if !fs_by_id.contains_key(fs_id) {
             continue;
-        };
-        let fs_submission = submission_by_id.get(&fs.submission_id).copied();
-        let frozen_rate = fs_submission.and_then(crate::services::currency::frozen_rate_of);
-        if let Some(used) = crate::api::handlers::exchange_rate::rate_used_for(
-            &fs.currency,
-            fs_submission,
-            &current_rates,
-        ) {
-            if !rates_used.contains(&used) {
-                rates_used.push(used);
-            }
         }
         let resolved = crate::services::coa_rollup::resolve(raw, &coa);
-        let to_usd = |code: i32| {
-            let v = resolved.get(&code).copied().unwrap_or(0.0);
-            crate::services::currency::to_usd_frozen(v, &fs.currency, frozen_rate, &rates)
-        };
-        months[month_idx].savings += to_usd(2100);
-        months[month_idx].loans += to_usd(1200);
-        months[month_idx].liquid_assets += to_usd(1100);
-        months[month_idx].assets += to_usd(1999);
-        months[month_idx].liabilities += to_usd(2999);
-        months[month_idx].equity += to_usd(3999);
+        let value_of = |code: i32| resolved.get(&code).copied().unwrap_or(0.0);
+        months[month_idx].savings += value_of(2100);
+        months[month_idx].loans += value_of(1200);
+        months[month_idx].liquid_assets += value_of(1100);
+        months[month_idx].assets += value_of(1999);
+        months[month_idx].liabilities += value_of(2999);
+        months[month_idx].equity += value_of(3999);
     }
 
     tracing::info!(
@@ -2294,14 +2299,7 @@ pub async fn get_monthly_trend(
         "Monthly trend computed"
     );
 
-    Ok((
-        StatusCode::OK,
-        Json(MonthlyTrendResponse {
-            year,
-            months,
-            rates_used,
-        }),
-    ))
+    Ok((StatusCode::OK, Json(MonthlyTrendResponse { year, months })))
 }
 
 #[utoipa::path(

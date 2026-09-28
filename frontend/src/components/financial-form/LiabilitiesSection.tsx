@@ -105,7 +105,7 @@ export function LiabilitiesSection({
           <Calculator className="size-4 text-muted-foreground" />
           <span className="text-muted-foreground">{t("financial.totalMemberDeposits")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalMemberDeposits)}
+            SZL {formatNumber(totals.totalMemberDeposits)}
           </span>
         </div>
       </div>
@@ -156,7 +156,9 @@ export function LiabilitiesSection({
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalBorrowings")}:</span>
-          <span className="font-bold text-foreground">${formatNumber(totals.totalBorrowings)}</span>
+          <span className="font-bold text-foreground">
+            SZL {formatNumber(totals.totalBorrowings)}
+          </span>
         </div>
       </div>
 
@@ -224,7 +226,7 @@ export function LiabilitiesSection({
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalOtherLiabilities")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalOtherLiabilities)}
+            SZL {formatNumber(totals.totalOtherLiabilities)}
           </span>
         </div>
       </div>
@@ -238,7 +240,7 @@ export function LiabilitiesSection({
           <span className="font-semibold text-foreground">{t("financial.totalLiabilities")}</span>
         </div>
         <span className="text-xl font-bold text-foreground">
-          ${formatNumber(totals.totalLiabilities)}
+          SZL {formatNumber(totals.totalLiabilities)}
         </span>
       </div>
     </div>

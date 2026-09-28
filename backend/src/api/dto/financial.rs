@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::api::dto::common::RateUsed;
 use crate::entities::balance_sheet_line_item::Model as LineItemModel;
 use crate::entities::chart_of_account::Model as CoaModel;
 use crate::entities::enums::PeriodType;
@@ -34,7 +33,7 @@ impl From<FsModel> for FinancialStatementResponse {
             accounting_year: m.accounting_year.as_str().to_string(),
             currency: match m.currency {
                 crate::entities::enums::Currency::Szl => "SZL".to_string(),
-                crate::entities::enums::Currency::Usd => "USD".to_string(),
+                crate::entities::enums::Currency::Zar => "ZAR".to_string(),
             },
             is_validated: m.is_validated,
             validation_errors: m.validation_errors,
@@ -201,8 +200,6 @@ pub struct MinistryStatsResponse {
 pub struct MonthlyTrendResponse {
     pub year: i32,
     pub months: Vec<MonthlyTrendPoint>,
-    /// Distinct USD conversion rates applied across the submissions included.
-    pub rates_used: Vec<RateUsed>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -210,9 +207,9 @@ pub struct MonthlyTrendPoint {
     pub month: i16,
     pub month_label: String,
     /// Member savings and deposits (COA 2100/2101–2103), resolved via the
-    /// chart-of-accounts rollup and converted to USD.
+    /// chart-of-accounts rollup, in the currency reported.
     pub savings: f64,
-    /// Gross loan portfolio (COA 1200/1201–1205), resolved and USD-converted.
+    /// Gross loan portfolio (COA 1200/1201–1205), resolved, in the currency reported.
     pub loans: f64,
     /// Liquid assets (COA 1100/1101–1104) — cash and near-cash holdings,
     /// distinct from and much smaller than total assets. This is what the
@@ -224,9 +221,9 @@ pub struct MonthlyTrendPoint {
     /// when computing a headline figure; that was the exact bug that
     /// inflated the old Portfolio Overview total to ~150x the real value.
     pub assets: f64,
-    /// Total liabilities (COA 2999), USD-converted.
+    /// Total liabilities (COA 2999), in the currency reported.
     pub liabilities: f64,
-    /// Total equity (COA 3999), USD-converted. May be negative.
+    /// Total equity (COA 3999), in the currency reported. May be negative.
     pub equity: f64,
 }
 

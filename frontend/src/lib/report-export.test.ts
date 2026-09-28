@@ -78,7 +78,7 @@ function makeBalanceSheet(overrides: Partial<BalanceSheet> = {}): BalanceSheet {
       depreciationAmortization: 0,
     },
     creditLossExpense: 0,
-    currency: "USD",
+    currency: "SZL",
     accountingYear: "calendar",
     ...overrides,
   };
@@ -86,11 +86,11 @@ function makeBalanceSheet(overrides: Partial<BalanceSheet> = {}): BalanceSheet {
 
 function makeFinancialKPIs(): FinancialKPIs {
   return {
-    totalAssets: kpi(10000, "$10K", "USD", "green", 0),
-    grossLoanPortfolio: kpi(6000, "$6K", "USD", "green", 0),
-    netLoanPortfolio: kpi(5900, "$5.9K", "USD", "green", 0),
-    totalMemberDeposits: kpi(500, "$500", "USD", "green", 0),
-    totalEquity: kpi(4000, "$4K", "USD", "green", 0),
+    totalAssets: kpi(10000, "SZL 10K", "SZL", "green", 0),
+    grossLoanPortfolio: kpi(6000, "SZL 6K", "SZL", "green", 0),
+    netLoanPortfolio: kpi(5900, "SZL 5.9K", "SZL", "green", 0),
+    totalMemberDeposits: kpi(500, "SZL 500", "SZL", "green", 0),
+    totalEquity: kpi(4000, "SZL 4K", "SZL", "green", 0),
     par30: kpi(4.0, "4.0%", "%", "green", 5),
     par60: kpi(2.0, "2.0%", "%", "green", 3),
     par90: kpi(1.0, "1.0%", "%", "green", 2),
@@ -141,7 +141,7 @@ function makeLoanKPIs(): LoanKPIs {
     womenBorrowersPercent: kpi(50, "50.0%", "%"),
     youthBorrowersPercent: kpi(30, "30.0%", "%"),
     ruralBorrowersPercent: kpi(65, "65.0%", "%"),
-    averageLoanSize: kpi(800, "$800", "USD"),
+    averageLoanSize: kpi(800, "SZL 800", "SZL"),
     loansPerMember: kpi(1.1, "1.10", "loans"),
     averageInterestRate: kpi(12, "12.0%", "%"),
   };
@@ -168,23 +168,23 @@ function makeReportData(overrides: Partial<ReportData> = {}): ReportData {
 
 describe("formatCurrency", () => {
   it("formats billions with B suffix", () => {
-    expect(formatCurrency(2_500_000_000)).toBe("$2.50B");
+    expect(formatCurrency(2_500_000_000)).toBe("SZL 2.50B");
   });
 
   it("formats millions with M suffix", () => {
-    expect(formatCurrency(4_200_000)).toBe("$4.2M");
+    expect(formatCurrency(4_200_000)).toBe("SZL 4.2M");
   });
 
   it("formats thousands with K suffix", () => {
-    expect(formatCurrency(9_800)).toBe("$10K");
+    expect(formatCurrency(9_800)).toBe("SZL 10K");
   });
 
   it("formats small values without suffix", () => {
-    expect(formatCurrency(123)).toBe("$123");
+    expect(formatCurrency(123)).toBe("SZL 123");
   });
 
   it("formats zero", () => {
-    expect(formatCurrency(0)).toBe("$0");
+    expect(formatCurrency(0)).toBe("SZL 0");
   });
 });
 
@@ -236,7 +236,7 @@ describe("generateCSV", () => {
   it("includes financial KPI rows when provided", () => {
     const csv = generateCSV(makeReportData({ financialKPIs: makeFinancialKPIs() }));
     expect(csv).toContain("=== FINANCIAL KPIs ===");
-    expect(csv).toContain("Total Assets,$10K,USD");
+    expect(csv).toContain("Total Assets,SZL 10K,SZL");
     expect(csv).toContain("PAR 30,4.0%,%,green,5");
     expect(csv).toContain("ROE,10.0%,%,green,8");
   });
@@ -296,7 +296,7 @@ describe("generatePDFContent", () => {
   it("renders financial KPI cards when provided", () => {
     const html = generatePDFContent(makeReportData({ financialKPIs: makeFinancialKPIs() }));
     expect(html).toContain("<h2>Financial KPIs</h2>");
-    expect(html).toContain("$10K");
+    expect(html).toContain("SZL 10K");
     expect(html).toContain("status-green");
   });
 

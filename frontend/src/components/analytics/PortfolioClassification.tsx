@@ -17,7 +17,7 @@ import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
-import { formatUsd } from "@/lib/currency";
+import { formatSzl } from "@/lib/currency";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface PortfolioClassificationProps {
@@ -263,7 +263,7 @@ export function PortfolioClassification({
 
   const formatCurrency = (val: number) => {
     if (val === 0) return "-";
-    return formatUsd(val);
+    return formatSzl(val);
   };
 
   // Group line items by cooperative and sum values per account code

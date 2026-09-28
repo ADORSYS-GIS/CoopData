@@ -21,9 +21,9 @@ import { useSubmissionRate } from "@/hooks/shared/useSubmissionRate";
 import type { NfUploadResponse } from "@/types/non-financial";
 
 function formatCurrency(n: number): string {
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-  return `$${n.toFixed(0)}`;
+  if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
+  return `SZL ${n.toFixed(0)}`;
 }
 
 export const NonFinancialDataPage: React.FC = () => {
@@ -49,7 +49,7 @@ export const NonFinancialDataPage: React.FC = () => {
     loansQuery.data?.data?.[0]?.submission_id ??
     fdQuery.data?.data?.[0]?.submission_id ??
     null;
-  const { rateToUsd } = useSubmissionRate(ledgerSubmissionId);
+  const { rateToZar } = useSubmissionRate(ledgerSubmissionId);
 
   if (!role) return null;
 
@@ -204,7 +204,7 @@ export const NonFinancialDataPage: React.FC = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <SavingsGrid
-                  rateToUsd={rateToUsd}
+                  rateToZar={rateToZar}
                   savings={savings}
                   isLoading={savingsQuery.isLoading}
                   isReadOnly={isReadOnly}
@@ -248,7 +248,7 @@ export const NonFinancialDataPage: React.FC = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <LoanGrid
-                  rateToUsd={rateToUsd}
+                  rateToZar={rateToZar}
                   loans={loans}
                   isLoading={loansQuery.isLoading}
                   isReadOnly={isReadOnly}
@@ -292,7 +292,7 @@ export const NonFinancialDataPage: React.FC = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <FixedDepositGrid
-                  rateToUsd={rateToUsd}
+                  rateToZar={rateToZar}
                   fixedDeposits={fds}
                   isLoading={fdQuery.isLoading}
                   isReadOnly={isReadOnly}

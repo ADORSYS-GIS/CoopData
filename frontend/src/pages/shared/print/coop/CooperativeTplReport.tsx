@@ -80,7 +80,7 @@ export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
             "Classification",
             "Restricted — supervisory use",
           ],
-          ["Benchmark framework", "WOCCU PEARLS (adapted)", "Version", "1.0"],
+          ["Benchmark framework", "PEARLS (adapted)", "Version", "1.0"],
         ],
         basis:
           "This assessment is compiled from the annual return submitted by the cooperative through the Coop Data platform. Ratios have been recomputed from the submitted statements of financial position and performance. Where a figure produced by the automated system could not be reconciled to the underlying statements, the reported figure is used in the body of this report and the difference is disclosed in Annex A. Figures have not been independently audited.",

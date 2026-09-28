@@ -104,7 +104,7 @@ export function generateInsights(
       kpi.unit === "percent"
         ? `${benchmarkValue.toFixed(1)}%`
         : kpi.unit === "currency"
-          ? `$${(benchmarkValue / 1_000_000).toFixed(1)}M`
+          ? `SZL ${(benchmarkValue / 1_000_000).toFixed(1)}M`
           : benchmarkValue.toFixed(2);
 
     insights.push({

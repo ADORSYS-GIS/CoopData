@@ -4,7 +4,7 @@ import type { MetricCard, Trend } from "@/components/analytics/national/metrics"
 import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
 import { compactNumber } from "@/lib/basic-dashboard";
 
-export const usd = (value: number): string => `$${compactNumber(value)}`;
+export const zar = (value: number): string => `SZL ${compactNumber(value)}`;
 export const pct = (value: number): string => `${value.toFixed(1)}%`;
 
 export const buildMembershipMetrics = (
@@ -68,7 +68,7 @@ export const buildSavingsMetrics = (
   {
     key: "memberLedgerSavings",
     label: t("analytics.netTotalSavings"),
-    value: usd(s.total_balance),
+    value: zar(s.total_balance),
     tooltip: t("analytics.netTotalSavingsTooltip2"),
     trend: "up",
     trendValue: t("analytics.netAvg", { amount: s.average_balance.toFixed(0) }),
@@ -89,7 +89,7 @@ export const buildSavingsMetrics = (
     trend: s.regular_savers_pct > 50 ? "up" : "neutral",
     trendValue: t("analytics.netConsistentDeposits"),
   },
-  ledgerCard(t, "averageSavings", usd(s.average_balance)),
+  ledgerCard(t, "averageSavings", zar(s.average_balance)),
   ledgerCard(
     t,
     "dormantSavings",
@@ -116,7 +116,7 @@ export const buildLoanMetrics = (l: NfStatisticsResponse["loans"], t: TFunction)
   {
     key: "memberLedgerLoans",
     label: t("analytics.netTotalLoans"),
-    value: usd(l.total_balance),
+    value: zar(l.total_balance),
     tooltip: t("analytics.netTotalLoansTooltip2"),
     trend: "up",
     trendValue: t("analytics.netAvg", { amount: l.average_loan_size.toFixed(0) }),
@@ -169,7 +169,7 @@ export const buildFixedDepositMetrics = (
   {
     key: "fdBalance",
     label: t("analytics.netTotalFdBalance"),
-    value: usd(fd.total_balance),
+    value: zar(fd.total_balance),
     tooltip: t("analytics.netTotalFdBalanceTooltip"),
     trend: "up",
     trendValue: t("analytics.netAvg", { amount: fd.average_balance.toFixed(0) }),

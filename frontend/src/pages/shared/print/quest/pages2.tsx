@@ -67,7 +67,7 @@ export const portfolioPage = (a: QuestAnalysis, no: string): PageSpec => ({
           >
             <VBarGroups
               unit={a.props.dashboard.scope.currency}
-              format={(v) => a.money(v).replace(/^\$/, "")}
+              format={(v) => a.money(v).replace(/^SZL /, "")}
               series={series}
               data={labels.map((label, i) => ({
                 label,

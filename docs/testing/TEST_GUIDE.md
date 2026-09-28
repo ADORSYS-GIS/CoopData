@@ -150,7 +150,7 @@ cargo llvm-cov --lib
 | `calculateTotalExpenses` | 1 | Financial + operating + credit loss sum |
 | `calculateNetSurplus` | 3 | Net surplus = Income − Expenses; handles positive, zero, negative |
 | `validateBalanceSheet` | 5 | Detects unbalanced sheets, negative values, PAR > 20%, zero assets, negative surplus |
-| `createEmptyBalanceSheet` | 3 | Creates zeroed structure with USD currency, calendar year |
+| `createEmptyBalanceSheet` | 3 | Creates zeroed structure with ZAR currency, calendar year |
 
 ---
 
@@ -1299,7 +1299,7 @@ function createMinimalBalanceSheet(): BalanceSheet {
     cooperativeId: "coop-001",
     cooperativeName: "Test Cooperative",
     submissionDate: "2024-12-31",
-    currency: "USD",
+    currency: "ZAR",
     accountingYear: "calendar",
     liquidAssets: {
       cashOnHand: 1000,

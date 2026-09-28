@@ -63,7 +63,7 @@ pub async fn get_nf_statistics(
         .one(&state.db)
         .await?;
 
-    let mut stats = if let Some(ref sub) = latest_approved {
+    let stats = if let Some(ref sub) = latest_approved {
         let db_records = state.kpi_record_repo.find_by_submission(sub.id).await?;
         if !db_records.is_empty() {
             NfStatisticsResponse::from(reconstruct_nf_stats(&db_records))
@@ -79,27 +79,7 @@ pub async fn get_nf_statistics(
         NfStatisticsResponse::from(s)
     };
 
-    // Standardize on USD, same as every other analytics endpoint.
-    if let Some(sub) = latest_approved {
-        if let Some(fs) = state
-            .financial_statement_repo
-            .find_by_submission(sub.id)
-            .await?
-        {
-            let rates = state.currency_service.load_rates().await?;
-            let frozen_rate = crate::services::currency::frozen_rate_of(&sub);
-            let to_usd = |v: f64| {
-                crate::services::currency::to_usd_frozen(v, &fs.currency, frozen_rate, &rates)
-            };
-            stats.savings.total_balance = to_usd(stats.savings.total_balance);
-            stats.savings.average_balance = to_usd(stats.savings.average_balance);
-            stats.loans.total_balance = to_usd(stats.loans.total_balance);
-            stats.loans.total_loan_amount = to_usd(stats.loans.total_loan_amount);
-            stats.loans.average_loan_size = to_usd(stats.loans.average_loan_size);
-            stats.fixed_deposits.total_balance = to_usd(stats.fixed_deposits.total_balance);
-            stats.fixed_deposits.average_balance = to_usd(stats.fixed_deposits.average_balance);
-        }
-    }
+    // No conversion: every figure is shown in the currency reported.
 
     Ok((StatusCode::OK, Json(stats)))
 }
@@ -372,28 +352,6 @@ pub async fn get_consolidated_nf_statistics(
     let mut consolidated_stats =
         crate::services::nf_indicator_engine::NfStatisticsResponse::default();
 
-    // Balances live in whichever currency each cooperative's financial
-    // statement reports in (savings/loans/fixed_deposit ledgers carry no
-    // currency of their own — they belong to one submission, so they
-    // inherit its statement's currency). Without converting to USD before
-    // accumulating, a network mixing SZL- and USD-reporting cooperatives
-    // would silently sum incompatible currencies into one meaningless
-    // total. USD normalization matches how the Analytics dashboards are
-    // standardized elsewhere (see services::currency).
-    let rates = state.currency_service.load_rates().await?;
-    let submission_ids_for_currency: Vec<uuid::Uuid> = year_filtered.iter().map(|s| s.id).collect();
-    let currency_by_submission: std::collections::HashMap<
-        uuid::Uuid,
-        crate::entities::enums::Currency,
-    > = state
-        .financial_statement_repo
-        .find_by_submission_ids(submission_ids_for_currency)
-        .await
-        .unwrap_or_default()
-        .into_iter()
-        .map(|fs| (fs.submission_id, fs.currency))
-        .collect();
-
     let mut savings_penetration_members = 0.0_f64;
     let mut credit_penetration_members = 0.0_f64;
     let mut fd_penetration_members = 0.0_f64;
@@ -412,36 +370,7 @@ pub async fn get_consolidated_nf_statistics(
             .await
         };
 
-        if let Ok(mut stats) = stats_res {
-            let submission_currency = currency_by_submission
-                .get(&submission.id)
-                .cloned()
-                .unwrap_or_default();
-            stats.savings.total_balance = crate::services::currency::to_usd_frozen(
-                stats.savings.total_balance,
-                &submission_currency,
-                crate::services::currency::frozen_rate_of(&submission),
-                &rates,
-            );
-            stats.loans.total_balance = crate::services::currency::to_usd_frozen(
-                stats.loans.total_balance,
-                &submission_currency,
-                crate::services::currency::frozen_rate_of(&submission),
-                &rates,
-            );
-            stats.loans.total_loan_amount = crate::services::currency::to_usd_frozen(
-                stats.loans.total_loan_amount,
-                &submission_currency,
-                crate::services::currency::frozen_rate_of(&submission),
-                &rates,
-            );
-            stats.fixed_deposits.total_balance = crate::services::currency::to_usd_frozen(
-                stats.fixed_deposits.total_balance,
-                &submission_currency,
-                crate::services::currency::frozen_rate_of(&submission),
-                &rates,
-            );
-
+        if let Ok(stats) = stats_res {
             // Sum up totals
             consolidated_stats.membership.total += stats.membership.total;
             consolidated_stats.membership.active += stats.membership.active;
@@ -801,7 +730,7 @@ fn reconstruct_nf_stats(
 // totals and a variance that disagreed with the Dashboard's own (correctly,
 // fully-summed) figures. This endpoint uses the same accurate SQL SUM()
 // queries the Dashboard's KPI computation uses, and reports native-currency
-// figures (not USD-converted) since its purpose is verification against the
+// figures (never converted) since its purpose is verification against the
 // exact numbers printed in the uploaded source document.
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -823,8 +752,6 @@ pub struct ReconciliationRow {
 pub struct ReconciliationAuditResponse {
     pub submission_id: uuid::Uuid,
     pub rows: Vec<ReconciliationRow>,
-    /// Rate to convert the native amounts to USD; None when already USD.
-    pub rate_used: Option<crate::api::dto::common::RateUsed>,
 }
 
 fn reconciliation_row(
@@ -897,16 +824,6 @@ pub async fn get_reconciliation_audit(
         .financial_statement_repo
         .find_by_submission(submission_id)
         .await?;
-
-    let submission_row = state.submission_repo.find_by_id(submission_id).await?;
-    let current_rates = state.exchange_rate_repo.find_all().await?;
-    let rate_used = fs.as_ref().and_then(|f| {
-        crate::api::handlers::exchange_rate::rate_used_for(
-            &f.currency,
-            submission_row.as_ref(),
-            &current_rates,
-        )
-    });
 
     let currency_code = fs
         .as_ref()
@@ -993,7 +910,6 @@ pub async fn get_reconciliation_audit(
         Json(ReconciliationAuditResponse {
             submission_id,
             rows,
-            rate_used,
         }),
     ))
 }

@@ -1,4 +1,4 @@
-import { formatNative, formatUsd } from "@/lib/currency";
+import { formatNative, formatSzl } from "@/lib/currency";
 import {
   INDICATOR_KEYS,
   type DashboardScope,
@@ -58,7 +58,7 @@ const formatCount = (value: number): string =>
 const formatPercent = (value: number): string => `${value.toFixed(Math.abs(value) >= 10 ? 1 : 2)}%`;
 
 export const formatMoneyValue = (value: number, currency: string): string =>
-  currency === "USD" ? formatUsd(value, 0) : formatNative(value, currency).replace(/\.00$/, "");
+  currency === "SZL" ? formatSzl(value, 0) : formatNative(value, currency).replace(/\.00$/, "");
 
 export const formatIndicatorValue = (
   indicator: IndicatorValue,
@@ -145,10 +145,7 @@ export const compactNumber = (value: number): string => {
   return String(Math.round(value));
 };
 
-export const rateNote = (scope: DashboardScope): string | null =>
-  scope.currency === "USD" && scope.rate_to_usd
-    ? `1 USD = ${scope.rate_to_usd} ${scope.native_currency}`
-    : null;
+export const rateNote = (_scope: DashboardScope): string | null => null;
 
 export type RankingKey =
   | "name"
@@ -202,7 +199,7 @@ export const humanizeKey = (key: string): string =>
     .replace(/_/g, " ")
     .replace(/^\w/, (c) => c.toUpperCase());
 
-export const currencyPrefix = (currency: string): string => (currency === "USD" ? "$" : "");
+export const currencyPrefix = (currency: string): string => (currency === "SZL" ? "SZL " : "");
 
 export const womenSharePct = (counts: GenderCount): number | null => {
   const total = counts.male + counts.female;

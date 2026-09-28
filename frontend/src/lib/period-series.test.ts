@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PeriodSeriesPoint } from "@/hooks/analytics/usePeriodSeries";
-import { toProfitabilitySeries, toStructureSeries } from "@/lib/period-series";
+import { toPortfolioTrend, toProfitabilitySeries, toStructureSeries } from "@/lib/period-series";
 
 const point = (overrides: Partial<PeriodSeriesPoint>): PeriodSeriesPoint => ({
   period_label: "Q1 2026",
@@ -67,5 +67,37 @@ describe("toProfitabilitySeries", () => {
     const series = toProfitabilitySeries([point({ net_income: -12 })]);
 
     expect(series[0]?.values).toEqual({ net_income: -12 });
+  });
+});
+
+describe("toPortfolioTrend", () => {
+  it("labels each point with the period, not a fixed month", () => {
+    const trend = toPortfolioTrend([
+      point({ period_label: "2024", period_type: "YEARLY" }),
+      point({ period_label: "2025", period_type: "YEARLY" }),
+    ]);
+
+    expect(trend.map((p) => p.period)).toEqual(["2024", "2025"]);
+  });
+
+  it("keeps liquid assets separate from total assets", () => {
+    const [first] = toPortfolioTrend([point({ assets: 1000, liquid_assets: 100 })]);
+
+    expect(first).toMatchObject({ totalAssets: 1000, liquidity: 100 });
+  });
+
+  it("returns one point per input period, in order", () => {
+    const trend = toPortfolioTrend([
+      point({ period_label: "Q1 2026" }),
+      point({ period_label: "Q2 2026" }),
+      point({ period_label: "Q3 2026" }),
+    ]);
+
+    expect(trend).toHaveLength(3);
+    expect(trend[2]?.period).toBe("Q3 2026");
+  });
+
+  it("handles an empty series", () => {
+    expect(toPortfolioTrend([])).toEqual([]);
   });
 });

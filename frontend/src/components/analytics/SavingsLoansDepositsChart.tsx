@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface TrendDataPoint {
-  month: string;
+  period: string;
   liquidity: number; // Liquid assets (COA 1100) — cash/near-cash
   loans: number; // Gross loan portfolio (COA 1200)
   savings: number; // Member deposits (COA 2100)
@@ -40,9 +40,9 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
   }, [data]);
 
   const formatYAxis = (value: number) => {
-    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
-    return `$${value}`;
+    if (value >= 1_000_000) return `SZL ${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `SZL ${(value / 1_000).toFixed(0)}K`;
+    return `SZL ${value}`;
   };
 
   return (
@@ -53,7 +53,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             {t("analytics.savingsLoansDepositsTitle")}
           </span>
           <span className="text-xs text-muted-foreground font-medium block mt-0.5">
-            {t("analytics.monthlyFinancialBreakdown")}
+            {t("analytics.periodFinancialBreakdown")}
           </span>
         </div>
         <InfoTooltip text={t("analytics.savingsLoansDepositsTooltip")} />
@@ -65,7 +65,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
           <ComposedChart data={formattedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="period"
               stroke="var(--muted-foreground)"
               fontSize={11}
               tickLine={false}
@@ -99,7 +99,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               }}
               formatter={(value: number, name: string) => [
-                `$${Math.round(value).toLocaleString()}`,
+                `SZL ${Math.round(value).toLocaleString()}`,
                 name === "liquidity"
                   ? t("analytics.seriesLiquidAssets")
                   : name === "loans"

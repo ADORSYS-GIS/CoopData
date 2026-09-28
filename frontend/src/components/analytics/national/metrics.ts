@@ -6,7 +6,7 @@ import {
   buildMembershipMetrics,
   buildSavingsMetrics,
   pct,
-  usd,
+  zar,
 } from "@/components/analytics/national/ledgerMetrics";
 
 import type { MonthlyTrendResponse } from "@/hooks/analytics/useMonthlyTrend";
@@ -91,7 +91,7 @@ export const buildHeadlineMetrics = ({
     latest && {
       key: "totalAssets",
       label: t("analytics.headline.totalAssets"),
-      value: usd(latest.assets),
+      value: zar(latest.assets),
       tooltip: t("analytics.headline.totalAssetsTooltip"),
     },
     latest && latest.assets !== 0

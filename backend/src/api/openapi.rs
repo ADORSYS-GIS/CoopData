@@ -291,7 +291,6 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::handlers::financial_statement::AnalyticsFilterParams,
         api_module::dto::financial::MonthlyTrendResponse,
         api_module::dto::financial::MonthlyTrendPoint,
-        api_module::dto::common::RateUsed,
         api_module::dto::period_series::PeriodSeriesParams,
         api_module::dto::period_series::PeriodSeriesPoint,
         api_module::dto::period_series::PeriodSeriesResponse,

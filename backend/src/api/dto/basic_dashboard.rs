@@ -19,8 +19,6 @@ pub struct BasicDashboardParams {
     pub federation_id: Option<Uuid>,
     /// Restrict to the cooperatives of one apex.
     pub apex_id: Option<Uuid>,
-    /// `usd` (default, converted with the submission's rate) or `native` (as entered).
-    pub currency: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -41,11 +39,10 @@ pub struct DashboardScope {
     pub period_type: Option<String>,
     pub period_value: Option<String>,
     pub period_label: String,
-    /// Currency of every monetary value in the response ("USD" or "SZL").
+    /// Currency of every monetary value in the response. Always the
+    /// cooperative's own reporting currency ("SZL") — nothing is converted.
     pub currency: String,
     pub native_currency: String,
-    /// Units of native currency per 1 USD when converted, else null.
-    pub rate_to_usd: Option<f64>,
     pub available_periods: Vec<PeriodOption>,
 }
 

@@ -70,7 +70,7 @@ export interface WizardFixedDeposit {
 }
 
 export interface ManualEntryDraftState {
-  currency?: "SZL" | "USD";
+  currency?: "SZL";
   accountingYear?: "calendar" | "fiscal";
   startMonth?: number;
   periodType?: "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";

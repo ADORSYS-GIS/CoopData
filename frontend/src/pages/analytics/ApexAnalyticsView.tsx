@@ -65,51 +65,60 @@ export function ApexAnalyticsView({ filterValues }: Props) {
         totalCooperatives={overview?.total_cooperatives ?? 0}
         cooperativesWithData={overview?.cooperatives_with_data ?? 0}
         seriesQuery={params}
-      />
-
-      <CollapsibleSection id="analytics-comparison-0" title={t("analytics.section.comparison")}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card
-            title={t("apexAnalytics.riskVsReturnTitle")}
-            subtitle={t("apexAnalytics.riskVsReturnSubtitle")}
-            info={t("apexAnalytics.riskVsReturnInfo")}
-          >
-            <CoopScatterPlot data={coops} />
-          </Card>
-          <Card
-            title={t("apexAnalytics.networkCompTitle")}
-            subtitle={t("apexAnalytics.networkCompSubtitle")}
-            info={t("apexAnalytics.networkCompInfo")}
-          >
-            <ApexRadarChart data={coops} />
-          </Card>
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection id="analytics-leaderboards-1" title={t("analytics.section.leaderboards")}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card
-            title={t("apexAnalytics.nplLeaderboardTitle")}
-            subtitle={t("apexAnalytics.nplLeaderboardSubtitle")}
-            info={t("apexAnalytics.nplLeaderboardInfo")}
-          >
-            <TopBottomLeaderboard
-              cooperatives={coops}
-              sortByKpi="npl_ratio"
-              higherIsBetter={false}
-            />
-          </Card>
-          {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
-            <Card
-              title={t("apexAnalytics.trafficLightTitle")}
-              subtitle={t("apexAnalytics.trafficLightSubtitle")}
-              info={t("apexAnalytics.trafficLightInfo")}
+        extraCharts={
+          <>
+            <CollapsibleSection
+              id="analytics-comparison-0"
+              title={t("analytics.section.comparison")}
             >
-              <ComplianceDoughnutCharts distributions={overview.distributions} />
-            </Card>
-          )}
-        </div>
-      </CollapsibleSection>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card
+                  title={t("apexAnalytics.riskVsReturnTitle")}
+                  subtitle={t("apexAnalytics.riskVsReturnSubtitle")}
+                  info={t("apexAnalytics.riskVsReturnInfo")}
+                >
+                  <CoopScatterPlot data={coops} />
+                </Card>
+                <Card
+                  title={t("apexAnalytics.networkCompTitle")}
+                  subtitle={t("apexAnalytics.networkCompSubtitle")}
+                  info={t("apexAnalytics.networkCompInfo")}
+                >
+                  <ApexRadarChart data={coops} />
+                </Card>
+              </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              id="analytics-leaderboards-1"
+              title={t("analytics.section.leaderboards")}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card
+                  title={t("apexAnalytics.nplLeaderboardTitle")}
+                  subtitle={t("apexAnalytics.nplLeaderboardSubtitle")}
+                  info={t("apexAnalytics.nplLeaderboardInfo")}
+                >
+                  <TopBottomLeaderboard
+                    cooperatives={coops}
+                    sortByKpi="npl_ratio"
+                    higherIsBetter={false}
+                  />
+                </Card>
+                {overview?.distributions && Object.keys(overview.distributions).length > 0 && (
+                  <Card
+                    title={t("apexAnalytics.trafficLightTitle")}
+                    subtitle={t("apexAnalytics.trafficLightSubtitle")}
+                    info={t("apexAnalytics.trafficLightInfo")}
+                  >
+                    <ComplianceDoughnutCharts distributions={overview.distributions} />
+                  </Card>
+                )}
+              </div>
+            </CollapsibleSection>
+          </>
+        }
+      />
     </div>
   );
 }

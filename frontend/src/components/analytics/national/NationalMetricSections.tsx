@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MetricsGridCards } from "@/components/analytics/MetricsGridCards";
@@ -9,6 +10,8 @@ interface NationalMetricSectionsProps {
   groups: MetricGroup[];
   query: string;
   noResults: string;
+  /** Charts rendered between the key-indicators headline and the other stat groups. */
+  chartsSlot?: ReactNode;
 }
 
 const matches = (metric: MetricCard, needle: string): boolean =>
@@ -19,6 +22,7 @@ export function NationalMetricSections({
   groups,
   query,
   noResults,
+  chartsSlot,
 }: NationalMetricSectionsProps) {
   const { t } = useTranslation();
   const needle = query.trim().toLowerCase();
@@ -45,6 +49,7 @@ export function NationalMetricSections({
           <MetricsGridCards metrics={headline} columns={4} />
         </CollapsibleSection>
       )}
+      {chartsSlot}
       {groups.map((group) => (
         <CollapsibleSection
           key={group.id}
