@@ -4,9 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>${title}</title>
-    <!-- Fallback fonts for email -->
     <style>
+        /* Note: Button uses Navy Blue (#1e293b) instead of Keycloak's default to match platform branding */
         body {
             margin: 0;
             padding: 0;
@@ -103,6 +102,7 @@
     <div class="wrapper">
         <table class="main">
             <tr>
+                <!-- Note: Implemented as a td rather than div/hr because Outlook Windows ignores borders on some block elements -->
                 <td style="background-color: #e11d48; height: 6px; line-height: 6px; font-size: 6px;">&nbsp;</td>
             </tr>
             <tr>

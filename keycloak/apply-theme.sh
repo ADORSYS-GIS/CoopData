@@ -19,15 +19,15 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
-echo "[theme] Setting loginTheme=coopdata on realm ${REALM}..."
+echo "[theme] Setting loginTheme and emailTheme to coopdata on realm ${REALM}..."
 STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
   "${KEYCLOAK_URL}/admin/realms/${REALM}" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{"loginTheme":"coopdata"}')
+  -d '{"loginTheme":"coopdata", "emailTheme":"coopdata"}')
 
 if [ "$STATUS" = "204" ]; then
-  echo "[theme] Done — login theme set to 'coopdata'."
+  echo "[theme] Done — themes set to 'coopdata'."
   echo "[theme] Reload the Keycloak login page to see the new theme."
 else
   echo "[theme] ERROR: Got HTTP ${STATUS}. Check Keycloak logs."
