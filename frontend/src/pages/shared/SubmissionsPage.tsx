@@ -12,6 +12,7 @@ import {
   FileText,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   AlertCircle,
   Plus,
   X,
@@ -25,7 +26,7 @@ import {
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import {
   useCooperativeSubmissions,
@@ -340,6 +341,77 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function CoopSelect({
+  cooperatives,
+  value,
+  onChange,
+  placeholder,
+}: {
+  cooperatives: { id: string; display_name?: string; name: string }[];
+  value: string;
+  onChange: (id: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = cooperatives.find((c) => c.id === value);
+  const label = selected ? (selected.display_name || selected.name) : placeholder;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className={`w-full flex items-center justify-between rounded-xl border py-2.5 px-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-ring/10 ${
+          open
+            ? "border-ring/60 bg-surface ring-2 ring-ring/10"
+            : "border-input bg-muted/30 hover:border-border/80"
+        }`}
+      >
+        <span className={value ? "text-foreground" : "text-muted-foreground/70"}>
+          {label}
+        </span>
+        <ChevronDown
+          className={`size-4 text-muted-foreground transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 rounded-xl border border-border bg-surface shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-1 duration-100">
+          <div className="max-h-52 overflow-y-auto py-1">
+            {cooperatives.map((coop) => (
+              <button
+                key={coop.id}
+                type="button"
+                onClick={() => {
+                  onChange(coop.id);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2.5 text-sm transition-colors hover:bg-muted/60 ${
+                  coop.id === value ? "bg-primary/8 text-primary font-semibold" : "text-foreground"
+                }`}
+              >
+                {coop.display_name || coop.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
   const { t, replaceOrgTerms, coopLabel } = useOrganizationLabelsContext();
   const navigate = useNavigate();
@@ -447,18 +519,12 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
                 {replaceOrgTerms("No cooperatives found under your apex.")}
               </p>
             ) : (
-              <select
+              <CoopSelect
+                cooperatives={cooperatives}
                 value={selectedCoopId}
-                onChange={(e) => setSelectedCoopId(e.target.value)}
-                className="w-full rounded-xl border border-input bg-muted/30 py-2.5 px-3 text-sm transition-all focus:border-ring/60 focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none"
-              >
-                <option value="">{replaceOrgTerms("Select cooperative...")}</option>
-                {cooperatives.map((coop: { id: string; display_name?: string; name: string }) => (
-                  <option key={coop.id} value={coop.id}>
-                    {coop.display_name || coop.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedCoopId}
+                placeholder={replaceOrgTerms("Select cooperative...")}
+              />
             )}
           </div>
 
