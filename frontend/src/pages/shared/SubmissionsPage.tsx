@@ -21,8 +21,8 @@ import {
   Landmark,
   Network,
   ArrowUpRight,
-  Filter,
   Trash2,
+  Filter,
 } from "lucide-react";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
