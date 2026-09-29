@@ -2809,6 +2809,12 @@ pub async fn delegate_submission(
         )));
     }
 
+    if submission.current_tier != crate::entities::enums::ReviewTier::Apex {
+        return Err(AppError::BadRequest(
+            "Only submissions currently at the Apex tier can be delegated. If it is with the cooperative, reclaim it first.".into(),
+        ));
+    }
+
     // Find the cooperative's primary user to set as edited_by
     // For now, we clear edited_by and set it when cooperative user opens the submission
     let delegate_comment = body.comment.clone();
