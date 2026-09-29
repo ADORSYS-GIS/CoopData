@@ -2794,7 +2794,8 @@ pub async fn delegate_submission(
     // BUT only if it was originally created by the Apex.
     if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
         return Err(AppError::BadRequest(
-            "Only submissions created by the Apex on behalf of a cooperative can be delegated.".into(),
+            "Only submissions created by the Apex on behalf of a cooperative can be delegated."
+                .into(),
         ));
     }
 
@@ -2992,7 +2993,8 @@ pub async fn reclaim_submission(
     // BUT only if it was originally created by the Apex.
     if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
         return Err(AppError::BadRequest(
-            "Cannot reclaim: only submissions originally created by the Apex can be reclaimed.".into(),
+            "Cannot reclaim: only submissions originally created by the Apex can be reclaimed."
+                .into(),
         ));
     }
 
