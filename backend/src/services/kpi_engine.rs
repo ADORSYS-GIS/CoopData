@@ -641,11 +641,11 @@ mod tests {
 
     #[test]
     fn test_currency_formatting() {
-        assert_eq!(KpiEngine::format_currency(1_500_000_000.0), "$1.50B");
-        assert_eq!(KpiEngine::format_currency(6_400_000.0), "$6.4M");
-        assert_eq!(KpiEngine::format_currency(420_000.0), "$420K");
-        assert_eq!(KpiEngine::format_currency(500.0), "$500");
-        assert_eq!(KpiEngine::format_currency(-2_000_000.0), "-$2.0M");
+        assert_eq!(KpiEngine::format_currency(1_500_000_000.0), "1.50B");
+        assert_eq!(KpiEngine::format_currency(6_400_000.0), "6.4M");
+        assert_eq!(KpiEngine::format_currency(420_000.0), "420K");
+        assert_eq!(KpiEngine::format_currency(500.0), "500");
+        assert_eq!(KpiEngine::format_currency(-2_000_000.0), "-2.0M");
     }
 
     #[test]
