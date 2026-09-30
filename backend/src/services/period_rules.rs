@@ -37,6 +37,33 @@ pub fn locked_method(existing: &[submission::Model]) -> Option<String> {
         .map(|s| s.submission_method.clone())
 }
 
+/// The submission method a cooperative's type forces, if any. Multipurpose
+/// cooperatives always report through the questionnaire; SACCO cooperatives
+/// choose between upload and manual (see `check_method_allowed_for_type`).
+pub fn forced_method_for_type(institution_type: Option<&str>) -> Option<&'static str> {
+    match institution_type {
+        Some("multipurpose") => Some("questionnaire"),
+        _ => None,
+    }
+}
+
+/// Rejects a submission method that a cooperative's type does not allow.
+/// SACCO cooperatives report through upload or manual entry, never the
+/// questionnaire; multipurpose cooperatives are forced to the questionnaire
+/// by `forced_method_for_type` before this ever runs. Cooperatives with no
+/// recognised type keep the pre-existing, unrestricted behaviour.
+pub fn check_method_allowed_for_type(institution_type: Option<&str>, method: &str) -> Result<(), String> {
+    match institution_type {
+        Some("sacco") if method == "questionnaire" => Err(
+            "SACCO cooperatives report through upload or manual entry; the questionnaire method is only available to multipurpose cooperatives.".to_string(),
+        ),
+        Some("multipurpose") if method != "questionnaire" => Err(
+            "Multipurpose cooperatives report through the questionnaire; upload and manual entry are only available to SACCO cooperatives.".to_string(),
+        ),
+        _ => Ok(()),
+    }
+}
+
 pub fn check_method(
     existing: &[submission::Model],
     candidate: &str,

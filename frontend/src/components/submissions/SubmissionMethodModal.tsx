@@ -21,6 +21,9 @@ interface SubmissionMethodModalProps {
   submissionId: string;
   currentMethod?: SubmissionMethod | null;
   hasExistingData?: boolean;
+  /** "sacco" | "multipurpose" — gates which methods are offered. SACCO chooses
+   * upload/manual (no questionnaire); multipurpose is questionnaire-only. */
+  cooperativeType?: string | null;
   onClose: () => void;
   onMethodSelected?: () => void;
 }
@@ -40,6 +43,7 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
   submissionId,
   currentMethod,
   hasExistingData = false,
+  cooperativeType,
   onClose,
   onMethodSelected,
 }) => {
@@ -49,7 +53,7 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
   const [pendingTargetMethod, setPendingTargetMethod] = useState<SubmissionMethod | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  const options: MethodOption[] = [
+  const allOptions: MethodOption[] = [
     {
       value: "upload",
       icon: <Upload className="size-6 text-primary" />,
@@ -91,6 +95,11 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
         "border-success/30/20 bg-success/100/5 hover:border-success/30/40 hover:bg-success/100/10",
     },
   ];
+  const options = allOptions.filter((opt) => {
+    if (cooperativeType === "sacco") return opt.value !== "questionnaire";
+    if (cooperativeType === "multipurpose") return opt.value === "questionnaire";
+    return true;
+  });
 
   const handleClose = () => {
     setPendingTargetMethod(null);

@@ -144,8 +144,18 @@ const ChangeMethodBanner: React.FC<{
   methodChosen: boolean;
   isCooperative: boolean;
   isDraft: boolean;
+  /** Multipurpose cooperatives are always questionnaire — there is no other
+   * method to switch to, so the banner's "change method" action is hidden. */
+  canChangeMethod: boolean;
   onOpenMethodModal: () => void;
-}> = ({ submissionMethod, methodChosen, isCooperative, isDraft, onOpenMethodModal }) => {
+}> = ({
+  submissionMethod,
+  methodChosen,
+  isCooperative,
+  isDraft,
+  canChangeMethod,
+  onOpenMethodModal,
+}) => {
   const { t } = useTranslation();
 
   if (!methodChosen || !isCooperative || !isDraft) return null;
@@ -176,13 +186,15 @@ const ChangeMethodBanner: React.FC<{
           <p className="text-xs text-muted-foreground">{t("submissions.methodModal.changeHint")}</p>
         </div>
       </div>
-      <button
-        onClick={onOpenMethodModal}
-        className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
-      >
-        <PenLine className="size-3.5" />
-        {t("submissions.methodModal.changeBtn")}
-      </button>
+      {canChangeMethod && (
+        <button
+          onClick={onOpenMethodModal}
+          className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+        >
+          <PenLine className="size-3.5" />
+          {t("submissions.methodModal.changeBtn")}
+        </button>
+      )}
     </div>
   );
 };
@@ -242,6 +254,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
             methodChosen={methodChosen}
             isCooperative={!isReadOnly}
             isDraft={isDraft}
+            canChangeMethod={submission.cooperative_institution_type !== "multipurpose"}
             onOpenMethodModal={onOpenMethodModal}
           />
           <TabsList id="detail-tabs-list" className="w-full grid grid-cols-2 mb-5 h-auto p-1">
@@ -326,6 +339,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
             methodChosen={methodChosen}
             isCooperative={!isReadOnly}
             isDraft={isDraft}
+            canChangeMethod={submission.cooperative_institution_type !== "multipurpose"}
             onOpenMethodModal={onOpenMethodModal}
           />
           <div className="mb-5">

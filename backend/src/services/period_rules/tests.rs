@@ -144,3 +144,30 @@ fn locked_method_prefers_non_draft() {
 
     assert_eq!(locked_method(&existing).as_deref(), Some("upload"));
 }
+
+#[test]
+fn multipurpose_is_forced_to_questionnaire() {
+    assert_eq!(forced_method_for_type(Some("multipurpose")), Some("questionnaire"));
+    assert_eq!(forced_method_for_type(Some("sacco")), None);
+    assert_eq!(forced_method_for_type(None), None);
+}
+
+#[test]
+fn sacco_cannot_use_questionnaire() {
+    assert!(check_method_allowed_for_type(Some("sacco"), "questionnaire").is_err());
+    assert!(check_method_allowed_for_type(Some("sacco"), "upload").is_ok());
+    assert!(check_method_allowed_for_type(Some("sacco"), "manual").is_ok());
+}
+
+#[test]
+fn multipurpose_cannot_use_upload_or_manual() {
+    assert!(check_method_allowed_for_type(Some("multipurpose"), "upload").is_err());
+    assert!(check_method_allowed_for_type(Some("multipurpose"), "manual").is_err());
+    assert!(check_method_allowed_for_type(Some("multipurpose"), "questionnaire").is_ok());
+}
+
+#[test]
+fn unrecognised_type_is_unrestricted() {
+    assert!(check_method_allowed_for_type(None, "upload").is_ok());
+    assert!(check_method_allowed_for_type(None, "questionnaire").is_ok());
+}

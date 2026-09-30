@@ -1,12 +1,4 @@
-export const COOP_TYPES = [
-  "sacco",
-  "multipurpose",
-  "farm",
-  "housing",
-  "transport",
-  "finance",
-  "other",
-] as const;
+export const COOP_TYPES = ["sacco", "multipurpose"] as const;
 
 export const SECTOR_OPTIONS = [
   "finance",
@@ -22,21 +14,16 @@ export type CoopSector = (typeof SECTOR_OPTIONS)[number];
 
 const SECTORS_BY_TYPE: Record<CoopType, readonly CoopSector[]> = {
   sacco: ["finance"],
-  finance: ["finance"],
-  farm: ["agriculture"],
-  housing: ["housing"],
-  transport: ["transport"],
-  multipurpose: ["other", "manufacturing"],
-  other: ["other", "manufacturing"],
+  multipurpose: ["agriculture", "housing", "transport", "manufacturing", "other"],
 };
 
 const DEFAULT_TYPE_BY_SECTOR: Record<CoopSector, CoopType> = {
   finance: "sacco",
-  agriculture: "farm",
-  housing: "housing",
-  transport: "transport",
-  manufacturing: "other",
-  other: "other",
+  agriculture: "multipurpose",
+  housing: "multipurpose",
+  transport: "multipurpose",
+  manufacturing: "multipurpose",
+  other: "multipurpose",
 };
 
 export const sectorForType = (type: string): CoopSector =>
