@@ -371,7 +371,8 @@ export const SubmissionDetailPage: React.FC = () => {
   const claimCoopEdit = useClaimCooperativeEdit();
   const claimApexEdit = useClaimApexEdit();
 
-  // Check if this is a delegated/reclaimed draft waiting to be claimed
+  // Check if this is a delegated draft waiting to be claimed by whoever the tier belongs to.
+  // Cooperative can only claim if tier is cooperative. Apex can only claim if tier is apex.
   const isDelegatedToMe =
     isDraft &&
     submission?.edited_by == null &&
@@ -380,20 +381,18 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const isEditor = isDraft && (submission?.edited_by === currentUserId || isDelegatedToMe);
 
-  // Auto-claim edit rights when opening a delegated draft with no editor
-  // Guard against React StrictMode double-mount and rapid navigation triggering multiple claims
+  // Only Apex-created submissions can be delegated/reclaimed
+  const wasDelegatedToCoop = submission?.created_by_role === "apex";
+
+  // Auto-claim edit rights when opening a draft with no editor.
+  // STRICT: cooperative can ONLY claim if current_tier === 'cooperative'.
+  //         apex can ONLY claim if current_tier === 'apex'.
   const hasClaimedRef = useRef(false);
   useEffect(() => {
     if (!submission || !isDraft || submission.edited_by != null || !id) return;
     if (hasClaimedRef.current) return;
     hasClaimedRef.current = true;
     if (role === "cooperative" && submission.current_tier === "cooperative") {
-      claimCoopEdit.mutate({ id });
-    } else if (
-      role === "cooperative" &&
-      submission.current_tier === "apex" &&
-      submission.created_by_role === "apex"
-    ) {
       claimCoopEdit.mutate({ id });
     } else if (role === "apex" && submission.current_tier === "apex") {
       claimApexEdit.mutate({ id });
@@ -1054,52 +1053,20 @@ export const SubmissionDetailPage: React.FC = () => {
               />
             )}
 
-          {/* Apex: Action Required — Fix myself or Delegate to Cooperative */}
+          {/* Apex: Coop currently holds the submission — Reclaim back */}
           {role === "apex" &&
-            submission.status === "submitted" &&
-            submission.created_by_role === "apex" &&
-            submission.current_tier === "apex" && (
-              <Card
-                title="Action Required"
-                subtitle="Fix this submission yourself or delegate to the cooperative"
-              >
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={async () => {
-                      if (!id) return;
-                      try {
-                        await apexReturn.mutateAsync({ id });
-                        toast.success("Returned to draft. You can now edit this submission.");
-                      } catch (err) {
-                        toast.error(
-                          err instanceof Error ? err.message : "Failed to return submission",
-                        );
-                      }
-                    }}
-                    disabled={apexReturn.isPending}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {apexReturn.isPending ? <Spinner size="sm" /> : <PenLine className="size-4" />}{" "}
-                    Fix Myself
-                  </button>
-                  <button
-                    onClick={() => setShowDelegateModal(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-warning/30/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning hover:bg-warning/10 transition-colors"
-                  >
-                    <Users className="size-4" /> Delegate to Cooperative
-                  </button>
-                </div>
-              </Card>
-            )}
-
-          {/* Apex: Delegated submission — Reclaim back */}
-          {role === "apex" &&
-            submission.status === "draft" &&
+            submission.status !== "approved" &&
+            submission.status !== "rejected" &&
             submission.current_tier === "cooperative" &&
-            submission.created_by_role === "apex" && (
+            wasDelegatedToCoop &&
+            submission.edited_by !== currentUserId && (
               <Card
                 title="Delegated to Cooperative"
-                subtitle="This submission is being fixed by the cooperative"
+                subtitle={
+                  submission.edited_by_name
+                    ? `Currently being edited by: ${submission.edited_by_name}`
+                    : "This submission is waiting for the cooperative to claim and edit"
+                }
               >
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
@@ -1112,19 +1079,19 @@ export const SubmissionDetailPage: React.FC = () => {
               </Card>
             )}
 
-          {/* Apex: Reclaimed draft — Delegate to Cooperative */}
+          {/* Apex: Apex holds the submission (is current editor) — Delegate to Cooperative */}
           {role === "apex" &&
             submission.status === "draft" &&
-            submission.current_tier === "apex" &&
-            submission.created_by_role === "apex" && (
+            submission.created_by_role === "apex" &&
+            submission.edited_by === currentUserId && (
               <Card
                 title="Ready to Delegate"
-                subtitle="Delegate this submission to the cooperative for editing"
+                subtitle="You can fill this submission out yourself, or hand it off to the cooperative"
               >
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setShowDelegateModal(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-warning/30/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning hover:bg-warning/10 transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning hover:bg-warning/10 transition-colors"
                   >
                     <Users className="size-4" /> Delegate to Cooperative
                   </button>

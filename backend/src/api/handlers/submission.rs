@@ -2790,33 +2790,29 @@ pub async fn delegate_submission(
     }
 
     // Verify submission is delegatable:
-    // - "returned" status at apex tier (federation returned to apex)
-    // - "submitted" status at apex tier (returned by federation, set to submitted)
-    // - "submitted" status at federation tier (apex-created, not yet reviewed by fed)
-    // - "draft" status at apex tier (reclaimed by apex or apex returned to self)
-    let delegatable = match submission.status {
-        crate::entities::enums::SubmissionStatus::Returned
-            if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
-        {
-            true
-        }
-        crate::entities::enums::SubmissionStatus::Draft
-            if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
-        {
-            true
-        }
-        crate::entities::enums::SubmissionStatus::Submitted => {
-            submission.current_tier == crate::entities::enums::ReviewTier::Apex
-                || submission.current_tier == crate::entities::enums::ReviewTier::Federation
-        }
-        _ => false,
-    };
+    // Any unapproved submission that is currently at the Apex tier can be delegated,
+    // BUT only if it was originally created by the Apex.
+    if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
+        return Err(AppError::BadRequest(
+            "Only submissions created by the Apex on behalf of a cooperative can be delegated."
+                .into(),
+        ));
+    }
+
+    let delegatable = submission.status != crate::entities::enums::SubmissionStatus::Approved
+        && submission.status != crate::entities::enums::SubmissionStatus::Rejected;
+
     if !delegatable {
         return Err(AppError::BadRequest(format!(
-            "Cannot delegate a submission in '{}' status at {:?} tier. Only returned or submitted submissions can be delegated.",
+            "Cannot delegate a submission in '{}' status. Only unapproved submissions can be delegated.",
             submission.status.as_str(),
-            submission.current_tier
         )));
+    }
+
+    if submission.current_tier != crate::entities::enums::ReviewTier::Apex {
+        return Err(AppError::BadRequest(
+            "Only submissions currently at the Apex tier can be delegated. If it is with the cooperative, reclaim it first.".into(),
+        ));
     }
 
     // Find the cooperative's primary user to set as edited_by
@@ -2925,6 +2921,15 @@ pub async fn claim_cooperative_edit(
         )));
     }
 
+    // CRITICAL: cooperative can only claim edit when the submission is at the cooperative tier.
+    // This prevents stale-cache race conditions where the cooperative auto-claims after an Apex reclaim.
+    if submission.current_tier != crate::entities::enums::ReviewTier::Cooperative {
+        return Err(AppError::BadRequest(format!(
+            "Cannot claim edit: submission is currently at the {:?} tier, not the cooperative tier.",
+            submission.current_tier
+        )));
+    }
+
     let user_id = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".into()))?;
     let user_name = claims
@@ -2989,25 +2994,26 @@ pub async fn reclaim_submission(
         ));
     }
 
-    // Verify submission is a draft (returned + delegated state)
-    if submission.status != crate::entities::enums::SubmissionStatus::Draft {
-        return Err(AppError::BadRequest(format!(
-            "Cannot reclaim a submission in '{}' status. Only draft submissions can be reclaimed.",
-            submission.status.as_str()
-        )));
+    // Verify submission is reclaimable:
+    // Any unapproved submission that is currently at the Cooperative tier can be reclaimed,
+    // BUT only if it was originally created by the Apex.
+    if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
+        return Err(AppError::BadRequest(
+            "Cannot reclaim: only submissions originally created by the Apex can be reclaimed."
+                .into(),
+        ));
     }
 
-    // Verify the submission was originally delegated (not an apex-created draft)
-    // The submission must have been returned from federation before delegation
-    let reviews = state.review_repo.find_by_submission(id).await?;
-    let was_delegated = reviews.iter().any(|r| {
-        r.action == crate::entities::enums::ReviewAction::Return
-            && r.target_tier == Some(crate::entities::enums::ReviewTier::Cooperative)
-    });
-    if !was_delegated {
-        return Err(AppError::BadRequest(
-            "Cannot reclaim: this submission was not delegated to a cooperative".into(),
-        ));
+    let reclaimable = submission.status != crate::entities::enums::SubmissionStatus::Approved
+        && submission.status != crate::entities::enums::SubmissionStatus::Rejected
+        && submission.current_tier == crate::entities::enums::ReviewTier::Cooperative;
+
+    if !reclaimable {
+        return Err(AppError::BadRequest(format!(
+            "Cannot reclaim a submission in '{}' status at {:?} tier. The submission must be unapproved and currently at the Cooperative tier.",
+            submission.status.as_str(),
+            submission.current_tier
+        )));
     }
 
     let apex_user_id = Uuid::parse_str(&claims.sub).ok();
