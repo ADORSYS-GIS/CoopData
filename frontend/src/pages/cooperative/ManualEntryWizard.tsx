@@ -143,7 +143,7 @@ export function ManualEntryWizard() {
   // Determine starting step based on the wizard mode
   const [step, setStep] = useState<WizardStep>(isFinancialWizard ? "financial" : "members");
 
-  const [currency, setCurrency] = useState<"SZL" | "USD">("SZL");
+  const currency = "SZL" as const;
   const [accountingYear, setAccountingYear] = useState<"calendar" | "fiscal">("calendar");
   const [startMonth, setStartMonth] = useState<number>(1);
 
@@ -218,7 +218,6 @@ export function ManualEntryWizard() {
       if (draft && hasDraftData(draft)) {
         draftAppliedRef.current = true;
         setHasLocalDraft(true);
-        if (draft.currency) setCurrency(draft.currency);
         if (draft.accountingYear) setAccountingYear(draft.accountingYear);
         if (draft.startMonth) setStartMonth(draft.startMonth);
         if (draft.periodType) setPeriodType(draft.periodType);
@@ -268,7 +267,6 @@ export function ManualEntryWizard() {
     isHydrated,
     submissionId,
     draftMode,
-    currency,
     accountingYear,
     startMonth,
     periodType,
@@ -1393,17 +1391,6 @@ export function ManualEntryWizard() {
         <div className="flex items-center gap-3 flex-wrap">
           {step === "financial" && (
             <>
-              <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-4 py-2 border border-border">
-                <DollarSign className="size-4 text-muted-foreground" />
-                <select
-                  className="bg-transparent text-sm font-semibold text-foreground border-none outline-none cursor-pointer"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as "SZL" | "USD")}
-                >
-                  <option value="SZL">{t("manualEntry.currencySzl")}</option>
-                  <option value="USD">USD</option>
-                </select>
-              </div>
               <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-4 py-2 border border-border">
                 <TrendingUp className="size-4 text-muted-foreground" />
                 <select

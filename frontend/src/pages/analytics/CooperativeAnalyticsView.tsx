@@ -12,7 +12,6 @@ import { buildMetricGroups } from "@/components/analytics/national/metrics";
 import { PanelSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
-import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
 import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
@@ -59,7 +58,6 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
   };
 
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(latest?.id);
-  const { data: trend } = useMonthlyTrend(scope, hasApproved);
   const { data: nfStats } = useNfStatistics(isCooperative, scope, hasApproved);
 
   const kpiMap = useMemo(
@@ -78,8 +76,6 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
     ],
     [nfStats, series, t],
   );
-  const searching = query.trim().length > 0;
-
   if (!latest) {
     return (
       <Card
@@ -102,16 +98,16 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
         groups={groups}
         query={query}
         noResults={t("basicDashboard.search.noResults", { query })}
+        chartsSlot={
+          <CooperativeCharts
+            kpiMap={kpiMap}
+            hasKpis={!!kpisData}
+            nfStats={nfStats}
+            points={series?.points}
+            seriesQuery={seriesQuery}
+          />
+        }
       />
-      {!searching && (
-        <CooperativeCharts
-          kpiMap={kpiMap}
-          hasKpis={!!kpisData}
-          nfStats={nfStats}
-          trend={trend}
-          seriesQuery={seriesQuery}
-        />
-      )}
       {!hasApproved && (
         <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4 dark:border-warning/30 dark:bg-warning/20">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-warning" />

@@ -7,7 +7,6 @@ use axum::Json;
 use rust_decimal::prelude::ToPrimitive;
 use uuid::Uuid;
 
-use crate::api::dto::common::RateUsed;
 use crate::api::dto::period_series::{PeriodSeriesParams, PeriodSeriesPoint, PeriodSeriesResponse};
 use crate::auth::claims::Claims;
 use crate::entities::enums::{PeriodType, SubmissionStatus};
@@ -114,8 +113,6 @@ pub async fn get_period_series(
         .await?;
 
     let coa = state.coa_repo.find_all().await?;
-    let rates = state.currency_service.load_rates().await?;
-    let current_rates = state.exchange_rate_repo.find_all().await?;
 
     let mut raw_by_statement: HashMap<Uuid, BTreeMap<i16, HashMap<i32, f64>>> = HashMap::new();
     for item in &items {
@@ -134,7 +131,6 @@ pub async fn get_period_series(
 
     let mut totals_by_period: BTreeMap<(i32, u32), (StatementTotals, i64, String)> =
         BTreeMap::new();
-    let mut rates_used: Vec<RateUsed> = Vec::new();
 
     for (key, submission) in &in_series {
         let Some(statement) = statement_of.get(&submission.id) else {
@@ -143,20 +139,7 @@ pub async fn get_period_series(
         let Some(raw) = raw_by_statement.get(&statement.id) else {
             continue;
         };
-        let frozen = crate::services::currency::frozen_rate_of(submission);
-        if let Some(used) = crate::api::handlers::exchange_rate::rate_used_for(
-            &statement.currency,
-            Some(submission),
-            &current_rates,
-        ) {
-            if !rates_used.contains(&used) {
-                rates_used.push(used);
-            }
-        }
         let native = statement_totals(raw, &coa);
-        let usd = native.map(|value| {
-            crate::services::currency::to_usd_frozen(value, &statement.currency, frozen, &rates)
-        });
         let entry = totals_by_period.entry(*key).or_insert_with(|| {
             (
                 StatementTotals::default(),
@@ -164,7 +147,7 @@ pub async fn get_period_series(
                 submission.period_value.clone(),
             )
         });
-        entry.0.add(&usd);
+        entry.0.add(&native);
         entry.1 += 1;
     }
 
@@ -210,6 +193,5 @@ pub async fn get_period_series(
     Ok(Json(PeriodSeriesResponse {
         period_type: period_type.as_str().to_string(),
         points,
-        rates_used,
     }))
 }

@@ -2,8 +2,6 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use crate::api::dto::common::RateUsed;
-
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
 pub struct PeriodSeriesParams {
     pub reporting_year: Option<i32>,
@@ -27,7 +25,7 @@ pub struct PeriodSeriesPoint {
     pub period_type: String,
     pub period_value: String,
     pub cooperatives_reporting: i64,
-    /// USD, from the approved financial statements.
+    /// In the currency reported, from the approved financial statements.
     pub assets: f64,
     pub loans: f64,
     pub liquid_assets: f64,
@@ -58,5 +56,4 @@ pub struct PeriodSeriesPoint {
 pub struct PeriodSeriesResponse {
     pub period_type: String,
     pub points: Vec<PeriodSeriesPoint>,
-    pub rates_used: Vec<RateUsed>,
 }

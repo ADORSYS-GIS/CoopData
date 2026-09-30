@@ -9,7 +9,7 @@ interface FixedDepositGridProps {
   fixedDeposits: FixedDepositResponse[];
   isLoading?: boolean;
   isReadOnly?: boolean;
-  rateToUsd?: number | null;
+  rateToZar?: number | null;
   errorRowIds?: string[];
   onEdit?: (fd: FixedDepositResponse) => void;
   onDelete?: (id: string) => void;
@@ -19,7 +19,7 @@ export function FixedDepositGrid({
   fixedDeposits,
   isLoading,
   isReadOnly,
-  rateToUsd,
+  rateToZar,
   errorRowIds,
   onEdit,
   onDelete,
@@ -27,7 +27,7 @@ export function FixedDepositGrid({
   const { t } = useTranslation();
   const columns = useFixedDepositColumns(
     isReadOnly ? undefined : { onEdit: onEdit ?? (() => {}), onDelete: onDelete ?? (() => {}) },
-    rateToUsd,
+    rateToZar,
   );
 
   const errorSet = new Set(errorRowIds ?? []);

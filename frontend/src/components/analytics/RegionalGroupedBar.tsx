@@ -60,7 +60,7 @@ export function RegionalGroupedBar({ cooperatives }: RegionalGroupedBarProps) {
             fontSize={11}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(v) => `$${v}K`}
+            tickFormatter={(v) => `SZL ${v}K`}
           />
           <Tooltip
             contentStyle={{
@@ -69,7 +69,7 @@ export function RegionalGroupedBar({ cooperatives }: RegionalGroupedBarProps) {
               borderRadius: "8px",
               fontSize: "12px",
             }}
-            formatter={(val: number) => [`$${val.toLocaleString()}K`]}
+            formatter={(val: number) => [`SZL ${val.toLocaleString()}K`]}
             cursor={{ fill: "var(--muted)", opacity: 0.3 }}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} />

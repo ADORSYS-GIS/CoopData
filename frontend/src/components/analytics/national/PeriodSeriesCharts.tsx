@@ -18,7 +18,7 @@ export function PeriodSeriesCharts({ query }: { query: PeriodSeriesQuery }) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <StructureChart points={structure} />
-      <ProfitabilityChart points={profitability} currency="USD" />
+      <ProfitabilityChart points={profitability} currency="SZL" />
     </div>
   );
 }

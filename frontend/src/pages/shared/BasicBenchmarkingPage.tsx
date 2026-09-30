@@ -1,22 +1,30 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { BasicCooperativeComparison } from "@/components/analytics/BasicCooperativeComparison";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { YearPickerFilter } from "@/components/shared/YearPickerFilter";
 import { BarChart3 } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { useBasicDashboard } from "@/hooks/analytics/useBasicDashboard";
+import { LATEST } from "@/lib/analytics-filters";
 
 export const BasicBenchmarkingPage: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
 
-  const yearOptions = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
+  // Every year that has questionnaire data in the caller's scope, so the page
+  // can default to the latest one instead of the current calendar year (which
+  // is usually empty, showing "No Benchmarking Data" until the user picks a
+  // year by hand). The year picker itself opens the same paged grid, back to
+  // 2000, used everywhere else in Analytics.
+  const { data: dashboard } = useBasicDashboard({}, true);
+  const dataYears = useMemo(
+    () => (dashboard?.scope.available_periods ?? []).map((p) => p.reporting_year),
+    [dashboard],
+  );
+  const latestDataYear = dataYears.length > 0 ? Math.max(...dataYears) : currentYear;
+
+  const [year, setYear] = useState<string>(LATEST);
+  const selectedYear = year === LATEST ? latestDataYear : Number(year);
 
   return (
     <AppShell
@@ -38,27 +46,18 @@ export const BasicBenchmarkingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="w-full sm:w-48">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">
-              {t("basicBenchmarking.reportingYear")}
-            </label>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t("basicBenchmarking.selectYear")} />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y} value={y}>
-                    {t("basicBenchmarking.calendarYear", { year: y })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <YearPickerFilter
+            label={t("basicBenchmarking.reportingYear")}
+            value={year}
+            onValueChange={setYear}
+            latestValue={LATEST}
+            latestLabel={t("basicDashboard.filters.allPeriods")}
+            currentYear={currentYear}
+          />
         </div>
 
         {/* Basic Benchmarking Comparison Widget */}
-        <BasicCooperativeComparison reportingYear={Number(selectedYear)} />
+        <BasicCooperativeComparison reportingYear={selectedYear} />
       </div>
     </AppShell>
   );

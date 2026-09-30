@@ -1448,7 +1448,9 @@
     "placeholderDepositId": "FD-001",
     "placeholderSavingsId": "SAV-001",
     "draftSavedLocally": "Draft saved locally on this device",
-    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online",
+    "stepIncomplete": "Étape incomplète",
+    "financialIncomplete": "Données financières incomplètes"
   },
   "financial": {
     "liquidAssets": "Actifs liquides",
@@ -1738,7 +1740,13 @@
     "sectionFixedDeposits": "Fixed deposits only",
     "sectionFarmCoop": "Farm cooperative only",
     "sectionHint": "Upload one workbook containing all tables, or pick a single section to upload one Excel file for it.",
-    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first."
+    "membersFirstError": "Members must be uploaded before savings, loans, or fixed deposits. Upload the membership file first.",
+    "clickToCollapse": "Cliquer pour réduire",
+    "clickToExpand": "Cliquer pour développer",
+    "howToFix": "Comment corriger",
+    "openFullView": "Ouvrir la vue complète",
+    "showingCount": "Affichage de {count}",
+    "noMatchingErrors": "Aucune erreur correspondante"
   },
   "analytics": {
     "filter": {
@@ -1985,11 +1993,10 @@
     "coopContributionShares": "Parts de contribution des coopératives",
     "spreadsheetBreakdown": "Ventilation en tableur des comptes principaux",
     "entity": "Entité",
-    "valueSzUsd": "Valeur (USD)",
     "sharePct": "Part (%)",
     "noCoopsFound": "Aucune coopérative trouvée.",
     "rankingPrincipalAccounts": "Classement des comptes principaux",
-    "valueContributionSubtitle": "Contribution en valeur de chaque coopérative (millions USD)",
+    "valueContributionSubtitle": "Contribution en valeur de chaque coopérative (millions ZAR)",
     "valueMillions": "Valeur (Millions)",
     "noStatementData": "Aucune donnée d'état ne correspond à vos sélections.",
     "assemblingPerformanceStats": "Assemblage des statistiques de performance…",
@@ -2103,7 +2110,7 @@
     "deepDiveComplianceInfo": "Trois contrôles de santé de la coopérative : la part des actifs qui appartient aux membres, la part détenue en espèces et soldes bancaires, et la part du portefeuille de prêts en retard de plus de 90 jours. Une jauge impossible à calculer est omise plutôt que de montrer zéro. Issu de l'état financier approuvé. Formules : fonds propres divisés par actifs, actifs liquides divisés par actifs, et prêts non performants divisés par prêts bruts.",
     "deepDiveFinancialTrend": "Tendance financière",
     "deepDiveTrendSubtitle": "Actifs, prêts et épargne sur 12 mois",
-    "deepDiveTrendInfo": "L'évolution mois après mois des principaux soldes de la coopérative. Elle aide à repérer tôt une croissance ou un recul. Issu des états financiers approuvés, en USD, à la fin de chaque mois.",
+    "deepDiveTrendInfo": "L'évolution mois après mois des principaux soldes de la coopérative. Elle aide à repérer tôt une croissance ou un recul. Issu des états financiers approuvés, en ZAR, à la fin de chaque mois.",
     "noHistoricalTrendData": "Aucune donnée de tendance historique disponible pour le moment",
     "deepDiveLoanProvisioningGap": "Écart de provisionnement des prêts",
     "deepDiveProvisioningSubtitle": "Visualisation du capital à risque non protégé",
@@ -2225,13 +2232,13 @@
     "netTotalMembersTooltip": "Nombre de membres enregistrés dans les registres des coopératives affichées, y compris les membres dormants et sortis. Issu du registre des membres téléversé dans les soumissions approuvées. Formule : tous les membres du registre.",
     "netActivePct": "{{pct}} % Actifs",
     "netTotalSavings": "Épargne du registre des membres",
-    "netTotalSavingsTooltip": "Somme de tous les soldes du registre d'épargne des membres téléversé. Elle provient du registre des membres et non du bilan ; elle peut donc différer de l'épargne des membres des états financiers. Convertie en USD au taux figé de chaque soumission. Formule : somme des soldes de tous les comptes d'épargne.",
+    "netTotalSavingsTooltip": "Somme de tous les soldes du registre d'épargne des membres téléversé. Elle provient du registre des membres et non du bilan ; elle peut donc différer de l'épargne des membres des états financiers. Convertie en ZAR au taux figé de chaque soumission. Formule : somme des soldes de tous les comptes d'épargne.",
     "netAvg": "Moy. : ${{amount}}",
     "netTotalLoans": "Prêts du registre des membres",
-    "netTotalLoansTooltip": "Solde restant dû des prêts du registre des prêts téléversé, hors prêts passés en perte. Il provient du registre des membres et non du bilan ; il peut donc différer des prêts bruts des états financiers. Converti en USD. Formule : somme des soldes des prêts non passés en perte.",
+    "netTotalLoansTooltip": "Solde restant dû des prêts du registre des prêts téléversé, hors prêts passés en perte. Il provient du registre des membres et non du bilan ; il peut donc différer des prêts bruts des états financiers. Converti en ZAR. Formule : somme des soldes des prêts non passés en perte.",
     "netArrearsPct": "{{pct}} % Arriérés",
     "netFixedDeposits": "Dépôts à terme du registre des membres",
-    "netFixedDepositsTooltip": "Somme des dépôts à terme du registre téléversé. Elle provient du registre des membres et non du bilan. Convertie en USD au taux figé de chaque soumission. Formule : somme des soldes des dépôts à terme.",
+    "netFixedDepositsTooltip": "Somme des dépôts à terme du registre téléversé. Elle provient du registre des membres et non du bilan. Convertie en ZAR au taux figé de chaque soumission. Formule : somme des soldes des dépôts à terme.",
     "netPenPct": "{{pct}} % Pén.",
     "netOnTimeRepayment": "Remboursement à temps",
     "netOnTimeRepaymentTooltip": "Part des prêts remboursés à l'échéance dans le réseau. Plus c'est haut, mieux c'est. Issu de la régularité de remboursement des registres de prêts (ou du statut performant si elle n'est pas renseignée), combiné entre coopératives en pondérant par leur nombre de prêts actifs. Formule : prêts remboursés à temps divisés par prêts actifs, en pourcentage.",
@@ -2252,7 +2259,7 @@
     "netSavingsAccounts": "Comptes d'épargne",
     "netSavingsAccountsTooltip": "Nombre de comptes d'épargne enregistrés dans le registre d'épargne. Il montre à quel point l'épargne est répandue. Issu du registre d'épargne téléversé dans la soumission approuvée. Formule : tous les comptes d'épargne du registre.",
     "netXActive": "{{count}} actifs",
-    "netTotalSavingsTooltip2": "Somme de tous les soldes du registre d'épargne téléversé. Elle provient du registre des membres et non du bilan ; elle peut donc différer de l'épargne des états financiers. Affichée en USD. Formule : somme des soldes de tous les comptes d'épargne.",
+    "netTotalSavingsTooltip2": "Somme de tous les soldes du registre d'épargne téléversé. Elle provient du registre des membres et non du bilan ; elle peut donc différer de l'épargne des états financiers. Affichée en ZAR. Formule : somme des soldes de tous les comptes d'épargne.",
     "netActiveSavers": "Comptes d'épargne actifs",
     "netActiveSaversTooltip": "Nombre de comptes d'épargne dont le statut est actif. Le chiffre compte des comptes et non des personnes : un membre avec deux comptes compte deux fois. Issu du registre d'épargne téléversé. Formule : comptes d'épargne au statut actif.",
     "netPenetrationPct": "{{pct}} % de pénétration",
@@ -2262,7 +2269,7 @@
     "netLoanPortfolioMetrics": "Métriques du portefeuille de prêts",
     "netLoanAccounts": "Comptes de prêts",
     "netLoanAccountsTooltip": "Nombre de prêts enregistrés dans le registre des prêts, avec en dessous le nombre de prêts encore actifs. Il montre combien de membres empruntent. Issu du registre des prêts téléversé. Formule : tous les prêts du registre ; actif signifie non passé en perte.",
-    "netTotalLoansTooltip2": "Solde restant dû des prêts du registre des prêts téléversé, hors prêts passés en perte. Il provient du registre des membres et non du bilan. Affiché en USD. Formule : somme des soldes des prêts non passés en perte.",
+    "netTotalLoansTooltip2": "Solde restant dû des prêts du registre des prêts téléversé, hors prêts passés en perte. Il provient du registre des membres et non du bilan. Affiché en ZAR. Formule : somme des soldes des prêts non passés en perte.",
     "netLoansInArrears": "Prêts en retard",
     "netLoansInArrearsTooltip": "Nombre de prêts dont le statut dans le registre des prêts est en retard, c'est-à-dire dont les remboursements sont en retard. Il diffère du PAR, qui mesure la valeur en retard dans les états financiers. Issu du registre des prêts téléversé. Formule : prêts au statut en retard.",
     "netArrearsRatePct": "{{pct}} % de taux d'arriérés",
@@ -2272,7 +2279,7 @@
     "netFdAccounts": "Comptes DT",
     "netFdAccountsTooltip": "Nombre de dépôts à terme enregistrés dans le registre des dépôts à terme, avec en dessous le nombre de dépôts encore actifs. Issu du registre des dépôts à terme téléversé. Formule : tous les dépôts à terme du registre.",
     "netTotalFdBalance": "Solde total DT",
-    "netTotalFdBalanceTooltip": "Somme des soldes de tous les dépôts à terme du registre. Elle provient du registre des membres et non du bilan. Affichée en USD. Formule : somme des soldes des dépôts à terme.",
+    "netTotalFdBalanceTooltip": "Somme des soldes de tous les dépôts à terme du registre. Elle provient du registre des membres et non du bilan. Affichée en ZAR. Formule : somme des soldes des dépôts à terme.",
     "netFdPenetration": "Pénétration DT",
     "netFdPenetrationTooltip": "Part des membres qui détiennent un dépôt à terme. Elle montre la diffusion de ce produit auprès des membres. Issu des registres des dépôts à terme et des membres ; pour un réseau, elle est calculée sur le total des membres et non comme moyenne de pourcentages de coopératives. Formule : membres avec un dépôt à terme divisés par total des membres, en pourcentage.",
     "netMemberParticipation": "Participation des membres",
@@ -2284,7 +2291,7 @@
     "netSavingsPortfolioHealthInfo": "Trois signes de la bonne santé de l'épargne : combien de membres épargnent, combien de comptes reçoivent des versements réguliers et combien de comptes sont actifs. Plus c'est haut, mieux c'est. Issu des registres d'épargne et de membres téléversés. Formules : membres avec épargne divisés par membres, comptes à versements mensuels ou trimestriels divisés par comptes, et comptes actifs divisés par comptes, en pourcentages.",
     "netLoanPortfolioBreakdown": "Ventilation du portefeuille de prêts",
     "netLoanPortfolioBreakdownSub": "Performants vs arriérés dans le réseau",
-    "netLoanPortfolioBreakdownInfo": "Le nombre et la valeur des prêts : tous les prêts, ceux encore actifs, en retard et restructurés, et le montant prêté par rapport au montant encore dû. Cela montre la taille et la qualité des prêts. Issu des registres de prêts téléversés, en milliers d'USD. Les prêts passés en perte ne sont comptés ni comme actifs ni comme en cours.",
+    "netLoanPortfolioBreakdownInfo": "Le nombre et la valeur des prêts : tous les prêts, ceux encore actifs, en retard et restructurés, et le montant prêté par rapport au montant encore dû. Cela montre la taille et la qualité des prêts. Issu des registres de prêts téléversés, en milliers d'ZAR. Les prêts passés en perte ne sont comptés ni comme actifs ni comme en cours.",
     "netLiquidityRisk": "Risque de liquidité du réseau",
     "netLiquidityRiskSub": "Concentration des dépôts à terme",
     "netLiquidityRiskInfo": "Le degré de concentration des dépôts à terme dans le réseau. Si quelques dépôts ou des échéances courtes représentent l'essentiel des fonds, des retraits simultanés pourraient mettre les coopératives sous tension. Issu des registres de dépôts à terme téléversés. Formule : dépôts dépendant d'un seul déposant divisés par tous les dépôts à terme, en pourcentage.",
@@ -2355,13 +2362,12 @@
     "depositsLabel": "Dépôts",
     "savingsShort": "Épargne",
     "savingsLoansDepositsTitle": "Épargne, Prêts et Dépôts",
-    "monthlyFinancialBreakdown": "Votre ventilation financière mensuelle et variation",
     "netVariation": "Liquides + prêts - dépôts",
     "loadErrorTitle": "Impossible de charger les données de comparaison",
     "loadErrorDesc": "Une erreur est survenue lors du chargement du benchmarking. Veuillez réessayer.",
     "headline": {
       "totalAssets": "Total des actifs",
-      "totalAssetsTooltip": "Tout ce que possèdent les coopératives affichées. Cela montre la taille globale du réseau. Issu des états financiers approuvés au dernier mois déclaré, converti en USD au taux figé de chaque soumission. Formule : total des actifs (1999).",
+      "totalAssetsTooltip": "Tout ce que possèdent les coopératives affichées. Cela montre la taille globale du réseau. Issu des états financiers approuvés au dernier mois déclaré, converti en ZAR au taux figé de chaque soumission. Formule : total des actifs (1999).",
       "equityToAssets": "Fonds propres / actifs",
       "equityToAssetsTooltip": "Part des actifs qui appartient aux membres plutôt qu'aux créanciers. Plus c'est haut, plus c'est sûr ; négatif signifie que les dettes dépassent les actifs. Issu des états approuvés au dernier mois déclaré. Formule : total des fonds propres divisé par total des actifs, en pourcentage (3999 sur 1999)."
     },
@@ -2377,8 +2383,8 @@
         "capital": "Capital"
       },
       "notReported": "Non déclaré",
-      "vsPrevious": "{{change}} vs période précédente",
-      "vsPreviousPp": "{{change}} pt vs période précédente",
+      "vsPrevious": "{{change}}",
+      "vsPreviousPp": "{{change}} pt",
       "label": {
         "totalIncome": "Produits totaux",
         "totalExpenditure": "Charges totales",
@@ -2414,38 +2420,38 @@
         "statutoryReserve": "Réserve statutaire"
       },
       "tip": {
-        "totalIncome": "Tout l'argent gagné par les coopératives sur la période, surtout les intérêts et frais sur prêts. C'est la première ligne de la rentabilité. Issu des états financiers approuvés et additionné sur les mois déclarés, en USD. Formule : total des produits (4999) cumulé sur les mois déclarés.",
-        "totalExpenditure": "Tout l'argent dépensé pour faire fonctionner les coopératives sur la période, y compris intérêts payés, personnel et administration. Plus c'est bas, mieux c'est à revenu égal. Issu des états financiers approuvés et additionné sur les mois déclarés, en USD. Formule : total des charges (5999) cumulé sur les mois déclarés.",
-        "netIncome": "Ce qui reste après toutes les charges. Une valeur positive est un excédent, une valeur négative une perte. Issu des états financiers approuvés sur les mois déclarés, en USD. Formule : excédent net (6999) déclaré, sinon total des produits moins total des charges.",
+        "totalIncome": "Tout l'argent gagné par les coopératives sur la période, surtout les intérêts et frais sur prêts. C'est la première ligne de la rentabilité. Issu des états financiers approuvés et additionné sur les mois déclarés, en ZAR. Formule : total des produits (4999) cumulé sur les mois déclarés.",
+        "totalExpenditure": "Tout l'argent dépensé pour faire fonctionner les coopératives sur la période, y compris intérêts payés, personnel et administration. Plus c'est bas, mieux c'est à revenu égal. Issu des états financiers approuvés et additionné sur les mois déclarés, en ZAR. Formule : total des charges (5999) cumulé sur les mois déclarés.",
+        "netIncome": "Ce qui reste après toutes les charges. Une valeur positive est un excédent, une valeur négative une perte. Issu des états financiers approuvés sur les mois déclarés, en ZAR. Formule : excédent net (6999) déclaré, sinon total des produits moins total des charges.",
         "roa": "Excédent dégagé pour chaque unité d'actifs. Plus c'est haut, plus les actifs sont rentables. Issu des états approuvés, pour la période couverte et non annualisé : un trimestre paraît donc plus bas qu'une année. Formule : résultat net divisé par total des actifs, en pourcentage.",
         "roe": "Excédent dégagé pour chaque unité de fonds propres des membres. Plus c'est haut, plus le capital des membres travaille. Issu des états approuvés, pour la période couverte et non annualisé. Formule : résultat net divisé par total des fonds propres, en pourcentage.",
         "expensesToIncome": "Part de chaque unité gagnée qui part en charges. En dessous de 100 pour cent, il y a un excédent ; plus c'est bas, mieux c'est. Issu des états approuvés sur les mois déclarés. Formule : total des charges divisé par total des produits, en pourcentage.",
         "selfSufficiency": "Indique si les produits couvrent les charges. Au-dessus de 100 pour cent, les coopératives couvrent leurs coûts avec leurs propres revenus ; plus c'est haut, mieux c'est. Issu des états approuvés sur les mois déclarés. Formule : total des produits divisé par total des charges, en pourcentage.",
         "netInterestMargin": "Ce que les coopératives gagnent en prêtant et en plaçant, après paiement des intérêts aux épargnants et prêteurs, rapporté à leur taille. Plus c'est haut, mieux c'est. Issu des états approuvés, pour la période couverte et non annualisé. Formule : produits financiers (4100) moins charges financières (5100), divisés par total des actifs, en pourcentage.",
-        "grossLoans": "Montant total que les membres doivent sur leurs prêts, y compris en retard, avant provisions. C'est le principal actif productif. Issu des états financiers approuvés à la fin de la période, en USD. Formule : prêts et avances (1200).",
-        "netLoans": "Le portefeuille de prêts après mise de côté de fonds pour les pertes attendues. C'est une vision plus prudente de ce qui sera réellement recouvré. Issu des états approuvés à la fin de la période, en USD. Formule : prêts bruts moins provision pour pertes sur prêts (1250).",
+        "grossLoans": "Montant total que les membres doivent sur leurs prêts, y compris en retard, avant provisions. C'est le principal actif productif. Issu des états financiers approuvés à la fin de la période, en ZAR. Formule : prêts et avances (1200).",
+        "netLoans": "Le portefeuille de prêts après mise de côté de fonds pour les pertes attendues. C'est une vision plus prudente de ce qui sera réellement recouvré. Issu des états approuvés à la fin de la période, en ZAR. Formule : prêts bruts moins provision pour pertes sur prêts (1250).",
         "par30": "Portefeuille à risque à plus de 30 jours : part du portefeuille de prêts en retard de plus de 30 jours. Une valeur élevée signifie que beaucoup de prêts risquent de ne pas être remboursés ; plus c'est bas, mieux c'est. Les prêts en retard de 1 à 30 jours ne sont pas comptés. Issu des états approuvés à la fin de la période. Formule : prêts en retard de plus de 30 jours divisés par prêts bruts, en pourcentage (1203, 1204, 1205 sur 1200).",
         "par60": "Part du portefeuille de prêts en retard de plus de 60 jours. C'est un avertissement plus grave que la mesure à 30 jours ; plus c'est bas, mieux c'est. Issu des états approuvés à la fin de la période. Formule : prêts en retard de plus de 60 jours divisés par prêts bruts, en pourcentage (1204, 1205 sur 1200).",
         "par90": "Part du portefeuille de prêts qui est non performante, en retard de plus de 90 jours. Ces prêts ont peu de chances d'être recouvrés ; plus c'est bas, mieux c'est. Issu des états approuvés à la fin de la période. Formule : prêts non performants divisés par prêts bruts, en pourcentage (1205 sur 1200).",
-        "valueAtRisk": "Valeur monétaire des prêts en retard de plus de 30 jours. C'est le montant derrière le chiffre du PAR à plus de 30 jours. Issu des états approuvés à la fin de la période, en USD. Formule : prêts en retard de plus de 30 jours (1203 plus 1204 plus 1205).",
-        "provisions": "Argent mis de côté pour absorber les pertes attendues sur prêts. Il protège l'épargne des membres si des emprunteurs ne remboursent pas. Issu des états approuvés à la fin de la période, affiché en montant positif en USD. Formule : provision pour pertes sur prêts (1250), générale plus spécifique.",
+        "valueAtRisk": "Valeur monétaire des prêts en retard de plus de 30 jours. C'est le montant derrière le chiffre du PAR à plus de 30 jours. Issu des états approuvés à la fin de la période, en ZAR. Formule : prêts en retard de plus de 30 jours (1203 plus 1204 plus 1205).",
+        "provisions": "Argent mis de côté pour absorber les pertes attendues sur prêts. Il protège l'épargne des membres si des emprunteurs ne remboursent pas. Issu des états approuvés à la fin de la période, affiché en montant positif en ZAR. Formule : provision pour pertes sur prêts (1250), générale plus spécifique.",
         "provisionCoverage": "Part des prêts très en retard couverte par des provisions. Autour de 100 pour cent ou plus, les pertes attendues sont entièrement provisionnées ; plus c'est haut, plus c'est sûr. Issu des états approuvés à la fin de la période. Formule : provisions divisées par prêts en retard de plus de 30 jours, en pourcentage.",
-        "liquidAssets": "Espèces et soldes bancaires utilisables rapidement pour payer les membres. Cela montre la capacité à faire face aux retraits. Issu des états approuvés à la fin de la période, en USD. Formule : actifs liquides (1100), soit espèces, banque et placements à court terme.",
+        "liquidAssets": "Espèces et soldes bancaires utilisables rapidement pour payer les membres. Cela montre la capacité à faire face aux retraits. Issu des états approuvés à la fin de la période, en ZAR. Formule : actifs liquides (1100), soit espèces, banque et placements à court terme.",
         "liquidityToSavings": "Part de l'épargne des membres qui pourrait être remboursée immédiatement avec les actifs liquides. Le minimum réglementaire est de 15 pour cent ; plus c'est haut, plus c'est sûr. Issu des états approuvés à la fin de la période. Formule : actifs liquides divisés par épargne des membres, en pourcentage (1100 sur 2100).",
         "liquidityGap": "Écart entre la liquidité et le minimum de 15 pour cent. Zéro ou négatif signifie que le minimum est respecté ; une valeur positive est un déficit. Formule : 15 pour cent moins le ratio de liquidité, en points de pourcentage.",
-        "totalAssets": "Tout ce que possèdent les coopératives. Cela montre leur taille globale. Issu des états financiers approuvés à la fin de la période, en USD. Formule : total des actifs (1999), soit actifs liquides plus prêts bruts moins provisions plus autres actifs.",
+        "totalAssets": "Tout ce que possèdent les coopératives. Cela montre leur taille globale. Issu des états financiers approuvés à la fin de la période, en ZAR. Formule : total des actifs (1999), soit actifs liquides plus prêts bruts moins provisions plus autres actifs.",
         "earningAssetRatio": "Part des actifs prêtés ou détenus en liquidités plutôt qu'immobilisés en bâtiments et équipements. Plus c'est haut, plus l'argent est disponible pour les membres. Issu des états approuvés à la fin de la période. Formule : prêts bruts plus actifs liquides, divisés par total des actifs, en pourcentage.",
         "memberSavingsRatio": "Part des actifs financée par l'épargne des membres. Une part élevée signifie que les coopératives s'appuient surtout sur l'argent de leurs membres. Issu des états approuvés à la fin de la période. Formule : épargne des membres divisée par total des actifs, en pourcentage (2100 sur 1999).",
         "memberShareRatio": "Part des actifs financée par les parts sociales achetées par les membres. Elle montre ce que les membres possèdent directement. Issu des états approuvés à la fin de la période. Formule : parts sociales divisées par total des actifs, en pourcentage (3100 sur 1999).",
         "borrowedFundsRatio": "Part des actifs financée par de l'argent emprunté à des prêteurs extérieurs. Une part élevée signifie plus de dépendance et plus de risque. Issu des états approuvés à la fin de la période. Formule : emprunts divisés par total des actifs, en pourcentage (2200 sur 1999).",
         "loansToSavings": "Montant prêté pour chaque unité épargnée par les membres. Autour de 100 pour cent ou plus, l'épargne est entièrement prêtée, ce qui laisse moins de liquidités pour les retraits. Issu des états approuvés à la fin de la période. Formule : prêts bruts divisés par épargne des membres, en pourcentage (1200 sur 2100).",
-        "institutionalCapital": "Réserves propres des coopératives constituées au fil du temps, qui absorbent les pertes. Elles excluent les parts achetées par les membres. Issu des états approuvés à la fin de la période, en USD. Formule : réserves (3200) plus bénéfices non distribués (3300).",
+        "institutionalCapital": "Réserves propres des coopératives constituées au fil du temps, qui absorbent les pertes. Elles excluent les parts achetées par les membres. Issu des états approuvés à la fin de la période, en ZAR. Formule : réserves (3200) plus bénéfices non distribués (3300).",
         "institutionalCapitalToAssets": "Part des actifs couverte par les réserves propres des coopératives. Le minimum réglementaire est de 8 pour cent ; plus c'est haut, plus le coussin contre les pertes est solide. Issu des états approuvés à la fin de la période. Formule : capital institutionnel divisé par total des actifs, en pourcentage.",
         "capitalExcess": "Écart entre le ratio de capital institutionnel et le minimum de 8 pour cent. Positif signifie que le minimum est dépassé ; négatif est une insuffisance. Formule : ratio de capital institutionnel moins 8 pour cent, en points de pourcentage.",
-        "totalEquity": "Ce qui revient aux membres après paiement de toutes les dettes : parts, réserves et bénéfices non distribués. Cela montre la valeur nette. Issu des états approuvés à la fin de la période, en USD. Formule : total des fonds propres (3999).",
-        "shareCapital": "L'argent versé par les membres en achetant des parts. C'est leur participation directe dans les coopératives. Issu des états approuvés à la fin de la période, en USD. Formule : parts sociales (3100).",
-        "retainedEarnings": "Excédents conservés dans les coopératives des années passées au lieu d'être distribués. Ils renforcent les coopératives. Issu des états approuvés à la fin de la période, en USD. Formule : bénéfices non distribués (3300).",
-        "statutoryReserve": "Réserves qui doivent être constituées par la loi ou les statuts de la coopérative pour se protéger des pertes. Issu des états approuvés à la fin de la période, en USD. Formule : réserve statutaire (3201)."
+        "totalEquity": "Ce qui revient aux membres après paiement de toutes les dettes : parts, réserves et bénéfices non distribués. Cela montre la valeur nette. Issu des états approuvés à la fin de la période, en ZAR. Formule : total des fonds propres (3999).",
+        "shareCapital": "L'argent versé par les membres en achetant des parts. C'est leur participation directe dans les coopératives. Issu des états approuvés à la fin de la période, en ZAR. Formule : parts sociales (3100).",
+        "retainedEarnings": "Excédents conservés dans les coopératives des années passées au lieu d'être distribués. Ils renforcent les coopératives. Issu des états approuvés à la fin de la période, en ZAR. Formule : bénéfices non distribués (3300).",
+        "statutoryReserve": "Réserves qui doivent être constituées par la loi ou les statuts de la coopérative pour se protéger des pertes. Issu des états approuvés à la fin de la période, en ZAR. Formule : réserve statutaire (3201)."
       }
     },
     "ledger": {
@@ -2465,7 +2471,7 @@
       "writtenOffLoansTip": "Nombre de prêts que la coopérative a renoncé à recouvrer. Il montre les pertes de crédit passées. Issu du statut des prêts du registre téléversé. Formule : prêts au statut passé en perte.",
       "dormantSavingsTip": "Part des comptes d'épargne qui sont dormants, c'est-à-dire inutilisés. Une part élevée signifie que beaucoup de membres ne sont pas mobilisés. Issu du statut des comptes du registre d'épargne téléversé. Formule : comptes dormants divisés par tous les comptes d'épargne, en pourcentage.",
       "zeroBalanceTip": "Part des comptes d'épargne qui ne contiennent aucun argent. Elle montre les comptes ouverts mais non utilisés. Issu de l'indicateur de solde nul du registre d'épargne téléversé. Formule : comptes à solde nul divisés par tous les comptes d'épargne, en pourcentage.",
-      "averageSavingsTip": "Montant moyen détenu par compte d'épargne. Il montre la profondeur de l'épargne. Issu du registre d'épargne téléversé, en USD. Formule : solde total d'épargne divisé par le nombre de comptes d'épargne.",
+      "averageSavingsTip": "Montant moyen détenu par compte d'épargne. Il montre la profondeur de l'épargne. Issu du registre d'épargne téléversé, en ZAR. Formule : solde total d'épargne divisé par le nombre de comptes d'épargne.",
       "earlyFdWithdrawalTip": "Part des dépôts à terme retirés avant leur date d'échéance. Une part élevée signifie que les membres n'ont pas laissé leur argent bloqué comme prévu. Issu de l'indicateur de retrait anticipé du registre des dépôts à terme téléversé. Formule : retraits anticipés divisés par tous les dépôts à terme, en pourcentage."
     },
     "section": {
@@ -2484,16 +2490,16 @@
       "keyIndicators": "Indicateurs clés"
     },
     "latestReported": "Dernier mois déclaré",
-    "rankingSharesInfo": "Part de chaque coopérative dans le total du réseau pour le compte et le mois choisis ci-dessus. Elle montre quelles coopératives pèsent le plus. Issu des états financiers approuvés en USD ; une coopérative sans chiffre pour ce mois affiche un tiret et est exclue des parts. Formule : valeur de la coopérative divisée par la somme des valeurs affichées, en pourcentage.",
-    "rankingChartInfo": "Coopératives classées de la plus grande à la plus petite pour le compte et le mois choisis ci-dessus. Cela montre la concentration du secteur. Issu des états financiers approuvés en USD, au taux de change figé de chaque soumission. Seules les coopératives ayant un chiffre pour ce mois apparaissent. Les comptes de bilan montrent le solde à la fin du mois ; le dernier mois déclaré utilise le mois le plus récent de chaque coopérative.",
-    "pcGridInfo": "Portefeuille de prêts de chaque coopérative réparti par statut de remboursement : performant, en retard, non performant, puis provisions et portefeuille net. Il montre où se situe le risque de crédit. Issu des états financiers approuvés au mois choisi, en USD. Les lignes par objet de prêt ou jours de retard ne figurent pas dans un bilan standard et affichent n/r, non déclaré. Formule : portefeuille net égal prêts bruts moins provisions.",
-    "incomeGridInfo": "Compte de résultat de chaque coopérative côte à côte : ce qu'elle a gagné, dépensé et l'excédent. Les états sans compte de résultat affichent n/r ou un tiret, jamais un zéro inventé. Issu des états financiers approuvés en USD, cumulés de janvier au mois choisi. Formule : excédent net égal total des produits moins charges d'intérêts et de fonctionnement et provisions pour pertes sur prêts.",
+    "rankingSharesInfo": "Part de chaque coopérative dans le total du réseau pour le compte et le mois choisis ci-dessus. Elle montre quelles coopératives pèsent le plus. Issu des états financiers approuvés en ZAR ; une coopérative sans chiffre pour ce mois affiche un tiret et est exclue des parts. Formule : valeur de la coopérative divisée par la somme des valeurs affichées, en pourcentage.",
+    "rankingChartInfo": "Coopératives classées de la plus grande à la plus petite pour le compte et le mois choisis ci-dessus. Cela montre la concentration du secteur. Issu des états financiers approuvés en ZAR, au taux de change figé de chaque soumission. Seules les coopératives ayant un chiffre pour ce mois apparaissent. Les comptes de bilan montrent le solde à la fin du mois ; le dernier mois déclaré utilise le mois le plus récent de chaque coopérative.",
+    "pcGridInfo": "Portefeuille de prêts de chaque coopérative réparti par statut de remboursement : performant, en retard, non performant, puis provisions et portefeuille net. Il montre où se situe le risque de crédit. Issu des états financiers approuvés au mois choisi, en ZAR. Les lignes par objet de prêt ou jours de retard ne figurent pas dans un bilan standard et affichent n/r, non déclaré. Formule : portefeuille net égal prêts bruts moins provisions.",
+    "incomeGridInfo": "Compte de résultat de chaque coopérative côte à côte : ce qu'elle a gagné, dépensé et l'excédent. Les états sans compte de résultat affichent n/r ou un tiret, jamais un zéro inventé. Issu des états financiers approuvés en ZAR, cumulés de janvier au mois choisi. Formule : excédent net égal total des produits moins charges d'intérêts et de fonctionnement et provisions pour pertes sur prêts.",
     "indicatorsGridInfo": "Principaux ratios de santé de chaque coopérative : capital, qualité des actifs, prêts en retard, provisions, efficacité, rentabilité et liquidité. Ils permettent de comparer des coopératives de tailles différentes. Chaque ratio est calculé à partir de l'état financier approuvé au mois choisi ; les ratios de rentabilité utilisent les produits de janvier à ce mois, ne sont pas annualisés et affichent un tiret si l'état n'a pas de lignes de résultat. Chaque ligne indique sa formule.",
     "gridTip": {
-      "calculated": "Un total calculé à partir des autres lignes de ce tableau. Il utilise les chiffres des états financiers approuvés en USD au mois choisi. Formule : voir les codes de compte des lignes au-dessus.",
+      "calculated": "Un total calculé à partir des autres lignes de ce tableau. Il utilise les chiffres des états financiers approuvés en ZAR au mois choisi. Formule : voir les codes de compte des lignes au-dessus.",
       "notReportedLoans": "Non déclaré. L'état financier ne ventile pas le portefeuille de prêts par objet de prêt et jours de retard ; aucun chiffre n'est affiché plutôt qu'un zéro inventé.",
       "notReportedSection": "Un titre de section. Les chiffres figurent dans les lignes en dessous et dans les totaux.",
-      "source": "État financier approuvé, code de compte {{codes}}, au mois choisi et en USD. Formule : la valeur de ce compte."
+      "source": "État financier approuvé, code de compte {{codes}}, au mois choisi et en ZAR. Formule : la valeur de ce compte."
     },
     "indicatorTip": {
       "car": "Part des actifs qui appartient aux membres plutôt qu'aux créanciers. Plus c'est haut, plus le coussin contre les pertes est solide. État approuvé au mois choisi. Formule : total des fonds propres divisé par total des actifs, en pourcentage.",
@@ -2511,8 +2517,8 @@
       "liquid": "Part des actifs détenue en espèces et soldes bancaires. Elle montre ce qui est disponible à court terme. État approuvé au mois choisi. Formule : actifs liquides divisés par total des actifs, en pourcentage (1100 sur 1999).",
       "loansDeposits": "Montant prêté pour chaque unité d'épargne des membres. Autour de 100 pour cent ou plus, l'épargne est entièrement prêtée, ce qui laisse moins de liquidités pour les retraits. État approuvé au mois choisi. Formule : prêts bruts divisés par épargne des membres, en pourcentage (1200 sur 2100)."
     },
-    "portfolioOverviewTooltip": "La taille globale de la coopérative mois après mois. Elle montre la croissance ou la baisse du bilan. Issu des états financiers approuvés, en USD, à la fin de chaque mois. Le total des actifs inclut déjà les prêts et actifs liquides des autres graphiques, ils ne s'y ajoutent donc pas. Formule : total des actifs (1999).",
-    "savingsLoansDepositsTooltip": "Trois montants du bilan mois après mois : actifs liquides, prêts bruts et épargne des membres. La ligne montre si les liquidités et les prêts dépassent l'épargne. Issu des états financiers approuvés, en USD, à la fin de chaque mois. Les barres sont des chiffres distincts qui ne s'additionnent pas au total des actifs. Formule de la ligne : actifs liquides plus prêts bruts moins épargne des membres (1100 plus 1200 moins 2100).",
+    "portfolioOverviewTooltip": "La taille globale de la coopérative mois après mois. Elle montre la croissance ou la baisse du bilan. Issu des états financiers approuvés, en ZAR, à la fin de chaque mois. Le total des actifs inclut déjà les prêts et actifs liquides des autres graphiques, ils ne s'y ajoutent donc pas. Formule : total des actifs (1999).",
+    "savingsLoansDepositsTooltip": "Trois montants du bilan mois après mois : actifs liquides, prêts bruts et épargne des membres. La ligne montre si les liquidités et les prêts dépassent l'épargne. Issu des états financiers approuvés, en ZAR, à la fin de chaque mois. Les barres sont des chiffres distincts qui ne s'additionnent pas au total des actifs. Formule de la ligne : actifs liquides plus prêts bruts moins épargne des membres (1100 plus 1200 moins 2100).",
     "genderParticipationTooltip": "Part des membres qui sont des femmes, des hommes ou d'un autre genre. Elle montre l'équilibre de la base de membres. Issu du genre enregistré dans le registre des membres téléversé de la soumission approuvée ; les membres sans genre enregistré sont exclus des pourcentages. Formule : membres de chaque genre divisés par tous les membres, en pourcentage.",
     "netOfAccountsPct": "{{pct}} % des comptes",
     "kpiName": {
@@ -2554,7 +2560,33 @@
       "operational_self_sufficiency": "Indique si les produits couvrent les charges. Au-dessus de 100 %, la coopérative couvre ses coûts avec ses propres produits : plus haut est mieux. Non déclaré si l'état ne contient aucune ligne de produits. Tiré de l'état approuvé, cumulé sur les mois déclarés. Formule : produits totaux divisés par charges totales.",
       "net_interest_margin": "Ce que la coopérative gagne sur les prêts et placements après paiement des intérêts, par rapport à sa taille. Plus haut est mieux. Non déclaré si l'état ne contient aucune ligne de produits. Tiré de l'état approuvé, pour la période couverte, non annualisé. Formule : produits financiers moins charges financières, divisés par le total des actifs.",
       "deposits_to_loans": "Combien les membres ont épargné pour chaque unité prêtée. Sous 100 %, les prêts dépassent l'épargne et sont financés par d'autres sources. Tiré de l'état financier approuvé, au dernier mois déclaré. Formule : épargne des membres divisée par le portefeuille de prêts brut."
-    }
+    },
+    "sector": {
+      "agriculture": "Agriculture",
+      "finance": "Finance",
+      "housing": "Logement",
+      "transport": "Transport",
+      "manufacturing": "Fabrication"
+    },
+    "periodFinancialBreakdown": "Votre ventilation financière et variation par période",
+    "valueSzZar": "Valeur (ZAR)",
+    "searchCooperative": "Rechercher une coopérative",
+    "noCooperativeFound": "Aucune coopérative trouvée",
+    "searchComparison": "Rechercher une comparaison",
+    "noComparisonFound": "Aucune comparaison trouvée",
+    "searchKpiMetric": "Rechercher un indicateur KPI",
+    "noKpiFound": "Aucun indicateur trouvé",
+    "nationalAverageDesc": "Moyenne nationale",
+    "regionAverageDesc": "Moyenne régionale",
+    "sectorAvgDesc": "Moyenne du secteur",
+    "sectorRegionalAvgDesc": "Moyenne régionale du secteur",
+    "averagesGroup": "Moyennes",
+    "cooperativesGroup": "Coopératives",
+    "genderParticipationNoData": "Aucune donnée de participation par genre",
+    "seriesLiquidAssets": "Actifs liquides",
+    "seriesGrossLoans": "Portefeuille de prêts brut",
+    "seriesMemberDeposits": "Dépôts des membres",
+    "totalSavingsBalanceNote": "Solde total de l'épargne"
   },
   "cooperativeDashboard": {
     "title": "Tableau de bord de la coopérative",
@@ -3474,7 +3506,10 @@
     "toastDeleted": "« {{name}} » supprimée",
     "toastDeletedDesc": "Fédération retirée du registre.",
     "toastDeleteFailed": "Échec de la suppression de la fédération",
-    "toastExporting": "Exportation des données de fédération en CSV…"
+    "toastExporting": "Exportation des données de fédération en CSV…",
+    "errorDuplicateFederation": "Une fédération portant ce nom existe déjà.",
+    "errorGenericCreate": "Impossible de créer la fédération.",
+    "pageOf": "Page {current} sur {total}"
   },
   "memberList": {
     "tableHeaders": {
@@ -3800,7 +3835,9 @@
     "metaLabel": "Titre / Libellé du modèle",
     "metaPlaceholder": "ex. Questionnaire des coopératives primaires financières v1",
     "selectSectionPrompt": "Sélectionnez une section à gauche pour commencer à configurer ses champs.",
-    "translatingAs": "Édition de la traduction {{lang}}"
+    "translatingAs": "Édition de la traduction {{lang}}",
+    "deleteFieldTitle": "Supprimer ce champ ?",
+    "deleteFieldDescription": "Cette action est irréversible. Le champ sera retiré du modèle."
   },
   "questionnaireAnalytics": {
     "regions": {
@@ -4277,10 +4314,10 @@
     "approvedTooltip": "Soumissions qu'un examinateur a approuvées. Seules les soumissions approuvées alimentent les chiffres de ce tableau de bord. Compte toutes les soumissions approuvées, toutes années confondues, sans effet des filtres.",
     "nationalPortfolio": "Distribution du portefeuille national",
     "nationalPortfolioSub": "Actifs, prêts et dépôts par région",
-    "nationalPortfolioInfo": "Total des actifs, prêts bruts et épargne des membres des coopératives de chaque région. Cela montre où l'argent se concentre. Issu des chiffres clés des états financiers approuvés, en USD, additionnés par région.",
+    "nationalPortfolioInfo": "Total des actifs, prêts bruts et épargne des membres des coopératives de chaque région. Cela montre où l'argent se concentre. Issu des chiffres clés des états financiers approuvés, en ZAR, additionnés par région.",
     "loanProvisioningGap": "Écart de provisionnement des prêts national",
     "loanProvisioningGapSub": "Visualisation du capital à risque non protégé",
-    "loanProvisioningGapInfo": "La part du portefeuille de prêts en retard de plus de 30 jours et la part de celle-ci couverte par des provisions. La partie non couverte est de l'argent qui pourrait être perdu. Issu des états financiers approuvés, en USD. Le PAR et la couverture sont pondérés par les prêts et le solde en retard de chaque coopérative, et non moyennés. Formule : à risque égal en retard de plus de 30 jours moins provisions.",
+    "loanProvisioningGapInfo": "La part du portefeuille de prêts en retard de plus de 30 jours et la part de celle-ci couverte par des provisions. La partie non couverte est de l'argent qui pourrait être perdu. Issu des états financiers approuvés, en ZAR. Le PAR et la couverture sont pondérés par les prêts et le solde en retard de chaque coopérative, et non moyennés. Formule : à risque égal en retard de plus de 30 jours moins provisions.",
     "roaLeaderboard": "Classement ROA",
     "roaLeaderboardSub": "Meilleures et pires coopératives performantes par ROA",
     "roaLeaderboardInfo": "Les coopératives ayant le rendement des actifs le plus élevé et le plus bas. Plus c'est haut, mieux c'est ; les coopératives sans compte de résultat sont exclues plutôt que classées à zéro. Issu des états financiers approuvés, pour la période couverte et non annualisé. Formule : excédent net divisé par total des actifs, en pourcentage.",
@@ -4358,7 +4395,7 @@
     "apexDistInfo": "Nombre de coopératives et de membres actifs sous chaque organisation faîtière. Cela montre la répartition du réseau. Les membres proviennent des registres des membres des soumissions approuvées et comptent ceux dont le statut est actif.",
     "regionalPortfolioTitle": "Distribution du portefeuille régional",
     "regionalPortfolioSubtitle": "Total des actifs, prêts et dépôts par région",
-    "regionalPortfolioInfo": "Total des actifs, prêts bruts et épargne des membres des coopératives de chaque région. Cela montre où l'argent se concentre. Issu des chiffres clés des états financiers approuvés, en USD, additionnés par région.",
+    "regionalPortfolioInfo": "Total des actifs, prêts bruts et épargne des membres des coopératives de chaque région. Cela montre où l'argent se concentre. Issu des chiffres clés des états financiers approuvés, en ZAR, additionnés par région.",
     "oerRankingTitle": "Classement d'efficacité opérationnelle",
     "oerRankingSubtitle": "Meilleures et pires coopératives OER (plus bas = plus efficace)",
     "oerRankingInfo": "Les coopératives ayant les coûts de fonctionnement les plus bas et les plus élevés par rapport à leurs actifs. Plus c'est bas, plus la structure est légère et meilleure. Les coopératives sans compte de résultat sont exclues. Issu des états financiers approuvés, pour la période couverte et non annualisé. Formule : charges de fonctionnement divisées par total des actifs, en pourcentage.",
@@ -4370,7 +4407,7 @@
     "radarInfo": "Un instantané du réseau sur cinq domaines de santé : liquidité, qualité des actifs, rentabilité, capital et efficacité des coûts. Une forme plus grande est plus saine. Chaque rayon est le ratio consolidé du réseau, pondéré par les actifs ou les prêts et non une simple moyenne, puis ramené à 100 pour le dessin. L'infobulle montre le vrai pourcentage. Les domaines qu'aucune coopérative ne déclare sont omis.",
     "loanGapTitle": "Écart de provisionnement des prêts du réseau",
     "loanGapSubtitle": "Visualisation du capital à risque non protégé",
-    "loanGapInfo": "La part du portefeuille de prêts en retard de plus de 30 jours et la part de celle-ci couverte par des provisions. La partie non couverte est de l'argent qui pourrait être perdu. Issu des états financiers approuvés, en USD. Le PAR et la couverture sont pondérés par les prêts et le solde en retard de chaque coopérative, et non moyennés. Formule : à risque égal en retard de plus de 30 jours moins provisions.",
+    "loanGapInfo": "La part du portefeuille de prêts en retard de plus de 30 jours et la part de celle-ci couverte par des provisions. La partie non couverte est de l'argent qui pourrait être perdu. Issu des états financiers approuvés, en ZAR. Le PAR et la couverture sont pondérés par les prêts et le solde en retard de chaque coopérative, et non moyennés. Formule : à risque égal en retard de plus de 30 jours moins provisions.",
     "complianceTitle": "Distribution de conformité en feux de circulation",
     "complianceSubtitle": "Santé des KPI sur la fédération",
     "complianceInfo": "Pour chaque indicateur, le nombre de coopératives saines (vert), à surveiller (orange) ou à risque (rouge). Le gris signifie que l'indicateur n'a pas pu être calculé, par exemple lorsqu'un état n'a pas de lignes de résultat. Les couleurs utilisent des seuils fixes par indicateur ; par exemple le PAR à plus de 30 jours est vert jusqu'à 5 pour cent, orange jusqu'à 10 et rouge au-delà. Issu des états financiers approuvés.",
@@ -4394,7 +4431,7 @@
     "savingsAccountsTooltip": "Nombre de comptes d'épargne enregistrés dans le registre d'épargne. Il montre à quel point l'épargne est répandue. Issu du registre d'épargne téléversé dans la soumission approuvée. Formule : tous les comptes d'épargne du registre.",
     "savingsAccountsTrend": "{{count}} actifs",
     "totalSavings": "Total de l'épargne",
-    "totalSavingsTooltip": "Somme de tous les soldes du registre d'épargne téléversé. Elle provient du registre des membres et non du bilan ; elle peut donc différer de l'épargne des états financiers. Affichée en USD. Formule : somme des soldes de tous les comptes d'épargne.",
+    "totalSavingsTooltip": "Somme de tous les soldes du registre d'épargne téléversé. Elle provient du registre des membres et non du bilan ; elle peut donc différer de l'épargne des états financiers. Affichée en ZAR. Formule : somme des soldes de tous les comptes d'épargne.",
     "totalSavingsTrend": "Moy. : SZL {{value}}",
     "activeSavers": "Épargnants actifs",
     "activeSaversTooltip": "Nombre de comptes d'épargne dont le statut est actif. Le chiffre compte des comptes et non des personnes : un membre avec deux comptes compte deux fois. Issu du registre d'épargne téléversé. Formule : comptes d'épargne au statut actif.",
@@ -4406,7 +4443,7 @@
     "loanAccountsTooltip": "Nombre de prêts enregistrés dans le registre des prêts, avec en dessous le nombre de prêts encore actifs. Il montre combien de membres empruntent. Issu du registre des prêts téléversé. Formule : tous les prêts du registre ; actif signifie non passé en perte.",
     "loanAccountsTrend": "{{count}} actifs",
     "totalLoans": "Total des prêts",
-    "totalLoansTooltip": "Solde restant dû des prêts du registre des prêts téléversé, hors prêts passés en perte. Il provient du registre des membres et non du bilan. Affiché en USD. Formule : somme des soldes des prêts non passés en perte.",
+    "totalLoansTooltip": "Solde restant dû des prêts du registre des prêts téléversé, hors prêts passés en perte. Il provient du registre des membres et non du bilan. Affiché en ZAR. Formule : somme des soldes des prêts non passés en perte.",
     "totalLoansTrend": "Moy. : SZL {{value}}",
     "loansInArrears": "Prêts en retard",
     "loansInArrearsTooltip": "Nombre de prêts dont le statut dans le registre des prêts est en retard, c'est-à-dire dont les remboursements sont en retard. Il diffère du PAR, qui mesure la valeur en retard dans les états financiers. Issu du registre des prêts téléversé. Formule : prêts au statut en retard.",
@@ -4418,7 +4455,7 @@
     "fdAccountsTooltip": "Nombre de dépôts à terme enregistrés dans le registre des dépôts à terme, avec en dessous le nombre de dépôts encore actifs. Issu du registre des dépôts à terme téléversé. Formule : tous les dépôts à terme du registre.",
     "fdAccountsTrend": "{{count}} actifs",
     "totalFdBalance": "Solde total DT",
-    "totalFdBalanceTooltip": "Somme des soldes de tous les dépôts à terme du registre. Elle provient du registre des membres et non du bilan. Affichée en USD. Formule : somme des soldes des dépôts à terme.",
+    "totalFdBalanceTooltip": "Somme des soldes de tous les dépôts à terme du registre. Elle provient du registre des membres et non du bilan. Affichée en ZAR. Formule : somme des soldes des dépôts à terme.",
     "totalFdBalanceTrend": "Moy. : SZL {{value}}",
     "fdPenetration": "Pénétration DT",
     "fdPenetrationTooltip": "Part des membres qui détiennent un dépôt à terme. Elle montre la diffusion de ce produit auprès des membres. Issu des registres des dépôts à terme et des membres ; pour un réseau, elle est calculée sur le total des membres et non comme moyenne de pourcentages de coopératives. Formule : membres avec un dépôt à terme divisés par total des membres, en pourcentage.",
@@ -4830,7 +4867,8 @@
       "pages": "Pages",
       "codesFound": "Codes trouvés",
       "confidence": "Confiance",
-      "scanning": "Scan"
+      "scanning": "Scan",
+      "files": "{count} fichier(s)"
     },
     "confidenceLevel": {
       "high": "Élevée",
@@ -4869,7 +4907,16 @@
     "toastTooLarge": "Fichier trop volumineux. La taille maximale est de 50 Mo.",
     "toastSelected": "Fichier sélectionné : {{name}}",
     "toastExtracted": "{{count}} lignes extraites de {{name}}",
-    "toastConfirmed": "{{name}} : {{count}} enregistrements valides prêts pour la soumission"
+    "toastConfirmed": "{{name}} : {{count}} enregistrements valides prêts pour la soumission",
+    "toastExtractionFailed": "L'extraction a échoué pour certains fichiers.",
+    "toastNoSubmission": "Aucune soumission trouvée pour ce fichier.",
+    "toastNoData": "Aucune donnée extraite de ce fichier.",
+    "toastFailed": "Échec du traitement du fichier.",
+    "flagged": "Signalé",
+    "flaggedWarning": "Certains éléments ont été signalés pour vérification.",
+    "dropMore": "Déposer plus de fichiers",
+    "uploading": "Téléversement en cours…",
+    "fileSpec": "Format accepté : {format}"
   },
   "localizedField": {
     "toggle": "Traduire",
@@ -4979,7 +5026,6 @@
       "semiAnnual": "Semestrielle",
       "quarterly": "Trimestrielle",
       "monthly": "Mensuelle",
-      "usd": "USD",
       "native": "Locale",
       "clear": "Effacer les filtres",
       "regions": {
@@ -4994,7 +5040,8 @@
         "Housing": "Logement",
         "Transport": "Transport",
         "Manufacturing": "Industrie"
-      }
+      },
+      "zar": "ZAR"
     },
     "scope": {
       "individual": "Vue individuelle",

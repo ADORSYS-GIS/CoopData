@@ -131,7 +131,7 @@ export const tileGroupsOf = (a: Analysis, trend: readonly TrendRow[]): TileGroup
     const { d31to60, d61to90, nonPerforming } = last.overdue;
     const atRisk = d31to60 + d61to90 + nonPerforming;
     groups.push({
-      title: `Portfolio at risk, ${last.label} (USD)`,
+      title: `Portfolio at risk, ${last.label} (SZL)`,
       tiles: [
         { label: "Overdue 31–60 days", value: money(d31to60), note: share(d31to60, last.loans) },
         { label: "Overdue 61–90 days", value: money(d61to90), note: share(d61to90, last.loans) },

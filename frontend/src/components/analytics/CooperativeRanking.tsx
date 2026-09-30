@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { formatUsd } from "@/lib/currency";
+import { formatSzl } from "@/lib/currency";
 import { compactNumber } from "@/lib/basic-dashboard";
 import { AXIS_PROPS, TOOLTIP_STYLE } from "@/components/analytics/basic/chart-config";
 import {
@@ -151,7 +151,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
   }, [dataList]);
 
   // Formatting helper
-  const formatValue = (val: number | null) => (val === null ? "—" : formatUsd(val));
+  const formatValue = (val: number | null) => (val === null ? "—" : formatSzl(val));
 
   // Chart data mapping
   const chartData = useMemo(() => {
@@ -281,7 +281,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                   <thead>
                     <tr className="border-b border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/20">
                       <th className="py-2.5 px-3">{t("analytics.entity")}</th>
-                      <th className="py-2.5 px-3 text-right">{t("analytics.valueSzUsd")}</th>
+                      <th className="py-2.5 px-3 text-right">{t("analytics.valueSzZar")}</th>
                       <th className="py-2.5 px-3 text-right">{t("analytics.sharePct")}</th>
                     </tr>
                   </thead>
@@ -346,13 +346,13 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
                     <XAxis
                       type="number"
                       {...AXIS_PROPS}
-                      tickFormatter={(value: number) => `$${compactNumber(value)}`}
+                      tickFormatter={(value: number) => `SZL ${compactNumber(value)}`}
                     />
                     <YAxis type="category" dataKey="name" width={120} {...AXIS_PROPS} />
                     <ChartTooltip
                       contentStyle={TOOLTIP_STYLE}
                       cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-                      formatter={(val: number) => [formatUsd(val), activeMetricInfo?.label ?? ""]}
+                      formatter={(val: number) => [formatSzl(val), activeMetricInfo?.label ?? ""]}
                       labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
                     />
                     <Bar

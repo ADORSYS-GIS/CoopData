@@ -12,13 +12,12 @@ import { SavingsLoansDepositsChart } from "@/components/analytics/SavingsLoansDe
 import { SavingsRadialGauges } from "@/components/analytics/SavingsRadialGauges";
 import { CollapsibleSection } from "@/components/analytics/national/CollapsibleSection";
 import { PeriodSeriesCharts } from "@/components/analytics/national/PeriodSeriesCharts";
-import type { PeriodSeriesQuery } from "@/hooks/analytics/usePeriodSeries";
-import type { MonthlyTrendResponse } from "@/hooks/analytics/useMonthlyTrend";
+import { usePeriodSeries, type PeriodSeriesQuery } from "@/hooks/analytics/usePeriodSeries";
 import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
+import { toPortfolioTrend } from "@/lib/period-series";
 
 interface NationalChartsProps {
   nfStats?: NfStatisticsResponse;
-  networkTrend?: Pick<MonthlyTrendResponse, "months">;
   seriesQuery: PeriodSeriesQuery;
 }
 
@@ -32,23 +31,14 @@ const EMPTY_GENDER = {
   other_pct: 0,
 };
 
-export function NationalCharts({ nfStats, networkTrend, seriesQuery }: NationalChartsProps) {
+export function NationalCharts({ nfStats, seriesQuery }: NationalChartsProps) {
   const { t } = useTranslation();
 
-  // `liquidity` is liquid assets (COA 1100), never total assets (COA 1999):
-  // total assets already contains loans and liquid assets, so the two must not
-  // be treated as separately summable series.
-  const trend = useMemo(
-    () =>
-      (networkTrend?.months ?? []).map((m) => ({
-        month: m.month_label,
-        liquidity: m.liquid_assets,
-        savings: m.savings,
-        loans: m.loans,
-        totalAssets: m.assets,
-      })),
-    [networkTrend],
-  );
+  // Same series as the "Trends" section below: one point per reporting period
+  // in the chosen frequency (years, quarters, half-years or months), never
+  // hard-coded to twelve months regardless of what was selected.
+  const { data: series } = usePeriodSeries(seriesQuery);
+  const trend = useMemo(() => toPortfolioTrend(series?.points ?? []), [series]);
 
   return (
     <div className="space-y-6">

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ShieldCheck, AlertTriangle, CheckCircle2, Info, ArrowRight } from "lucide-react";
 import { Card, StatusPill } from "@/components/app-shell";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
+import { useSzlFormatter } from "@/hooks/shared/useExchangeRates";
 import { useReconciliationAudit } from "@/hooks/analytics/useReconciliationAudit";
 import { describeRate } from "@/lib/currency";
 import { Spinner } from "@/components/ui/spinner";
@@ -38,24 +38,8 @@ export const ReconciliationAuditCard: React.FC<ReconciliationAuditCardProps> = (
     (r) => r.status === "pending_subledger" || r.status === "pending_financial",
   ).length;
 
-  const {
-    format: formatUsdValue,
-    formatOriginal,
-    ready: ratesReady,
-  } = useUsdFormatter(currency, data?.rate_used?.rate_to_usd);
-  const fmtCurrency = (val: number | null) => {
-    if (val === null) return "—";
-    return (
-      <span className="inline-flex flex-col items-end leading-tight">
-        <span>{formatUsdValue(val)}</span>
-        {ratesReady && currency !== "USD" && (
-          <span className="text-[10px] font-normal text-muted-foreground">
-            {formatOriginal(val)}
-          </span>
-        )}
-      </span>
-    );
-  };
+  const { format: formatValue } = useSzlFormatter(currency, data?.rate_used?.rate_to_zar);
+  const fmtCurrency = (val: number | null) => (val === null ? "—" : formatValue(val));
 
   return (
     <Card

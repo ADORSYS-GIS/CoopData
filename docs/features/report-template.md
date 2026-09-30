@@ -99,7 +99,7 @@ The series and the member-ledger statistics are requested for the submission's o
 
 These are the same formulas as the KPI engine (`backend/src/services/kpi_engine.rs`) and the Annex B definitions. The capital minimum is 10%, the benchmark used in the scorecard; 8% is only the "watch" threshold.
 
-Amounts in T1 and T2 are in USD (the period series converts each approved statement at the rate frozen on its submission). The unit is thousands or millions depending on the largest value, so small cooperatives are not shown as zero. Each chart has its own unit.
+Amounts in T1 and T2 are in ZAR (the period series converts each approved statement at the rate frozen on its submission). The unit is thousands or millions depending on the largest value, so small cooperatives are not shown as zero. Each chart has its own unit.
 
 **Peer comparison** (`coop/peers.ts`, `compareWithPeers`). From the national overview for the year:
 
@@ -145,7 +145,7 @@ The print routes `print.apex.$id.tsx`, `print.federation.$id.tsx` and `print.min
 | Active borrowers, women, youth, rural borrowers | Sums of `active_borrowers`, `women_borrowers`, `youth_borrowers`, `rural_borrowers`. Shares are of active borrowers |
 | Member deposits, gross loans | Sums of `total_member_deposits` and `gross_loan_portfolio` |
 | Average loan balance | Gross loans / active borrowers |
-| Overdue 31-60, 61-90, over 90 days, value at risk | Latest period of the trend (accounts 1203, 1204, 1205). Value at risk = their sum. Shown in USD, with PAR over 30 days of the same period |
+| Overdue 31-60, 61-90, over 90 days, value at risk | Latest period of the trend (accounts 1203, 1204, 1205). Value at risk = their sum. Shown in ZAR, with PAR over 30 days of the same period |
 
 ## 5. Accuracy checks
 
@@ -165,8 +165,8 @@ What was verified, and how:
 ## 6. Limitations and decisions
 
 - **Questionnaire cooperatives are not in the consolidated reports.** The consolidated and individual PDF reports are built from financial statements and ledgers. Cooperatives that answered the questionnaire (basic tier) appear only in Basic Analytics and in the questionnaire report. Combining the two sources in the consolidated reports is a separate decision that has not been taken.
-- **Mixed currencies in consolidated sums.** The national overview sums KPI values in each cooperative's own currency (the local database has only SZL). The trend and at-risk amounts are converted to USD. If cooperatives ever report in different currencies, the KPI-based totals on the financial and indicator pages will mix currencies. The trend page is not affected.
-- **Trend amounts are USD; statement tables are in the reported currency.** Both are labelled.
+- **Mixed currencies in consolidated sums.** The national overview sums KPI values in each cooperative's own currency (the local database has only SZL). The trend and at-risk amounts are converted to ZAR. If cooperatives ever report in different currencies, the KPI-based totals on the financial and indicator pages will mix currencies. The trend page is not affected.
+- **Trend amounts are ZAR; statement tables are in the reported currency.** Both are labelled.
 - **Averages and aggregates.** "Average" ratios are simple averages of each cooperative's ratio. Where an aggregate ratio can be derived it is shown beside the average. The trend page uses aggregates only.
 - **Peer comparison** uses simple averages and needs at least two cooperatives with a return. The national group is everyone with a return for the year, not a filtered region or sector.
 - **Trend length.** Up to eight periods. A cooperative with only one approved period gets no trend page. Only approved submissions count.
@@ -185,7 +185,7 @@ Sections: Executive Summary (verdict, eight tiles, regulatory minimums, strength
 Rules:
 - Ratings use the platform limits: PAR over 30 days 5% (watch to 10%), PAR over 90 days 2% (watch to 5%), and the liquidity and institutional capital minimums returned in `thresholds` (15% and 8%). Watch is within 80% of a minimum.
 - Liquidity is liquid assets over member savings. Institutional capital is retained earnings plus statutory reserves plus donations, over total assets. Both differ from the statement-based reports, which use total assets for liquidity; the Basis of preparation and Annex B say so.
-- Amounts use the currency of the dashboard scope (USD with the frozen rate, or the native currency).
+- Amounts use the currency of the dashboard scope (ZAR with the frozen rate, or the native currency).
 - Text is English only, like the other reports. The old sheets used the i18n keys `questionnaireReport.*`; those keys are now unused.
 - Tests: `quest/text.test.ts` (ratings, verdict, concerns, recommendations).
 
@@ -220,7 +220,7 @@ How the figures are computed:
 
 Limits of this report:
 - The backend reports one period. With no period given, it takes the latest period of the chosen year, so a cooperative that answered for another frequency in that year is not counted. The Basis of preparation states this.
-- Amounts are in USD converted at each submission's frozen rate.
+- Amounts are in ZAR converted at each submission's frozen rate.
 - There are no AI narratives for the consolidated questionnaire report.
 - The `openapi.json` file was not regenerated; the dashboard hook calls the endpoint through the untyped client, as before.
 - Tests: `questcons/stats.test.ts`, `lib/report-method.test.ts`, `lib/report-filename.test.ts`.

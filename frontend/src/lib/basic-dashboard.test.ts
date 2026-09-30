@@ -27,11 +27,11 @@ import {
 } from "@/lib/basic-dashboard-filters";
 import { basicDashboardFixture, makeIndicator } from "@/test-fixtures/basicDashboard";
 
-const usd = { currency: "USD" };
+const zar = { currency: "SZL" };
 
 describe("formatIndicatorValue", () => {
-  it("formats currency in USD without decimals", () => {
-    expect(formatIndicatorValue(makeIndicator({ value: 3485818 }), usd)).toBe("$3,485,818");
+  it("formats currency in SZL without decimals", () => {
+    expect(formatIndicatorValue(makeIndicator({ value: 3485818 }), zar)).toBe("SZL 3,485,818");
   });
 
   it("formats native currency with its code", () => {
@@ -41,27 +41,27 @@ describe("formatIndicatorValue", () => {
   });
 
   it("formats counts with separators and percents with precision", () => {
-    expect(formatIndicatorValue(makeIndicator({ unit: "count", value: 6992 }), usd)).toBe("6,992");
-    expect(formatIndicatorValue(makeIndicator({ unit: "percent", value: 2.944 }), usd)).toBe(
+    expect(formatIndicatorValue(makeIndicator({ unit: "count", value: 6992 }), zar)).toBe("6,992");
+    expect(formatIndicatorValue(makeIndicator({ unit: "percent", value: 2.944 }), zar)).toBe(
       "2.94%",
     );
-    expect(formatIndicatorValue(makeIndicator({ unit: "percent", value: 71.41 }), usd)).toBe(
+    expect(formatIndicatorValue(makeIndicator({ unit: "percent", value: 71.41 }), zar)).toBe(
       "71.4%",
     );
-    expect(formatIndicatorValue(makeIndicator({ unit: "ratio", value: 1.234 }), usd)).toBe("1.23");
+    expect(formatIndicatorValue(makeIndicator({ unit: "ratio", value: 1.234 }), zar)).toBe("1.23");
   });
 
   it("shows a dash instead of zero when not reported", () => {
     const missing = makeIndicator({ value: null, status: "not_reported" });
     expect(isNotReported(missing)).toBe(true);
-    expect(formatIndicatorValue(missing, usd)).toBe("—");
-    expect(formatIndicatorValue(makeIndicator({ value: 0, status: "not_reported" }), usd)).toBe(
+    expect(formatIndicatorValue(missing, zar)).toBe("—");
+    expect(formatIndicatorValue(makeIndicator({ value: 0, status: "not_reported" }), zar)).toBe(
       "—",
     );
   });
 
   it("keeps a genuine zero when the value is reported", () => {
-    expect(formatIndicatorValue(makeIndicator({ unit: "count", value: 0 }), usd)).toBe("0");
+    expect(formatIndicatorValue(makeIndicator({ unit: "count", value: 0 }), zar)).toBe("0");
   });
 });
 
@@ -158,8 +158,8 @@ describe("ranking helpers", () => {
     expect(minimumTone(15, 15)).toBe("good");
   });
 
-  it("describes the conversion rate only for USD scopes", () => {
-    expect(rateNote(basicDashboardFixture.scope)).toBe("1 USD = 18.5 SZL");
+  it("no longer describes a conversion rate (conversion is removed)", () => {
+    expect(rateNote(basicDashboardFixture.scope)).toBeNull();
     expect(rateNote({ ...basicDashboardFixture.scope, currency: "SZL" })).toBeNull();
   });
 });
@@ -209,7 +209,7 @@ describe("filters", () => {
   });
 
   it("omits unset filters when building request params", () => {
-    expect(filtersToParams(DEFAULT_FILTERS)).toEqual({ currency: "usd" });
+    expect(filtersToParams(DEFAULT_FILTERS)).toEqual({});
     expect(
       filtersToParams({
         ...DEFAULT_FILTERS,
@@ -218,10 +218,8 @@ describe("filters", () => {
         periodValue: "Q1",
         region: "Manzini",
         cooperativeId: "abc",
-        currency: "native",
       }),
     ).toEqual({
-      currency: "native",
       reportingYear: 2026,
       periodType: "QUARTERLY",
       periodValue: "Q1",

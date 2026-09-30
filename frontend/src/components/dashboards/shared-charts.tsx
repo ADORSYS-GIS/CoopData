@@ -95,7 +95,7 @@ export function TrendChart() {
             fontFamily="var(--font-sans)"
             tickLine={false}
             axisLine={false}
-            tickFormatter={(v) => `$${v}M`}
+            tickFormatter={(v) => `SZL ${v}M`}
           />
           <Tooltip
             contentStyle={{
@@ -111,7 +111,7 @@ export function TrendChart() {
             labelStyle={{ fontWeight: "600", color: "var(--foreground)", marginBottom: "4px" }}
             formatter={(value: number, name: string) => {
               if (name === "loans") {
-                return [`$${value}M`, t("charts.loanPortfolio")];
+                return [`SZL ${value}M`, t("charts.loanPortfolio")];
               }
               return [formatNumber(value), t("charts.activeMembers")];
             }}

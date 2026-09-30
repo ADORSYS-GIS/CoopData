@@ -88,7 +88,7 @@ export function EquitySection({
           <Calculator className="size-4 text-muted-foreground" />
           <span className="text-muted-foreground">{t("financial.totalMemberShares")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalMemberShares)}
+            SZL {formatNumber(totals.totalMemberShares)}
           </span>
         </div>
       </div>
@@ -152,7 +152,9 @@ export function EquitySection({
         </div>
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalReserves")}:</span>
-          <span className="font-bold text-foreground">${formatNumber(totals.totalReserves)}</span>
+          <span className="font-bold text-foreground">
+            SZL {formatNumber(totals.totalReserves)}
+          </span>
         </div>
       </div>
 
@@ -203,7 +205,7 @@ export function EquitySection({
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalRetainedEarnings")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalRetainedEarnings)}
+            SZL {formatNumber(totals.totalRetainedEarnings)}
           </span>
         </div>
       </div>
@@ -217,7 +219,7 @@ export function EquitySection({
           <span className="font-semibold text-foreground">{t("financial.totalEquity")}</span>
         </div>
         <span className="text-xl font-bold text-foreground">
-          ${formatNumber(totals.totalEquity)}
+          SZL {formatNumber(totals.totalEquity)}
         </span>
       </div>
     </div>

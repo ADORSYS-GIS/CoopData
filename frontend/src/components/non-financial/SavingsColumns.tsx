@@ -5,7 +5,7 @@ import { SortableHeader } from "@/components/ui/data-table";
 import { Pencil, Trash2 } from "lucide-react";
 import type { SavingsAccountResponse } from "@/types/non-financial";
 import { useTranslation } from "react-i18next";
-import { useUsdFormatter } from "@/hooks/shared/useExchangeRates";
+import { useSzlFormatter } from "@/hooks/shared/useExchangeRates";
 
 interface SavingsActions {
   onEdit?: (savings: SavingsAccountResponse) => void;
@@ -14,10 +14,10 @@ interface SavingsActions {
 
 export function useSavingsColumns(
   actions?: SavingsActions,
-  rateToUsd?: number | null,
+  rateToZar?: number | null,
 ): ColumnDef<SavingsAccountResponse>[] {
   const { t } = useTranslation();
-  const { format: formatCurrency, formatOriginal } = useUsdFormatter("SZL", rateToUsd);
+  const { format: formatCurrency, formatOriginal } = useSzlFormatter("SZL", rateToZar);
   return [
     {
       accessorKey: "savings_account_id",

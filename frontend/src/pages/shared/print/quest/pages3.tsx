@@ -68,7 +68,7 @@ export const structurePage = (a: QuestAnalysis, no: string): PageSpec => ({
                   labels={income.labels}
                   values={income.values}
                   unit={a.props.dashboard.scope.currency}
-                  format={(v) => a.money(v).replace(/^\$/, "")}
+                  format={(v) => a.money(v).replace(/^SZL /, "")}
                 />
               </Figure>
             )}
@@ -103,7 +103,7 @@ export const assetTrendPage = (a: QuestAnalysis, no: string): PageSpec | null =>
         >
           <VBarGroups
             unit={a.props.dashboard.scope.currency}
-            format={(v) => a.money(v).replace(/^\$/, "")}
+            format={(v) => a.money(v).replace(/^SZL /, "")}
             series={[{ name: "Total assets", color: "#1F4E62" }]}
             data={assets.labels.map((label, i) => ({ label, values: [assets.values[i] ?? null] }))}
           />
@@ -274,7 +274,7 @@ export const annexBPages = (a: QuestAnalysis, no: string): PageSpec[] => {
             <p className="src">
               Regulatory minimums: liquidity {a.props.dashboard.thresholds.liquidity_minimum_pct}%,
               institutional capital {a.props.dashboard.thresholds.institutional_capital_minimum_pct}
-              %. PAR limits follow the WOCCU PEARLS system as configured on the Coop Data platform.
+              %. PAR limits follow the PEARLS system as configured on the Coop Data platform.
             </p>
             <EndOfReport />
           </>

@@ -210,7 +210,7 @@ export interface BalanceSheet {
   creditLossExpense: number; // 5301
 
   // METADATA
-  currency: string; // e.g., "USD" or "SZL"
+  currency: string; // e.g., "SZL" or "SZL"
   accountingYear: "calendar" | "fiscal"; // Jan-Dec or Jul-Jun
 }
 
@@ -540,7 +540,7 @@ export function createEmptyBalanceSheet(): BalanceSheet {
     cooperativeId: "",
     cooperativeName: "",
     submissionDate: "",
-    currency: "USD",
+    currency: "SZL",
     accountingYear: "calendar",
 
     liquidAssets: {

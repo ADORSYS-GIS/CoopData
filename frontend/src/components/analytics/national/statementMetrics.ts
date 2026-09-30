@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 
 import type { MetricCard, MetricGroup, Trend } from "@/components/analytics/national/metrics";
-import { formatUsd } from "@/lib/currency";
+import { formatSzl } from "@/lib/currency";
 import {
   INDICATOR_GROUPS,
   buildStatementIndicators,
@@ -12,7 +12,7 @@ import {
 const NOISE = 0.05;
 
 const formatValue = (indicator: StatementIndicator, value: number): string => {
-  if (indicator.unit === "usd") return formatUsd(value, 0);
+  if (indicator.unit === "zar") return formatSzl(value, 0);
   return `${value.toFixed(indicator.unit === "pct2" ? 2 : 1)}%`;
 };
 
@@ -37,7 +37,7 @@ const cardFor = (indicator: StatementIndicator, t: TFunction): MetricCard => {
   const value = formatValue(indicator, indicator.value);
   if (indicator.change === null) return { ...base, value };
 
-  const isMoney = indicator.unit === "usd";
+  const isMoney = indicator.unit === "zar";
   return {
     ...base,
     value,

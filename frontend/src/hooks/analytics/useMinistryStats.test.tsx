@@ -58,4 +58,26 @@ describe("useMinistryStats", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
+
+  it("sends the hierarchy filter to the endpoint so scoped stats stay in sync", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValueOnce({
+      data: { total_cooperatives: 1 },
+      error: undefined,
+    } as any);
+
+    const { result } = renderHook(
+      () => useMinistryStats({ federationId: "fed-1", reportingYear: 2026 }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      "/api/v1/ministry/stats",
+      expect.objectContaining({
+        params: {
+          query: expect.objectContaining({ federation_id: "fed-1", reporting_year: 2026 }),
+        },
+      }),
+    );
+  });
 });

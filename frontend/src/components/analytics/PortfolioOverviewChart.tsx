@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface TrendDataPoint {
-  month: string;
+  period: string;
   liquidity: number; // Liquid assets (COA 1100) — cash/near-cash
   loans: number; // Gross loan portfolio (COA 1200)
   savings: number; // Member deposits (COA 2100)
@@ -30,9 +30,9 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
 
   // Format Y-axis ticks in thousands or millions
   const formatYAxis = (value: number) => {
-    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
-    return `$${value}`;
+    if (value >= 1_000_000) return `SZL ${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `SZL ${(value / 1_000).toFixed(0)}K`;
+    return `SZL ${value}`;
   };
 
   // Headline figure is Total Assets for the latest month — it already
@@ -55,7 +55,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
               {t("analytics.portfolioOverview")}
             </span>
             <h3 className="text-3xl font-extrabold text-foreground mt-1">
-              ${(totalBalance / 1_000).toLocaleString(undefined, { maximumFractionDigits: 0 })}K
+              SZL {(totalBalance / 1_000).toLocaleString(undefined, { maximumFractionDigits: 0 })}K
             </h3>
           </div>
           <InfoTooltip text={t("analytics.portfolioOverviewTooltip")} />
@@ -78,13 +78,13 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="period"
               stroke="var(--muted-foreground)"
               fontSize={11}
               tickLine={false}
               axisLine={false}
             />
-            {/* One shared axis: all three series are USD balances and must be read on the same scale */}
+            {/* One shared axis: all three series are SZL balances and must be read on the same scale */}
             <YAxis
               yAxisId="left"
               stroke="var(--muted-foreground)"
@@ -101,7 +101,7 @@ export function PortfolioOverviewChart({ data }: PortfolioOverviewChartProps) {
                 fontSize: "12px",
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               }}
-              formatter={(value: number) => [`$${Math.round(value).toLocaleString()}`]}
+              formatter={(value: number) => [`SZL ${Math.round(value).toLocaleString()}`]}
             />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: "15px" }}
