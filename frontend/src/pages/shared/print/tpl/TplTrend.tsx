@@ -1,11 +1,12 @@
 import { LIGHT, RED, TEAL, niceMax } from "@/pages/shared/print/tpl/TplCharts";
+import { percentSign, short } from "@/pages/shared/print/tpl/i18n";
 
 const INK = "#4A5560";
 const GRID = "#E3E8EB";
 const PALETTE = [TEAL, "#5E8FA3", LIGHT, "#C5D6DE", RED, "#E0A39A", "#7A8B94", "#B9C4CA"];
 
 const roundTo = (value: number, digits = 1): string =>
-  String(Math.round(value * 10 ** digits) / 10 ** digits);
+  short(Math.round(value * 10 ** digits) / 10 ** digits, digits);
 
 export interface DonutSlice {
   label: string;
@@ -72,7 +73,8 @@ export function Donut({ slices, format }: DonutProps) {
             {slice.label}
           </text>
           <text x="16" y="12" fontSize="11">
-            {fmt(slice.value)} · {roundTo((slice.value / total) * 100)}%
+            {fmt(slice.value)} · {roundTo((slice.value / total) * 100)}
+            {percentSign()}
           </text>
         </g>
       ))}

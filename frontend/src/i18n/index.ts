@@ -21,7 +21,10 @@ i18n
       escapeValue: false, // React already escapes
     },
     detection: {
-      order: ["localStorage", "navigator", "htmlTag"],
+      // `?lng=` comes first so a print page rendered for a PDF is in the report
+      // language from its very first render.
+      order: ["querystring", "localStorage", "navigator", "htmlTag"],
+      lookupQuerystring: "lng",
       caches: ["localStorage"],
     },
   });

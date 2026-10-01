@@ -11,6 +11,7 @@ pub mod extraction_sanitizer;
 pub mod keycloak;
 pub mod kpi_engine;
 pub mod localization;
+pub mod narrative_translation;
 pub mod nf_excel_parser;
 pub mod nf_indicator_engine;
 pub mod object_storage;

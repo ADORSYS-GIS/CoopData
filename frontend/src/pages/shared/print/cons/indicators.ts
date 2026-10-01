@@ -9,6 +9,7 @@ import {
 } from "@/pages/shared/print/consolidated/stats";
 import type { DonutSlice } from "@/pages/shared/print/tpl/TplTrend";
 import type { TrendRow } from "@/pages/shared/print/tpl/trend";
+import { tr } from "@/pages/shared/print/tpl/i18n";
 
 export interface Tile {
   label: string;
@@ -41,7 +42,10 @@ const share = (part: number, whole: number): string =>
 const withChange = (change: Change | null): Pick<Tile, "note" | "down"> =>
   change
     ? {
-        note: `${change.tone === "down" ? "▼" : "▲"} ${change.text.replace(/^[+-]/, "")} on prior year`,
+        note: tr("common.on_prior_year", {
+          arrow: change.tone === "down" ? "▼" : "▲",
+          change: change.text.replace(/^[+-]/, ""),
+        }),
         down: change.tone === "down",
       }
     : {};
@@ -64,57 +68,63 @@ export const tileGroupsOf = (a: Analysis, trend: readonly TrendRow[]): TileGroup
 
   const groups: TileGroup[] = [
     {
-      title: "Membership and inclusion",
+      title: tr("cons.tiles.membership_inclusion"),
       tiles: [
         {
-          label: "Members",
+          label: tr("cons.tiles.members"),
           value: integer(members),
           ...withChange(priorMembers === null ? null : changeOf(members, priorMembers)),
         },
         {
-          label: "Active members",
+          label: tr("cons.tiles.active_members"),
           value: integer(active),
-          note: `${share(active, members)} of members`,
+          note: tr("cons.tiles.of_members", { share: share(active, members) }),
         },
         {
-          label: "Inactive members",
+          label: tr("cons.tiles.inactive_members"),
           value: integer(Math.max(members - active, 0)),
-          note: `${share(Math.max(members - active, 0), members)} of members`,
+          note: tr("cons.tiles.of_members", {
+            share: share(Math.max(members - active, 0), members),
+          }),
           down: true,
         },
         {
-          label: "Active borrowers",
+          label: tr("cons.tiles.active_borrowers"),
           value: integer(borrowers),
           ...withChange(priorBorrowers === null ? null : changeOf(borrowers, priorBorrowers)),
         },
         {
-          label: "Women borrowers",
+          label: tr("cons.tiles.women_borrowers"),
           value: integer(women),
-          note: `${share(women, borrowers)} of borrowers`,
+          note: tr("cons.tiles.of_borrowers", { share: share(women, borrowers) }),
         },
         {
-          label: "Youth borrowers",
+          label: tr("cons.tiles.youth_borrowers"),
           value: integer(youth),
-          note: `${share(youth, borrowers)} of borrowers`,
+          note: tr("cons.tiles.of_borrowers", { share: share(youth, borrowers) }),
         },
         {
-          label: "Rural borrowers",
+          label: tr("cons.tiles.rural_borrowers"),
           value: integer(rural),
-          note: `${share(rural, borrowers)} of borrowers`,
+          note: tr("cons.tiles.of_borrowers", { share: share(rural, borrowers) }),
         },
       ],
     },
     {
-      title: "Deposits and lending",
+      title: tr("cons.tiles.deposits_lending"),
       tiles: [
         {
-          label: "Member deposits",
+          label: tr("cons.tiles.member_deposits"),
           value: money(a.now.deposits),
           ...withChange(a.changes.deposits),
         },
-        { label: "Gross loans", value: money(a.now.loans), ...withChange(a.changes.loans) },
         {
-          label: "Average loan balance",
+          label: tr("cons.tiles.gross_loans"),
+          value: money(a.now.loans),
+          ...withChange(a.changes.loans),
+        },
+        {
+          label: tr("cons.tiles.average_loan"),
           value: averageLoan === null ? "—" : money(averageLoan),
           ...withChange(
             averageLoan !== null && priorAverage !== null
@@ -131,20 +141,28 @@ export const tileGroupsOf = (a: Analysis, trend: readonly TrendRow[]): TileGroup
     const { d31to60, d61to90, nonPerforming } = last.overdue;
     const atRisk = d31to60 + d61to90 + nonPerforming;
     groups.push({
-      title: `Portfolio at risk, ${last.label} (SZL)`,
+      title: tr("cons.tiles.par_title", { label: last.label }),
       tiles: [
-        { label: "Overdue 31–60 days", value: money(d31to60), note: share(d31to60, last.loans) },
-        { label: "Overdue 61–90 days", value: money(d61to90), note: share(d61to90, last.loans) },
         {
-          label: "Over 90 days",
+          label: tr("cons.tiles.overdue_31_60"),
+          value: money(d31to60),
+          note: share(d31to60, last.loans),
+        },
+        {
+          label: tr("cons.tiles.overdue_61_90"),
+          value: money(d61to90),
+          note: share(d61to90, last.loans),
+        },
+        {
+          label: tr("cons.tiles.over_90"),
           value: money(nonPerforming),
           note: share(nonPerforming, last.loans),
           down: true,
         },
         {
-          label: "Value at risk (>30 days)",
+          label: tr("cons.tiles.value_at_risk"),
           value: money(atRisk),
-          note: `PAR >30 days ${share(atRisk, last.loans)}`,
+          note: tr("cons.tiles.par30_share", { share: share(atRisk, last.loans) }),
           down: atRisk > 0,
         },
       ],
@@ -161,5 +179,5 @@ export const shareSlices = (
   const sorted = items.filter((item) => item.value > 0).sort((x, y) => y.value - x.value);
   const head = sorted.slice(0, top).map((item) => ({ label: item.name, value: item.value }));
   const rest = sorted.slice(top).reduce((total, item) => total + item.value, 0);
-  return rest > 0 ? [...head, { label: "Other", value: rest }] : head;
+  return rest > 0 ? [...head, { label: tr("common.other"), value: rest }] : head;
 };

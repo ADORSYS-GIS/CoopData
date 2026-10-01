@@ -1,16 +1,24 @@
-use crate::error::AppResult;
-use crate::services::report_narrative;
-use crate::AppState;
 use rust_decimal::prelude::ToPrimitive;
 use sea_orm::EntityTrait;
-
+use serde::{de::DeserializeOwned, Serialize};
 use uuid::Uuid;
+
+use crate::error::AppResult;
+use crate::services::narrative_translation::{self, Multilingual, StoredNarratives};
+use crate::services::report_narrative;
+use crate::AppState;
 
 pub struct ExportGenerator;
 
 /// Storage prefix of generated PDFs. Raise the version whenever the report layout
 /// changes: old cached PDFs are then ignored and every report is generated afresh.
 pub const EXPORT_PREFIX: &str = "exports/v5";
+
+/// Supported export locales — mirrors `localization::SUPPORTED_LOCALES`.
+pub(crate) const EXPORT_LOCALES: [&str; 4] = ["en", "fr", "pt", "ss"];
+
+/// Questionnaire reports are produced in English only.
+pub(crate) const QUESTIONNAIRE_LOCALE: &str = "en";
 
 impl ExportGenerator {
     /// Spawns a background task to generate exports when a submission is approved
@@ -39,93 +47,297 @@ impl ExportGenerator {
         });
     }
 
-    /// Generates PDF format and stores it in the bucket
+    /// Generates fresh narratives (English analysis + translations) and one PDF per
+    /// report locale. Locales whose translation failed are not cached, so their
+    /// next download retries the translation instead of serving English.
     async fn generate_all_formats(state: &AppState, submission_id: Uuid) -> AppResult<()> {
-        let pdf_bytes = Self::generate_submission_pdf(state, submission_id).await?;
-
-        tracing::info!(
-            submission_id = %submission_id,
-            size_bytes = pdf_bytes.len(),
-            "[export] ✅ PDF received | size={} bytes",
-            pdf_bytes.len()
+        let questionnaire = Self::is_questionnaire_submission(state, submission_id).await?;
+        let locales = Self::report_locales(
+            questionnaire,
+            Self::ensure_submission_narratives(state, submission_id, questionnaire, true)
+                .await
+                .as_ref(),
         );
-
-        let pdf_key = format!(
-            "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
-            submission_id, submission_id
-        );
-
-        tracing::info!(
-            submission_id = %submission_id,
-            pdf_key = %pdf_key,
-            "[export] 📦 Storing PDF to storage..."
-        );
-
-        state
-            .storage
-            .store(&pdf_key, &pdf_bytes, "application/pdf")
-            .await?;
-
+        Self::store_submission_locales(state, submission_id, questionnaire, &locales).await;
         Ok(())
     }
 
-    pub(crate) async fn generate_cooperative_pdf(
+    pub(crate) async fn is_questionnaire_submission(
         state: &AppState,
         submission_id: Uuid,
-    ) -> AppResult<Vec<u8>> {
-        let narrative_params =
-            match Self::generate_cooperative_narratives(state, submission_id).await {
-                Ok(result) => {
-                    tracing::info!(
-                        submission_id = %submission_id,
-                        "[export] 💾 Persisting narratives to metadata..."
-                    );
-                    if let Err(e) = state
-                        .submission_repo
-                        .update_metadata(
-                            submission_id,
-                            serde_json::json!({ "ai_narratives": result }),
-                        )
-                        .await
-                    {
-                        tracing::warn!(
+    ) -> AppResult<bool> {
+        let submission = state
+            .submission_repo
+            .find_by_id(submission_id)
+            .await?
+            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
+        Ok(
+            crate::services::questionnaire_report::is_questionnaire_method(
+                &submission.submission_method,
+            ),
+        )
+    }
+
+    /// Storage key of one locale of a single-submission report.
+    pub fn submission_pdf_key(submission_id: Uuid, lng: &str) -> String {
+        format!("{EXPORT_PREFIX}/individual/{submission_id}/submission_{submission_id}_{lng}.pdf")
+    }
+
+    fn submission_print_url(
+        state: &AppState,
+        submission_id: Uuid,
+        questionnaire: bool,
+        token: &str,
+        lng: &str,
+    ) -> String {
+        let route = if questionnaire {
+            "questionnaire"
+        } else {
+            "cooperative"
+        };
+        format!(
+            "{}/print/{route}/{submission_id}?token={token}&lng={lng}",
+            state.config.gotenberg_frontend_url
+        )
+    }
+
+    /// Locales whose narratives are fully translated and may therefore be cached.
+    pub(crate) fn cacheable_locales(untranslated: Option<&Vec<String>>) -> Vec<&'static str> {
+        match untranslated {
+            Some(untranslated) => EXPORT_LOCALES
+                .into_iter()
+                .filter(|lng| !untranslated.iter().any(|u| u == lng))
+                .collect(),
+            None => Vec::new(),
+        }
+    }
+
+    /// Renders and caches the given locales of a submission report.
+    pub(crate) async fn store_submission_locales(
+        state: &AppState,
+        submission_id: Uuid,
+        questionnaire: bool,
+        locales: &[&str],
+    ) {
+        if locales.is_empty() {
+            return;
+        }
+        let token = match state.keycloak.get_admin_token().await {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::error!(submission_id = %submission_id, error = %e, "[export] ❌ Could not obtain print token");
+                return;
+            }
+        };
+        for lng in locales {
+            let url = Self::submission_print_url(state, submission_id, questionnaire, &token, lng);
+            match Self::generate_pdf_via_gotenberg(state, &url).await {
+                Ok(bytes) => {
+                    let key = Self::submission_pdf_key(submission_id, lng);
+                    match state.storage.store(&key, &bytes, "application/pdf").await {
+                        Ok(_) => tracing::info!(
                             submission_id = %submission_id,
+                            lng = *lng,
+                            size_bytes = bytes.len(),
+                            "[export] ✅ Stored PDF for locale={}",
+                            lng
+                        ),
+                        Err(e) => tracing::warn!(
+                            submission_id = %submission_id,
+                            lng = *lng,
                             error = %e,
-                            "[export] ⚠️ Failed to persist cooperative narratives to metadata"
-                        );
-                    } else {
-                        tracing::info!(
-                            submission_id = %submission_id,
-                            "[export] ✅ Narratives persisted"
-                        );
+                            "[export] ⚠️ Failed to store PDF for locale={}",
+                            lng
+                        ),
                     }
-                    report_narrative::encode_cooperative_narrative_params(&result)
                 }
-                Err(e) => {
-                    tracing::warn!(
-                        submission_id = %submission_id,
-                        error = %e,
-                        "[export] ⚠️ Failed to generate cooperative narratives, using fallback"
-                    );
-                    String::new()
-                }
-            };
+                Err(e) => tracing::warn!(
+                    submission_id = %submission_id,
+                    lng = *lng,
+                    error = %e,
+                    "[export] ⚠️ Failed to render PDF for locale={}",
+                    lng
+                ),
+            }
+        }
+    }
 
-        tracing::info!(
-            submission_id = %submission_id,
-            "[export] 🔗 Building Gotenberg URL..."
-        );
+    /// Renders one locale of a submission report. Narratives are generated when
+    /// missing (or when `regenerate` is set), upgraded from the legacy English-only
+    /// shape, and failed translations are retried. Returns the PDF and the locales
+    /// still untranslated (`None` when the report has no AI narratives).
+    pub(crate) async fn generate_submission_pdf(
+        state: &AppState,
+        submission_id: Uuid,
+        lng: &str,
+        regenerate: bool,
+    ) -> AppResult<(Vec<u8>, Option<Vec<String>>)> {
+        let questionnaire = Self::is_questionnaire_submission(state, submission_id).await?;
+        let untranslated =
+            Self::ensure_submission_narratives(state, submission_id, questionnaire, regenerate)
+                .await;
+
         let token = state.keycloak.get_admin_token().await?;
-        let print_url = format!(
-            "{}/print/cooperative/{}?token={}{}",
-            state.config.gotenberg_frontend_url, submission_id, token, narrative_params
-        );
+        let url = Self::submission_print_url(state, submission_id, questionnaire, &token, lng);
+        let bytes = Self::generate_pdf_via_gotenberg(state, &url).await?;
+        Ok((bytes, untranslated))
+    }
 
-        tracing::info!(
-            submission_id = %submission_id,
-            "[export] 📤 Sending to Gotenberg..."
-        );
-        Self::generate_pdf_via_gotenberg(state, &print_url).await
+    /// Makes sure the submission holds complete multilingual narratives and returns
+    /// the locales still untranslated (`None` when no narratives exist).
+    pub(crate) async fn ensure_submission_narratives(
+        state: &AppState,
+        submission_id: Uuid,
+        questionnaire: bool,
+        regenerate: bool,
+    ) -> Option<Vec<String>> {
+        if questionnaire {
+            return Self::ensure_questionnaire_narratives(state, submission_id, regenerate).await;
+        }
+        Self::ensure_narratives_in_submission(state, submission_id, regenerate, || {
+            Self::generate_cooperative_narratives(state, submission_id)
+        })
+        .await
+        .map(|m| m.untranslated)
+    }
+
+    /// Questionnaire reports are English-only: their narratives are generated in
+    /// English and stored as a flat object, without translation.
+    async fn ensure_questionnaire_narratives(
+        state: &AppState,
+        submission_id: Uuid,
+        regenerate: bool,
+    ) -> Option<Vec<String>> {
+        if !regenerate {
+            let stored = state
+                .submission_repo
+                .find_by_id(submission_id)
+                .await
+                .ok()
+                .flatten()
+                .and_then(|sub| sub.metadata.get("ai_narratives").cloned());
+            if stored.is_some() {
+                return Some(Vec::new());
+            }
+        }
+        match Self::generate_questionnaire_narratives(state, submission_id).await {
+            Ok(narratives) => {
+                if let Err(e) = state
+                    .submission_repo
+                    .update_metadata(
+                        submission_id,
+                        serde_json::json!({ "ai_narratives": narratives }),
+                    )
+                    .await
+                {
+                    tracing::warn!(submission_id = %submission_id, error = %e, "[export] ⚠️ Failed to persist questionnaire narratives");
+                }
+                Some(Vec::new())
+            }
+            Err(e) => {
+                tracing::warn!(submission_id = %submission_id, error = %e, "[export] ⚠️ Questionnaire narratives failed, rendering without AI summary");
+                None
+            }
+        }
+    }
+
+    /// Locales a submission report is rendered and cached in. Questionnaire reports
+    /// are English-only and keep the factual fallback when narratives are missing.
+    pub(crate) fn report_locales(
+        questionnaire: bool,
+        untranslated: Option<&Vec<String>>,
+    ) -> Vec<&'static str> {
+        if questionnaire {
+            vec![QUESTIONNAIRE_LOCALE]
+        } else {
+            Self::cacheable_locales(untranslated)
+        }
+    }
+
+    async fn ensure_narratives_in_submission<T, F, Fut>(
+        state: &AppState,
+        submission_id: Uuid,
+        regenerate: bool,
+        generate: F,
+    ) -> Option<Multilingual<T>>
+    where
+        T: Serialize + DeserializeOwned + Clone + Send + Sync,
+        F: FnOnce() -> Fut,
+        Fut: std::future::Future<Output = AppResult<T>>,
+    {
+        let stored = if regenerate {
+            None
+        } else {
+            match state.submission_repo.find_by_id(submission_id).await {
+                Ok(Some(sub)) => sub
+                    .metadata
+                    .get("ai_narratives")
+                    .and_then(narrative_translation::parse_stored::<T>),
+                _ => None,
+            }
+        };
+
+        let (narratives, changed) = Self::complete_narratives(state, stored, generate).await?;
+        if changed {
+            if let Err(e) = state
+                .submission_repo
+                .update_metadata(
+                    submission_id,
+                    serde_json::json!({ "ai_narratives": &narratives }),
+                )
+                .await
+            {
+                tracing::warn!(submission_id = %submission_id, error = %e, "[export] ⚠️ Failed to persist narratives");
+            }
+        }
+        Some(narratives)
+    }
+
+    /// Brings stored narratives to a complete multilingual set: generates the English
+    /// analysis when nothing is stored, translates legacy English-only narratives and
+    /// retries locales whose translation failed before. Returns the set and whether
+    /// it changed. The English generation releases its AI permit before translation
+    /// takes a new one, so a task never holds two permits at once.
+    pub(crate) async fn complete_narratives<T, F, Fut>(
+        state: &AppState,
+        stored: Option<StoredNarratives<T>>,
+        generate: F,
+    ) -> Option<(Multilingual<T>, bool)>
+    where
+        T: Serialize + DeserializeOwned + Clone + Send + Sync,
+        F: FnOnce() -> Fut,
+        Fut: std::future::Future<Output = AppResult<T>>,
+    {
+        let generator = state.narrative_generator.as_ref();
+        match stored {
+            Some(StoredNarratives::Multilingual(m)) if m.is_complete() => Some((m, false)),
+            Some(StoredNarratives::Multilingual(mut m)) => {
+                let _permit = state.ai_semaphore.acquire().await.ok();
+                narrative_translation::complete_missing(generator, &mut m).await;
+                Some((m, true))
+            }
+            Some(StoredNarratives::Legacy(english)) => {
+                let _permit = state.ai_semaphore.acquire().await.ok();
+                Some((
+                    narrative_translation::translate_all(generator, &english).await,
+                    true,
+                ))
+            }
+            None => {
+                let english = match generate().await {
+                    Ok(english) => english,
+                    Err(e) => {
+                        tracing::warn!(error = %e, "[export] ⚠️ Narratives unavailable");
+                        return None;
+                    }
+                };
+                let _permit = state.ai_semaphore.acquire().await.ok();
+                Some((
+                    narrative_translation::translate_all(generator, &english).await,
+                    true,
+                ))
+            }
+        }
     }
 
     async fn generate_cooperative_narratives(
@@ -564,101 +776,203 @@ impl ExportGenerator {
             coops_data.len()
         );
 
-        let narrative_params = {
-            let ctx = report_narrative::build_apex_context(&apex, &coops_data, reporting_year);
+        let ctx = report_narrative::build_apex_context(&apex, &coops_data, reporting_year);
+        let untranslated =
+            Self::ensure_apex_narratives(state, apex_id, reporting_year, Some(ctx)).await;
 
-            tracing::info!(
-                apex_id = %apex_id,
-                "[export] 🤖 Acquiring AI semaphore..."
-            );
-            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
-                crate::error::AppError::InternalServerError("AI semaphore closed".into())
+        let token = state.keycloak.get_admin_token().await?;
+        let name = urlencoding::encode(&apex.display_name).into_owned();
+        Self::store_consolidated_locales(
+            state,
+            &Self::cacheable_locales(untranslated.as_ref()),
+            |lng| {
+                format!(
+                    "{}/print/apex/{}?token={}&year={}&name={}&lng={}",
+                    state.config.gotenberg_frontend_url,
+                    apex.keycloak_id,
+                    token,
+                    reporting_year,
+                    name,
+                    lng
+                )
+            },
+            |lng| Self::apex_pdf_key(apex_id, reporting_year, "", lng),
+        )
+        .await;
+
+        Ok(())
+    }
+
+    pub fn apex_pdf_key(apex_id: Uuid, year: i32, tag: &str, lng: &str) -> String {
+        format!("{EXPORT_PREFIX}/apex/{apex_id}/apex_{apex_id}_{year}{tag}_{lng}.pdf")
+    }
+
+    pub fn federation_pdf_key(federation_id: Uuid, year: i32, tag: &str, lng: &str) -> String {
+        format!("{EXPORT_PREFIX}/federation/{federation_id}/federation_{federation_id}_{year}{tag}_{lng}.pdf")
+    }
+
+    pub fn ministry_pdf_key(year: i32, tag: &str, lng: &str) -> String {
+        format!("{EXPORT_PREFIX}/ministry/ministry_{year}{tag}_{lng}.pdf")
+    }
+
+    /// Renders and caches one consolidated report per locale.
+    async fn store_consolidated_locales(
+        state: &AppState,
+        locales: &[&str],
+        url_for: impl Fn(&str) -> String,
+        key_for: impl Fn(&str) -> String,
+    ) {
+        for lng in locales {
+            let key = key_for(lng);
+            match Self::generate_pdf_via_gotenberg(state, &url_for(lng)).await {
+                Ok(bytes) => {
+                    if let Err(e) = state.storage.store(&key, &bytes, "application/pdf").await {
+                        tracing::warn!(lng = *lng, key = %key, error = %e, "[export] ⚠️ Failed to store PDF");
+                    } else {
+                        tracing::info!(lng = *lng, key = %key, size_bytes = bytes.len(), "[export] ✅ Stored PDF");
+                    }
+                }
+                Err(e) => {
+                    tracing::error!(lng = *lng, key = %key, error = %e, "[export] ❌ Failed to render PDF")
+                }
+            }
+        }
+    }
+
+    /// Ensures complete multilingual apex narratives for `year`. With `fresh`, the
+    /// English analysis is regenerated from that context; without it, only stored
+    /// narratives are upgraded or completed. Returns the untranslated locales, or
+    /// `None` when no narratives exist.
+    pub(crate) async fn ensure_apex_narratives(
+        state: &AppState,
+        apex_id: Uuid,
+        year: i32,
+        fresh: Option<report_narrative::ApexNarrativeContext>,
+    ) -> Option<Vec<String>> {
+        let key = format!("ai_narratives_{year}");
+        let stored = if fresh.is_some() {
+            None
+        } else {
+            match state.apex_repo.find_by_id(apex_id).await {
+                Ok(Some(apex)) => apex
+                    .metadata
+                    .as_ref()
+                    .and_then(|m| m.get(&key))
+                    .and_then(narrative_translation::parse_stored),
+                _ => None,
+            }
+        };
+        let generate = || async move {
+            let ctx = fresh.ok_or_else(|| {
+                crate::error::AppError::NotFound("No apex narratives stored".into())
             })?;
-            tracing::info!(
-                apex_id = %apex_id,
-                available = state.ai_semaphore.available_permits(),
-                "[export] 🤖 AI semaphore acquired | available={}",
-                state.ai_semaphore.available_permits()
-            );
-
-            tracing::info!(
-                apex_id = %apex_id,
-                "[export] 📡 Generating apex narratives..."
-            );
-            let start = std::time::Instant::now();
-            match state
+            let _permit = state.ai_semaphore.acquire().await.ok();
+            state
                 .narrative_generator
                 .generate_apex_narratives(&ctx)
                 .await
-            {
-                Ok(result) => {
-                    tracing::info!(
-                        apex_id = %apex_id,
-                        elapsed_ms = start.elapsed().as_millis(),
-                        "[export] ✅ Narratives generated in {}ms",
-                        start.elapsed().as_millis()
-                    );
-                    let params = report_narrative::encode_apex_narrative_params(&result);
-                    // Persist narratives to apex metadata for frontend retrieval
-                    let year_key = format!("ai_narratives_{}", reporting_year);
-                    if let Err(e) = state
-                        .apex_repo
-                        .update_metadata(
-                            apex_id,
-                            serde_json::json!({ &year_key: serde_json::to_value(&result).unwrap_or_default() }),
-                        )
-                        .await
-                    {
-                        tracing::warn!(apex_id = %apex_id, error = %e, "[export] ⚠️ Failed to persist apex narratives to metadata");
-                    }
-                    params
-                }
-                Err(e) => {
-                    tracing::warn!(apex_id = %apex_id, error = %e, "[export] ⚠️ Failed to generate apex narratives, using fallback");
-                    String::new()
-                }
-            }
         };
 
-        let token = state.keycloak.get_admin_token().await?;
-        tracing::info!(apex_id = %apex_id, "[export] 🔗 Building Gotenberg URL...");
-        let print_url = format!(
-            "{}/print/apex/{}?token={}&year={}&name={}{}",
-            state.config.gotenberg_frontend_url,
-            apex.keycloak_id,
-            token,
-            reporting_year,
-            urlencoding::encode(&apex.display_name),
-            narrative_params
-        );
+        let (narratives, changed) = Self::complete_narratives(state, stored, generate).await?;
+        if changed {
+            if let Err(e) = state
+                .apex_repo
+                .update_metadata(apex_id, serde_json::json!({ &key: &narratives }))
+                .await
+            {
+                tracing::warn!(apex_id = %apex_id, error = %e, "[export] ⚠️ Failed to persist apex narratives");
+            }
+        }
+        Some(narratives.untranslated)
+    }
 
-        tracing::info!(apex_id = %apex_id, "[export] 📤 Sending to Gotenberg...");
-        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
+    /// Federation counterpart of [`Self::ensure_apex_narratives`].
+    pub(crate) async fn ensure_federation_narratives(
+        state: &AppState,
+        federation_id: Uuid,
+        year: i32,
+        fresh: Option<report_narrative::FederationNarrativeContext>,
+    ) -> Option<Vec<String>> {
+        let key = format!("ai_narratives_{year}");
+        let stored = if fresh.is_some() {
+            None
+        } else {
+            match state.federation_repo.find_by_id(federation_id).await {
+                Ok(Some(federation)) => federation
+                    .metadata
+                    .as_ref()
+                    .and_then(|m| m.get(&key))
+                    .and_then(narrative_translation::parse_stored),
+                _ => None,
+            }
+        };
+        let generate = || async move {
+            let ctx = fresh.ok_or_else(|| {
+                crate::error::AppError::NotFound("No federation narratives stored".into())
+            })?;
+            let _permit = state.ai_semaphore.acquire().await.ok();
+            state
+                .narrative_generator
+                .generate_federation_narratives(&ctx)
+                .await
+        };
 
-        tracing::info!(
-            apex_id = %apex_id,
-            size_bytes = pdf_bytes.len(),
-            "[export] ✅ PDF received | size={} bytes",
-            pdf_bytes.len()
-        );
+        let (narratives, changed) = Self::complete_narratives(state, stored, generate).await?;
+        if changed {
+            if let Err(e) = state
+                .federation_repo
+                .update_metadata(federation_id, serde_json::json!({ &key: &narratives }))
+                .await
+            {
+                tracing::warn!(federation_id = %federation_id, error = %e, "[export] ⚠️ Failed to persist federation narratives");
+            }
+        }
+        Some(narratives.untranslated)
+    }
 
-        let pdf_key = format!(
-            "{EXPORT_PREFIX}/apex/{}/apex_{}_{}.pdf",
-            apex_id, apex_id, reporting_year
-        );
+    /// Ministry counterpart of [`Self::ensure_apex_narratives`].
+    pub(crate) async fn ensure_ministry_narratives(
+        state: &AppState,
+        year: i32,
+        fresh: Option<report_narrative::MinistryNarrativeContext>,
+    ) -> Option<Vec<String>> {
+        let stored = if fresh.is_some() {
+            None
+        } else {
+            match state.ministry_narratives_repo.find_by_year(year).await {
+                Ok(Some(cached)) => narrative_translation::parse_stored(&cached.narratives_json),
+                _ => None,
+            }
+        };
+        let generate = || async move {
+            let ctx = fresh.ok_or_else(|| {
+                crate::error::AppError::NotFound("No ministry narratives stored".into())
+            })?;
+            let _permit = state.ai_semaphore.acquire().await.ok();
+            state
+                .narrative_generator
+                .generate_ministry_narratives(&ctx)
+                .await
+        };
 
-        tracing::info!(
-            apex_id = %apex_id,
-            pdf_key = %pdf_key,
-            "[export] 📦 Storing PDF to storage..."
-        );
-
-        state
-            .storage
-            .store(&pdf_key, &pdf_bytes, "application/pdf")
-            .await?;
-
-        Ok(())
+        let (narratives, changed) = Self::complete_narratives(state, stored, generate).await?;
+        if changed {
+            match serde_json::to_value(&narratives) {
+                Ok(value) => {
+                    if let Err(e) = state
+                        .ministry_narratives_repo
+                        .upsert_narratives(year, value)
+                        .await
+                    {
+                        tracing::warn!(year, error = %e, "[export] ⚠️ Failed to persist ministry narratives");
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(year, error = %e, "[export] ⚠️ Failed to serialise ministry narratives")
+                }
+            }
+        }
+        Some(narratives.untranslated)
     }
 
     async fn compile_apex_data(
@@ -746,103 +1060,31 @@ impl ExportGenerator {
             apexes_data.len()
         );
 
-        let narrative_params = {
-            let ctx = report_narrative::build_federation_context(
-                &federation,
-                &apexes_data,
-                reporting_year,
-            );
-
-            tracing::info!(
-                federation_id = %federation_id,
-                "[export] 🤖 Acquiring AI semaphore..."
-            );
-            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
-                crate::error::AppError::InternalServerError("AI semaphore closed".into())
-            })?;
-            tracing::info!(
-                federation_id = %federation_id,
-                available = state.ai_semaphore.available_permits(),
-                "[export] 🤖 AI semaphore acquired | available={}",
-                state.ai_semaphore.available_permits()
-            );
-
-            tracing::info!(
-                federation_id = %federation_id,
-                "[export] 📡 Generating federation narratives..."
-            );
-            let start = std::time::Instant::now();
-            match state
-                .narrative_generator
-                .generate_federation_narratives(&ctx)
-                .await
-            {
-                Ok(result) => {
-                    tracing::info!(
-                        federation_id = %federation_id,
-                        elapsed_ms = start.elapsed().as_millis(),
-                        "[export] ✅ Narratives generated in {}ms",
-                        start.elapsed().as_millis()
-                    );
-                    let params = report_narrative::encode_federation_narrative_params(&result);
-                    // Persist narratives to federation metadata for frontend retrieval
-                    let year_key = format!("ai_narratives_{}", reporting_year);
-                    if let Err(e) = state
-                        .federation_repo
-                        .update_metadata(
-                            federation_id,
-                            serde_json::json!({ &year_key: serde_json::to_value(&result).unwrap_or_default() }),
-                        )
-                        .await
-                    {
-                        tracing::warn!(federation_id = %federation_id, error = %e, "[export] ⚠️ Failed to persist federation narratives to metadata");
-                    }
-                    params
-                }
-                Err(e) => {
-                    tracing::warn!(federation_id = %federation_id, error = %e, "[export] ⚠️ Failed to generate federation narratives, using fallback");
-                    String::new()
-                }
-            }
-        };
+        let ctx =
+            report_narrative::build_federation_context(&federation, &apexes_data, reporting_year);
+        let untranslated =
+            Self::ensure_federation_narratives(state, federation_id, reporting_year, Some(ctx))
+                .await;
 
         let token = state.keycloak.get_admin_token().await?;
-        tracing::info!(federation_id = %federation_id, "[export] 🔗 Building Gotenberg URL...");
-        let print_url = format!(
-            "{}/print/federation/{}?token={}&year={}&name={}{}",
-            state.config.gotenberg_frontend_url,
-            federation.keycloak_id,
-            token,
-            reporting_year,
-            urlencoding::encode(&federation.display_name),
-            narrative_params
-        );
-
-        tracing::info!(federation_id = %federation_id, "[export] 📤 Sending to Gotenberg...");
-        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-
-        tracing::info!(
-            federation_id = %federation_id,
-            size_bytes = pdf_bytes.len(),
-            "[export] ✅ PDF received | size={} bytes",
-            pdf_bytes.len()
-        );
-
-        let pdf_key = format!(
-            "{EXPORT_PREFIX}/federation/{}/federation_{}_{}.pdf",
-            federation_id, federation_id, reporting_year
-        );
-
-        tracing::info!(
-            federation_id = %federation_id,
-            pdf_key = %pdf_key,
-            "[export] 📦 Storing PDF to storage..."
-        );
-
-        state
-            .storage
-            .store(&pdf_key, &pdf_bytes, "application/pdf")
-            .await?;
+        let name = urlencoding::encode(&federation.display_name).into_owned();
+        Self::store_consolidated_locales(
+            state,
+            &Self::cacheable_locales(untranslated.as_ref()),
+            |lng| {
+                format!(
+                    "{}/print/federation/{}?token={}&year={}&name={}&lng={}",
+                    state.config.gotenberg_frontend_url,
+                    federation.keycloak_id,
+                    token,
+                    reporting_year,
+                    name,
+                    lng
+                )
+            },
+            |lng| Self::federation_pdf_key(federation_id, reporting_year, "", lng),
+        )
+        .await;
 
         Ok(())
     }
@@ -929,81 +1171,22 @@ impl ExportGenerator {
             national_data.len()
         );
 
-        let narrative_params = {
-            let ctx = report_narrative::build_ministry_context(&national_data, reporting_year);
-
-            tracing::info!("[export] 🤖 Acquiring AI semaphore...");
-            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
-                crate::error::AppError::InternalServerError("AI semaphore closed".into())
-            })?;
-            tracing::info!(
-                available = state.ai_semaphore.available_permits(),
-                "[export] 🤖 AI semaphore acquired | available={}",
-                state.ai_semaphore.available_permits()
-            );
-
-            tracing::info!("[export] 📡 Generating ministry narratives...");
-            let start = std::time::Instant::now();
-            match state
-                .narrative_generator
-                .generate_ministry_narratives(&ctx)
-                .await
-            {
-                Ok(result) => {
-                    tracing::info!(
-                        reporting_year = reporting_year,
-                        elapsed_ms = start.elapsed().as_millis(),
-                        "[export] ✅ Narratives generated in {}ms",
-                        start.elapsed().as_millis()
-                    );
-                    let params = report_narrative::encode_ministry_narrative_params(&result);
-                    // Persist narratives to ministry cache table for frontend retrieval
-                    if let Err(e) = state
-                        .ministry_narratives_repo
-                        .upsert_narratives(
-                            reporting_year,
-                            serde_json::to_value(&result).unwrap_or_default(),
-                        )
-                        .await
-                    {
-                        tracing::warn!(error = %e, "[export] ⚠️ Failed to persist ministry narratives");
-                    }
-                    params
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "[export] ⚠️ Failed to generate ministry narratives, using fallback");
-                    String::new()
-                }
-            }
-        };
+        let ctx = report_narrative::build_ministry_context(&national_data, reporting_year);
+        let untranslated = Self::ensure_ministry_narratives(state, reporting_year, Some(ctx)).await;
 
         let token = state.keycloak.get_admin_token().await?;
-        tracing::info!("[export] 🔗 Building Gotenberg URL...");
-        let print_url = format!(
-            "{}/print/ministry?token={}&year={}{}",
-            state.config.gotenberg_frontend_url, token, reporting_year, narrative_params
-        );
-
-        tracing::info!("[export] 📤 Sending to Gotenberg...");
-        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-
-        tracing::info!(
-            size_bytes = pdf_bytes.len(),
-            "[export] ✅ PDF received | size={} bytes",
-            pdf_bytes.len()
-        );
-
-        let pdf_key = format!("{EXPORT_PREFIX}/ministry/ministry_{}.pdf", reporting_year);
-
-        tracing::info!(
-            pdf_key = %pdf_key,
-            "[export] 📦 Storing PDF to storage..."
-        );
-
-        state
-            .storage
-            .store(&pdf_key, &pdf_bytes, "application/pdf")
-            .await?;
+        Self::store_consolidated_locales(
+            state,
+            &Self::cacheable_locales(untranslated.as_ref()),
+            |lng| {
+                format!(
+                    "{}/print/ministry?token={}&year={}&lng={}",
+                    state.config.gotenberg_frontend_url, token, reporting_year, lng
+                )
+            },
+            |lng| Self::ministry_pdf_key(reporting_year, "", lng),
+        )
+        .await;
 
         Ok(())
     }

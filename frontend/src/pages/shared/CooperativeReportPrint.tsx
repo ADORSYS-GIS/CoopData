@@ -1,4 +1,6 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+
 import { Spinner } from "@/components/ui/spinner";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
 import {
@@ -15,15 +17,20 @@ import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
+import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
 import type { ReportDataProps } from "./print/components/types";
 import { CooperativeTplReport } from "./print/coop/CooperativeTplReport";
 
 interface Props {
   submissionId: string;
   tokenOverride?: string;
+  /** Locale code passed by Gotenberg via ?lng= URL param (en | fr | pt | ss). */
+  lng?: string;
 }
 
-export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOverride }) => {
+export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOverride, lng }) => {
+  const { t } = useTranslation();
+  const languageReady = usePrintLanguage(lng);
   const { data: submission, isLoading: subLoading } = useSubmission(
     submissionId,
     undefined,
@@ -45,7 +52,11 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     submissionId,
     tokenOverride,
   );
-  const { data: narratives } = useSubmissionNarratives(submissionId, tokenOverride);
+  const { data: narratives, isLoading: narrativesLoading } = useSubmissionNarratives(
+    submissionId,
+    tokenOverride,
+    lng,
+  );
 
   const scope = submission
     ? {
@@ -82,7 +93,9 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
 
   const criticalLoading = subLoading || kpisLoading || lineItemsLoading;
   const allLoading =
+    !languageReady ||
     criticalLoading ||
+    narrativesLoading ||
     portfolioLoading ||
     membershipLoading ||
     trendLoading ||
@@ -96,7 +109,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">
           <Spinner size="xl" className="text-accent" />
-          <p className="mt-4 text-sm font-semibold">Generating report layout…</p>
+          <p className="mt-4 text-sm font-semibold">{t("printReports.generatingLayout")}</p>
         </div>
       </div>
     );
@@ -106,10 +119,8 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800 p-8">
         <div className="text-center">
-          <p className="text-lg font-bold text-destructive">Failed to load report data.</p>
-          <p className="text-sm text-slate-500 mt-1">
-            One or more required data sources could not be fetched.
-          </p>
+          <p className="text-lg font-bold text-destructive">{t("printReports.failedLoad")}</p>
+          <p className="text-sm text-slate-500 mt-1">{t("printReports.failedLoadDesc")}</p>
         </div>
       </div>
     );

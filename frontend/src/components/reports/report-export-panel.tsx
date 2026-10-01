@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Download, FileText, CheckCircle2, X, ChevronRight, RefreshCw } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
+import { normalizeAppLang } from "@/lib/contentLocalization";
 import { toast } from "sonner";
 import { getAccessToken } from "@/services/shared/authService";
 import {
@@ -46,6 +48,8 @@ interface ReportExportPanelProps {
 
 export function ReportExportPanel({ submissionId, className }: ReportExportPanelProps) {
   const { t, replaceOrgTerms } = useOrganizationLabelsContext();
+  const { i18n } = useTranslation();
+  const reportLang = normalizeAppLang(i18n.resolvedLanguage ?? i18n.language);
   const role = useUserRole();
 
   // Modal state
@@ -368,7 +372,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
       let url = "";
       if (isIndividual) {
-        url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export`;
+        url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?lang=${reportLang}`;
       } else {
         const queryParams = new URLSearchParams();
         if (selectedOption.id === "federation-consolidated" && selectedFedId) {
@@ -383,6 +387,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
         if (effectiveMethod === "questionnaire") {
           queryParams.append("method", "questionnaire");
         }
+        queryParams.append("lang", reportLang);
 
         if (role === "apex") url = `${baseUrl}/api/v1/apex/export?${queryParams}`;
         else if (role === "federation") url = `${baseUrl}/api/v1/federation/export?${queryParams}`;
@@ -454,7 +459,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     try {
       const token = await getAccessToken();
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?regenerate=true`;
+      const url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?regenerate=true&lang=${reportLang}`;
 
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) {

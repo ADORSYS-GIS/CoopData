@@ -10,20 +10,23 @@ import { annexAPages, annexBPage, findingsPage } from "@/pages/shared/print/coop
 import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { trendPage } from "@/pages/shared/print/tpl/TrendPage";
 import { trendOf } from "@/pages/shared/print/tpl/trend";
-
-const issued = () =>
-  new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+import { longDate, tr } from "@/pages/shared/print/tpl/i18n";
 
 const capitalize = (text: string): string =>
   text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+
+const statusText = (status: string): string =>
+  tr(`common.submission_status_values.${status.toLowerCase()}`, {
+    defaultValue: capitalize(status),
+  });
 
 /** Individual cooperative report in the supervisory report template. */
 export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
   const a = analyseCoop(props);
   const { submission, coopName } = props;
   const year = a.year;
-  const date = issued();
-  const status = capitalize(submission.status);
+  const date = longDate(new Date());
+  const status = statusText(submission.status);
 
   let n = 0;
   const next = () => String(++n);
@@ -39,7 +42,9 @@ export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
     ...performancePages(a, next()),
     loanQualityPage(a, next()),
     membershipPage(a, next()),
-    ...optional((no) => trendPage({ rows: trendOf(props.trend), no, scope: "the cooperative" })),
+    ...optional((no) =>
+      trendPage({ rows: trendOf(props.trend), no, scope: tr("trend.scope_cooperative") }),
+    ),
     ...optional((no) => peerPage(a, no)),
     findingsPage(a, next()),
     ...annexAPages(a, "A"),
@@ -49,41 +54,57 @@ export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
   return (
     <TplDocument
       frame={{
-        headLeft: "COOP DATA · ANNUAL FINANCIAL & COMPLIANCE ASSESSMENT",
-        headRight: `${coopName.toUpperCase()} · FY ${year}`,
-        footLeft: "RESTRICTED — For supervisory use only",
-        footMid: `Ref. ${a.ref}`,
+        headLeft: tr("coop.report.head"),
+        headRight: `${coopName.toUpperCase()} · ${tr("common.fy", { year }).toUpperCase()}`,
+        footLeft: tr("coop.report.restricted_foot"),
+        footMid: tr("coop.report.ref", { ref: a.ref }),
       }}
       cover={{
-        kicker: "Annual Financial & Compliance Assessment",
-        title: ["Cooperative Supervisory", `Report — Financial Year ${year}`],
+        kicker: tr("coop.report.kicker"),
+        title: [tr("coop.report.title_1"), tr("coop.report.title_2", { year })],
         entity: coopName,
-        entityNote: submission.apex_name ? `Affiliated to ${submission.apex_name}` : "Cooperative",
-        badge: "RESTRICTED",
+        entityNote: submission.apex_name
+          ? tr("coop.report.affiliated_to", { apex: submission.apex_name })
+          : tr("common.cooperative"),
+        badge: tr("coop.report.badge"),
         meta: [
-          { label: "Reporting period", value: `1 Jan – 31 Dec ${year}` },
-          { label: "Submission ref.", value: a.ref },
-          { label: "Date of issue", value: date },
-          { label: "Submission status", value: status },
+          { label: tr("common.reporting_period"), value: tr("coop.report.period_value", { year }) },
+          { label: tr("common.submission_ref"), value: a.ref },
+          { label: tr("common.date_of_issue"), value: date },
+          { label: tr("common.submission_status"), value: status },
         ],
-        footLeft: "Prepared by Coop Data · Unified Cooperative Financial Intelligence & Compliance",
-        footRight: "Figures as reported by the cooperative",
+        footLeft: tr("common.prepared_by"),
+        footRight: tr("coop.report.foot_right"),
       }}
       front={{
         particulars: [
-          ["Cooperative", coopName, "Apex organisation", submission.apex_name ?? "—"],
-          ["Reporting period", `FY ${year} (comparative FY ${year - 1})`, "Submission ref.", a.ref],
-          ["Date of issue", date, "Submission status", status],
           [
-            "Reporting currency",
-            "As reported by the cooperative",
-            "Classification",
-            "Restricted — supervisory use",
+            tr("common.cooperative"),
+            coopName,
+            tr("common.apex_organisation"),
+            submission.apex_name ?? "—",
           ],
-          ["Benchmark framework", "PEARLS (adapted)", "Version", "1.0"],
+          [
+            tr("common.reporting_period"),
+            tr("coop.report.period_comparative", { year, prior: year - 1 }),
+            tr("common.submission_ref"),
+            a.ref,
+          ],
+          [tr("common.date_of_issue"), date, tr("common.submission_status"), status],
+          [
+            tr("common.reporting_currency"),
+            tr("coop.report.currency_value"),
+            tr("common.classification"),
+            tr("coop.report.classification_value"),
+          ],
+          [
+            tr("common.benchmark_framework"),
+            tr("common.pearls_adapted"),
+            tr("common.version"),
+            "1.0",
+          ],
         ],
-        basis:
-          "This assessment is compiled from the annual return submitted by the cooperative through the Coop Data platform. Ratios have been recomputed from the submitted statements of financial position and performance. Where a figure produced by the automated system could not be reconciled to the underlying statements, the reported figure is used in the body of this report and the difference is disclosed in Annex A. Figures have not been independently audited.",
+        basis: tr("coop.report.basis"),
       }}
       pages={pages}
     />

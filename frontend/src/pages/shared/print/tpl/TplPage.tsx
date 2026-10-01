@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { tr } from "@/pages/shared/print/tpl/i18n";
+
 import "@/pages/shared/print/tpl/tpl.css";
 
 export interface RunningFrame {
@@ -32,9 +34,7 @@ export function TplPage({ frame, page, pages, children }: TplPageProps) {
       <div className="run-bot">
         <span>{frame.footLeft}</span>
         <span>{frame.footMid}</span>
-        <span>
-          Page {page} of {pages}
-        </span>
+        <span>{tr("common.page_of", { page, pages })}</span>
       </div>
     </section>
   );

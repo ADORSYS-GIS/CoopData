@@ -6,6 +6,7 @@ import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { Figure } from "@/pages/shared/print/tpl/TplParts";
 import { Donut } from "@/pages/shared/print/tpl/TplTrend";
+import { tr } from "@/pages/shared/print/tpl/i18n";
 
 /** Donuts showing what the assets are and what funds them; null when no balance is reported. */
 export function StructureFigures({ a }: { a: CoopAnalysis }) {
@@ -19,8 +20,7 @@ export function StructureFigures({ a }: { a: CoopAnalysis }) {
         <Figure
           caption={
             <>
-              <b>Figure S1.</b> Composition of assets (net loans are gross loans less the allowance
-              for loan losses).
+              <b>{tr("coop.structure.fig_s1")}</b> {tr("coop.structure.fig_s1_caption")}
             </>
           }
         >
@@ -31,7 +31,7 @@ export function StructureFigures({ a }: { a: CoopAnalysis }) {
         <Figure
           caption={
             <>
-              <b>Figure S2.</b> Funding of assets.
+              <b>{tr("coop.structure.fig_s2")}</b> {tr("coop.structure.fig_s2_caption")}
             </>
           }
         >
@@ -42,7 +42,8 @@ export function StructureFigures({ a }: { a: CoopAnalysis }) {
   );
 }
 
-const rankText = (rank: Rank | null): string => (rank ? `${rank.position} of ${rank.of}` : "—");
+const rankText = (rank: Rank | null): string =>
+  rank ? tr("coop.peers.rank", { position: rank.position, of: rank.of }) : "—";
 
 /** Where the cooperative stands against its apex and all cooperatives that filed. */
 export const peerPage = (a: CoopAnalysis, no: string): PageSpec | null => {
@@ -50,34 +51,33 @@ export const peerPage = (a: CoopAnalysis, no: string): PageSpec | null => {
   const comparison = compareWithPeers(submission.cooperative_id, submission.apex_id, peers);
   if (!comparison) return null;
   return {
-    toc: { no, title: "Peer Comparison" },
+    toc: { no, title: tr("coop.peers.title") },
     render: () => (
       <>
-        <Sec no={no} title="Peer Comparison" sub={`FY ${a.year}`} />
+        <Sec no={no} title={tr("coop.peers.title")} sub={tr("common.fy", { year: a.year })} />
         <p>
-          {a.props.coopName} is compared with{" "}
-          {comparison.apexCount > 1
-            ? `the ${comparison.apexCount} cooperatives of its apex organisation and with `
-            : ""}
-          the {comparison.nationalCount} cooperatives that filed a return for FY {a.year}. A rank of
-          1 is the best result. Averages are simple averages of each cooperative&apos;s ratio and
-          include this cooperative.
+          {tr(comparison.apexCount > 1 ? "coop.peers.intro_apex" : "coop.peers.intro", {
+            name: a.props.coopName,
+            apexCount: comparison.apexCount,
+            nationalCount: comparison.nationalCount,
+            year: a.year,
+          })}
         </p>
         <table className="tbl">
           <thead>
             <tr>
-              <th>Indicator</th>
-              <th className="num">This cooperative</th>
-              <th className="num">Apex average</th>
-              <th className="num">National average</th>
-              <th className="num">Rank in apex</th>
-              <th className="num">National rank</th>
+              <th>{tr("common.indicator")}</th>
+              <th className="num">{tr("coop.peers.this_cooperative")}</th>
+              <th className="num">{tr("coop.peers.apex_average")}</th>
+              <th className="num">{tr("coop.peers.national_average")}</th>
+              <th className="num">{tr("coop.peers.rank_apex")}</th>
+              <th className="num">{tr("coop.peers.rank_national")}</th>
             </tr>
           </thead>
           <tbody>
             {comparison.rows.map((row) => (
               <tr key={row.key}>
-                <td>{row.label}</td>
+                <td>{tr(`coop.peers.indicators.${row.key}`, { defaultValue: row.label })}</td>
                 <td className="num">{fmtPct(row.current)}</td>
                 <td className="num">{fmtPct(row.apexAverage)}</td>
                 <td className="num">{fmtPct(row.nationalAverage)}</td>
@@ -87,10 +87,7 @@ export const peerPage = (a: CoopAnalysis, no: string): PageSpec | null => {
             ))}
           </tbody>
         </table>
-        <p className="src">
-          Source: indicators computed by Coop Data for every cooperative with a return for the year.
-          Cooperatives that did not file are not counted.
-        </p>
+        <p className="src">{tr("coop.peers.source")}</p>
       </>
     ),
   };

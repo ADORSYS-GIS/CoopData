@@ -229,6 +229,15 @@ pub trait ReportNarrativeGenerator: Send + Sync {
         &self,
         ctx: &crate::services::questionnaire_report::QuestionnaireNarrativeContext,
     ) -> AppResult<crate::services::questionnaire_report::QuestionnaireNarratives>;
+
+    /// Translates a flat JSON object of finished English narrative paragraphs into
+    /// `language` and returns the raw model output. Validation and retries live in
+    /// `narrative_translation`.
+    async fn translate_narrative_json(
+        &self,
+        english_json: &str,
+        language: &str,
+    ) -> AppResult<String>;
 }
 
 // ── LLM implementation ─────────────────────────────────────────────────────
@@ -892,6 +901,16 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
                 .outlook_recommendations,
         })
     }
+
+    async fn translate_narrative_json(
+        &self,
+        english_json: &str,
+        language: &str,
+    ) -> AppResult<String> {
+        let prompt =
+            crate::services::narrative_translation::translation_prompt(english_json, language);
+        self.chat(&prompt).await
+    }
 }
 
 // ── Per-prompt JSON output types ────────────────────────────────────────────
@@ -1037,6 +1056,15 @@ impl ReportNarrativeGenerator for MockNarrativeGenerator {
                 outlook_recommendations: "[MOCK] Outlook and recommendations placeholder.".into(),
             },
         )
+    }
+
+    /// Echoes the English text back; validation then keeps English and flags the locale.
+    async fn translate_narrative_json(
+        &self,
+        english_json: &str,
+        _language: &str,
+    ) -> AppResult<String> {
+        Ok(english_json.to_string())
     }
 }
 
@@ -2900,46 +2928,4 @@ fn compute_traffic_light_distributions(
             )
         })
         .collect()
-}
-
-pub fn encode_cooperative_narrative_params(narratives: &CooperativeNarratives) -> String {
-    format!(
-        "&executive_summary={}&financial_position={}&portfolio_quality={}&non_financial={}&benchmark_comparison={}",
-        urlencoding::encode(&narratives.executive_summary),
-        urlencoding::encode(&narratives.financial_position),
-        urlencoding::encode(&narratives.portfolio_quality),
-        urlencoding::encode(&narratives.non_financial),
-        urlencoding::encode(&narratives.benchmark_comparison),
-    )
-}
-
-pub fn encode_apex_narrative_params(narratives: &ApexNarratives) -> String {
-    format!(
-        "&executive_dashboard={}&risk_distribution={}&risk_watch={}",
-        urlencoding::encode(&narratives.executive_dashboard),
-        urlencoding::encode(&narratives.risk_distribution),
-        urlencoding::encode(&narratives.risk_watch),
-    )
-}
-
-pub fn encode_federation_narrative_params(narratives: &FederationNarratives) -> String {
-    format!(
-        "&executive_dashboard={}&risk_distribution={}&sector_breakdown={}&apex_comparison={}&pearls_analysis={}",
-        urlencoding::encode(&narratives.executive_dashboard),
-        urlencoding::encode(&narratives.risk_distribution),
-        urlencoding::encode(&narratives.sector_breakdown),
-        urlencoding::encode(&narratives.apex_comparison),
-        urlencoding::encode(&narratives.pearls_analysis),
-    )
-}
-
-pub fn encode_ministry_narrative_params(narratives: &MinistryNarratives) -> String {
-    format!(
-        "&executive_dashboard={}&risk_distribution={}&sector_breakdown={}&apex_comparison={}&pearls_analysis={}",
-        urlencoding::encode(&narratives.executive_dashboard),
-        urlencoding::encode(&narratives.risk_distribution),
-        urlencoding::encode(&narratives.sector_breakdown),
-        urlencoding::encode(&narratives.apex_comparison),
-        urlencoding::encode(&narratives.pearls_analysis),
-    )
 }

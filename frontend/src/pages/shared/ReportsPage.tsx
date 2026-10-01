@@ -11,7 +11,10 @@ import {
   RefreshCw,
   MoreVertical,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import { AppShell } from "@/components/app-shell";
+import { normalizeAppLang } from "@/lib/contentLocalization";
 import { type Role, useUserRole } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
@@ -154,6 +157,8 @@ export const ReportsPage: React.FC = () => {
   const role = useUserRole();
   const { user } = useAuth();
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const { i18n } = useTranslation();
+  const reportLang = normalizeAppLang(i18n.resolvedLanguage ?? i18n.language);
 
   const cooperativeQuery = useCooperativeSubmissions(role === "cooperative");
   const apexQuery = useApexSubmissions(role === "apex");
@@ -215,7 +220,7 @@ export const ReportsPage: React.FC = () => {
     try {
       const token = await getAccessToken();
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const url = `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/export?format=${format}${
+      const url = `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/export?format=${format}&lang=${reportLang}${
         regenerate ? "&regenerate=true" : ""
       }`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });

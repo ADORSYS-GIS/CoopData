@@ -5,6 +5,7 @@ import { useFederation } from "@/hooks/federations/useFederations";
 import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
 import { useFederationNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/federation/$id")({
@@ -14,12 +15,14 @@ export const Route = createFileRoute("/print/federation/$id")({
 function PrintComponent() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
-  const { token, year, name } = Route.useSearch() as {
+  const { token, year, name, lng } = Route.useSearch() as {
     token?: string;
     year?: string;
     name?: string;
+    lng?: string;
   };
 
+  const languageReady = usePrintLanguage(lng);
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
   const { data: federation } = useFederation(id, token);
 
@@ -41,7 +44,12 @@ function PrintComponent() {
     token,
   );
 
-  const { data: narratives } = useFederationNarratives(id, currentYear, token);
+  const { data: narratives, isLoading: isLoadingNarratives } = useFederationNarratives(
+    id,
+    currentYear,
+    token,
+    lng,
+  );
 
   const { data: series, isLoading: isLoadingSeries } = usePeriodSeries(
     { federationId: id, reportingYear: currentYear, periodType: "yearly" },
@@ -49,7 +57,8 @@ function PrintComponent() {
     token,
   );
 
-  const isLoading = isLoadingCurrent || isLoadingPrior || isLoadingSeries;
+  const isLoading =
+    !languageReady || isLoadingCurrent || isLoadingPrior || isLoadingSeries || isLoadingNarratives;
 
   if (isLoading || !overviewData) {
     return (
@@ -64,7 +73,7 @@ function PrintComponent() {
 
   return (
     <FederationReportPrint
-      entityName={name || federation?.name || "Federation"}
+      entityName={name || federation?.name || t("pdf.cons.issuer.Federation")}
       year={currentYear}
       data={overviewData}
       priorData={priorData}

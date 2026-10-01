@@ -5,13 +5,15 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
-use rust_decimal::prelude::ToPrimitive;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
-use crate::services::export_generator::EXPORT_PREFIX;
+use crate::services::export_generator::{
+    ExportGenerator, EXPORT_LOCALES, EXPORT_PREFIX, QUESTIONNAIRE_LOCALE,
+};
+use crate::services::narrative_translation;
 use crate::AppState;
 
 #[derive(Debug, serde::Deserialize)]
@@ -23,6 +25,9 @@ pub struct ExportQuery {
     /// `questionnaire` exports the report built from questionnaire answers;
     /// anything else (or nothing) exports the statement-based report.
     pub method: Option<String>,
+    /// Report locale (`en`, `fr`, `pt`, `ss`). Accepts `lng` as an alias. Defaults to `en`.
+    #[serde(alias = "lng")]
+    pub lang: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize, Default)]
@@ -30,6 +35,15 @@ pub struct SingleExportQuery {
     /// Pass `regenerate=true` to bypass the cached PDF and force a fresh generation.
     #[serde(default)]
     pub regenerate: bool,
+    /// Report locale (`en`, `fr`, `pt`, `ss`). Accepts `lng` as an alias. Defaults to `en`.
+    #[serde(alias = "lng")]
+    pub lang: Option<String>,
+}
+
+/// Normalises a requested report locale, defaulting to English.
+fn requested_locale(lang: Option<&str>) -> String {
+    crate::services::localization::normalize_lang(lang)
+        .unwrap_or_else(|| crate::services::localization::FALLBACK_LOCALE.to_string())
 }
 
 /// GET /api/v1/cooperative/submissions/{id}/export
@@ -39,7 +53,8 @@ pub struct SingleExportQuery {
     path = "/api/v1/cooperative/submissions/{id}/export",
     params(
         ("id" = Uuid, Path, description = "Submission ID"),
-        ("regenerate" = Option<bool>, Query, description = "Force PDF re-generation")
+        ("regenerate" = Option<bool>, Query, description = "Force PDF re-generation"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)")
     ),
     responses(
         (status = 200, description = "Export file stream"),
@@ -69,39 +84,78 @@ pub async fn export_single_submission(
         ));
     }
 
-    let filename = format!("submission_{}.pdf", id);
-    let storage_key = format!("{EXPORT_PREFIX}/individual/{}/{}", id, filename);
+    let questionnaire = crate::services::questionnaire_report::is_questionnaire_method(
+        &submission.submission_method,
+    );
+    // Questionnaire reports are English-only.
+    let lang = if questionnaire {
+        QUESTIONNAIRE_LOCALE.to_string()
+    } else {
+        requested_locale(query.lang.as_deref())
+    };
+    let filename = format!("submission_{id}_{lang}.pdf");
+    let storage_key = ExportGenerator::submission_pdf_key(id, &lang);
+    // PDFs exported before multilingual reports existed are English-only.
+    let legacy_key = format!("{EXPORT_PREFIX}/individual/{id}/submission_{id}.pdf");
 
-    let bytes = if !query.regenerate {
+    let cached = if query.regenerate {
+        None
+    } else {
         match state.storage.get_object(&storage_key).await {
-            Ok(b) => {
-                tracing::info!(submission_id = %id, "Serving cached PDF from storage");
-                b
-            }
-            Err(_) => {
-                tracing::info!(submission_id = %id, "Cache miss — generating PDF");
-                let generated_bytes =
-                    crate::services::export_generator::ExportGenerator::generate_submission_pdf(
-                        &state, id,
-                    )
+            Ok(b) => Some(b),
+            Err(_) if lang == "en" => state.storage.get_object(&legacy_key).await.ok(),
+            Err(_) => None,
+        }
+    };
+
+    let bytes = match cached {
+        Some(b) => {
+            tracing::info!(submission_id = %id, lang = %lang, "Serving cached PDF from storage");
+            b
+        }
+        None => {
+            tracing::info!(
+                submission_id = %id,
+                lang = %lang,
+                regenerate = query.regenerate,
+                "Generating PDF"
+            );
+            let (generated, untranslated) =
+                ExportGenerator::generate_submission_pdf(&state, id, &lang, query.regenerate)
                     .await?;
+            let cacheable = ExportGenerator::report_locales(questionnaire, untranslated.as_ref());
+            if cacheable.contains(&lang.as_str()) {
                 state
                     .storage
-                    .store(&storage_key, &generated_bytes, "application/pdf")
+                    .store(&storage_key, &generated, "application/pdf")
                     .await?;
-                generated_bytes
+            } else {
+                tracing::warn!(
+                    submission_id = %id,
+                    lang = %lang,
+                    "Narratives missing or untranslated — PDF served but not cached"
+                );
             }
+            if query.regenerate {
+                // Fresh narratives make every other locale's cached PDF stale.
+                let state = state.clone();
+                let others: Vec<&'static str> =
+                    cacheable.into_iter().filter(|l| *l != lang).collect();
+                let stale: Vec<&'static str> =
+                    EXPORT_LOCALES.into_iter().filter(|l| *l != lang).collect();
+                tokio::spawn(async move {
+                    for locale in stale {
+                        let _ = state
+                            .storage
+                            .delete(&ExportGenerator::submission_pdf_key(id, locale))
+                            .await;
+                    }
+                    ExportGenerator::store_submission_locales(&state, id, questionnaire, &others)
+                        .await;
+                });
+            }
+            generated
         }
-    } else {
-        tracing::info!(submission_id = %id, "Force-regenerating PDF (regenerate=true)");
-        let generated_bytes =
-            crate::services::export_generator::ExportGenerator::generate_submission_pdf(&state, id)
-                .await?;
-        state
-            .storage
-            .store(&storage_key, &generated_bytes, "application/pdf")
-            .await?;
-        generated_bytes
     };
 
     let res = Response::builder()
@@ -186,182 +240,152 @@ pub async fn export_bulk_consolidated(
         .is_some_and(|m| m.eq_ignore_ascii_case("questionnaire"));
     let tag = if questionnaire { "_questionnaire" } else { "" };
 
-    // Bucket checks
-    if let (Some(apex_id), Some(year)) = (query.apex_id, query.reporting_year) {
-        let filename = format!("apex_{}_{}{}.pdf", apex_id, year, tag);
-        let storage_key = format!("{EXPORT_PREFIX}/apex/{}/{}", apex_id, filename);
-        if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-            tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket HIT for Apex export");
-            let res = Response::builder()
-                .header("Content-Type", "application/pdf")
-                .header(
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", filename),
-                )
-                .body(Body::from(bytes))
-                .unwrap();
-            return Ok(res);
-        }
-    } else if let (Some(fed_id), Some(year)) = (query.federation_id, query.reporting_year) {
-        let filename = format!("federation_{}_{}{}.pdf", fed_id, year, tag);
-        let storage_key = format!("{EXPORT_PREFIX}/federation/{}/{}", fed_id, filename);
-        if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-            tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket HIT for Federation export");
-            let res = Response::builder()
-                .header("Content-Type", "application/pdf")
-                .header(
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", filename),
-                )
-                .body(Body::from(bytes))
-                .unwrap();
-            return Ok(res);
-        }
-    } else if query.apex_id.is_none() && query.federation_id.is_none() {
-        if let Some(year) = query.reporting_year {
-            let filename = format!("ministry_{}{}.pdf", year, tag);
-            let storage_key = format!("{EXPORT_PREFIX}/ministry/{}", filename);
-            if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-                tracing::info!(reporting_year = year, "Bucket HIT for Ministry export");
-                let res = Response::builder()
-                    .header("Content-Type", "application/pdf")
-                    .header(
-                        "Content-Disposition",
-                        format!("attachment; filename=\"{}\"", filename),
-                    )
-                    .body(Body::from(bytes))
-                    .unwrap();
-                return Ok(res);
-            }
-        }
+    // Questionnaire reports are English-only.
+    let lang = if questionnaire {
+        QUESTIONNAIRE_LOCALE.to_string()
+    } else {
+        requested_locale(query.lang.as_deref())
+    };
+    let year = query.reporting_year.ok_or_else(|| {
+        AppError::BadRequest("reporting_year is required for consolidated exports".into())
+    })?;
+
+    let (storage_key, legacy_key) = match (query.apex_id, query.federation_id) {
+        (Some(aid), _) => (
+            ExportGenerator::apex_pdf_key(aid, year, tag, &lang),
+            format!("{EXPORT_PREFIX}/apex/{aid}/apex_{aid}_{year}{tag}.pdf"),
+        ),
+        (None, Some(fid)) => (
+            ExportGenerator::federation_pdf_key(fid, year, tag, &lang),
+            format!("{EXPORT_PREFIX}/federation/{fid}/federation_{fid}_{year}{tag}.pdf"),
+        ),
+        (None, None) => (
+            ExportGenerator::ministry_pdf_key(year, tag, &lang),
+            format!("{EXPORT_PREFIX}/ministry/ministry_{year}{tag}.pdf"),
+        ),
+    };
+    let display_filename = storage_key
+        .rsplit('/')
+        .next()
+        .unwrap_or("report.pdf")
+        .to_string();
+
+    // PDFs exported before multilingual reports existed are English-only.
+    let cached = match state.storage.get_object(&storage_key).await {
+        Ok(b) => Some(b),
+        Err(_) if lang == "en" => state.storage.get_object(&legacy_key).await.ok(),
+        Err(_) => None,
+    };
+    if let Some(bytes) = cached {
+        tracing::info!(key = %storage_key, lang = %lang, "Bucket HIT for consolidated export");
+        return Ok(pdf_response(bytes, &display_filename));
     }
 
-    // Determine storage_key and display filename
-    let (storage_key, display_filename) = if let Some(year) = query.reporting_year {
+    // Upgrade legacy English-only narratives and retry failed translations before
+    // rendering. Questionnaire consolidated reports carry no AI narratives.
+    let untranslated = if questionnaire {
+        None
+    } else {
         match (query.apex_id, query.federation_id) {
             (Some(aid), _) => {
-                let fn_ = format!("apex_{}_{}{}.pdf", aid, year, tag);
-                (format!("{EXPORT_PREFIX}/apex/{}/{}", aid, fn_), fn_)
+                ExportGenerator::ensure_apex_narratives(&state, aid, year, None).await
             }
-            (_, Some(fid)) => {
-                let fn_ = format!("federation_{}_{}{}.pdf", fid, year, tag);
-                (format!("{EXPORT_PREFIX}/federation/{}/{}", fid, fn_), fn_)
+            (None, Some(fid)) => {
+                ExportGenerator::ensure_federation_narratives(&state, fid, year, None).await
             }
-            (None, None) => {
-                let fn_ = format!("ministry_{}{}.pdf", year, tag);
-                (format!("{EXPORT_PREFIX}/ministry/{}", fn_), fn_)
-            }
+            (None, None) => ExportGenerator::ensure_ministry_narratives(&state, year, None).await,
         }
-    } else {
-        return Err(AppError::BadRequest(
-            "reporting_year is required for consolidated exports".into(),
-        ));
+    };
+    // Without stored narratives the report renders its factual sections only, which
+    // stays valid until the next background export replaces it.
+    let cacheable = match untranslated {
+        Some(untranslated) => !untranslated.contains(&lang),
+        None => true,
     };
 
     let token = state.keycloak.get_admin_token().await?;
-    let year = query.reporting_year.unwrap_or_default();
-    let (route, scope_query) = if questionnaire {
-        ("print/questionnaire-consolidated", true)
-    } else {
-        ("", false)
-    };
-    let print_url = if let Some(apex_id) = query.apex_id {
-        let name = state
-            .apex_repo
-            .find_by_id(apex_id)
-            .await?
-            .map(|apex| apex.display_name)
-            .unwrap_or_default();
-        if scope_query {
-            format!(
-                "{}/{}?token={}&year={}&scope=apex&id={}&name={}",
-                state.config.gotenberg_frontend_url,
-                route,
-                token,
-                year,
-                apex_id,
-                urlencoding::encode(&name)
-            )
-        } else {
-            format!(
-                "{}/print/apex/{}?token={}&year={}&name={}",
-                state.config.gotenberg_frontend_url,
-                apex_id,
-                token,
-                year,
-                urlencoding::encode(&name)
-            )
+    let base = &state.config.gotenberg_frontend_url;
+    let print_url = match (query.apex_id, query.federation_id) {
+        (Some(aid), _) => {
+            let apex = state
+                .apex_repo
+                .find_by_id(aid)
+                .await?
+                .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
+            let name = urlencoding::encode(&apex.display_name);
+            if questionnaire {
+                format!("{base}/print/questionnaire-consolidated?token={token}&year={year}&scope=apex&id={aid}&name={name}&lng={lang}")
+            } else {
+                // The apex print page and its APIs address the apex by Keycloak ID.
+                format!(
+                    "{base}/print/apex/{}?token={token}&year={year}&name={name}&lng={lang}",
+                    apex.keycloak_id
+                )
+            }
         }
-    } else if let Some(fed_id) = query.federation_id {
-        let name = state
-            .federation_repo
-            .find_by_id(fed_id)
-            .await?
-            .map(|federation| federation.display_name)
-            .unwrap_or_default();
-        if scope_query {
-            format!(
-                "{}/{}?token={}&year={}&scope=federation&id={}&name={}",
-                state.config.gotenberg_frontend_url,
-                route,
-                token,
-                year,
-                fed_id,
-                urlencoding::encode(&name)
-            )
-        } else {
-            format!(
-                "{}/print/federation/{}?token={}&year={}&name={}",
-                state.config.gotenberg_frontend_url,
-                fed_id,
-                token,
-                year,
-                urlencoding::encode(&name)
-            )
+        (None, Some(fid)) => {
+            let federation = state
+                .federation_repo
+                .find_by_id(fid)
+                .await?
+                .ok_or_else(|| AppError::NotFound("Federation not found".into()))?;
+            let name = urlencoding::encode(&federation.display_name);
+            if questionnaire {
+                format!("{base}/print/questionnaire-consolidated?token={token}&year={year}&scope=federation&id={fid}&name={name}&lng={lang}")
+            } else {
+                format!(
+                    "{base}/print/federation/{}?token={token}&year={year}&name={name}&lng={lang}",
+                    federation.keycloak_id
+                )
+            }
         }
-    } else if scope_query {
-        format!(
-            "{}/{}?token={}&year={}&scope=ministry",
-            state.config.gotenberg_frontend_url, route, token, year
-        )
-    } else {
-        format!(
-            "{}/print/ministry?token={}&year={}",
-            state.config.gotenberg_frontend_url, token, year
-        )
+        (None, None) if questionnaire => format!(
+            "{base}/print/questionnaire-consolidated?token={token}&year={year}&scope=ministry&lng={lang}"
+        ),
+        (None, None) => format!("{base}/print/ministry?token={token}&year={year}&lng={lang}"),
     };
 
-    let bytes = crate::services::export_generator::ExportGenerator::generate_pdf_via_gotenberg(
-        &state, &print_url,
-    )
-    .await?;
+    let bytes = ExportGenerator::generate_pdf_via_gotenberg(&state, &print_url).await?;
 
-    if let Err(e) = state
-        .storage
-        .store(&storage_key, &bytes, "application/pdf")
-        .await
-    {
-        tracing::warn!(error = %e, key = %storage_key, "Failed to cache live-generated export");
+    if cacheable {
+        if let Err(e) = state
+            .storage
+            .store(&storage_key, &bytes, "application/pdf")
+            .await
+        {
+            tracing::warn!(error = %e, key = %storage_key, "Failed to cache live-generated export");
+        }
+    } else {
+        tracing::warn!(key = %storage_key, lang = %lang, "Narratives untranslated — PDF served but not cached");
     }
 
-    let res = Response::builder()
-        .header("Content-Type", "application/pdf")
-        .header(
-            "Content-Disposition",
-            format!("attachment; filename=\"{}\"", display_filename),
-        )
-        .body(Body::from(bytes))
-        .unwrap();
-    Ok(res)
+    Ok(pdf_response(bytes, &display_filename))
+}
+
+fn pdf_response(bytes: Vec<u8>, filename: &str) -> Response {
+    let mut res = Response::new(Body::from(bytes));
+    let headers = res.headers_mut();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static("application/pdf"),
+    );
+    if let Ok(value) =
+        axum::http::HeaderValue::from_str(&format!("attachment; filename=\"{filename}\""))
+    {
+        headers.insert(axum::http::header::CONTENT_DISPOSITION, value);
+    }
+    res
 }
 
 /// GET /api/v1/{tier}/submissions/{id}/narratives
 /// Returns AI-generated narratives for a submission from metadata cache.
+/// Accepts an optional `?lng=` query param (en | fr | pt | ss). Defaults to "en".
 #[utoipa::path(
     get,
     path = "/api/v1/cooperative/submissions/{id}/narratives",
     params(
-        ("id" = Uuid, Path, description = "Submission ID")
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("lng" = Option<String>, Query, description = "Locale code (en|fr|pt|ss)")
     ),
     responses(
         (status = 200, description = "AI narratives or null"),
@@ -374,6 +398,7 @@ pub async fn get_submission_narratives(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
+    Query(params): Query<SingleExportQuery>,
 ) -> AppResult<impl IntoResponse> {
     let allowed_coops =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
@@ -390,7 +415,12 @@ pub async fn get_submission_narratives(
         ));
     }
 
-    let narratives = submission.metadata.get("ai_narratives").cloned();
+    let lang = requested_locale(params.lang.as_deref());
+    let narratives = submission
+        .metadata
+        .get("ai_narratives")
+        .cloned()
+        .map(|v| narrative_translation::select_locale(v, &lang));
 
     Ok(axum::Json(narratives))
 }
@@ -436,205 +466,36 @@ pub async fn generate_submission_narratives(
         ));
     }
 
-    if crate::services::questionnaire_report::is_questionnaire_method(&submission.submission_method)
-    {
-        let narratives =
-            crate::services::export_generator::ExportGenerator::generate_questionnaire_narratives(
-                &state, id,
-            )
-            .await?;
-        state
-            .submission_repo
-            .update_metadata(id, serde_json::json!({ "ai_narratives": narratives }))
-            .await?;
-        return Ok(axum::Json(serde_json::json!(narratives)));
-    }
-
-    let coop = state
-        .cooperative_repo
-        .find_by_id(submission.cooperative_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
-
-    let kpi_records = state.kpi_record_repo.find_by_submission(id).await?;
-
-    let prior_kpi_records = if submission.reporting_year > 2020 {
-        if let Some(prior_sub) = state
-            .submission_repo
-            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
-            .await?
-        {
-            state
-                .kpi_record_repo
-                .find_by_submission(prior_sub.id)
-                .await?
-        } else {
-            Vec::new()
-        }
-    } else {
-        Vec::new()
-    };
-
-    // Fetch line items from financial statement
-    let line_items = match state
-        .financial_statement_repo
-        .find_by_submission(id)
-        .await?
-    {
-        Some(fs) => {
-            let raw_items = state
-                .line_item_repo
-                .find_by_financial_statement(fs.id)
-                .await?;
-            if raw_items.is_empty() {
-                None
-            } else {
-                let prior_line_items = if submission.reporting_year > 2020 {
-                    if let Some(prior_sub) = state
-                        .submission_repo
-                        .find_by_cooperative_and_year(
-                            submission.cooperative_id,
-                            submission.reporting_year - 1,
-                        )
-                        .await?
-                    {
-                        if let Some(pfs) = state
-                            .financial_statement_repo
-                            .find_by_submission(prior_sub.id)
-                            .await?
-                        {
-                            state
-                                .line_item_repo
-                                .find_by_financial_statement(pfs.id)
-                                .await
-                                .unwrap_or_default()
-                        } else {
-                            Vec::new()
-                        }
-                    } else {
-                        Vec::new()
-                    }
-                } else {
-                    Vec::new()
-                };
-
-                let mut items: Vec<crate::services::report_narrative::BalanceSheetLineItemData> =
-                    Vec::new();
-                let mut by_code: std::collections::HashMap<
-                    i32,
-                    &crate::entities::balance_sheet_line_item::Model,
-                > = std::collections::HashMap::new();
-                for item in &raw_items {
-                    if let Some(code) = item.account_code {
-                        by_code.insert(code, item);
-                    }
-                }
-                let mut prior_map: std::collections::HashMap<i32, f64> =
-                    std::collections::HashMap::new();
-                for item in &prior_line_items {
-                    if let (Some(code), Some(val)) = (item.account_code, item.value) {
-                        prior_map.insert(code, val.to_f64().unwrap_or(0.0));
-                    }
-                }
-                for (code, item) in &by_code {
-                    let current = item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
-                    let prior = prior_map.get(code).copied();
-                    items.push(
-                        crate::services::report_narrative::BalanceSheetLineItemData {
-                            account_code: Some(*code),
-                            account_name: item.account_name.clone(),
-                            current_value: current,
-                            prior_value: prior,
-                        },
-                    );
-                }
-                items.sort_by_key(|i| i.account_code.unwrap_or(0));
-                Some(items)
-            }
-        }
-        None => None,
-    };
-
-    // Compute NF stats
-    let nf_response =
-        crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
-            &state.db,
-            submission.cooperative_id,
-            Some(id),
-        )
-        .await
-        .ok();
-
-    let membership_stats =
-        nf_response
-            .as_ref()
-            .map(|nf| crate::services::report_narrative::MembershipStats {
-                total_members: nf.membership.total,
-                active_members: nf.membership.active,
-                dormant_members: nf.membership.dormant,
-                women_members: nf.membership.female,
-                youth_members: nf.membership.age_18_35 + nf.membership.under_18,
-                rural_members: nf.membership.rural,
-                agm_participation_pct: nf.membership.agm_participation_pct,
-                leadership_count: nf.membership.leadership_count,
-                voting_participation_pct: if nf.membership.total > 0 {
-                    nf.membership.voting_count as f64 / nf.membership.total as f64 * 100.0
-                } else {
-                    0.0
-                },
-            });
-
-    let savings_stats =
-        nf_response
-            .as_ref()
-            .map(|nf| crate::services::report_narrative::SavingsStats {
-                total_savings_accounts: nf.savings.total_accounts,
-                active_savers: nf.savings.active_accounts,
-                savings_penetration_pct: nf.savings.savings_penetration_pct,
-                avg_savings_balance: nf.savings.average_balance,
-            });
-
-    let loan_stats = nf_response
-        .as_ref()
-        .map(|nf| crate::services::report_narrative::LoanStats {
-            active_borrowers: nf.loans.members_with_loans,
-            women_borrowers: nf.loans.women_borrowers,
-            youth_borrowers: nf.loans.youth_borrowers,
-            rural_borrowers: nf.loans.rural_borrowers,
-            on_time_repayment_pct: nf.loans.on_time_repayment_pct,
-        });
-
-    let ctx = crate::services::report_narrative::build_cooperative_context(
-        &coop,
-        &submission,
-        &kpi_records,
-        &prior_kpi_records,
-        line_items,
-        membership_stats,
-        savings_stats,
-        loan_stats,
-        None,
-        None,
-        None,
+    let questionnaire = crate::services::questionnaire_report::is_questionnaire_method(
+        &submission.submission_method,
     );
+    let untranslated =
+        ExportGenerator::ensure_submission_narratives(&state, id, questionnaire, true)
+            .await
+            .ok_or_else(|| {
+                AppError::ExternalServiceError("Failed to generate narratives".into())
+            })?;
 
-    let _permit = state
-        .ai_semaphore
-        .acquire()
-        .await
-        .map_err(|_| AppError::InternalServerError("AI semaphore closed".into()))?;
+    // Cached PDFs embed the previous narratives; rebuild them in the background.
+    let refreshed = state.clone();
+    tokio::spawn(async move {
+        for locale in EXPORT_LOCALES {
+            let _ = refreshed
+                .storage
+                .delete(&ExportGenerator::submission_pdf_key(id, locale))
+                .await;
+        }
+        let locales = ExportGenerator::report_locales(questionnaire, Some(&untranslated));
+        ExportGenerator::store_submission_locales(&refreshed, id, questionnaire, &locales).await;
+    });
 
-    let narratives = state
-        .narrative_generator
-        .generate_cooperative_narratives(&ctx)
-        .await?;
-
-    state
+    let stored = state
         .submission_repo
-        .update_metadata(id, serde_json::json!({ "ai_narratives": narratives }))
-        .await?;
-
-    Ok(axum::Json(serde_json::json!(narratives)))
+        .find_by_id(id)
+        .await?
+        .and_then(|s| s.metadata.get("ai_narratives").cloned())
+        .map(|v| narrative_translation::select_locale(v, "en"));
+    Ok(axum::Json(stored.unwrap_or(serde_json::Value::Null)))
 }
 
 /// GET /api/v1/apex/{id}/narratives?year=2025
@@ -644,7 +505,8 @@ pub async fn generate_submission_narratives(
     path = "/api/v1/apex/{id}/narratives",
     params(
         ("id" = String, Path, description = "Apex Keycloak ID"),
-        ("year" = i32, Query, description = "Reporting year")
+        ("year" = i32, Query, description = "Reporting year"),
+        ("lng" = Option<String>, Query, description = "Locale code (en|fr|pt|ss)")
     ),
     responses(
         (status = 200, description = "AI narratives or null"),
@@ -665,7 +527,10 @@ pub async fn get_apex_narratives(
         .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
 
     let year_key = format!("ai_narratives_{}", year);
-    let narratives = apex.metadata.and_then(|m| m.get(&year_key).cloned());
+    let raw = apex.metadata.and_then(|m| m.get(&year_key).cloned());
+
+    let lang = requested_locale(params.lang.as_deref());
+    let narratives = raw.map(|v| narrative_translation::select_locale(v, &lang));
 
     Ok(axum::Json(narratives))
 }
@@ -677,7 +542,8 @@ pub async fn get_apex_narratives(
     path = "/api/v1/federation/{id}/narratives",
     params(
         ("id" = String, Path, description = "Federation Keycloak ID"),
-        ("year" = i32, Query, description = "Reporting year")
+        ("year" = i32, Query, description = "Reporting year"),
+        ("lng" = Option<String>, Query, description = "Locale code (en|fr|pt|ss)")
     ),
     responses(
         (status = 200, description = "AI narratives or null"),
@@ -698,7 +564,10 @@ pub async fn get_federation_narratives(
         .ok_or_else(|| AppError::NotFound("Federation not found".into()))?;
 
     let year_key = format!("ai_narratives_{}", year);
-    let narratives = federation.metadata.and_then(|m| m.get(&year_key).cloned());
+    let raw = federation.metadata.and_then(|m| m.get(&year_key).cloned());
+
+    let lang = requested_locale(params.lang.as_deref());
+    let narratives = raw.map(|v| narrative_translation::select_locale(v, &lang));
 
     Ok(axum::Json(narratives))
 }
@@ -709,7 +578,8 @@ pub async fn get_federation_narratives(
     get,
     path = "/api/v1/ministry/submissions/narratives",
     params(
-        ("year" = i32, Query, description = "Reporting year")
+        ("year" = i32, Query, description = "Reporting year"),
+        ("lng" = Option<String>, Query, description = "Locale code (en|fr|pt|ss)")
     ),
     responses(
         (status = 200, description = "AI narratives or null"),
@@ -724,6 +594,9 @@ pub async fn get_ministry_narratives(
     let year = params.reporting_year.unwrap_or(2025).clamp(1900, 2100);
     let cached = state.ministry_narratives_repo.find_by_year(year).await?;
 
-    let narratives = cached.map(|c| c.narratives_json);
+    let raw = cached.map(|c| c.narratives_json);
+    let lang = requested_locale(params.lang.as_deref());
+    let narratives = raw.map(|v| narrative_translation::select_locale(v, &lang));
+
     Ok(axum::Json(narratives))
 }
