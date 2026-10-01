@@ -232,6 +232,7 @@ const GROUP_TITLE: Record<IndicatorGroup, string> = {
   capital: "Capital",
   profitability: "Profitability",
   governance: "Governance",
+  training: "Training",
 };
 
 export const annexBPages = (a: QuestAnalysis, no: string): PageSpec[] => {

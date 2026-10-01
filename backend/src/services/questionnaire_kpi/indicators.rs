@@ -844,12 +844,140 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "governance",
         "percent",
         "agm_attendance_pct",
-        ratio_pct(agm, i.has_any(&["act_m", "act_f"]).then_some(d.active)),
+        ratio_pct(agm, registered),
         false,
-        "Last AGM attendance / active members x 100",
+        "Last AGM attendance / registered members x 100",
         &["agm_attendance_male", "agm_attendance_female"],
         None,
     );
+    add(
+        &mut o,
+        "governance",
+        "count",
+        "meetings_held_count",
+        i.has("meetings_held").then_some(i.meetings_held),
+        false,
+        "Actual number of management committee meetings held in the last 12 months",
+        &["meetings_held_count"],
+        Some("The selected meeting-frequency category is not treated as proof meetings took place."),
+    );
+
+    // ── training coverage ──
+    add(
+        &mut o,
+        "training",
+        "percent",
+        "member_training_coverage_pct",
+        ratio_pct(i.has("members_trained").then_some(i.members_trained), registered),
+        false,
+        "Members trained last year / registered members x 100",
+        &["members_trained_last_year"],
+        None,
+    );
+    let leaders_base = i
+        .has_any(&["board_m", "board_f"])
+        .then_some(i.board_m + i.board_f);
+    add(
+        &mut o,
+        "training",
+        "percent",
+        "leadership_training_coverage_pct",
+        ratio_pct(i.has("leaders_trained").then_some(i.leaders_trained), leaders_base),
+        false,
+        "Leaders trained last year / management committee members x 100",
+        &["leaders_trained_last_year", "board_male", "board_female"],
+        None,
+    );
+    let staff_base = i
+        .has_any(&["staff_total_m", "staff_total_f"])
+        .then_some(i.staff_total_m + i.staff_total_f);
+    add(
+        &mut o,
+        "training",
+        "percent",
+        "staff_training_coverage_pct",
+        ratio_pct(i.has("staff_trained").then_some(i.staff_trained), staff_base),
+        false,
+        "Staff trained last year / total staff x 100",
+        &["staff_trained_last_year"],
+        Some("Needs the staff composition table (Staff by Sex/Type)."),
+    );
+
+    // ── activity performance (Q25/26/46) ──
+    let main_income = i
+        .has_any(&["main_act_1_income", "main_act_2_income"])
+        .then_some(i.main_act_1_income + i.main_act_2_income);
+    let main_expenses = i
+        .has_any(&["main_act_1_expenses", "main_act_2_expenses"])
+        .then_some(i.main_act_1_expenses + i.main_act_2_expenses);
+    let main_surplus = match (main_income, main_expenses) {
+        (Some(inc), Some(exp)) => Some(inc - exp),
+        _ => None,
+    };
+    add(
+        &mut o,
+        "profitability",
+        "percent",
+        "main_activity_operating_margin_pct",
+        ratio_pct(main_surplus, main_income),
+        false,
+        "(Main activity income - main activity expenses) / main activity income x 100",
+        &[
+            "main_activity_1_income",
+            "main_activity_1_expenses",
+            "main_activity_2_income",
+            "main_activity_2_expenses",
+        ],
+        None,
+    );
+    add(
+        &mut o,
+        "profitability",
+        "percent",
+        "total_operating_margin_pct",
+        ratio_pct(d.net_income, i.has("income").then_some(i.income)),
+        false,
+        "(Total income - total expenditure) / total income x 100 (income is reported net of donations)",
+        &["current_total_income", "current_total_expenditure"],
+        None,
+    );
+    let main_distrib = i
+        .has_any(&["main_act_1_distrib", "main_act_2_distrib"])
+        .then_some(i.main_act_1_distrib + i.main_act_2_distrib);
+    add(
+        &mut o,
+        "profitability",
+        "percent",
+        "member_economic_benefit_ratio_pct",
+        only_if(
+            main_surplus.map(|s| s > 0.0).unwrap_or(false),
+            ratio_pct(main_distrib, main_surplus),
+        ),
+        false,
+        "Distributed to members / main activity net surplus x 100",
+        &["main_activity_1_distrib_members", "main_activity_2_distrib_members"],
+        Some("Only calculated when main activity net surplus is positive — a distribution ratio, not an absolute benefit measure."),
+    );
+
+    // ── reserve coverage ──
+    add(
+        &mut o,
+        "capital",
+        "percent",
+        "monetary_reserve_coverage_pct",
+        only_if(
+            i.statutory_reserves > 0.0,
+            ratio_pct(
+                i.has("actual_reserves_bank").then_some(i.actual_reserves_bank),
+                i.has("statutory_reserves").then_some(i.statutory_reserves),
+            ),
+        ),
+        false,
+        "Actual monetary reserves in the bank / accumulated statutory reserves x 100",
+        &["actual_monetary_reserves_bank", "accumulated_statutory_reserves", "accumulated_book_reserves"],
+        Some("Only calculated when accumulated reserves are positive, for the same reporting date — not a liquidity or solvency ratio."),
+    );
+
     o
 }
 

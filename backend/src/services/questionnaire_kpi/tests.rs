@@ -202,6 +202,96 @@ fn projected_interest_is_an_estimate_with_method_factor() {
 }
 
 #[test]
+fn legacy_and_new_loan_field_names_feed_the_same_indicator() {
+    let legacy = compute(json!({ "outstanding_value_male": 500 }));
+    let new_key = compute(json!({ "loans_outstanding_value_male": 500 }));
+    assert_eq!(
+        value(&legacy, "gross_loan_portfolio"),
+        value(&new_key, "gross_loan_portfolio"),
+    );
+    assert_eq!(value(&new_key, "gross_loan_portfolio"), Some(500.0));
+}
+
+#[test]
+fn outstanding_loan_count_sums_the_sex_split_or_falls_back_to_the_aggregate() {
+    let split = inputs(json!({
+        "loans_outstanding_accounts_male": 3, "loans_outstanding_accounts_female": 4,
+        "loans_outstanding_accounts_coops": 1
+    }));
+    assert_eq!(split.loans_out_count, 8.0);
+    let aggregate = inputs(json!({ "loans_outstanding_count": 8 }));
+    assert_eq!(aggregate.loans_out_count, 8.0);
+}
+
+#[test]
+fn agm_attendance_uses_registered_members_not_active_members() {
+    let list = compute(json!({
+        "total_registered_male": 80, "total_registered_female": 20,
+        "total_active_male": 40, "total_active_female": 10,
+        "agm_attendance_male": 30, "agm_attendance_female": 10
+    }));
+    // 40 attendees / 100 registered, not / 50 active.
+    assert_eq!(value(&list, "agm_attendance_pct"), Some(40.0));
+}
+
+#[test]
+fn training_coverage_divides_trained_by_the_right_base() {
+    let list = compute(json!({
+        "total_registered_male": 50, "total_registered_female": 50,
+        "members_trained_last_year": 20,
+        "board_male": 5, "board_female": 5,
+        "leaders_trained_last_year": 4,
+        "staff_manager_male": 1, "staff_accountant_female": 1,
+        "staff_trained_last_year": 1
+    }));
+    assert_eq!(value(&list, "member_training_coverage_pct"), Some(20.0));
+    assert_eq!(value(&list, "leadership_training_coverage_pct"), Some(40.0));
+    assert_eq!(value(&list, "staff_training_coverage_pct"), Some(50.0));
+}
+
+#[test]
+fn staff_training_coverage_is_not_reported_without_the_staff_table() {
+    let list = compute(json!({ "staff_trained_last_year": 2 }));
+    assert_eq!(status(&list, "staff_training_coverage_pct"), "not_reported");
+}
+
+#[test]
+fn main_activity_margin_and_member_benefit_ratio() {
+    let list = compute(json!({
+        "main_activity_1_income": 1000, "main_activity_1_expenses": 600,
+        "main_activity_1_distrib_members": 160
+    }));
+    assert_eq!(value(&list, "main_activity_operating_margin_pct"), Some(40.0));
+    // distrib 160 / surplus 400 = 40%
+    assert_eq!(value(&list, "member_economic_benefit_ratio_pct"), Some(40.0));
+}
+
+#[test]
+fn member_benefit_ratio_is_not_reported_when_main_activity_runs_a_deficit() {
+    let list = compute(json!({
+        "main_activity_1_income": 100, "main_activity_1_expenses": 500,
+        "main_activity_1_distrib_members": 0
+    }));
+    assert_eq!(status(&list, "member_economic_benefit_ratio_pct"), "not_reported");
+}
+
+#[test]
+fn monetary_reserve_coverage_needs_positive_accumulated_reserves() {
+    let covered = compute(json!({
+        "accumulated_statutory_reserves": 1000, "actual_monetary_reserves_bank": 800
+    }));
+    assert_eq!(value(&covered, "monetary_reserve_coverage_pct"), Some(80.0));
+    let no_reserves = compute(json!({ "actual_monetary_reserves_bank": 800 }));
+    assert_eq!(status(&no_reserves, "monetary_reserve_coverage_pct"), "not_reported");
+}
+
+#[test]
+fn meetings_held_count_is_a_raw_passthrough() {
+    let list = compute(json!({ "meetings_held_count": 11 }));
+    assert_eq!(value(&list, "meetings_held_count"), Some(11.0));
+}
+
+#[test]
 fn series_values_only_include_reported_measures() {
     let i = inputs(json!({
         "non_current_assets": 100, "total_current_assets": 100,

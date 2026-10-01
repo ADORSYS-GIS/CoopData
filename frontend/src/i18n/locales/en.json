@@ -5060,7 +5060,8 @@
       "structure": "Financial structure",
       "capital": "Institutional capital",
       "profitability": "Profitability",
-      "governance": "Governance"
+      "governance": "Governance",
+      "training": "Training"
     },
     "indicators": {
       "registered_members": "Registered members",
@@ -5113,15 +5114,23 @@
       "share_capital": "Share capital",
       "retained_earnings": "Retained earnings",
       "statutory_reserves": "Statutory reserves",
+      "monetary_reserve_coverage_pct": "Monetary reserve coverage (%)",
       "total_income": "Total income",
       "total_expenditure": "Total expenditure",
       "net_income": "Net income",
       "return_on_assets_pct": "Return on assets",
       "operating_expense_ratio_pct": "Expenses to income",
+      "main_activity_operating_margin_pct": "Main activity operating margin (%)",
+      "total_operating_margin_pct": "Total operating margin (%)",
+      "member_economic_benefit_ratio_pct": "Member economic benefit ratio (%)",
       "board_women_pct": "Women on board (%)",
       "executive_women_pct": "Women on executive (%)",
       "credit_committee_women_pct": "Women on credit committee (%)",
-      "agm_attendance_pct": "AGM attendance (%)"
+      "agm_attendance_pct": "AGM attendance (%)",
+      "meetings_held_count": "Committee meetings held",
+      "member_training_coverage_pct": "Member training coverage (%)",
+      "leadership_training_coverage_pct": "Leadership training coverage (%)",
+      "staff_training_coverage_pct": "Staff training coverage (%)"
     },
     "status": {
       "approximate": "Approximate",
@@ -5310,15 +5319,23 @@
       "share_capital": "The money members have paid in by buying shares. It is the members' direct stake in the cooperative. Entered in the questionnaire of the selected period. Formula: the reported total share capital.",
       "retained_earnings": "Surpluses kept in the cooperative from past years instead of being paid out. They build the cooperative's own strength. Entered in the questionnaire of the selected period. Formula: the reported retained earnings.",
       "statutory_reserves": "Reserves the cooperative must set aside by law or by its rules to protect against losses. Entered in the questionnaire of the selected period. Formula: the reported accumulated statutory reserves.",
+      "monetary_reserve_coverage_pct": "How much of the accumulated statutory reserves are actually backed by money held in the bank. Lower than 100 percent means the recorded reserves are not fully backed. Only calculated when accumulated reserves are positive and for the same reporting date; not a liquidity ratio. Formula: actual monetary reserves in the bank divided by accumulated statutory reserves, as a percentage.",
       "total_income": "All the money the cooperative earned during the year, mainly from loan interest and fees. Entered in the questionnaire of the selected period. Formula: the reported current year total income.",
       "total_expenditure": "All the money the cooperative spent during the year to run its business. Entered in the questionnaire of the selected period. Formula: the reported current year total expenditure.",
       "net_income": "What is left after all expenses are paid. A positive value is a surplus, a negative value is a loss. Taken from the questionnaire of the selected period. Formula: net income as reported, otherwise total income minus total expenditure.",
       "return_on_assets_pct": "How much surplus the cooperative makes for each unit of assets it holds. Higher means assets are used more profitably. Taken from the questionnaire of the selected period, for the period covered and not annualised. Formula: net income divided by total assets, as a percentage.",
       "operating_expense_ratio_pct": "How much of each unit earned is spent on expenses. Below 100 percent the cooperative makes a surplus; lower is better. Taken from the questionnaire of the selected period. Formula: total expenditure divided by total income, as a percentage.",
+      "main_activity_operating_margin_pct": "The surplus or deficit the cooperative's main activity (or activities) generates, before other adjustments. Taken from the questionnaire of the selected period. Formula: main activity income minus main activity expenses, divided by main activity income, as a percentage.",
+      "total_operating_margin_pct": "The overall surplus margin across all operating activities, with income reported net of donations as instructed in the questionnaire. Formula: total income minus total expenditure, divided by total income, as a percentage.",
+      "member_economic_benefit_ratio_pct": "The share of the main activity's surplus that was distributed back to members. Only calculated when the main activity's net surplus is positive; it is a distribution ratio, not a measure of the absolute benefit per member. Formula: amount distributed to members divided by main activity net surplus, as a percentage.",
       "board_women_pct": "The share of board members who are women. It shows whether women take part in the top decisions. Taken from the questionnaire of the selected period. Formula: women on the board divided by all board members, as a percentage.",
       "executive_women_pct": "The share of executive committee members who are women. It shows whether women take part in daily management. Taken from the questionnaire of the selected period. Formula: women on the executive divided by all executive members, as a percentage.",
       "credit_committee_women_pct": "The share of credit committee members who are women. It shows whether women take part in lending decisions. Taken from the questionnaire of the selected period. Formula: women on the credit committee divided by all its members, as a percentage.",
-      "agm_attendance_pct": "The share of active members who came to the last Annual General Meeting. It shows how much members take part in governance. Taken from the questionnaire of the selected period. Formula: members who attended the last meeting divided by active members, as a percentage."
+      "agm_attendance_pct": "The share of registered members who came to the last Annual General Meeting. It shows how much members take part in governance. Taken from the questionnaire of the selected period. Formula: members who attended the last meeting divided by registered members, as a percentage.",
+      "meetings_held_count": "The actual number of management committee meetings held in the last 12 months. The selected meeting-frequency category (monthly, quarterly, etc.) is not treated as proof meetings took place. Taken from the questionnaire of the selected period.",
+      "member_training_coverage_pct": "The share of registered members who received training in the last year. Taken from the questionnaire of the selected period. Formula: members trained divided by registered members, as a percentage.",
+      "leadership_training_coverage_pct": "The share of management committee members who received training in the last year. Taken from the questionnaire of the selected period. Formula: leaders trained divided by board/management committee members, as a percentage.",
+      "staff_training_coverage_pct": "The share of staff who received training in the last year. Needs the staff composition table to be filled in. Taken from the questionnaire of the selected period. Formula: staff trained divided by total staff, as a percentage."
     }
   },
   "questionnaireReport": {

@@ -10,7 +10,8 @@ export type IndicatorGroup =
   | "structure"
   | "capital"
   | "profitability"
-  | "governance";
+  | "governance"
+  | "training";
 
 export interface PeriodOption {
   reporting_year: number;
@@ -196,6 +197,7 @@ export const INDICATOR_KEYS: Record<IndicatorGroup, string[]> = {
     "share_capital",
     "retained_earnings",
     "statutory_reserves",
+    "monetary_reserve_coverage_pct",
   ],
   profitability: [
     "total_income",
@@ -203,11 +205,20 @@ export const INDICATOR_KEYS: Record<IndicatorGroup, string[]> = {
     "net_income",
     "return_on_assets_pct",
     "operating_expense_ratio_pct",
+    "main_activity_operating_margin_pct",
+    "total_operating_margin_pct",
+    "member_economic_benefit_ratio_pct",
   ],
   governance: [
     "board_women_pct",
     "executive_women_pct",
     "credit_committee_women_pct",
     "agm_attendance_pct",
+    "meetings_held_count",
+  ],
+  training: [
+    "member_training_coverage_pct",
+    "leadership_training_coverage_pct",
+    "staff_training_coverage_pct",
   ],
 };
