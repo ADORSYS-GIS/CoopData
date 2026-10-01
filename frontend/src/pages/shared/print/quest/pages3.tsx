@@ -233,6 +233,7 @@ const GROUP_TITLE: Record<IndicatorGroup, string> = {
   profitability: "Profitability",
   governance: "Governance",
   training: "Training",
+  coa: "Financial Ratios (Chart of Accounts)",
 };
 
 export const annexBPages = (a: QuestAnalysis, no: string): PageSpec[] => {

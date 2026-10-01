@@ -101,6 +101,77 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
   const currentSection = sections[selectedSectionIndex] || sections[0];
   const answers = response.answers || {};
 
+  const renderAccountGrid = (field: any, val: any) => {
+    const gridValue = (val && typeof val === "object" ? val : {}) as Record<string, any>;
+    const rows = (field.rows || []).filter((row: any) => {
+      const cell = gridValue[row.code];
+      return cell && Object.values(cell).some((v) => v !== undefined && v !== null && v !== "");
+    });
+    if (rows.length === 0) {
+      return (
+        <span className="text-muted-foreground italic font-normal text-xs">
+          {t("questionnaireViewer.notProvided")}
+        </span>
+      );
+    }
+    return (
+      <div className="overflow-x-auto rounded-xl border border-border/60">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/40">
+            <tr>
+              <th className="px-3 py-2 text-left font-semibold text-foreground/80">
+                {t("questionnaire.coaAccount", "Standard account")}
+              </th>
+              <th className="px-3 py-2 text-left font-semibold text-foreground/80">
+                {t("questionnaire.coaOwnName", "Your account name")}
+              </th>
+              <th className="px-3 py-2 text-right font-semibold text-foreground/80">
+                {t("questionnaire.coaOpening", "Opening balance")}
+              </th>
+              <th className="px-3 py-2 text-right font-semibold text-foreground/80">
+                {t("questionnaire.coaClosing", "Closing balance")}
+              </th>
+              <th className="px-3 py-2 text-right font-semibold text-foreground/80">
+                {t("questionnaire.coaMovement", "Annual movement")}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/40">
+            {rows.map((row: any) => {
+              const cell = gridValue[row.code] || {};
+              return (
+                <tr key={row.code}>
+                  <td className="px-3 py-2 align-top">
+                    <div className="font-medium text-foreground">{row.level3}</div>
+                    <div className="text-muted-foreground">
+                      {row.level2} · {row.code}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 align-top">{cell.mpcName || "—"}</td>
+                  <td className="px-3 py-2 align-top text-right font-mono">
+                    {cell.openingBalance !== undefined && cell.openingBalance !== ""
+                      ? Number(cell.openingBalance).toLocaleString()
+                      : "—"}
+                  </td>
+                  <td className="px-3 py-2 align-top text-right font-mono">
+                    {cell.closingBalance !== undefined && cell.closingBalance !== ""
+                      ? Number(cell.closingBalance).toLocaleString()
+                      : "—"}
+                  </td>
+                  <td className="px-3 py-2 align-top text-right font-mono">
+                    {cell.annualMovement !== undefined && cell.annualMovement !== ""
+                      ? Number(cell.annualMovement).toLocaleString()
+                      : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   const renderValue = (field: any, val: any) => {
     if (val === undefined || val === null || val === "") {
       return (
@@ -170,6 +241,16 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(currentSection.fields || []).map((field: any) => {
             const val = answers[field.key];
+            if (field.type === "account_grid") {
+              return (
+                <div
+                  key={field.key}
+                  className="flex flex-col gap-1.5 sm:col-span-2 bg-surface/30 border border-border/40 p-3.5 rounded-xl"
+                >
+                  {renderAccountGrid(field, val)}
+                </div>
+              );
+            }
             const isTextarea = field.type === "textarea";
             return (
               <div

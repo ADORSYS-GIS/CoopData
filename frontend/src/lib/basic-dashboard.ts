@@ -34,6 +34,7 @@ export const GROUP_ORDER: IndicatorGroup[] = [
   "profitability",
   "governance",
   "training",
+  "coa",
 ];
 
 export const HEADLINE_KEYS = [

@@ -5061,7 +5061,8 @@
       "capital": "Institutional capital",
       "profitability": "Profitability",
       "governance": "Governance",
-      "training": "Training"
+      "training": "Training",
+      "coa": "Financial ratios (chart of accounts)"
     },
     "indicators": {
       "registered_members": "Registered members",
@@ -5130,7 +5131,21 @@
       "meetings_held_count": "Committee meetings held",
       "member_training_coverage_pct": "Member training coverage (%)",
       "leadership_training_coverage_pct": "Leadership training coverage (%)",
-      "staff_training_coverage_pct": "Staff training coverage (%)"
+      "staff_training_coverage_pct": "Staff training coverage (%)",
+      "operating_profit_margin_pct": "Operating profit margin (%)",
+      "net_profit_margin_pct": "Net profit margin (%)",
+      "coa_return_on_assets_pct": "Return on assets (%)",
+      "coa_return_on_equity_pct": "Return on equity (%)",
+      "current_ratio": "Current ratio",
+      "debt_to_equity_ratio": "Debt-to-equity ratio",
+      "working_capital": "Working capital",
+      "days_sales_outstanding": "Days sales outstanding",
+      "inventory_turnover": "Inventory turnover",
+      "operating_cash_flow_ratio": "Operating cash flow ratio",
+      "activity_concentration_risk_pct": "Activity concentration risk (%)",
+      "dscr": "Debt service coverage ratio",
+      "cash_liquidity_coverage": "Cash liquidity coverage",
+      "interest_coverage": "Interest coverage"
     },
     "status": {
       "approximate": "Approximate",
@@ -5335,7 +5350,21 @@
       "meetings_held_count": "The actual number of management committee meetings held in the last 12 months. The selected meeting-frequency category (monthly, quarterly, etc.) is not treated as proof meetings took place. Taken from the questionnaire of the selected period.",
       "member_training_coverage_pct": "The share of registered members who received training in the last year. Taken from the questionnaire of the selected period. Formula: members trained divided by registered members, as a percentage.",
       "leadership_training_coverage_pct": "The share of management committee members who received training in the last year. Taken from the questionnaire of the selected period. Formula: leaders trained divided by board/management committee members, as a percentage.",
-      "staff_training_coverage_pct": "The share of staff who received training in the last year. Needs the staff composition table to be filled in. Taken from the questionnaire of the selected period. Formula: staff trained divided by total staff, as a percentage."
+      "staff_training_coverage_pct": "The share of staff who received training in the last year. Needs the staff composition table to be filled in. Taken from the questionnaire of the selected period. Formula: staff trained divided by total staff, as a percentage.",
+      "operating_profit_margin_pct": "The surplus the cooperative's core trading activities generate, before finance costs. Taken from the MPC chart-of-accounts questionnaire of the selected period. Formula: (operating revenue minus direct costs minus operating expenses) divided by operating revenue, as a percentage.",
+      "net_profit_margin_pct": "The overall surplus margin after every cost, including finance costs. Taken from the closing balance of the Current-year Surplus/(Deficit) account. Formula: net surplus divided by total revenue, as a percentage.",
+      "coa_return_on_assets_pct": "How much surplus the cooperative makes for each unit of assets it holds, using the chart-of-accounts balances. Formula: net surplus divided by average total assets (opening plus closing, divided by two), as a percentage.",
+      "coa_return_on_equity_pct": "How much surplus the cooperative makes for each unit of members' equity. Formula: net surplus divided by average members' equity (opening plus closing, divided by two), as a percentage.",
+      "current_ratio": "Whether the cooperative can cover its short-term obligations with assets it can turn into cash within a year. Above 1 is generally healthy. Formula: current assets divided by current liabilities.",
+      "debt_to_equity_ratio": "How much the cooperative relies on debt relative to members' own capital. Higher means more financial risk. Formula: total liabilities divided by total equity.",
+      "working_capital": "The cushion of short-term assets over short-term obligations, in money terms rather than a ratio. Formula: current assets minus current liabilities.",
+      "days_sales_outstanding": "How many days, on average, it takes to collect what is owed by customers. Operating revenue is used as a proxy for credit sales since the questionnaire does not separate cash and credit sales. Formula: average trade receivables divided by operating revenue, multiplied by 365.",
+      "inventory_turnover": "How many times the cooperative's inventory is sold and replaced during the year. Higher generally means inventory moves faster. Formula: cost of goods sold divided by average inventory.",
+      "operating_cash_flow_ratio": "Whether day-to-day operations generate enough cash to cover short-term obligations. No cash-flow statement is captured, so operating cash flow is estimated as net surplus plus the depreciation add-back. Formula: estimated operating cash flow divided by current liabilities.",
+      "activity_concentration_risk_pct": "How dependent the cooperative is on its single largest activity. Higher means less diversified and more exposed if that activity declines. Formula: largest activity's revenue divided by total operating revenue, as a percentage.",
+      "dscr": "Whether operations generate enough cash to cover debt repayments and interest. Principal repaid is estimated from the fall in short- and long-term borrowings between opening and closing balance, not a reported figure. Formula: estimated operating cash flow divided by (estimated principal repaid plus interest expense).",
+      "cash_liquidity_coverage": "How many months of operating expenses the cooperative could cover from cash and bank balances alone. Formula: cash plus bank balances, divided by average monthly operating expenses.",
+      "interest_coverage": "How easily the cooperative's operating profit covers its interest and finance costs. Lower than 1 means operating profit does not even cover finance costs. Formula: operating profit divided by interest and finance costs."
     }
   },
   "questionnaireReport": {

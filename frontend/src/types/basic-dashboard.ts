@@ -11,7 +11,8 @@ export type IndicatorGroup =
   | "capital"
   | "profitability"
   | "governance"
-  | "training";
+  | "training"
+  | "coa";
 
 export interface PeriodOption {
   reporting_year: number;
@@ -220,5 +221,21 @@ export const INDICATOR_KEYS: Record<IndicatorGroup, string[]> = {
     "member_training_coverage_pct",
     "leadership_training_coverage_pct",
     "staff_training_coverage_pct",
+  ],
+  coa: [
+    "operating_profit_margin_pct",
+    "net_profit_margin_pct",
+    "coa_return_on_assets_pct",
+    "coa_return_on_equity_pct",
+    "current_ratio",
+    "debt_to_equity_ratio",
+    "working_capital",
+    "days_sales_outstanding",
+    "inventory_turnover",
+    "operating_cash_flow_ratio",
+    "activity_concentration_risk_pct",
+    "dscr",
+    "cash_liquidity_coverage",
+    "interest_coverage",
   ],
 };

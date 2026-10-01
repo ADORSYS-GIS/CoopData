@@ -14,8 +14,8 @@ use crate::entities::enums::SubmissionStatus;
 use crate::entities::{cooperative, questionnaire_response, submission};
 use crate::error::AppResult;
 use crate::services::questionnaire_kpi::{
-    build_indicators, merge_answers, ratio_pct, series_values, with_previous, Derived, Inputs,
-    INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
+    build_coa_indicators, build_indicators, merge_answers, ratio_pct, series_values, with_previous,
+    CoaBalances, Derived, Inputs, INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
 };
 use crate::AppState;
 
@@ -84,6 +84,7 @@ fn active_filter(value: Option<&str>) -> Option<&str> {
 struct CoopPeriod {
     coop: cooperative::Model,
     inputs: Inputs,
+    coa: CoaBalances,
 }
 
 pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDashboardResponse> {
@@ -162,9 +163,14 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
                 let (fin, nf) = fin_nf;
                 let coop = coop_by_id.get(coop_id)?;
                 let inputs = Inputs::from_answers(&merge_answers(fin.as_ref(), nf.as_ref()));
+                let coa = fin
+                    .as_ref()
+                    .map(CoaBalances::from_answers)
+                    .unwrap_or_default();
                 Some(CoopPeriod {
                     coop: (*coop).clone(),
                     inputs,
+                    coa,
                 })
             })
             .collect()
@@ -173,6 +179,13 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         let mut total = Inputs::default();
         for c in list {
             total.add(&c.inputs);
+        }
+        total
+    };
+    let consolidate_coa = |list: &[CoopPeriod]| -> CoaBalances {
+        let mut total = CoaBalances::default();
+        for c in list {
+            total.add(&c.coa);
         }
         total
     };
@@ -218,6 +231,10 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
     let total_inputs = consolidate(&current);
     let derived = Derived::from_inputs(&total_inputs);
     let mut indicators = build_indicators(&total_inputs, &derived);
+    let total_coa = consolidate_coa(&current);
+    if total_coa.has_any() {
+        indicators.extend(build_coa_indicators(&total_coa));
+    }
 
     let same_type: Vec<&PeriodKey> = selected
         .as_ref()
@@ -229,8 +246,13 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         .unwrap_or_default();
     if same_type.len() >= 2 {
         let prev_key = same_type[same_type.len() - 2];
-        let prev_inputs = consolidate(&period_inputs(prev_key));
-        let prev = build_indicators(&prev_inputs, &Derived::from_inputs(&prev_inputs));
+        let prev_period = period_inputs(prev_key);
+        let prev_inputs = consolidate(&prev_period);
+        let mut prev = build_indicators(&prev_inputs, &Derived::from_inputs(&prev_inputs));
+        let prev_coa = consolidate_coa(&prev_period);
+        if prev_coa.has_any() {
+            prev.extend(build_coa_indicators(&prev_coa));
+        }
         with_previous(&mut indicators, &prev);
     }
 
