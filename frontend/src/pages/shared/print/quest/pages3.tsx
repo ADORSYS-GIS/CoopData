@@ -83,6 +83,28 @@ export const structurePage = (a: QuestAnalysis, no: string): PageSpec => ({
   },
 });
 
+/** Only rendered for multipurpose cooperatives that filled in the
+ * chart-of-accounts financial questionnaire — null for everyone else (SACCO
+ * cooperatives no longer use the questionnaire at all; a coop that hasn't
+ * filled in the chart of accounts has nothing to show here). */
+export const mpcFinancialRatiosPage = (a: QuestAnalysis, no: string): PageSpec | null => {
+  const hasData = INDICATOR_KEYS.coa.some((key) => a.num(key) !== null);
+  if (!hasData) return null;
+  return {
+    toc: { no, title: "MPC Financial Ratios" },
+    render: () => (
+      <>
+        <Sec no={no} title="MPC Financial Ratios" sub={a.period} />
+        <p>
+          Ratios computed from the cooperative's own chart-of-accounts mapping (opening/closing
+          balances and annual movements by standard account).
+        </p>
+        <IndicatorTable a={a} keys={INDICATOR_KEYS.coa} />
+      </>
+    ),
+  };
+};
+
 export const assetTrendPage = (a: QuestAnalysis, no: string): PageSpec | null => {
   const assets = a.line("asset_evolution", "total_assets");
   if (assets.labels.length < 2 || assets.values.every((v) => v === null)) return null;

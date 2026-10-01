@@ -10,6 +10,7 @@ import {
   annexBPages,
   assetTrendPage,
   findingsPage,
+  mpcFinancialRatiosPage,
   structurePage,
 } from "@/pages/shared/print/quest/pages3";
 import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument";
@@ -48,6 +49,7 @@ export const QuestionnaireTplReport: FC<Props> = ({ apexName, status, ...props }
     riskPage(a, next()),
     liquidityCapitalPage(a, next()),
     structurePage(a, next()),
+    ...optional((no) => mpcFinancialRatiosPage(a, no)),
     ...optional((no) => assetTrendPage(a, no)),
     findingsPage(a, next()),
     ...annexAPages(a, "A"),

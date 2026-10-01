@@ -191,6 +191,12 @@ export const membershipPage = (a: QuestAnalysis, no: string): PageSpec => ({
         </table>
         <h3>Membership indicators</h3>
         <IndicatorTable a={a} keys={[...INDICATOR_KEYS.membership, ...INDICATOR_KEYS.governance]} />
+        {INDICATOR_KEYS.training.some((key) => a.num(key) !== null) && (
+          <>
+            <h3>Training coverage</h3>
+            <IndicatorTable a={a} keys={INDICATOR_KEYS.training} />
+          </>
+        )}
       </>
     );
   },
