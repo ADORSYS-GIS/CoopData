@@ -23,7 +23,7 @@ const buildSections = (input: ConsInput): PageSpec[] => {
   pages.push(executivePage(a, next()));
   pages.push(financialPage(a, next()));
   const trend = trendOf(input.trend);
-  const scopeText = tr(input.tier === "Apex" ? "trend.scope_apex" : "trend.scope_sector");
+  const scopeText = input.tier === "Apex" ? input.entityName : tr("trend.scope_sector");
   const series = trendPage({ rows: trend, no: String(n + 1), scope: scopeText });
   if (series) {
     n += 1;
@@ -65,7 +65,7 @@ export const ConsolidatedTplReport: FC<ConsInput> = (input) => {
   return (
     <TplDocument
       frame={{
-        headLeft: tr(`cons.head.${tier}`),
+        headLeft: tr(`cons.head.${tier}`).toUpperCase(),
         headRight: tr("cons.report.head_right", { subject: subject.toUpperCase(), year }),
         footLeft: tr("cons.report.official_foot"),
         footMid: issuer,

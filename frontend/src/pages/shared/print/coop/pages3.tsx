@@ -258,6 +258,7 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
         <p>
           {total > 0
             ? tr("coop.membership.summary", {
+                name: a.props.coopName,
                 total: fmtInt(total),
                 active: fmtPct(total > 0 ? (active / total) * 100 : null),
                 women: fmtPct(male + female > 0 ? (female / (male + female)) * 100 : null),

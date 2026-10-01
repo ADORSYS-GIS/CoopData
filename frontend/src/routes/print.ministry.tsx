@@ -5,6 +5,8 @@ import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
 import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
+import { useReportRoleLabels } from "@/hooks/print/useReportRoleLabels";
+import { setReportRoles } from "@/pages/shared/print/tpl/i18n";
 import { useMinistryNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/ministry")({
@@ -15,6 +17,7 @@ function PrintComponent() {
   const { t } = useTranslation();
   const { token, year, lng } = Route.useSearch() as { token?: string; year?: string; lng?: string };
   const languageReady = usePrintLanguage(lng);
+  const { data: roleLabels, isLoading: isLoadingRoles } = useReportRoleLabels(token);
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
 
   const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview(
@@ -46,7 +49,12 @@ function PrintComponent() {
   );
 
   const isLoading =
-    !languageReady || isLoadingCurrent || isLoadingPrior || isLoadingSeries || isLoadingNarratives;
+    !languageReady ||
+    isLoadingRoles ||
+    isLoadingCurrent ||
+    isLoadingPrior ||
+    isLoadingSeries ||
+    isLoadingNarratives;
 
   if (isLoading || !overviewData) {
     return (
@@ -59,6 +67,7 @@ function PrintComponent() {
     );
   }
 
+  setReportRoles(roleLabels);
   return (
     <FederationReportPrint
       tier="Ministry"

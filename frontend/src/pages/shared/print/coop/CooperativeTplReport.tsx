@@ -42,9 +42,7 @@ export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
     ...performancePages(a, next()),
     loanQualityPage(a, next()),
     membershipPage(a, next()),
-    ...optional((no) =>
-      trendPage({ rows: trendOf(props.trend), no, scope: tr("trend.scope_cooperative") }),
-    ),
+    ...optional((no) => trendPage({ rows: trendOf(props.trend), no, scope: coopName })),
     ...optional((no) => peerPage(a, no)),
     findingsPage(a, next()),
     ...annexAPages(a, "A"),
@@ -64,7 +62,7 @@ export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
         title: [tr("coop.report.title_1"), tr("coop.report.title_2", { year })],
         entity: coopName,
         entityNote: submission.apex_name
-          ? tr("coop.report.affiliated_to", { apex: submission.apex_name })
+          ? tr("coop.report.affiliated_to", { apexName: submission.apex_name })
           : tr("common.cooperative"),
         badge: tr("coop.report.badge"),
         meta: [

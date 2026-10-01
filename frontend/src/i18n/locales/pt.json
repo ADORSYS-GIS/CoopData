@@ -5472,9 +5472,9 @@
       "million_short": "M",
       "thousand_short": "mil",
       "other": "Outros",
-      "cooperative": "Cooperativa",
-      "cooperatives": "Cooperativas",
-      "apex_organisation": "Organização apex",
+      "cooperative": "{{coop}}",
+      "cooperatives": "{{coops}}",
+      "apex_organisation": "{{apex}}",
       "members": "Membros",
       "women": "Mulheres",
       "men": "Homens",
@@ -5571,11 +5571,9 @@
       "fig_t3": "Figura T3. Carteira em risco a mais de 30 dias (%)",
       "fig_t4": "Figura T4. Ativos líquidos (% do ativo total)",
       "fig_t5": "Figura T5. Adequação de capital (capital próprio em % do ativo total)",
-      "source": "Fonte: demonstrações financeiras aprovadas. Os saldos correspondem ao último mês de cada período. Os montantes são apresentados em SZL para permitir comparar períodos e cooperativas que reportam em moedas diferentes; os quadros das demonstrações financeiras noutras partes deste relatório utilizam a moeda reportada pela cooperativa.",
+      "source": "Fonte: demonstrações financeiras aprovadas. Os saldos correspondem ao último mês de cada período. Os montantes são apresentados em SZL para permitir comparar períodos e {{coopsLc}} que reportam em moedas diferentes; os quadros das demonstrações financeiras noutras partes deste relatório utilizam a moeda reportada por cada {{coopLc}}.",
       "szl_million": "milhões de SZL",
       "szl_thousand": "milhares de SZL",
-      "scope_cooperative": "a cooperativa",
-      "scope_apex": "a carteira da organização apex",
       "scope_sector": "o setor supervisionado"
     },
     "accounts": {
@@ -5629,15 +5627,15 @@
         "ref": "Ref. {{ref}}",
         "kicker": "Avaliação anual financeira e de conformidade",
         "title_1": "Relatório de supervisão",
-        "title_2": "da cooperativa — Exercício {{year}}",
-        "affiliated_to": "Filiada em {{apex}}",
+        "title_2": "{{coop}} — Exercício {{year}}",
+        "affiliated_to": "{{apex}}: {{apexName}}",
         "badge": "RESTRITO",
         "period_value": "1 jan. – 31 dez. {{year}}",
-        "foot_right": "Valores conforme reportados pela cooperativa",
+        "foot_right": "Valores conforme reportados",
         "period_comparative": "Exercício {{year}} (comparativo: exercício {{prior}})",
-        "currency_value": "Conforme reportada pela cooperativa",
+        "currency_value": "Conforme reportada",
         "classification_value": "Restrito — uso da supervisão",
-        "basis": "A presente avaliação foi elaborada a partir da declaração anual submetida pela cooperativa através da plataforma Coop Data. Os rácios foram recalculados a partir das demonstrações da posição financeira e do desempenho submetidas. Quando um valor produzido pelo sistema automático não pôde ser reconciliado com as demonstrações subjacentes, utiliza-se no corpo do relatório o valor reportado e a diferença é divulgada no Anexo A. Os valores não foram objeto de auditoria independente."
+        "basis": "A presente avaliação foi elaborada a partir da declaração anual submetida através da plataforma Coop Data. Os rácios foram recalculados a partir das demonstrações da posição financeira e do desempenho submetidas. Quando um valor produzido pelo sistema automático não pôde ser reconciliado com as demonstrações subjacentes, utiliza-se no corpo do relatório o valor reportado e a diferença é divulgada no Anexo A. Os valores não foram objeto de auditoria independente."
       },
       "groups": {
         "protection": "Proteção e qualidade dos ativos",
@@ -5708,7 +5706,7 @@
         "balance_sheet": "Balanço",
         "balance_system": "{{assets}} vs {{funding}}",
         "not_adjusted": "Não ajustado",
-        "balance_note": "O ativo total não é igual ao passivo total mais o capital próprio. A demonstração não está equilibrada e deve ser corrigida pela cooperativa.",
+        "balance_note": "O ativo total não é igual ao passivo total mais o capital próprio. A demonstração não está equilibrada e deve ser corrigida.",
         "net_surplus": "Excedente líquido",
         "surplus_note": "Os rendimentos menos os gastos dão {{value}}. Utiliza-se o excedente líquido reportado.",
         "par30": "PAR > 30 dias",
@@ -5741,7 +5739,7 @@
       "text": {
         "assets_grew": "O ativo total cresceu {{change}} face ao exercício anterior.",
         "assets_fell": "O ativo total diminuiu {{change}} face ao exercício anterior.",
-        "no_assets_verdict": "A declaração não indica ativo total, pelo que a cooperativa não pode ser avaliada.",
+        "no_assets_verdict": "A declaração não indica ativo total, pelo que a avaliação não é possível.",
         "no_assets_body": "{{name}} não reportou ativo total para {{year}}. Os rácios prudenciais só poderão ser calculados depois de a declaração ser corrigida e novamente submetida.",
         "lead_under_capitalised": "Subcapitalizada",
         "lead_sound": "Financeiramente sólida",
@@ -5919,7 +5917,7 @@
       },
       "membership": {
         "title": "Membros, governação e inclusão",
-        "summary": "A cooperativa tem {{total}} membros, dos quais {{active}} estão ativos. As mulheres representam {{women}} dos membros e os jovens {{youth}}.",
+        "summary": "{{name}} tem {{total}} membros, dos quais {{active}} estão ativos. As mulheres representam {{women}} dos membros e os jovens {{youth}}.",
         "none": "Não foram submetidos dados sobre os membros para este período.",
         "insights": "Análise dos membros",
         "under_18": "Menos de 18",
@@ -5945,15 +5943,14 @@
       },
       "peers": {
         "title": "Comparação com os pares",
-        "intro_apex": "{{name}} é comparada com as {{apexCount}} cooperativas da sua organização apex e com as {{nationalCount}} cooperativas que entregaram declaração para o exercício {{year}}. A posição 1 corresponde ao melhor resultado. As médias são médias simples dos rácios de cada cooperativa e incluem esta cooperativa.",
-        "intro": "{{name}} é comparada com as {{nationalCount}} cooperativas que entregaram declaração para o exercício {{year}}. A posição 1 corresponde ao melhor resultado. As médias são médias simples dos rácios de cada cooperativa e incluem esta cooperativa.",
-        "this_cooperative": "Esta cooperativa",
-        "apex_average": "Média da apex",
+        "intro_apex": "{{name}} é comparado com os restantes membros do seu grupo ({{apexLc}}: {{apexCount}}) e com o conjunto das entidades declarantes do exercício {{year}} ({{nationalCount}}). A posição 1 corresponde ao melhor resultado. As médias são médias simples dos rácios de cada {{coopLc}} e incluem {{name}}.",
+        "intro": "{{name}} é comparado com o conjunto das entidades declarantes do exercício {{year}} ({{nationalCount}}). A posição 1 corresponde ao melhor resultado. As médias são médias simples dos rácios de cada {{coopLc}} e incluem {{name}}.",
+        "apex_average": "Média ({{apexLc}})",
         "national_average": "Média nacional",
-        "rank_apex": "Posição na apex",
+        "rank_apex": "Posição ({{apexLc}})",
         "rank_national": "Posição nacional",
         "rank": "{{position}} de {{of}}",
-        "source": "Fonte: indicadores calculados pela Coop Data para todas as cooperativas com declaração para o exercício. As cooperativas que não entregaram declaração não são consideradas.",
+        "source": "Fonte: indicadores calculados pela Coop Data para cada {{coopLc}} com declaração para o exercício. As entidades que não entregaram declaração não são consideradas.",
         "indicators": {
           "par30": "PAR > 30 dias (%)",
           "capital_adequacy_ratio": "Adequação de capital (%)",
@@ -5981,47 +5978,47 @@
     },
     "cons": {
       "issuer": {
-        "Apex": "Organização apex",
-        "Federation": "Federação",
-        "Ministry": "Ministério do Comércio, Indústria e Negócios"
+        "Apex": "{{apex}}",
+        "Federation": "{{federation}}",
+        "Ministry": "{{ministry}}"
       },
       "head": {
-        "Apex": "COOP DATA · RELATÓRIO CONSOLIDADO DA ORGANIZAÇÃO APEX",
-        "Federation": "COOP DATA · RELATÓRIO CONSOLIDADO DA FEDERAÇÃO",
-        "Ministry": "COOP DATA · RELATÓRIO CONSOLIDADO DO MINISTÉRIO"
+        "Apex": "COOP DATA · RELATÓRIO CONSOLIDADO · {{apex}}",
+        "Federation": "COOP DATA · RELATÓRIO CONSOLIDADO · {{federation}}",
+        "Ministry": "COOP DATA · RELATÓRIO CONSOLIDADO · {{ministry}}"
       },
       "report": {
-        "national_overview": "Panorama nacional das cooperativas",
-        "scope_apex": "{{issuer}} · {{total}} cooperativas sob supervisão",
-        "scope_apexes_one": "{{issuer}} · {{total}} cooperativas sob supervisão · {{count}} organização apex",
-        "scope_apexes_many": "{{issuer}} · {{total}} cooperativas sob supervisão · {{count}} organizações apex",
-        "scope_apexes_other": "{{issuer}} · {{total}} cooperativas sob supervisão · {{count}} organizações apex",
+        "national_overview": "Panorama nacional · {{coops}}",
+        "scope_apex": "{{issuer}} · {{coops}} sob supervisão: {{total}}",
+        "scope_apexes_one": "{{issuer}} · {{coops}} sob supervisão: {{total}} · {{apex}}: {{count}}",
+        "scope_apexes_many": "{{issuer}} · {{coops}} sob supervisão: {{total}} · {{apexes}}: {{count}}",
+        "scope_apexes_other": "{{issuer}} · {{coops}} sob supervisão: {{total}} · {{apexes}}: {{count}}",
         "head_right": "{{subject}} · EXERCÍCIO {{year}}",
         "official_foot": "OFICIAL — Confidencial",
         "kicker": "Desempenho consolidado do setor",
         "badge": "OFICIAL · CONFIDENCIAL",
-        "supervised": "Cooperativas supervisionadas",
+        "supervised": "{{coops}} sob supervisão",
         "submission_rate": "Taxa de entrega",
         "of": "{{filed}} de {{total}}",
-        "foot_right": "Valores conforme reportados pelas cooperativas declarantes",
+        "foot_right": "Valores conforme reportados",
         "issuing_authority": "Autoridade emissora",
         "scope": "Âmbito",
         "report_type": "Tipo de relatório",
         "report_type_value": "Relatório de supervisão consolidado",
         "year_comparative": "{{year}} (comparativo: exercício anterior)",
-        "covered": "Cooperativas abrangidas",
+        "covered": "{{coops}} (âmbito)",
         "entity": "Entidade",
-        "apex_organisations": "Organizações apex",
+        "apex_organisations": "{{apexes}}",
         "returns_submitted": "Declarações entregues",
-        "currency_value": "Conforme reportada pelas cooperativas",
+        "currency_value": "Conforme reportada",
         "classification_value": "Oficial — confidencial",
         "basis_title": "Objetivo e base de preparação",
         "audience": {
-          "Ministry": "à direção do Ministério",
-          "Federation": "à direção da federação",
-          "Apex": "à organização apex"
+          "Ministry": "{{ministry}} (direção)",
+          "Federation": "{{federation}} (direção)",
+          "Apex": "{{apex}}"
         },
-        "basis": "O presente relatório mostra {{audience}} a situação do setor cooperativo supervisionado. É elaborado a partir das declarações anuais submetidas através da plataforma Coop Data. Os indicadores «médios» são médias simples dos rácios das cooperativas; quando é possível calcular um rácio agregado (o rácio dos totais do setor), este é apresentado ao lado da média. Os valores que não puderam ser reconciliados são assinalados e explicados no Anexo A. Os valores não foram objeto de auditoria independente."
+        "basis": "Destinatário: {{audience}}. O presente relatório mostra a situação do setor supervisionado. É elaborado a partir das declarações anuais submetidas através da plataforma Coop Data. Os indicadores «médios» são médias simples dos rácios de cada {{coopLc}}; quando é possível calcular um rácio agregado (o rácio dos totais do setor), este é apresentado ao lado da média. Os valores que não puderam ser reconciliados são assinalados e explicados no Anexo A. Os valores não foram objeto de auditoria independente."
       },
       "ratios": {
         "par30": {
@@ -6066,13 +6063,13 @@
         "loan_loss_coverage": "provisionamento"
       },
       "owners": {
-        "Apex": "Cooperativas",
-        "Federation": "Organizações apex",
-        "Ministry": "Supervisores do Ministério"
+        "Apex": "{{coops}}",
+        "Federation": "{{apexes}}",
+        "Ministry": "Supervisores ({{ministry}})"
       },
       "text": {
         "none_filed_verdict": "Não foi entregue nenhuma declaração para este período.",
-        "none_filed_body": "Nenhuma das {{total}} cooperativas abrangidas tem declaração aprovada, pelo que não é possível apresentar valores consolidados.",
+        "none_filed_body": "Não existe declaração aprovada no âmbito ({{coops}}: {{total}}), pelo que não é possível apresentar valores consolidados.",
         "filing_full": "Cumprimento integral das obrigações declarativas",
         "filing_good": "Bom cumprimento das obrigações declarativas",
         "filing_low": "Fraco cumprimento das obrigações declarativas",
@@ -6082,23 +6079,23 @@
         "breaches": ", mas o setor não cumpre as referências em {{areas}}",
         "all_met": ", e as referências prudenciais são cumpridas",
         "verdict": "{{filing}} e {{growth}}{{tail}}.",
-        "filed": "{{filed}} de {{total}} cooperativas ({{rate}}) entregaram declaração. ",
+        "filed": "{{filed}} de {{total}} {{coopsLc}} ({{rate}}) entregaram declaração. ",
         "assets": "O ativo total situa-se em {{value}} ",
         "assets_change": "O ativo total situa-se em {{value}} ({{change}} face ao exercício anterior) ",
         "members": "e o número de membros em {{value}}. ",
         "ratios_out": "{{count}} de {{total}} rácios médios reportados estão fora da referência prudencial. ",
         "ratios_in": "Todos os rácios médios reportados estão dentro da referência prudencial. ",
-        "averages_note": "Os rácios são médias simples dos rácios das cooperativas; os rácios agregados são apresentados ao lado na secção 2.",
-        "strength_filed": "{{filed}} de {{total}} cooperativas entregaram declaração ({{rate}}).",
+        "averages_note": "Os rácios são médias simples dos rácios de cada {{coopLc}}; os rácios agregados são apresentados ao lado na secção 2.",
+        "strength_filed": "{{filed}} de {{total}} {{coopsLc}} entregaram declaração ({{rate}}).",
         "strength_assets": "O ativo total cresceu {{change}} para {{value}}.",
         "strength_loans": "A carteira de crédito bruta cresceu {{change}} para {{value}}.",
         "strength_deposits": "Os depósitos dos membros aumentaram {{change}} para {{value}}.",
         "strength_members": "O número de membros cresceu {{change}} para {{value}}.",
         "strength_ratio": "{{label}}: média de {{value}}, dentro da referência ({{bench}}).",
         "concern_ratio": "{{label}}: média de {{value}} face a uma referência de {{bench}}.",
-        "concern_not_filed_one": "{{count}} cooperativa não entregou declaração e está excluída de todos os totais.",
-        "concern_not_filed_many": "{{count}} cooperativas não entregaram declaração e estão excluídas de todos os totais.",
-        "concern_not_filed_other": "{{count}} cooperativas não entregaram declaração e estão excluídas de todos os totais.",
+        "concern_not_filed_one": "{{coop}} sem declaração: {{count}}, fora de todos os totais.",
+        "concern_not_filed_many": "{{coops}} sem declaração: {{count}}, fora de todos os totais.",
+        "concern_not_filed_other": "{{coops}} sem declaração: {{count}}, fora de todos os totais.",
         "concern_equity": "O capital próprio total diminuiu {{change}} para {{value}}.",
         "concern_surplus": "O excedente líquido diminuiu {{change}} para {{value}}.",
         "concern_loss": "O resultado agregado é um prejuízo de {{value}}.",
@@ -6109,11 +6106,11 @@
       "actions": {
         "par30": {
           "lead": "Qualidade da carteira.",
-          "text": "Exigir planos de recuperação às cooperativas com PAR > 30 dias acima de 5% e reportar o progresso na próxima análise."
+          "text": "Exigir planos de recuperação a cada {{coopLc}} com PAR > 30 dias acima de 5% e reportar o progresso na próxima análise."
         },
         "capital_adequacy_ratio": {
           "lead": "Reposição do capital.",
-          "text": "Exigir planos de reforço do capital às cooperativas abaixo do mínimo de 10% de capital sobre o ativo, com reporte trimestral."
+          "text": "Exigir planos de reforço do capital a cada {{coopLc}} abaixo do mínimo de 10% de capital sobre o ativo, com reporte trimestral."
         },
         "roa": {
           "lead": "Rendibilidade.",
@@ -6125,7 +6122,7 @@
         },
         "operating_expense_ratio": {
           "lead": "Eficiência.",
-          "text": "Solicitar planos de redução de custos às cooperativas acima da referência de 5% de gastos operacionais."
+          "text": "Solicitar planos de redução de custos a cada {{coopLc}} acima da referência de 5% de gastos operacionais."
         },
         "loan_loss_coverage": {
           "lead": "Provisionamento.",
@@ -6133,28 +6130,28 @@
         },
         "generic": "Trazer {{label}} para dentro de {{bench}}.",
         "reporting_lead": "Reporte completo.",
-        "reporting_one": "Exigir à cooperativa que não entregou declaração que submeta uma declaração aprovada.",
-        "reporting_many": "Exigir às {{count}} cooperativas que não entregaram declaração que submetam uma declaração aprovada.",
-        "reporting_other": "Exigir às {{count}} cooperativas que não entregaram declaração que submetam uma declaração aprovada.",
+        "reporting_one": "Exigir uma declaração aprovada a cada {{coopLc}} que não entregou ({{count}}).",
+        "reporting_many": "Exigir uma declaração aprovada a cada {{coopLc}} que não entregou ({{count}}).",
+        "reporting_other": "Exigir uma declaração aprovada a cada {{coopLc}} que não entregou ({{count}}).",
         "inclusion_lead": "Inclusão.",
-        "inclusion_apex": "Definir metas de crédito para mulheres, jovens e membros do meio rural e reportar o progresso por cooperativa.",
-        "inclusion": "Definir metas de crédito para mulheres, jovens e membros do meio rural e reportar o progresso por organização apex."
+        "inclusion_apex": "Definir metas de crédito para mulheres, jovens e membros do meio rural e reportar o progresso por {{coopLc}}.",
+        "inclusion": "Definir metas de crédito para mulheres, jovens e membros do meio rural e reportar o progresso por {{apexLc}}."
       },
       "validation": {
         "test_entities": "Entidades de teste",
         "included": "Incluídas",
         "not_filed": "Não entregue",
-        "test_note": "Os nomes sugerem registos de teste. Se não forem cooperativas reais, os seus valores sobrestimam os totais e as médias e devem ser removidas antes de o relatório ser utilizado.",
+        "test_note": "Os nomes sugerem registos de teste. Se não forem {{coopsLc}} reais, os seus valores sobrestimam os totais e as médias e esses registos devem ser removidos antes de o relatório ser utilizado.",
         "par_npl": "PAR > 30 e rácio de crédito em incumprimento",
-        "identical": "Idênticos para todas as cooperativas",
+        "identical": "Idênticos para cada {{coopLc}}",
         "as_submitted": "Apresentados conforme submetidos",
         "par_npl_note": "Os dois rácios medem intervalos de atraso diferentes e normalmente não são iguais. O mapeamento dos escalões de atraso deve ser verificado.",
         "no_assets": "Entregue sem ativo total",
-        "no_assets_count_one": "{{count}} cooperativa",
-        "no_assets_count_many": "{{count}} cooperativas",
-        "no_assets_count_other": "{{count}} cooperativas",
+        "no_assets_count_one": "{{count}} {{coopLc}}",
+        "no_assets_count_many": "{{count}} {{coopsLc}}",
+        "no_assets_count_other": "{{count}} {{coopsLc}}",
         "ratios_not_reported": "Rácios não apresentados",
-        "no_assets_note": "A declaração está marcada como entregue mas não tem ativo total, pelo que não é possível calcular rácios para estas cooperativas.",
+        "no_assets_note": "A declaração está marcada como entregue mas não tem ativo total, pelo que não é possível calcular rácios nestes casos.",
         "membership": "Membros",
         "zero_members": "0 membros",
         "not_reported": "Não reportado",
@@ -6168,8 +6165,8 @@
       },
       "financial": {
         "title": "Posição financeira consolidada e indicadores-chave",
-        "sub": "Todas as cooperativas declarantes",
-        "intro": "O quadro soma as declarações aprovadas das {{count}} cooperativas declarantes e compara-as com o exercício anterior.",
+        "sub": "{{coops}} declarantes",
+        "intro": "O quadro soma as declarações aprovadas de {{count}} {{coopsLc}} declarantes e compara-as com o exercício anterior.",
         "no_prior": " Não existe declaração do exercício anterior, pelo que não é apresentada comparação.",
         "metrics": {
           "assets": "Ativo total",
@@ -6185,7 +6182,7 @@
         "average_year": "Média {{year}}",
         "average_prior": "Média anterior",
         "aggregate_year": "Agregado {{year}}",
-        "note": "Média = média simples dos rácios das cooperativas. Agregado = rácio dos valores somados; um traço indica que não pode ser calculado a partir dos valores somados."
+        "note": "Média = média simples dos rácios de cada {{coopLc}}. Agregado = rácio dos valores somados; um traço indica que não pode ser calculado a partir dos valores somados."
       },
       "tiles": {
         "membership_inclusion": "Membros e inclusão",
@@ -6211,70 +6208,68 @@
       },
       "indicators": {
         "title": "Indicadores-chave",
-        "intro": "Principais valores das {{count}} cooperativas declarantes, comparados com o exercício anterior quando existe comparação.",
-        "source": "Os membros, os mutuários e as respetivas repartições provêm dos registos de membros e de crédito das cooperativas que os submeteram. Os montantes da carteira em risco provêm das demonstrações financeiras aprovadas, convertidos para SZL."
+        "intro": "Principais valores de {{count}} {{coopsLc}} declarantes, comparados com o exercício anterior quando existe comparação.",
+        "source": "Os membros, os mutuários e as respetivas repartições provêm dos registos de membros e de crédito de cada {{coopLc}} que os submeteu. Os montantes da carteira em risco provêm das demonstrações financeiras aprovadas, convertidos para SZL."
       },
       "structure": {
         "title": "Estrutura da carteira e estado das declarações",
-        "unit_cooperative": "cooperativa",
-        "unit_apex": "organização apex",
-        "intro_cooperative": "Os gráficos mostram o peso de cada cooperativa no ativo e na carteira de crédito bruta reportados pelas {{count}} cooperativas declarantes. As seis maiores são identificadas; as restantes são agrupadas em «Outros».",
-        "intro_apex": "Os gráficos mostram o peso de cada organização apex no ativo e na carteira de crédito bruta reportados pelas {{count}} cooperativas declarantes. As seis maiores são identificadas; as restantes são agrupadas em «Outros».",
+        "intro_cooperative": "Os gráficos mostram o peso de cada {{coopLc}} no ativo e na carteira de crédito bruta reportados por {{count}} {{coopsLc}} declarantes. As seis maiores posições são identificadas; as restantes são agrupadas em «Outros».",
+        "intro_apex": "Os gráficos mostram o peso de cada {{apexLc}} no ativo e na carteira de crédito bruta reportados por {{count}} {{coopsLc}} declarantes. As seis maiores posições são identificadas; as restantes são agrupadas em «Outros».",
         "fig_p1": "Figura P1.",
-        "fig_p1_cooperative": "Peso no ativo total por cooperativa.",
-        "fig_p1_apex": "Peso no ativo total por organização apex.",
+        "fig_p1_cooperative": "Peso no ativo total por {{coopLc}}.",
+        "fig_p1_apex": "Peso no ativo total por {{apexLc}}.",
         "fig_p2": "Figura P2.",
-        "fig_p2_cooperative": "Peso na carteira de crédito bruta por cooperativa.",
-        "fig_p2_apex": "Peso na carteira de crédito bruta por organização apex.",
+        "fig_p2_cooperative": "Peso na carteira de crédito bruta por {{coopLc}}.",
+        "fig_p2_apex": "Peso na carteira de crédito bruta por {{apexLc}}.",
         "fig_p3": "Figura P3.",
         "fig_p3_caption": "Estado das declarações em {{year}}.",
         "filing_status": "Estado das declarações",
-        "under_supervision": "Cooperativas sob supervisão",
+        "under_supervision": "{{coops}} sob supervisão",
         "returns_filed": "Declarações entregues",
         "returns_not_filed": "Declarações não entregues",
         "filing_rate": "Taxa de entrega",
-        "source": "Apenas são incluídas as cooperativas que submeteram demonstrações financeiras. Os montantes são os reportados por cada cooperativa."
+        "source": "O âmbito limita-se a {{coopsLc}} que submeteram demonstrações financeiras. Os montantes são os reportados por cada {{coopLc}}."
       },
       "sector": {
-        "title": "Panorama dos setores e das organizações apex",
+        "title": "Panorama dos setores · {{apexes}}",
         "sub": "Distribuição e conformidade",
         "breakdown": "Repartição por setor",
         "filing_rate": "Taxa de entrega",
         "avg_par30": "PAR30 médio",
         "avg_car": "CAR médio",
         "avg_roa": "ROA médio",
-        "apex_comparison": "Comparação das organizações apex",
-        "coops": "Coop.",
+        "apex_comparison": "Comparação · {{apexes}}",
+        "coops": "{{coops}}",
         "assets": "Ativo",
         "risk": "Risco",
-        "filing_by_apex": "Cumprimento declarativo por organização apex",
+        "filing_by_apex": "Cumprimento declarativo por {{apexLc}}",
         "fig_2": "Figura 2.",
-        "fig_2_caption": "Principais rácios por organização apex e para todo o setor (%).",
+        "fig_2_caption": "Principais rácios por {{apexLc}} e para todo o setor (%).",
         "par30": "PAR > 30 dias",
         "capital_adequacy": "Adequação de capital",
         "roa": "Rendibilidade do ativo",
         "operating_expense": "Gastos operacionais",
-        "intro": "{{coops}} cooperativas operam em {{sectors}} e estão filiadas em {{apexes}}. Os rácios são médias simples das cooperativas declarantes.",
+        "intro": "{{coopCount}} {{coopsLc}} operam em {{sectors}} e pertencem a {{apexGroups}}. Os rácios são médias simples de cada {{coopLc}} declarante.",
         "sectors_one": "{{count}} setor",
         "sectors_many": "{{count}} setores",
         "sectors_other": "{{count}} setores",
-        "apexes_one": "{{count}} organização apex",
-        "apexes_many": "{{count}} organizações apex",
-        "apexes_other": "{{count}} organizações apex",
-        "comparison_part": "Comparação das organizações apex {{part}} de {{parts}}",
+        "apexes_one": "{{count}} {{apexLc}}",
+        "apexes_many": "{{count}} {{apexesLc}}",
+        "apexes_other": "{{count}} {{apexesLc}}",
+        "comparison_part": "Comparação · {{apexes}} {{part}} de {{parts}}",
         "filing_part": "Cumprimento declarativo {{part}} de {{parts}}"
       },
       "coops": {
-        "title": "Panorama das cooperativas",
-        "every": "Todas as cooperativas",
-        "intro": "Valores-chave e rácios prudenciais de cada cooperativa. Um traço indica que a cooperativa não entregou declaração ou não reportou o valor.",
+        "title": "Panorama · {{coops}}",
+        "every": "Cada {{coopLc}}",
+        "intro": "Valores-chave e rácios prudenciais de cada {{coopLc}}. Um traço indica que não foi entregue declaração ou que o valor não foi reportado.",
         "loans": "Crédito",
         "deposits": "Depósitos"
       },
       "pearls": {
         "title": "Comparação com as referências PEARLS",
-        "by_apex": "Por organização apex",
-        "intro": "Indicadores prudenciais agrupados por área PEARLS. Cada valor de organização apex é a média simples das suas cooperativas declarantes; a coluna do setor abrange todas as cooperativas declarantes. Um traço indica que o valor não foi reportado.",
+        "by_apex": "Por {{apexLc}}",
+        "intro": "Indicadores prudenciais agrupados por área PEARLS. Cada valor ({{apexLc}}) é a média simples das declarações dos seus membros ({{coopsLc}}); a coluna do setor abrange todas as declarações. Um traço indica que o valor não foi reportado.",
         "groups": {
           "p": "P — Proteção",
           "e": "E — Estrutura financeira eficaz",
@@ -6300,7 +6295,7 @@
       "social": {
         "title": "Impacto social e inclusão financeira",
         "sub": "Membros e alcance do crédito",
-        "intro": "Quantas pessoas as cooperativas servem e como o crédito chega às mulheres, aos jovens e aos membros do meio rural. Os valores abrangem as {{count}} cooperativas declarantes.",
+        "intro": "Quantas pessoas são servidas ({{coopsLc}}) e como o crédito chega às mulheres, aos jovens e aos membros do meio rural. Os valores abrangem {{count}} {{coopsLc}} declarantes.",
         "active_members": "Membros ativos",
         "active_borrowers": "Mutuários ativos",
         "savings_penetration": "Penetração da poupança (média)",
@@ -6322,16 +6317,16 @@
           "youth_borrowers": "jovens (18–35)",
           "rural_borrowers": "do meio rural"
         },
-        "note_apex": "O peso dos mutuários ativos que são {{segments}} diminuiu face ao exercício anterior. As cooperativas devem ser convidadas a explicar esta evolução e a definir metas de inclusão.",
-        "note": "O peso dos mutuários ativos que são {{segments}} diminuiu face ao exercício anterior. As organizações apex devem ser convidadas a explicar esta evolução e a definir metas de inclusão."
+        "note_apex": "O peso dos mutuários ativos que são {{segments}} diminuiu face ao exercício anterior. Deve ser solicitado a cada {{coopLc}} que explique esta evolução e defina metas de inclusão.",
+        "note": "O peso dos mutuários ativos que são {{segments}} diminuiu face ao exercício anterior. Deve ser solicitado a cada {{apexLc}} que explique esta evolução e defina metas de inclusão."
       },
       "findings": {
         "authority": {
-          "Ministry": "ao Ministério",
-          "Federation": "à federação",
-          "Apex": "à organização apex"
+          "Ministry": "{{ministry}}",
+          "Federation": "{{federation}}",
+          "Apex": "{{apex}}"
         },
-        "intro": "Recomendam-se as seguintes ações {{authority}} e às entidades supervisionadas. O progresso deve ser analisado na próxima reunião de supervisão."
+        "intro": "Recomendam-se as seguintes ações às entidades supervisionadas e à respetiva autoridade ({{authority}}). O progresso deve ser analisado na próxima reunião de supervisão."
       },
       "annex": {
         "a_intro": "Os elementos seguintes foram identificados na reconciliação dos valores gerados pelo sistema com as declarações submetidas. São divulgados aqui para que os valores do corpo do relatório sejam lidos com cuidado.",
@@ -6360,11 +6355,11 @@
           },
           "filing": {
             "name": "Taxa de entrega",
-            "definition": "Cooperativas com declaração aprovada divididas pelas cooperativas obrigadas a declarar."
+            "definition": "Número de {{coopsLc}} com declaração aprovada dividido pelo número total de {{coopsLc}} do âmbito."
           },
           "average": {
             "name": "Média vs agregado",
-            "definition": "A média é a média simples dos rácios de cada cooperativa; o agregado é o rácio dos valores somados. As médias dão o mesmo peso às cooperativas pequenas."
+            "definition": "A média é a média simples dos rácios de cada {{coopLc}}; o agregado é o rácio dos valores somados. As médias dão o mesmo peso a cada {{coopLc}}, independentemente da dimensão."
           }
         }
       },
@@ -6382,9 +6377,27 @@
         "Ministry": "Relatório consolidado"
       },
       "title_2": {
-        "Apex": "da organização apex",
-        "Federation": "da federação",
-        "Ministry": "do Ministério"
+        "Apex": "{{apex}}",
+        "Federation": "{{federation}}",
+        "Ministry": "{{ministry}}"
+      }
+    },
+    "roles": {
+      "cooperative": {
+        "one": "Cooperativa",
+        "other": "Cooperativas"
+      },
+      "apex": {
+        "one": "Organização apex",
+        "other": "Organizações apex"
+      },
+      "federation": {
+        "one": "Federação",
+        "other": "Federações"
+      },
+      "ministry": {
+        "one": "Ministério",
+        "other": "Ministérios"
       }
     }
   }

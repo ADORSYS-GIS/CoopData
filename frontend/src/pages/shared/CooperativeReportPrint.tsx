@@ -18,6 +18,8 @@ import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
 import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
+import { useReportRoleLabels } from "@/hooks/print/useReportRoleLabels";
+import { setReportRoles } from "@/pages/shared/print/tpl/i18n";
 import type { ReportDataProps } from "./print/components/types";
 import { CooperativeTplReport } from "./print/coop/CooperativeTplReport";
 
@@ -31,6 +33,7 @@ interface Props {
 export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOverride, lng }) => {
   const { t } = useTranslation();
   const languageReady = usePrintLanguage(lng);
+  const { data: roleLabels, isLoading: rolesLoading } = useReportRoleLabels(tokenOverride);
   const { data: submission, isLoading: subLoading } = useSubmission(
     submissionId,
     undefined,
@@ -94,6 +97,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
   const criticalLoading = subLoading || kpisLoading || lineItemsLoading;
   const allLoading =
     !languageReady ||
+    rolesLoading ||
     criticalLoading ||
     narrativesLoading ||
     portfolioLoading ||
@@ -155,5 +159,6 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     peers: peersData?.cooperatives,
   };
 
+  setReportRoles(roleLabels);
   return <CooperativeTplReport {...reportData} />;
 };

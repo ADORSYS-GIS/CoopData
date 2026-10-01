@@ -6,6 +6,7 @@ import i18n from "@/i18n";
 import type { ReportDataProps } from "@/pages/shared/print/components/types";
 import { ConsolidatedTplReport } from "@/pages/shared/print/cons/ConsolidatedTplReport";
 import { CooperativeTplReport } from "@/pages/shared/print/coop/CooperativeTplReport";
+import { setReportRoles } from "@/pages/shared/print/tpl/i18n";
 
 /** English sentences that must never reach a report rendered in another language. */
 const ENGLISH = [
@@ -59,7 +60,7 @@ const peer = (index: number): CoopKpiRow =>
     cooperative_id: `c${index}`,
     name: `Coop ${index}`,
     apex_id: `a${index % 3}`,
-    apex_name: `Apex ${index % 3}`,
+    apex_name: `Group ${index % 3}`,
     sector: index % 2 === 0 ? "finance" : "agriculture",
     has_data: index !== 7,
     non_financial: {
@@ -134,7 +135,7 @@ const coopProps = (): ReportDataProps => ({
   submission: {
     reporting_year: 2025,
     status: "approved",
-    apex_name: "Apex 1",
+    apex_name: "Group 1",
     cooperative_id: "c1",
     apex_id: "a1",
   } as never,
@@ -225,6 +226,7 @@ const reportsIn = async (language: string): Promise<string[]> => {
 
 describe("PDF report templates", () => {
   afterAll(async () => {
+    setReportRoles([]);
     await i18n.changeLanguage("en");
   });
 
@@ -276,5 +278,58 @@ describe("PDF report templates", () => {
     expect(coop).toContain("Cash on hand");
     expect(coop).toContain("Executive Summary");
     expect(coop).toMatch(/15\.3%/);
+  });
+
+  describe("with the Ministry's own organisation names", () => {
+    const custom = [
+      {
+        key: "apex",
+        short_label: "Union",
+        plural_label: "Unions",
+        translations: { fr: { short_label: "Syndicat", plural_label: "Syndicats" } },
+      },
+      { key: "cooperative", short_label: "Society", plural_label: "Societies" },
+      { key: "federation", short_label: "League", plural_label: "Leagues" },
+      { key: "ministry", short_label: "Department", plural_label: "Departments" },
+    ];
+
+    afterAll(() => {
+      setReportRoles([]);
+    });
+
+    it("uses them instead of the default role names in English", async () => {
+      setReportRoles(custom);
+
+      const reports = await reportsIn("en");
+
+      for (const text of reports) {
+        expect(text).not.toMatch(/\bApex(es)?\b|\bapex(es)?\b/);
+        expect(text).not.toMatch(/\b[Cc]ooperatives\b/);
+        expect(text).not.toMatch(/\bFederations?\b|\bMinistry\b/);
+      }
+      expect(reports.join(" ")).toContain("Societies");
+      expect(reports[1]).toContain("Union Consolidated");
+      expect(reports[2]).toContain("League Consolidated");
+      expect(reports[3]).toContain("Department");
+    });
+
+    it("prefers the Ministry's translation for the report language", async () => {
+      setReportRoles(custom);
+
+      const [coop, apex] = await reportsIn("fr");
+
+      expect(apex).toContain("Syndicat");
+      expect(apex).not.toContain("faîtière");
+      expect(coop).toContain("Society");
+    });
+
+    it("falls back to the Ministry's own name in siSwati", async () => {
+      setReportRoles(custom);
+
+      const [, apex] = await reportsIn("ss");
+
+      expect(apex).toContain("Union");
+      expect(apex).not.toMatch(/[Pp]heksi/);
+    });
   });
 });

@@ -221,9 +221,9 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
   const intro = (
     <p>
       {tr("cons.sector.intro", {
-        coops: a.coops.length,
+        coopCount: a.coops.length,
         sectors: tr("cons.sector.sectors", { count: sectors.length }),
-        apexes: tr("cons.sector.apexes", { count: apexRows.length }),
+        apexGroups: tr("cons.sector.apexes", { count: apexRows.length }),
       })}
     </p>
   );

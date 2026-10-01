@@ -107,7 +107,30 @@ The frontend sends the user's current app language with every download.
 
 ---
 
-## 5. Quality assurance
+## 5. Ministry-defined role names
+
+The Ministry names the four organisation levels in Settings → Terminology
+(`organization_labels`: `short_label` = singular, `plural_label` = plural, with
+per-language `translations`). Reports use those names instead of the fixed words
+"Cooperative", "Apex", "Federation" and "Ministry".
+
+- Print pages load the labels with the renderer's token (`useReportRoleLabels`) and
+  pass them to `setReportRoles()` before the report renders.
+- Every `tr()` call fills the role placeholders: `{{coop}}`, `{{coops}}`, `{{apex}}`,
+  `{{apexes}}`, `{{federation}}`, `{{federations}}`, `{{ministry}}`, `{{ministries}}`
+  (heading form, first letter capitalised) and the same names with an `Lc` suffix
+  (mid-sentence form).
+- A name is resolved in this order: the Ministry's translation for the report
+  language → the Ministry's own name, when it differs from the seeded default → the
+  report's built-in default for that language (`pdf.roles`).
+- Sentences in French, Portuguese and siSwati are worded so the name stands on its
+  own (`{{apex}} : …`, "par {{apexLc}}", "chaque {{coopLc}}"), which keeps them
+  grammatical whatever gender or noun class the Ministry's name has.
+- The `label` field (a user's job title, e.g. "Apex Officer") is not used in reports.
+
+---
+
+## 6. Quality assurance
 
 - `backend/src/services/narrative_translation.rs` unit tests cover the validation
   rules and the English fallback.

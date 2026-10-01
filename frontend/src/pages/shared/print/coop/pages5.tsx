@@ -67,7 +67,7 @@ export const peerPage = (a: CoopAnalysis, no: string): PageSpec | null => {
           <thead>
             <tr>
               <th>{tr("common.indicator")}</th>
-              <th className="num">{tr("coop.peers.this_cooperative")}</th>
+              <th className="num">{a.props.coopName}</th>
               <th className="num">{tr("coop.peers.apex_average")}</th>
               <th className="num">{tr("coop.peers.national_average")}</th>
               <th className="num">{tr("coop.peers.rank_apex")}</th>

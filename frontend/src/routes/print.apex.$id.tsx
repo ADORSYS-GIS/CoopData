@@ -6,6 +6,8 @@ import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
 import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
+import { useReportRoleLabels } from "@/hooks/print/useReportRoleLabels";
+import { setReportRoles } from "@/pages/shared/print/tpl/i18n";
 import { useApexNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/apex/$id")({
@@ -23,6 +25,7 @@ function PrintComponent() {
   };
 
   const languageReady = usePrintLanguage(lng);
+  const { data: roleLabels, isLoading: isLoadingRoles } = useReportRoleLabels(token);
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
   const { data: apex } = useApex(id, token);
 
@@ -58,7 +61,12 @@ function PrintComponent() {
   );
 
   const isLoading =
-    !languageReady || isLoadingCurrent || isLoadingPrior || isLoadingSeries || isLoadingNarratives;
+    !languageReady ||
+    isLoadingRoles ||
+    isLoadingCurrent ||
+    isLoadingPrior ||
+    isLoadingSeries ||
+    isLoadingNarratives;
 
   if (isLoading || !overviewData) {
     return (
@@ -71,6 +79,7 @@ function PrintComponent() {
     );
   }
 
+  setReportRoles(roleLabels);
   return (
     <ConsolidatedReportPrint
       tier="Apex"

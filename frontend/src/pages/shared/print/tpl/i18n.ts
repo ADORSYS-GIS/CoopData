@@ -3,11 +3,83 @@ import type { TOptions } from "i18next";
 import i18n from "@/i18n";
 import { normalizeAppLang, type ContentLanguage } from "@/lib/contentLocalization";
 
-/** Report text in the active language, from the `pdf` section of the locale files. */
-export const tr = (key: string, options?: TOptions): string => i18n.t(`pdf.${key}`, options);
-
 export const reportLanguage = (): ContentLanguage =>
   normalizeAppLang(i18n.resolvedLanguage ?? i18n.language);
+
+/** One organisation level as configured by the Ministry (Settings → Terminology). */
+export interface RoleLabel {
+  key: string;
+  short_label?: string | null;
+  plural_label?: string | null;
+  translations?: unknown;
+}
+
+type RoleKey = "cooperative" | "apex" | "federation" | "ministry";
+
+/** Placeholder base name of each level in report strings, e.g. `{{apex}}`, `{{apexes}}`. */
+const ROLE_VARIABLES: Record<RoleKey, { one: string; other: string }> = {
+  cooperative: { one: "coop", other: "coops" },
+  apex: { one: "apex", other: "apexes" },
+  federation: { one: "federation", other: "federations" },
+  ministry: { one: "ministry", other: "ministries" },
+};
+
+/** The seeded organisation names; a stored name equal to these has not been customised. */
+const SEEDED_NAMES: Record<RoleKey, { one: string; other: string }> = {
+  cooperative: { one: "Cooperative", other: "Cooperatives" },
+  apex: { one: "Apex", other: "Apexes" },
+  federation: { one: "Federation", other: "Federations" },
+  ministry: { one: "Ministry", other: "Ministries" },
+};
+
+let roleLabels: readonly RoleLabel[] = [];
+
+/** Sets the Ministry's organisation names used by every report rendered afterwards. */
+export const setReportRoles = (labels: readonly RoleLabel[] | null | undefined): void => {
+  roleLabels = labels ?? [];
+};
+
+const upperFirst = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+const lowerFirst = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
+
+/**
+ * Name of one organisation level in the report language: the Ministry's translation,
+ * then the Ministry's own name when it was customised, then the report default.
+ */
+const roleName = (key: RoleKey, form: "one" | "other"): { name: string; custom: boolean } => {
+  const field = form === "one" ? "short_label" : "plural_label";
+  const label = roleLabels.find((item) => item.key === key);
+  const translations = (label?.translations ?? {}) as Record<string, Record<string, unknown>>;
+  const translated = translations[reportLanguage()]?.[field];
+  if (typeof translated === "string" && translated.trim()) {
+    return { name: translated.trim(), custom: true };
+  }
+  const stored = label?.[field]?.trim();
+  if (stored && stored !== SEEDED_NAMES[key][form]) return { name: stored, custom: true };
+  return { name: i18n.t(`pdf.roles.${key}.${form}`), custom: false };
+};
+
+/**
+ * Role placeholders for report strings. `{{apex}}` is the heading form (capitalised);
+ * `{{apexLc}}` is the mid-sentence form, which keeps a Ministry-defined name exactly as
+ * written and lowercases only the built-in defaults.
+ */
+const roleVariables = (): Record<string, string> => {
+  const variables: Record<string, string> = {};
+  for (const key of Object.keys(ROLE_VARIABLES) as RoleKey[]) {
+    for (const form of ["one", "other"] as const) {
+      const { name, custom } = roleName(key, form);
+      const variable = ROLE_VARIABLES[key][form];
+      variables[variable] = upperFirst(name);
+      variables[`${variable}Lc`] = custom ? name : lowerFirst(name);
+    }
+  }
+  return variables;
+};
+
+/** Report text in the active language, from the `pdf` section of the locale files. */
+export const tr = (key: string, options?: TOptions): string =>
+  i18n.t(`pdf.${key}`, { ...roleVariables(), ...options });
 
 /** siSwati follows the English number conventions used in Eswatini. */
 const NUMBER_LOCALE: Record<ContentLanguage, string> = {
