@@ -104,8 +104,8 @@ In the UI, the user picks a language (it defaults to their app language) and cli
 
 ## 4. Print pages
 
-- The i18next language detector reads `?lng=` first, so a page opened by Gotenberg is
-  in the report language from its first render.
+- The app-wide language detector does **not** read `?lng=`, so a shared link can't
+  change a user's saved language. Print pages handle `?lng=` themselves.
 - `usePrintLanguage(lng)` switches the language if needed; print routes treat the
   page as loading until the language is active **and** the narratives have loaded, so
   Gotenberg never captures a half-translated page.

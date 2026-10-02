@@ -21,10 +21,10 @@ i18n
       escapeValue: false, // React already escapes
     },
     detection: {
-      // `?lng=` comes first so a print page rendered for a PDF is in the report
-      // language from its very first render.
-      order: ["querystring", "localStorage", "navigator", "htmlTag"],
-      lookupQuerystring: "lng",
+      // No querystring detection: it would let any `?lng=` link permanently change
+      // a user's language. Print pages switch to the report language themselves
+      // (usePrintLanguage) and render only once it is active.
+      order: ["localStorage", "navigator", "htmlTag"],
       caches: ["localStorage"],
     },
   });
