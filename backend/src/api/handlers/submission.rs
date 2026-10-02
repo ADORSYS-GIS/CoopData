@@ -19,7 +19,6 @@ use crate::api::dto::submission::{
 };
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
-use crate::services::export_generator::EXPORT_PREFIX;
 
 use crate::entities::enums::SubmissionStatus;
 use crate::entities::submission::ActiveModel;
@@ -1053,102 +1052,7 @@ pub async fn apex_approve_submission(
         );
     }
 
-    let cooperative_id = updated.cooperative_id;
-    let reporting_year = updated.reporting_year;
-
-    let coop = state.cooperative_repo.find_by_id(cooperative_id).await?;
-    let apex = match &coop {
-        Some(c) => state.apex_repo.find_by_id(c.apex_id).await?,
-        None => None,
-    };
-
-    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-        state.clone(),
-        id,
-    );
-    if let Some(c) = &coop {
-        crate::services::export_generator::ExportGenerator::trigger_apex_export(
-            state.clone(),
-            c.apex_id,
-            reporting_year,
-        );
-    }
-    if let Some(a) = &apex {
-        crate::services::export_generator::ExportGenerator::trigger_federation_export(
-            state.clone(),
-            a.federation_id,
-            reporting_year,
-        );
-    }
-    crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-        state.clone(),
-        reporting_year,
-    );
-
-    // Phase F: Invalidate stale exports for future-year submissions of the
-    // same cooperative and queue their regeneration.
-    if let Ok(subs) = state
-        .submission_repo
-        .find_by_cooperative(cooperative_id)
-        .await
-    {
-        let future_subs: Vec<_> = subs
-            .into_iter()
-            .filter(|s| {
-                s.reporting_year > reporting_year
-                    && s.id != id
-                    && s.status == crate::entities::enums::SubmissionStatus::Approved
-            })
-            .collect();
-
-        if !future_subs.is_empty() {
-            tracing::info!(
-                cooperative_id = %cooperative_id,
-                current_year = reporting_year,
-                stale_count = future_subs.len(),
-                "Invalidating stale exports for future-year submissions"
-            );
-
-            for sub in future_subs {
-                // Delete stale cached PDF from object storage (best-effort)
-                let pdf_key = format!(
-                    "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
-                    sub.id, sub.id
-                );
-                let _ = state.storage.delete_object(&pdf_key).await;
-
-                // Queue background regeneration so the next download gets fresh data
-                crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-                    state.clone(),
-                    sub.id,
-                );
-                if let Some(c) = &coop {
-                    crate::services::export_generator::ExportGenerator::trigger_apex_export(
-                        state.clone(),
-                        c.apex_id,
-                        sub.reporting_year,
-                    );
-                }
-                if let Some(a) = &apex {
-                    crate::services::export_generator::ExportGenerator::trigger_federation_export(
-                        state.clone(),
-                        a.federation_id,
-                        sub.reporting_year,
-                    );
-                }
-                crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-                    state.clone(),
-                    sub.reporting_year,
-                );
-
-                tracing::info!(
-                    stale_submission_id = %sub.id,
-                    stale_year = sub.reporting_year,
-                    "Queued re-generation of stale export"
-                );
-            }
-        }
-    }
+    crate::services::report_jobs::on_submission_approved(state.clone(), updated.clone());
 
     // Audit: submission approved by apex (final approval)
     if let Err(e) = state
@@ -1655,102 +1559,7 @@ pub async fn ministry_approve_submission(
         );
     }
 
-    let cooperative_id = updated.cooperative_id;
-    let reporting_year = updated.reporting_year;
-
-    let coop = state.cooperative_repo.find_by_id(cooperative_id).await?;
-    let apex = match &coop {
-        Some(c) => state.apex_repo.find_by_id(c.apex_id).await?,
-        None => None,
-    };
-
-    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-        state.clone(),
-        id,
-    );
-    if let Some(c) = &coop {
-        crate::services::export_generator::ExportGenerator::trigger_apex_export(
-            state.clone(),
-            c.apex_id,
-            reporting_year,
-        );
-    }
-    if let Some(a) = &apex {
-        crate::services::export_generator::ExportGenerator::trigger_federation_export(
-            state.clone(),
-            a.federation_id,
-            reporting_year,
-        );
-    }
-    crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-        state.clone(),
-        reporting_year,
-    );
-
-    // Phase F: Invalidate stale exports for future-year submissions of the
-    // same cooperative and queue their regeneration.
-    if let Ok(subs) = state
-        .submission_repo
-        .find_by_cooperative(cooperative_id)
-        .await
-    {
-        let future_subs: Vec<_> = subs
-            .into_iter()
-            .filter(|s| {
-                s.reporting_year > reporting_year
-                    && s.id != id
-                    && s.status == crate::entities::enums::SubmissionStatus::Approved
-            })
-            .collect();
-
-        if !future_subs.is_empty() {
-            tracing::info!(
-                cooperative_id = %cooperative_id,
-                current_year = reporting_year,
-                stale_count = future_subs.len(),
-                "Invalidating stale exports for future-year submissions"
-            );
-
-            for sub in future_subs {
-                // Delete stale cached PDF from object storage (best-effort)
-                let pdf_key = format!(
-                    "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
-                    sub.id, sub.id
-                );
-                let _ = state.storage.delete_object(&pdf_key).await;
-
-                // Queue background regeneration so the next download gets fresh data
-                crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-                    state.clone(),
-                    sub.id,
-                );
-                if let Some(c) = &coop {
-                    crate::services::export_generator::ExportGenerator::trigger_apex_export(
-                        state.clone(),
-                        c.apex_id,
-                        sub.reporting_year,
-                    );
-                }
-                if let Some(a) = &apex {
-                    crate::services::export_generator::ExportGenerator::trigger_federation_export(
-                        state.clone(),
-                        a.federation_id,
-                        sub.reporting_year,
-                    );
-                }
-                crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-                    state.clone(),
-                    sub.reporting_year,
-                );
-
-                tracing::info!(
-                    stale_submission_id = %sub.id,
-                    stale_year = sub.reporting_year,
-                    "Queued re-generation of stale export"
-                );
-            }
-        }
-    }
+    crate::services::report_jobs::on_submission_approved(state.clone(), updated.clone());
 
     // Audit: submission approved by ministry (final approval)
     if let Err(e) = state
@@ -1932,14 +1741,7 @@ pub async fn update_submission_section(
     }
 
     // Enforce exclusive editor: only the user who owns the draft can edit sections
-    let current_user_id = Uuid::parse_str(&claims.sub).ok();
-    if let Some(editor_id) = submission.edited_by {
-        if current_user_id != Some(editor_id) {
-            return Err(AppError::Forbidden(
-                "Only the editor assigned to this submission can modify sections".into(),
-            ));
-        }
-    }
+    crate::services::edit_access::ensure_submission_editor(&submission, &claims)?;
 
     if !crate::repositories::submission_section::SECTIONS.contains(&section.as_str()) {
         return Err(AppError::BadRequest(format!(
@@ -2489,14 +2291,7 @@ pub async fn update_submission_method(
     }
 
     // Enforce exclusive editor
-    let current_user_id = Uuid::parse_str(&claims.sub).ok();
-    if let Some(editor_id) = submission.edited_by {
-        if current_user_id != Some(editor_id) {
-            return Err(AppError::Forbidden(
-                "Only the editor assigned to this submission can modify it".into(),
-            ));
-        }
-    }
+    crate::services::edit_access::ensure_submission_editor(&submission, &claims)?;
 
     let year_submissions = state
         .submission_repo
@@ -2653,7 +2448,8 @@ pub async fn create_apex_submission(
         period_value: Set(period_value.clone()),
         fiscal_start_month: Set(body.fiscal_start_month),
         status: Set(crate::entities::enums::SubmissionStatus::Draft),
-        current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
+        // The apex holds its own draft until it delegates it to the cooperative.
+        current_tier: Set(crate::entities::enums::ReviewTier::Apex),
         submitted_by: Set(submitted_by),
         submitted_at: Set(None),
         last_reviewed_by: Set(None),

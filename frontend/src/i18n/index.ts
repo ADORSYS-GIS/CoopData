@@ -21,6 +21,9 @@ i18n
       escapeValue: false, // React already escapes
     },
     detection: {
+      // No querystring detection: it would let any `?lng=` link permanently change
+      // a user's language. Print pages switch to the report language themselves
+      // (usePrintLanguage) and render only once it is active.
       order: ["localStorage", "navigator", "htmlTag"],
       caches: ["localStorage"],
     },

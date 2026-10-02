@@ -1,10 +1,10 @@
+use rust_decimal::prelude::ToPrimitive;
+use sea_orm::EntityTrait;
+use uuid::Uuid;
+
 use crate::error::AppResult;
 use crate::services::report_narrative;
 use crate::AppState;
-use rust_decimal::prelude::ToPrimitive;
-use sea_orm::EntityTrait;
-
-use uuid::Uuid;
 
 pub struct ExportGenerator;
 
@@ -12,123 +12,76 @@ pub struct ExportGenerator;
 /// changes: old cached PDFs are then ignored and every report is generated afresh.
 pub const EXPORT_PREFIX: &str = "exports/v5";
 
+/// Supported export locales — mirrors `localization::SUPPORTED_LOCALES`.
+pub(crate) const EXPORT_LOCALES: [&str; 4] = ["en", "fr", "pt", "ss"];
+
+/// Questionnaire reports are produced in English only.
+pub(crate) const QUESTIONNAIRE_LOCALE: &str = "en";
+
 impl ExportGenerator {
-    /// Spawns a background task to generate exports when a submission is approved
-    pub fn trigger_cooperative_export(state: AppState, submission_id: Uuid) {
-        tokio::spawn(async move {
-            tracing::info!(
-                submission_id = %submission_id,
-                "[export] 🚀 Starting cooperative export"
-            );
-            let start = std::time::Instant::now();
-
-            if let Err(e) = Self::generate_all_formats(&state, submission_id).await {
-                tracing::error!(
-                    submission_id = %submission_id,
-                    error = %e,
-                    "[export] ❌ Failed to generate exports in the background"
-                );
-            } else {
-                tracing::info!(
-                    submission_id = %submission_id,
-                    elapsed_ms = start.elapsed().as_millis(),
-                    "[export] ✅ Export complete | total={}ms",
-                    start.elapsed().as_millis()
-                );
-            }
-        });
+    /// Storage key of one locale of a single-submission report.
+    pub fn submission_pdf_key(submission_id: Uuid, lng: &str) -> String {
+        format!("{EXPORT_PREFIX}/individual/{submission_id}/submission_{submission_id}_{lng}.pdf")
     }
 
-    /// Generates PDF format and stores it in the bucket
-    async fn generate_all_formats(state: &AppState, submission_id: Uuid) -> AppResult<()> {
-        let pdf_bytes = Self::generate_submission_pdf(state, submission_id).await?;
-
-        tracing::info!(
-            submission_id = %submission_id,
-            size_bytes = pdf_bytes.len(),
-            "[export] ✅ PDF received | size={} bytes",
-            pdf_bytes.len()
-        );
-
-        let pdf_key = format!(
-            "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
-            submission_id, submission_id
-        );
-
-        tracing::info!(
-            submission_id = %submission_id,
-            pdf_key = %pdf_key,
-            "[export] 📦 Storing PDF to storage..."
-        );
-
-        state
-            .storage
-            .store(&pdf_key, &pdf_bytes, "application/pdf")
-            .await?;
-
-        Ok(())
-    }
-
-    pub(crate) async fn generate_cooperative_pdf(
+    pub(crate) fn submission_print_url(
         state: &AppState,
         submission_id: Uuid,
-    ) -> AppResult<Vec<u8>> {
-        let narrative_params =
-            match Self::generate_cooperative_narratives(state, submission_id).await {
-                Ok(result) => {
-                    tracing::info!(
-                        submission_id = %submission_id,
-                        "[export] 💾 Persisting narratives to metadata..."
-                    );
-                    if let Err(e) = state
-                        .submission_repo
-                        .update_metadata(
-                            submission_id,
-                            serde_json::json!({ "ai_narratives": result }),
-                        )
-                        .await
-                    {
-                        tracing::warn!(
-                            submission_id = %submission_id,
-                            error = %e,
-                            "[export] ⚠️ Failed to persist cooperative narratives to metadata"
-                        );
-                    } else {
-                        tracing::info!(
-                            submission_id = %submission_id,
-                            "[export] ✅ Narratives persisted"
-                        );
-                    }
-                    report_narrative::encode_cooperative_narrative_params(&result)
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        submission_id = %submission_id,
-                        error = %e,
-                        "[export] ⚠️ Failed to generate cooperative narratives, using fallback"
-                    );
-                    String::new()
-                }
-            };
-
-        tracing::info!(
-            submission_id = %submission_id,
-            "[export] 🔗 Building Gotenberg URL..."
-        );
-        let token = state.keycloak.get_admin_token().await?;
-        let print_url = format!(
-            "{}/print/cooperative/{}?token={}{}",
-            state.config.gotenberg_frontend_url, submission_id, token, narrative_params
-        );
-
-        tracing::info!(
-            submission_id = %submission_id,
-            "[export] 📤 Sending to Gotenberg..."
-        );
-        Self::generate_pdf_via_gotenberg(state, &print_url).await
+        questionnaire: bool,
+        token: &str,
+        lng: &str,
+    ) -> String {
+        let route = if questionnaire {
+            "questionnaire"
+        } else {
+            "cooperative"
+        };
+        format!(
+            "{}/print/{route}/{submission_id}?token={token}&lng={lng}",
+            state.config.gotenberg_frontend_url
+        )
     }
 
-    async fn generate_cooperative_narratives(
+    /// Questionnaire reports are English-only: their narratives are generated in
+    /// English and stored as a flat object, without translation. When generation
+    /// fails the report renders its factual sections without an AI summary.
+    pub(crate) async fn ensure_questionnaire_narratives(
+        state: &AppState,
+        submission_id: Uuid,
+        regenerate: bool,
+    ) {
+        if !regenerate {
+            let stored = state
+                .submission_repo
+                .find_by_id(submission_id)
+                .await
+                .ok()
+                .flatten()
+                .and_then(|sub| sub.metadata.get("ai_narratives").cloned());
+            if stored.is_some() {
+                return;
+            }
+        }
+        match Self::generate_questionnaire_narratives(state, submission_id).await {
+            Ok(narratives) => {
+                if let Err(e) = state
+                    .submission_repo
+                    .update_metadata(
+                        submission_id,
+                        serde_json::json!({ "ai_narratives": narratives }),
+                    )
+                    .await
+                {
+                    tracing::warn!(submission_id = %submission_id, error = %e, "[export] ⚠️ Failed to persist questionnaire narratives");
+                }
+            }
+            Err(e) => {
+                tracing::warn!(submission_id = %submission_id, error = %e, "[export] ⚠️ Questionnaire narratives failed, rendering without AI summary");
+            }
+        }
+    }
+
+    pub(crate) async fn generate_cooperative_narratives(
         state: &AppState,
         submission_id: Uuid,
     ) -> AppResult<report_narrative::CooperativeNarratives> {
@@ -519,149 +472,89 @@ impl ExportGenerator {
         )))
     }
 
-    /// Spawns a background task to generate consolidated Apex exports
-    pub fn trigger_apex_export(state: AppState, apex_id: Uuid, reporting_year: i32) {
-        tokio::spawn(async move {
-            tracing::info!(
-                apex_id = %apex_id,
-                reporting_year = reporting_year,
-                "[export] 🚀 Starting apex export"
-            );
-            let start = std::time::Instant::now();
-
-            if let Err(e) = Self::generate_apex_formats(&state, apex_id, reporting_year).await {
-                tracing::error!(
-                    apex_id = %apex_id,
-                    error = %e,
-                    "[export] ❌ Failed to generate Apex exports in the background"
-                );
-            } else {
-                tracing::info!(
-                    apex_id = %apex_id,
-                    elapsed_ms = start.elapsed().as_millis(),
-                    "[export] ✅ Export complete | total={}ms",
-                    start.elapsed().as_millis()
-                );
-            }
-        });
+    pub fn apex_pdf_key(apex_id: Uuid, year: i32, tag: &str, lng: &str) -> String {
+        format!("{EXPORT_PREFIX}/apex/{apex_id}/apex_{apex_id}_{year}{tag}_{lng}.pdf")
     }
 
-    async fn generate_apex_formats(
+    pub fn federation_pdf_key(federation_id: Uuid, year: i32, tag: &str, lng: &str) -> String {
+        format!("{EXPORT_PREFIX}/federation/{federation_id}/federation_{federation_id}_{year}{tag}_{lng}.pdf")
+    }
+
+    pub fn ministry_pdf_key(year: i32, tag: &str, lng: &str) -> String {
+        format!("{EXPORT_PREFIX}/ministry/ministry_{year}{tag}_{lng}.pdf")
+    }
+
+    /// Generates the English apex narratives of `year` from the current data.
+    pub(crate) async fn generate_apex_narratives(
         state: &AppState,
         apex_id: Uuid,
-        reporting_year: i32,
-    ) -> AppResult<()> {
-        let (apex, coops_data) = Self::compile_apex_data(state, apex_id, reporting_year).await?;
-
+        year: i32,
+    ) -> AppResult<report_narrative::ApexNarratives> {
+        let (apex, coops_data) = Self::compile_apex_data(state, apex_id, year).await?;
         tracing::info!(
             apex_id = %apex_id,
-            apex_name = %apex.display_name,
-            year = reporting_year,
+            year,
             coops = coops_data.len(),
-            "[export] 📋 Loaded apex data | apex={}, year={}, coops={}",
-            apex.display_name,
-            reporting_year,
-            coops_data.len()
+            "[export] 📋 Loaded apex data"
         );
-
-        let narrative_params = {
-            let ctx = report_narrative::build_apex_context(&apex, &coops_data, reporting_year);
-
-            tracing::info!(
-                apex_id = %apex_id,
-                "[export] 🤖 Acquiring AI semaphore..."
-            );
-            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
-                crate::error::AppError::InternalServerError("AI semaphore closed".into())
-            })?;
-            tracing::info!(
-                apex_id = %apex_id,
-                available = state.ai_semaphore.available_permits(),
-                "[export] 🤖 AI semaphore acquired | available={}",
-                state.ai_semaphore.available_permits()
-            );
-
-            tracing::info!(
-                apex_id = %apex_id,
-                "[export] 📡 Generating apex narratives..."
-            );
-            let start = std::time::Instant::now();
-            match state
-                .narrative_generator
-                .generate_apex_narratives(&ctx)
-                .await
-            {
-                Ok(result) => {
-                    tracing::info!(
-                        apex_id = %apex_id,
-                        elapsed_ms = start.elapsed().as_millis(),
-                        "[export] ✅ Narratives generated in {}ms",
-                        start.elapsed().as_millis()
-                    );
-                    let params = report_narrative::encode_apex_narrative_params(&result);
-                    // Persist narratives to apex metadata for frontend retrieval
-                    let year_key = format!("ai_narratives_{}", reporting_year);
-                    if let Err(e) = state
-                        .apex_repo
-                        .update_metadata(
-                            apex_id,
-                            serde_json::json!({ &year_key: serde_json::to_value(&result).unwrap_or_default() }),
-                        )
-                        .await
-                    {
-                        tracing::warn!(apex_id = %apex_id, error = %e, "[export] ⚠️ Failed to persist apex narratives to metadata");
-                    }
-                    params
-                }
-                Err(e) => {
-                    tracing::warn!(apex_id = %apex_id, error = %e, "[export] ⚠️ Failed to generate apex narratives, using fallback");
-                    String::new()
-                }
-            }
-        };
-
-        let token = state.keycloak.get_admin_token().await?;
-        tracing::info!(apex_id = %apex_id, "[export] 🔗 Building Gotenberg URL...");
-        let print_url = format!(
-            "{}/print/apex/{}?token={}&year={}&name={}{}",
-            state.config.gotenberg_frontend_url,
-            apex.keycloak_id,
-            token,
-            reporting_year,
-            urlencoding::encode(&apex.display_name),
-            narrative_params
-        );
-
-        tracing::info!(apex_id = %apex_id, "[export] 📤 Sending to Gotenberg...");
-        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-
-        tracing::info!(
-            apex_id = %apex_id,
-            size_bytes = pdf_bytes.len(),
-            "[export] ✅ PDF received | size={} bytes",
-            pdf_bytes.len()
-        );
-
-        let pdf_key = format!(
-            "{EXPORT_PREFIX}/apex/{}/apex_{}_{}.pdf",
-            apex_id, apex_id, reporting_year
-        );
-
-        tracing::info!(
-            apex_id = %apex_id,
-            pdf_key = %pdf_key,
-            "[export] 📦 Storing PDF to storage..."
-        );
-
+        let ctx = report_narrative::build_apex_context(&apex, &coops_data, year);
+        let _permit = Self::ai_permit(state).await?;
         state
-            .storage
-            .store(&pdf_key, &pdf_bytes, "application/pdf")
-            .await?;
-
-        Ok(())
+            .narrative_generator
+            .generate_apex_narratives(&ctx)
+            .await
     }
 
-    async fn compile_apex_data(
+    /// Generates the English federation narratives of `year` from the current data.
+    pub(crate) async fn generate_federation_narratives(
+        state: &AppState,
+        federation_id: Uuid,
+        year: i32,
+    ) -> AppResult<report_narrative::FederationNarratives> {
+        let (federation, apexes_data) =
+            Self::compile_federation_data(state, federation_id, year).await?;
+        tracing::info!(
+            federation_id = %federation_id,
+            year,
+            apexes = apexes_data.len(),
+            "[export] 📋 Loaded federation data"
+        );
+        let ctx = report_narrative::build_federation_context(&federation, &apexes_data, year);
+        let _permit = Self::ai_permit(state).await?;
+        state
+            .narrative_generator
+            .generate_federation_narratives(&ctx)
+            .await
+    }
+
+    /// Generates the English national narratives of `year` from the current data.
+    pub(crate) async fn generate_ministry_narratives(
+        state: &AppState,
+        year: i32,
+    ) -> AppResult<report_narrative::MinistryNarratives> {
+        let national_data = Self::compile_ministry_data(state, year).await?;
+        tracing::info!(
+            year,
+            coops = national_data.len(),
+            "[export] 📋 Loaded ministry data"
+        );
+        let ctx = report_narrative::build_ministry_context(&national_data, year);
+        let _permit = Self::ai_permit(state).await?;
+        state
+            .narrative_generator
+            .generate_ministry_narratives(&ctx)
+            .await
+    }
+
+    pub(crate) async fn ai_permit(state: &AppState) -> AppResult<tokio::sync::SemaphorePermit<'_>> {
+        state
+            .ai_semaphore
+            .acquire()
+            .await
+            .map_err(|_| crate::error::AppError::InternalServerError("AI semaphore closed".into()))
+    }
+
+    pub(crate) async fn compile_apex_data(
         state: &AppState,
         apex_id: Uuid,
         reporting_year: i32,
@@ -698,156 +591,7 @@ impl ExportGenerator {
         Ok((apex, coops_data))
     }
 
-    /// Spawns a background task to generate consolidated Federation exports
-    pub fn trigger_federation_export(state: AppState, federation_id: Uuid, reporting_year: i32) {
-        tokio::spawn(async move {
-            tracing::info!(
-                federation_id = %federation_id,
-                reporting_year = reporting_year,
-                "[export] 🚀 Starting federation export"
-            );
-            let start = std::time::Instant::now();
-
-            if let Err(e) =
-                Self::generate_federation_formats(&state, federation_id, reporting_year).await
-            {
-                tracing::error!(
-                    federation_id = %federation_id,
-                    error = %e,
-                    "[export] ❌ Failed to generate Federation exports in the background"
-                );
-            } else {
-                tracing::info!(
-                    federation_id = %federation_id,
-                    elapsed_ms = start.elapsed().as_millis(),
-                    "[export] ✅ Export complete | total={}ms",
-                    start.elapsed().as_millis()
-                );
-            }
-        });
-    }
-
-    async fn generate_federation_formats(
-        state: &AppState,
-        federation_id: Uuid,
-        reporting_year: i32,
-    ) -> AppResult<()> {
-        let (federation, apexes_data) =
-            Self::compile_federation_data(state, federation_id, reporting_year).await?;
-
-        tracing::info!(
-            federation_id = %federation_id,
-            federation_name = %federation.display_name,
-            year = reporting_year,
-            apexes = apexes_data.len(),
-            "[export] 📋 Loaded federation data | federation={}, year={}, apexes={}",
-            federation.display_name,
-            reporting_year,
-            apexes_data.len()
-        );
-
-        let narrative_params = {
-            let ctx = report_narrative::build_federation_context(
-                &federation,
-                &apexes_data,
-                reporting_year,
-            );
-
-            tracing::info!(
-                federation_id = %federation_id,
-                "[export] 🤖 Acquiring AI semaphore..."
-            );
-            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
-                crate::error::AppError::InternalServerError("AI semaphore closed".into())
-            })?;
-            tracing::info!(
-                federation_id = %federation_id,
-                available = state.ai_semaphore.available_permits(),
-                "[export] 🤖 AI semaphore acquired | available={}",
-                state.ai_semaphore.available_permits()
-            );
-
-            tracing::info!(
-                federation_id = %federation_id,
-                "[export] 📡 Generating federation narratives..."
-            );
-            let start = std::time::Instant::now();
-            match state
-                .narrative_generator
-                .generate_federation_narratives(&ctx)
-                .await
-            {
-                Ok(result) => {
-                    tracing::info!(
-                        federation_id = %federation_id,
-                        elapsed_ms = start.elapsed().as_millis(),
-                        "[export] ✅ Narratives generated in {}ms",
-                        start.elapsed().as_millis()
-                    );
-                    let params = report_narrative::encode_federation_narrative_params(&result);
-                    // Persist narratives to federation metadata for frontend retrieval
-                    let year_key = format!("ai_narratives_{}", reporting_year);
-                    if let Err(e) = state
-                        .federation_repo
-                        .update_metadata(
-                            federation_id,
-                            serde_json::json!({ &year_key: serde_json::to_value(&result).unwrap_or_default() }),
-                        )
-                        .await
-                    {
-                        tracing::warn!(federation_id = %federation_id, error = %e, "[export] ⚠️ Failed to persist federation narratives to metadata");
-                    }
-                    params
-                }
-                Err(e) => {
-                    tracing::warn!(federation_id = %federation_id, error = %e, "[export] ⚠️ Failed to generate federation narratives, using fallback");
-                    String::new()
-                }
-            }
-        };
-
-        let token = state.keycloak.get_admin_token().await?;
-        tracing::info!(federation_id = %federation_id, "[export] 🔗 Building Gotenberg URL...");
-        let print_url = format!(
-            "{}/print/federation/{}?token={}&year={}&name={}{}",
-            state.config.gotenberg_frontend_url,
-            federation.keycloak_id,
-            token,
-            reporting_year,
-            urlencoding::encode(&federation.display_name),
-            narrative_params
-        );
-
-        tracing::info!(federation_id = %federation_id, "[export] 📤 Sending to Gotenberg...");
-        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-
-        tracing::info!(
-            federation_id = %federation_id,
-            size_bytes = pdf_bytes.len(),
-            "[export] ✅ PDF received | size={} bytes",
-            pdf_bytes.len()
-        );
-
-        let pdf_key = format!(
-            "{EXPORT_PREFIX}/federation/{}/federation_{}_{}.pdf",
-            federation_id, federation_id, reporting_year
-        );
-
-        tracing::info!(
-            federation_id = %federation_id,
-            pdf_key = %pdf_key,
-            "[export] 📦 Storing PDF to storage..."
-        );
-
-        state
-            .storage
-            .store(&pdf_key, &pdf_bytes, "application/pdf")
-            .await?;
-
-        Ok(())
-    }
-
-    async fn compile_federation_data(
+    pub(crate) async fn compile_federation_data(
         state: &AppState,
         federation_id: Uuid,
         reporting_year: i32,
@@ -893,122 +637,7 @@ impl ExportGenerator {
         Ok((federation, apexes_data))
     }
 
-    /// Spawns a background task to generate consolidated Ministry exports
-    pub fn trigger_ministry_export(state: AppState, reporting_year: i32) {
-        tokio::spawn(async move {
-            tracing::info!(
-                reporting_year = reporting_year,
-                "[export] 🚀 Starting ministry export"
-            );
-            let start = std::time::Instant::now();
-
-            if let Err(e) = Self::generate_ministry_formats(&state, reporting_year).await {
-                tracing::error!(
-                    error = %e,
-                    "[export] ❌ Failed to generate Ministry exports in the background"
-                );
-            } else {
-                tracing::info!(
-                    reporting_year = reporting_year,
-                    elapsed_ms = start.elapsed().as_millis(),
-                    "[export] ✅ Export complete | total={}ms",
-                    start.elapsed().as_millis()
-                );
-            }
-        });
-    }
-
-    async fn generate_ministry_formats(state: &AppState, reporting_year: i32) -> AppResult<()> {
-        let national_data = Self::compile_ministry_data(state, reporting_year).await?;
-
-        tracing::info!(
-            year = reporting_year,
-            coops = national_data.len(),
-            "[export] 📋 Loaded ministry data | year={}, coops={}",
-            reporting_year,
-            national_data.len()
-        );
-
-        let narrative_params = {
-            let ctx = report_narrative::build_ministry_context(&national_data, reporting_year);
-
-            tracing::info!("[export] 🤖 Acquiring AI semaphore...");
-            let _permit = state.ai_semaphore.acquire().await.map_err(|_| {
-                crate::error::AppError::InternalServerError("AI semaphore closed".into())
-            })?;
-            tracing::info!(
-                available = state.ai_semaphore.available_permits(),
-                "[export] 🤖 AI semaphore acquired | available={}",
-                state.ai_semaphore.available_permits()
-            );
-
-            tracing::info!("[export] 📡 Generating ministry narratives...");
-            let start = std::time::Instant::now();
-            match state
-                .narrative_generator
-                .generate_ministry_narratives(&ctx)
-                .await
-            {
-                Ok(result) => {
-                    tracing::info!(
-                        reporting_year = reporting_year,
-                        elapsed_ms = start.elapsed().as_millis(),
-                        "[export] ✅ Narratives generated in {}ms",
-                        start.elapsed().as_millis()
-                    );
-                    let params = report_narrative::encode_ministry_narrative_params(&result);
-                    // Persist narratives to ministry cache table for frontend retrieval
-                    if let Err(e) = state
-                        .ministry_narratives_repo
-                        .upsert_narratives(
-                            reporting_year,
-                            serde_json::to_value(&result).unwrap_or_default(),
-                        )
-                        .await
-                    {
-                        tracing::warn!(error = %e, "[export] ⚠️ Failed to persist ministry narratives");
-                    }
-                    params
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "[export] ⚠️ Failed to generate ministry narratives, using fallback");
-                    String::new()
-                }
-            }
-        };
-
-        let token = state.keycloak.get_admin_token().await?;
-        tracing::info!("[export] 🔗 Building Gotenberg URL...");
-        let print_url = format!(
-            "{}/print/ministry?token={}&year={}{}",
-            state.config.gotenberg_frontend_url, token, reporting_year, narrative_params
-        );
-
-        tracing::info!("[export] 📤 Sending to Gotenberg...");
-        let pdf_bytes = Self::generate_pdf_via_gotenberg(state, &print_url).await?;
-
-        tracing::info!(
-            size_bytes = pdf_bytes.len(),
-            "[export] ✅ PDF received | size={} bytes",
-            pdf_bytes.len()
-        );
-
-        let pdf_key = format!("{EXPORT_PREFIX}/ministry/ministry_{}.pdf", reporting_year);
-
-        tracing::info!(
-            pdf_key = %pdf_key,
-            "[export] 📦 Storing PDF to storage..."
-        );
-
-        state
-            .storage
-            .store(&pdf_key, &pdf_bytes, "application/pdf")
-            .await?;
-
-        Ok(())
-    }
-
-    async fn compile_ministry_data(
+    pub(crate) async fn compile_ministry_data(
         state: &AppState,
         reporting_year: i32,
     ) -> AppResult<

@@ -3,6 +3,7 @@ import type {
   LineItemResponse,
   SubmissionLineItemsResponse,
 } from "@/hooks/submissions/useCooperativeKpis";
+import { fixed, grouped, percentText, reportLanguage, tr } from "@/pages/shared/print/tpl/i18n";
 
 export type Side = "current" | "prior";
 
@@ -62,6 +63,12 @@ const titleCase = (text: string): string =>
     .toLowerCase()
     .replace(/\bsacco\b/g, "SACCO");
 
+/** Submitted account name in English; the chart-of-accounts translation in other languages. */
+const accountName = (code: number, submitted: string | undefined): string => {
+  const name = titleCase(submitted ?? String(code));
+  return reportLanguage() === "en" ? name : tr(`accounts.${code}`, { defaultValue: name });
+};
+
 /** Leaf accounts of one statement section, in code order, that carry a figure in either year. */
 export const leafLines = (
   data: SubmissionLineItemsResponse,
@@ -76,7 +83,7 @@ export const leafLines = (
     .sort((a, b) => a - b)
     .map((code) => ({
       code,
-      name: titleCase(names.get(code) ?? String(code)),
+      name: accountName(code, names.get(code)),
       current: accountValue(data, code, "current"),
       prior: accountValue(data, code, "prior"),
     }))
@@ -178,14 +185,16 @@ export const fmtInt = (value: number | undefined | null): string =>
   value === undefined || value === null || Number.isNaN(value)
     ? "—"
     : value < 0
-      ? `(${Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 0 })})`
-      : value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      ? `(${grouped(Math.abs(value))})`
+      : grouped(value);
 
 export const fmtPct = (value: number | null | undefined, digits = 1): string =>
-  value === null || value === undefined || Number.isNaN(value) ? "—" : `${value.toFixed(digits)}%`;
+  value === null || value === undefined || Number.isNaN(value) ? "—" : percentText(value, digits);
 
 export const fmtChange = (value: number | null): string =>
-  value === null ? "—" : value < 0 ? `(${Math.abs(value).toFixed(1)}%)` : `${value.toFixed(1)}%`;
+  value === null ? "—" : value < 0 ? `(${percentText(Math.abs(value))})` : percentText(value);
 
 export const fmtMillions = (value: number | undefined): string =>
-  value === undefined || Number.isNaN(value) ? "—" : `${(value / 1_000_000).toFixed(1)} m`;
+  value === undefined || Number.isNaN(value)
+    ? "—"
+    : `${fixed(value / 1_000_000, 1)} ${tr("common.million_short")}`;

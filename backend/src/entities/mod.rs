@@ -24,6 +24,7 @@ pub mod organization;
 pub mod organization_label;
 pub mod questionnaire_response;
 pub mod questionnaire_template;
+pub mod report_export;
 pub mod savings_account;
 pub mod submission;
 pub mod submission_review;

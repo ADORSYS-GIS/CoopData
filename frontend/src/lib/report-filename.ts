@@ -42,3 +42,7 @@ export const individualFilename = (
   const name = cooperativeName ? slug(cooperativeName) : "cooperative";
   return `${name}_${year ?? "report"}.pdf`;
 };
+
+/** Adds the report language to a file name: `report_2026.pdf` → `report_2026_fr.pdf`. */
+export const withLanguage = (filename: string, lang: string): string =>
+  filename.replace(/\.pdf$/i, "") + `_${lang}.pdf`;

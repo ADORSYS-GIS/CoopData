@@ -4,27 +4,25 @@ import { chunk } from "@/pages/shared/print/consolidated/stats";
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { EndOfReport, SignOff } from "@/pages/shared/print/tpl/TplParts";
+import { tr } from "@/pages/shared/print/tpl/i18n";
 
 const PRIORITY_CLASS = { High: "h", Medium: "m", Standard: "l" } as const;
 
 export const findingsPage = (a: CoopAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Supervisory Findings & Recommendations" },
+  toc: { no, title: tr("coop.findings.title") },
   render: () => {
     const recs = recommendationsOf(a);
     return (
       <>
-        <Sec no={no} title="Supervisory Findings & Recommendations" sub="Action plan" />
-        <p>
-          The following actions are recommended to the Board and management of {a.props.coopName}.
-          Progress should be reported with the next quarterly return.
-        </p>
+        <Sec no={no} title={tr("coop.findings.title")} sub={tr("common.action_plan")} />
+        <p>{tr("coop.findings.intro", { name: a.props.coopName })}</p>
         <table className="tbl recs">
           <thead>
             <tr>
               <th />
-              <th>Recommendation</th>
-              <th style={{ width: "20mm" }}>Priority</th>
-              <th style={{ width: "28mm" }}>Timeline</th>
+              <th>{tr("common.recommendation")}</th>
+              <th style={{ width: "20mm" }}>{tr("common.priority")}</th>
+              <th style={{ width: "28mm" }}>{tr("common.timeline")}</th>
             </tr>
           </thead>
           <tbody>
@@ -35,7 +33,9 @@ export const findingsPage = (a: CoopAnalysis, no: string): PageSpec => ({
                   <b>{rec.lead}</b> {rec.text}
                 </td>
                 <td>
-                  <span className={`prio ${PRIORITY_CLASS[rec.priority]}`}>{rec.priority}</span>
+                  <span className={`prio ${PRIORITY_CLASS[rec.priority]}`}>
+                    {tr(`common.priorities.${rec.priority}`)}
+                  </span>
                 </td>
                 <td>{rec.timeline}</td>
               </tr>
@@ -54,30 +54,30 @@ export const annexAPages = (a: CoopAnalysis, no: string): PageSpec[] => {
   const pages = chunk(a.validation, ROWS_PER_PAGE);
   const parts = pages.length > 0 ? pages : [[]];
   return parts.map((rows, index): PageSpec => ({
-    toc: index === 0 ? { no, title: "Annex A — Data Validation & Corrections" } : undefined,
+    toc: index === 0 ? { no, title: tr("coop.annex.a_toc") } : undefined,
     render: () => (
       <>
         <Sec
           no={index === 0 ? no : undefined}
-          title="Data Validation & Corrections"
-          sub={parts.length > 1 ? `Annex · part ${index + 1} of ${parts.length}` : "Annex"}
+          title={tr("coop.annex.a_title")}
+          sub={
+            parts.length > 1
+              ? tr("common.annex_part_of", { part: index + 1, parts: parts.length })
+              : tr("common.annex")
+          }
         />
         {index === 0 && (
-          <p>
-            {a.validation.length > 0
-              ? "The following items were identified when reconciling the system-generated figures with the submitted statements. Items marked with a reference in the body of the report are explained here."
-              : "The system-generated figures were checked against the submitted statements and no inconsistency was identified."}
-          </p>
+          <p>{a.validation.length > 0 ? tr("coop.annex.a_intro") : tr("coop.annex.a_none")}</p>
         )}
         {rows.length > 0 && (
           <table className="tbl">
             <thead>
               <tr>
-                <th style={{ width: "12mm" }}>Ref.</th>
-                <th style={{ width: "28mm" }}>Item</th>
-                <th style={{ width: "36mm" }}>System value</th>
-                <th style={{ width: "26mm" }}>Used in report</th>
-                <th>Observation</th>
+                <th style={{ width: "12mm" }}>{tr("common.ref")}</th>
+                <th style={{ width: "28mm" }}>{tr("common.item")}</th>
+                <th style={{ width: "36mm" }}>{tr("common.system_value")}</th>
+                <th style={{ width: "26mm" }}>{tr("coop.annex.used_in_report")}</th>
+                <th>{tr("common.observation")}</th>
               </tr>
             </thead>
             <tbody>
@@ -101,17 +101,17 @@ export const annexAPages = (a: CoopAnalysis, no: string): PageSpec[] => {
 };
 
 export const annexBPage = (a: CoopAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Annex B — Indicator Definitions & Benchmarks" },
+  toc: { no, title: tr("coop.annex.b_toc") },
   render: () => (
     <>
-      <Sec no={no} title="Indicator Definitions & Benchmarks" sub="Annex" />
+      <Sec no={no} title={tr("coop.annex.b_title")} sub={tr("common.annex")} />
       <table className="tbl">
         <thead>
           <tr>
-            <th style={{ width: "48mm" }}>Indicator</th>
-            <th>Definition</th>
+            <th style={{ width: "48mm" }}>{tr("common.indicator")}</th>
+            <th>{tr("common.definition")}</th>
             <th className="num" style={{ width: "22mm" }}>
-              Benchmark
+              {tr("common.benchmark")}
             </th>
           </tr>
         </thead>
@@ -124,18 +124,13 @@ export const annexBPage = (a: CoopAnalysis, no: string): PageSpec => ({
             </tr>
           ))}
           <tr>
-            <td>Savings / credit penetration</td>
-            <td>
-              Members holding a savings account (or an active loan) as a share of total members.
-            </td>
+            <td>{tr("coop.annex.penetration")}</td>
+            <td>{tr("coop.annex.penetration_def")}</td>
             <td className="num">—</td>
           </tr>
         </tbody>
       </table>
-      <p className="src">
-        Benchmarks follow the PEARLS monitoring system as configured on the Coop Data platform.
-        Supervisory authorities may apply stricter national prudential limits.
-      </p>
+      <p className="src">{tr("common.pearls_source")}</p>
       <EndOfReport />
     </>
   ),

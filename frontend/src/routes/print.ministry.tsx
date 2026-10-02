@@ -4,6 +4,9 @@ import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
+import { useReportRoleLabels } from "@/hooks/print/useReportRoleLabels";
+import { setReportRoles } from "@/pages/shared/print/tpl/i18n";
 import { useMinistryNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/ministry")({
@@ -12,7 +15,9 @@ export const Route = createFileRoute("/print/ministry")({
 
 function PrintComponent() {
   const { t } = useTranslation();
-  const { token, year } = Route.useSearch() as { token?: string; year?: string };
+  const { token, year, lng } = Route.useSearch() as { token?: string; year?: string; lng?: string };
+  const languageReady = usePrintLanguage(lng);
+  const { data: roleLabels, isLoading: isLoadingRoles } = useReportRoleLabels(token);
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
 
   const { data: overviewData, isLoading: isLoadingCurrent } = useNationalOverview(
@@ -31,7 +36,11 @@ function PrintComponent() {
     token,
   );
 
-  const { data: narratives } = useMinistryNarratives(currentYear, token);
+  const { data: narratives, isLoading: isLoadingNarratives } = useMinistryNarratives(
+    currentYear,
+    token,
+    lng,
+  );
 
   const { data: series, isLoading: isLoadingSeries } = usePeriodSeries(
     { reportingYear: currentYear, periodType: "yearly" },
@@ -39,7 +48,13 @@ function PrintComponent() {
     token,
   );
 
-  const isLoading = isLoadingCurrent || isLoadingPrior || isLoadingSeries;
+  const isLoading =
+    !languageReady ||
+    isLoadingRoles ||
+    isLoadingCurrent ||
+    isLoadingPrior ||
+    isLoadingSeries ||
+    isLoadingNarratives;
 
   if (isLoading || !overviewData) {
     return (
@@ -52,10 +67,11 @@ function PrintComponent() {
     );
   }
 
+  setReportRoles(roleLabels);
   return (
     <FederationReportPrint
       tier="Ministry"
-      entityName="Ministry of Commerce, Industry and Trade"
+      entityName={t("pdf.cons.issuer.Ministry")}
       year={currentYear}
       data={overviewData}
       priorData={priorData}

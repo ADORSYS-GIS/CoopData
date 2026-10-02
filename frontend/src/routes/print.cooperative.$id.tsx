@@ -7,7 +7,7 @@ export const Route = createFileRoute("/print/cooperative/$id")({
 
 function PrintComponent() {
   const { id } = Route.useParams();
-  const { token } = Route.useSearch();
+  const { token, lng } = Route.useSearch() as { token?: string; lng?: string };
 
-  return <CooperativeReportPrint submissionId={id} tokenOverride={token} />;
+  return <CooperativeReportPrint submissionId={id} tokenOverride={token} lng={lng} />;
 }
