@@ -214,7 +214,7 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         })
         .collect();
 
-    let current: Vec<CoopPeriod> = selected.as_ref().map(&period_inputs).unwrap_or_default();
+    let current: Vec<CoopPeriod> = selected.as_ref().map(period_inputs).unwrap_or_default();
     let total_inputs = consolidate(&current);
     let derived = Derived::from_inputs(&total_inputs);
     let mut indicators = build_indicators(&total_inputs, &derived);
