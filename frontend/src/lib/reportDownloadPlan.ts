@@ -2,10 +2,7 @@ import type { ReportStatus } from "@/services/reports/reportExportApi";
 
 /** What to do next to get a report downloaded in one language. */
 export type DownloadStep =
-  | { kind: "download" }
-  | { kind: "prepare"; lang: string }
-  | { kind: "wait" }
-  | { kind: "failed" };
+  { kind: "download" } | { kind: "prepare"; lang: string } | { kind: "wait" } | { kind: "failed" };
 
 const ENGLISH = "en";
 
@@ -16,11 +13,7 @@ const ENGLISH = "en";
  * `retry` is true when the user just asked: a failed preparation is started again.
  * While the page waits on its own (`retry` false), a failure ends the wait.
  */
-export function nextDownloadStep(
-  status: ReportStatus,
-  lang: string,
-  retry: boolean,
-): DownloadStep {
+export function nextDownloadStep(status: ReportStatus, lang: string, retry: boolean): DownloadStep {
   const stateOf = (l: string) => status.languages.find((s) => s.lang === l)?.state;
   const requested = stateOf(lang);
 

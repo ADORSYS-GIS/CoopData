@@ -93,10 +93,12 @@ status is tracked in `report_exports`. See
   `…/apex/{id}/apex_{id}_{year}{tag}_{lng}.pdf`, and likewise for federation and
   ministry. PDFs stored before status tracking are recognised and served.
 
-In the UI, the report card lists every language:
-- English comes first, then the user's own language.
-- Each language shows Ready, Preparing/Translating or Failed, with the one action that fits it.
-- Other languages unlock once English is ready.
+In the UI, the user picks a language (it defaults to their app language) and clicks
+**Download**:
+- A ready report downloads at once.
+- Otherwise the button shows "Preparing your report…" and the file downloads by itself
+  when it's ready. English is prepared first if needed.
+- If the window is closed meanwhile, a notification offers the file once it's ready.
 
 ---
 

@@ -2,7 +2,7 @@ import { FileText, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { ReportRef } from "@/hooks/reports/useReportExport";
-import { ReportReadiness } from "./report-readiness";
+import { ReportDownloader } from "./report-downloader";
 
 interface Props {
   title: string;
@@ -50,7 +50,7 @@ export function ReportDownloadDialog({ title, subtitle, reportRef, filename, onC
           </button>
         </div>
         <div className="overflow-y-auto px-6 py-5">
-          <ReportReadiness reportRef={reportRef} filename={filename} />
+          <ReportDownloader reportRef={reportRef} filename={filename} />
         </div>
       </div>
     </div>

@@ -28,7 +28,7 @@ import { MethodPicker } from "./method-picker";
 import { StepIndicator } from "./step-indicator";
 import { SelectionSummary } from "./selection-summary";
 import { ActiveStepPicker } from "./active-step-picker";
-import { ReportReadiness } from "./report-readiness";
+import { ReportDownloader } from "./report-downloader";
 
 interface ReportExportPanelProps {
   submissionId?: string;
@@ -615,7 +615,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 )}
 
               {reportRef && (
-                <ReportReadiness
+                <ReportDownloader
                   key={JSON.stringify(reportRef)}
                   reportRef={reportRef}
                   filename={reportFilename}

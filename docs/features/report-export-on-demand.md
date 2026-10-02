@@ -157,30 +157,30 @@ the schemas are registered in OpenAPI.
 
 - **API client:** regenerate the openapi client. There are no hand-written `fetch` calls for status or prepare. The PDF download
   keeps its existing blob fetch.
-- **Hooks** (`src/hooks/reports/`):
-  - `useReportStatus(target)` is a `useQuery` that polls every 4 s while any language is `preparing`, and stops otherwise.
-  - `usePrepareReport(target)` is a `useMutation` that invalidates the status query.
-  - `useDownloadReport(target)` downloads a ready PDF, as today, without waiting.
-- **Components** (`src/components/reports/`):
-  - `ReportStatusCard` shows the report's state:
-    - **Preparing:** a spinner and "Preparing report… this usually takes about a minute". Download is disabled.
-    - **Ready:** `[Download English]`.
-    - **Failed:** "The report couldn't be prepared. Please try again." `[Try again]`.
-    - **Not prepared** (e.g. a consolidated report after an approval): `[Prepare]`.
-  - `ReportLanguageList` has one row per language:
-    - ready: `[Download]`;
-    - preparing: "Translating… up to a minute";
-    - failed: a generic message and `[Try again]`;
-    - not prepared: `[Prepare]`.
-
-    It's disabled until English is ready.
-  - Language choice: the picker **defaults to the user's current app language**, and the user can pick any other.
-  - A toast "Your Siswati report is ready" appears when a language the user started becomes ready.
+- **API functions** (`src/services/reports/reportExportApi.ts`): `fetchReportStatus`, `prepareReport` and
+  `downloadReport`. They're used by the hooks and by the background watcher.
+- **Hooks** (`src/hooks/reports/useReportExport.ts`):
+  - `useReportStatus(ref)` is a `useQuery` that polls every 4 s while any language is `preparing`, and stops otherwise.
+  - `usePrepareReport(ref)` and `useDownloadReport(ref)` are thin mutations over the API functions.
+- **Next step** (`src/lib/reportDownloadPlan.ts`): a pure function that decides what gets a language downloaded: download it,
+  prepare it, prepare English first, wait, or stop on failure.
+- **UI** (`src/components/reports/report-downloader.tsx`): **one language picker and one Download button.** The user never
+  sees "prepare".
+  - The picker defaults to the user's current app language.
+  - **Ready:** Download saves the file at once.
+  - **Not ready:**
+    - The button shows "Preparing your report…" with a short hint.
+    - Behind the button, the page prepares English first if it's missing, then the language.
+    - The file downloads by itself when it's ready.
+  - **Failed:** a generic "We couldn't prepare your report. Please try again." The button stays available.
+  - **Window closed while waiting:** `services/reports/reportWatcher.ts` keeps the work going and shows a notification with a
+    Download button once the report is ready. A notification is used because browsers may block downloads that start
+    without a click.
+  - A small "Update report" link rebuilds English from the latest data.
 - **Pages:**
-  - `report-export-panel.tsx` shows `ReportReadiness` once the selection is complete.
-  - The row action in `ReportsPage.tsx` opens `ReportDownloadDialog`.
-  - The old "Regenerate & Export" button becomes "Update report", which calls prepare with `regenerate=true`.
-- **i18n:** new `reports.status.*` keys in `en`, `fr`, `pt` and `ss`. Every error message is generic.
+  - `report-export-panel.tsx` shows the downloader once the selection is complete.
+  - The row action in `ReportsPage.tsx` opens `ReportDownloadDialog` with the same downloader.
+- **i18n:** `reportExport.status.*` keys in `en`, `fr`, `pt` and `ss`. Every error message is generic.
 
 ## 6. Tests
 
@@ -194,8 +194,10 @@ the schemas are registered in OpenAPI.
   claim can be re-taken.
 - **Handlers:** a download for a not-ready report returns 409, the error text never appears in a response, and the access checks
   match the export handlers.
-- **Frontend:** `ReportStatusCard` renders every state, the language list is locked until English is ready, polling stops when
-  nothing is preparing, and a failed state shows only the generic message.
+- **Frontend:**
+  - `nextDownloadStep` covers every state.
+  - The downloader downloads ready reports at once, and prepares then auto-downloads missing ones.
+  - It shows only the generic message on failure, and hands over to the background watcher when closed while waiting.
 - **Manual checks on the dev stack:**
   1. Approve a submission: "Preparing", then "Ready".
   2. Prepare Siswati: "Translating…", then download works.
