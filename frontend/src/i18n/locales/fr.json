@@ -1281,10 +1281,6 @@
       "draft": "Brouillon"
     },
     "exporting": "Exportation…",
-    "exportPdf": "Exporter PDF",
-    "rowActions": "Actions de ligne",
-    "exportSuccess": "Rapport exporté au format {{format}} !",
-    "exportFailed": "Échec de l'exportation du rapport.",
     "recentDataSubmissions": "Soumissions de données récentes",
     "recentDataSubmissionsDesc": "États financiers les plus récemment soumis — cliquez sur Exporter pour télécharger",
     "entriesCount": "{{count}} entrée",
@@ -1299,7 +1295,8 @@
     "actionsHeader": "Actions",
     "financialReportLabel": "Rapport financier {{year}}",
     "showingMostRecent": "Affichage des {{count}} soumissions les plus récentes. Utilisez le panneau d'exportation ci-dessus pour les rapports consolidés.",
-    "myCooperative": "Ma coopérative"
+    "myCooperative": "Ma coopérative",
+    "downloadReport": "Télécharger le rapport"
   },
   "benchmarking": {
     "title": "Benchmarking de performance",
@@ -4315,11 +4312,6 @@
     "title": "Exporter les rapports",
     "subtitle": "Générer et télécharger des rapports selon votre niveau d'accès",
     "exportReport": "Exporter le rapport",
-    "exportPdf": "Exporter PDF",
-    "exporting": "Exportation…",
-    "cancel": "Annuler",
-    "exportedAs": "{{label}} exporté en PDF !",
-    "exportFailed": "Échec de l'exportation : {{error}}",
     "scopeFederation": "Ce rapport inclut les données consolidées pour la fédération : {{name}}.",
     "scopeApex": "Ce rapport inclut les données consolidées pour l'apex : {{name}}.",
     "scopeNational": "Ce rapport inclut les données de toutes les fédérations, apex et coopératives à l'échelle nationale.",
@@ -4327,10 +4319,6 @@
     "scopeApexAll": "Ce rapport inclut les données de toutes les coopératives sous votre organisation apex.",
     "selectedFederation": "fédération sélectionnée",
     "selectedApex": "apex sélectionné",
-    "regenerateAndExport": "Régénérer & Exporter",
-    "regenerating": "Régénération…",
-    "regeneratedAndDownloaded": "Rapport régénéré et téléchargé !",
-    "regenerateTooltip": "Forcer une nouvelle génération de PDF, en remplaçant la version mise en cache",
     "method": {
       "title": "Type de rapport",
       "choose": "Les deux types ont des données pour cette sélection. Choisissez le rapport à exporter.",
@@ -4341,6 +4329,29 @@
       "questionnaire": "Rapport questionnaire",
       "questionnaireDesc": "Établi à partir des réponses au questionnaire ({{count}} soumissions approuvées)",
       "summary": "Type de rapport"
+    },
+    "close": "Fermer",
+    "status": {
+      "loading": "Vérification de l'état du rapport…",
+      "unavailable": "L'état du rapport n'a pas pu être chargé. Veuillez réessayer dans un instant.",
+      "ready": "Prêt à télécharger",
+      "preparingEnglish": "Préparation du rapport… cela prend généralement environ une minute.",
+      "translating": "Traduction du rapport… cela peut prendre jusqu'à une minute.",
+      "failed": "Ce rapport n'a pas pu être préparé. Veuillez réessayer.",
+      "notPreparedEnglish": "Pas encore préparé",
+      "notPrepared": "Pas encore préparé — préparez-le pour le télécharger dans cette langue",
+      "locked": "Disponible dès que le rapport en anglais est prêt",
+      "lockedHint": "Les autres langues sont traduites à partir du rapport en anglais ; elles deviennent disponibles dès qu'il est prêt.",
+      "otherLanguages": "Autres langues",
+      "yourLanguage": "Votre langue",
+      "prepare": "Préparer",
+      "download": "Télécharger",
+      "tryAgain": "Réessayer",
+      "update": "Mettre à jour le rapport",
+      "updateHint": "Reconstruire le rapport à partir des données les plus récentes. Les autres langues seront de nouveau préparées sur demande.",
+      "readyToast": "Le rapport en {{language}} est prêt à être téléchargé.",
+      "failedToast": "Le rapport en {{language}} n'a pas pu être préparé. Veuillez réessayer.",
+      "actionFailed": "Une erreur s'est produite. Veuillez réessayer."
     }
   },
   "analyticsFilter": {

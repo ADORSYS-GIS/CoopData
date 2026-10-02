@@ -1281,10 +1281,6 @@
       "draft": "Rascunho"
     },
     "exporting": "A exportar…",
-    "exportPdf": "Exportar PDF",
-    "rowActions": "Ações da linha",
-    "exportSuccess": "Relatório exportado como {{format}}!",
-    "exportFailed": "Falha ao exportar relatório.",
     "recentDataSubmissions": "Submissões de Dados Recentes",
     "recentDataSubmissionsDesc": "Demonstrações financeiras submetidas mais recentemente — clique em Exportar para descarregar",
     "entriesCount": "{{count}} entrada",
@@ -1299,7 +1295,8 @@
     "actionsHeader": "Ações",
     "financialReportLabel": "Relatório Financeiro {{year}}",
     "showingMostRecent": "A mostrar as {{count}} submissões mais recentes. Use o Painel de Exportação acima para relatórios consolidados.",
-    "myCooperative": "A Minha Cooperativa"
+    "myCooperative": "A Minha Cooperativa",
+    "downloadReport": "Descarregar relatório"
   },
   "benchmarking": {
     "title": "Benchmarking de Desempenho",
@@ -3549,11 +3546,6 @@
     "title": "Exportar Relatórios",
     "subtitle": "Gerar e descarregar relatórios com base no seu nível de acesso",
     "exportReport": "Exportar Relatório",
-    "exportPdf": "Exportar PDF",
-    "exporting": "A exportar...",
-    "cancel": "Cancelar",
-    "exportedAs": "{{label}} exportado como PDF!",
-    "exportFailed": "Exportação falhou: {{error}}",
     "scopeFederation": "Este relatório inclui dados consolidados da federação: {{name}}.",
     "scopeApex": "Este relatório inclui dados consolidados do apex: {{name}}.",
     "scopeNational": "Este relatório inclui dados de todas as federações, apexes e cooperativas a nível nacional.",
@@ -3561,10 +3553,6 @@
     "scopeApexAll": "Este relatório inclui dados de todas as cooperativas sob a sua organização apex.",
     "selectedFederation": "federação selecionada",
     "selectedApex": "apex selecionado",
-    "regenerateAndExport": "Regenerar & Exportar",
-    "regenerating": "A regenerar...",
-    "regeneratedAndDownloaded": "Relatório regenerado e descarregado!",
-    "regenerateTooltip": "Forçar uma nova geração de PDF, substituindo a versão em cache",
     "method": {
       "title": "Tipo de relatório",
       "choose": "Os dois tipos têm dados para esta seleção. Escolha o relatório a exportar.",
@@ -3575,6 +3563,29 @@
       "questionnaire": "Relatório de questionário",
       "questionnaireDesc": "Elaborado a partir das respostas ao questionário ({{count}} submissões aprovadas)",
       "summary": "Tipo de relatório"
+    },
+    "close": "Fechar",
+    "status": {
+      "loading": "A verificar o estado do relatório…",
+      "unavailable": "Não foi possível carregar o estado do relatório. Tente novamente dentro de momentos.",
+      "ready": "Pronto para descarregar",
+      "preparingEnglish": "A preparar o relatório… normalmente demora cerca de um minuto.",
+      "translating": "A traduzir o relatório… pode demorar até um minuto.",
+      "failed": "Não foi possível preparar este relatório. Tente novamente.",
+      "notPreparedEnglish": "Ainda não preparado",
+      "notPrepared": "Ainda não preparado — prepare-o para o descarregar nesta língua",
+      "locked": "Disponível quando o relatório em inglês estiver pronto",
+      "lockedHint": "As outras línguas são traduzidas a partir do relatório em inglês e ficam disponíveis quando este estiver pronto.",
+      "otherLanguages": "Outras línguas",
+      "yourLanguage": "A sua língua",
+      "prepare": "Preparar",
+      "download": "Descarregar",
+      "tryAgain": "Tentar novamente",
+      "update": "Atualizar relatório",
+      "updateHint": "Reconstruir o relatório com os dados mais recentes. As outras línguas voltam a ser preparadas a pedido.",
+      "readyToast": "O relatório em {{language}} está pronto para descarregar.",
+      "failedToast": "Não foi possível preparar o relatório em {{language}}. Tente novamente.",
+      "actionFailed": "Ocorreu um erro. Tente novamente."
     }
   },
   "analyticsFilter": {

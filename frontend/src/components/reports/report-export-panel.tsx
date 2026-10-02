@@ -1,12 +1,9 @@
 import { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { Download, FileText, CheckCircle2, X, ChevronRight, RefreshCw } from "lucide-react";
+import { Download, CheckCircle2, X, ChevronRight } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
-import { normalizeAppLang } from "@/lib/contentLocalization";
-import { toast } from "sonner";
-import { getAccessToken } from "@/services/shared/authService";
+import type { ReportRef } from "@/hooks/reports/useReportExport";
 import {
   useCooperativeSubmissions,
   useApexSubmissions,
@@ -16,19 +13,11 @@ import {
 import {
   consolidatedFilename,
   individualFilename,
+  withLanguage,
   type ConsolidatedLevel,
 } from "@/lib/report-filename";
-import type { components } from "@/openapi-client/api";
 
-import {
-  type ExportFormat,
-  REPORT_EXPORT_OPTIONS,
-  SCOPE_LABELS,
-  SCOPE_COLORS,
-  FORMAT_ICONS,
-  FORMAT_LABELS,
-  EXPORTABLE_STATUSES,
-} from "./types";
+import { REPORT_EXPORT_OPTIONS, FORMAT_ICONS, EXPORTABLE_STATUSES } from "./types";
 import {
   countByMethod,
   methodsWithData,
@@ -39,7 +28,7 @@ import { MethodPicker } from "./method-picker";
 import { StepIndicator } from "./step-indicator";
 import { SelectionSummary } from "./selection-summary";
 import { ActiveStepPicker } from "./active-step-picker";
-import { Spinner } from "@/components/ui/spinner";
+import { ReportReadiness } from "./report-readiness";
 
 interface ReportExportPanelProps {
   submissionId?: string;
@@ -48,8 +37,6 @@ interface ReportExportPanelProps {
 
 export function ReportExportPanel({ submissionId, className }: ReportExportPanelProps) {
   const { t, replaceOrgTerms } = useOrganizationLabelsContext();
-  const { i18n } = useTranslation();
-  const reportLang = normalizeAppLang(i18n.resolvedLanguage ?? i18n.language);
   const role = useUserRole();
 
   // Modal state
@@ -63,9 +50,6 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedMethod, setSelectedMethod] = useState<ReportMethod | "">("");
-
-  const [isExporting, setIsExporting] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // ── Data sources ────────────────────────────────────────────────────────────
 
@@ -342,7 +326,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   }
 
   function closeModal() {
-    if (!isExporting) setIsModalOpen(false);
+    setIsModalOpen(false);
   }
 
   const isFedSelected = !needsFedSelector || !!selectedFedId;
@@ -352,8 +336,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const isYearSelected = !needsYearSelector || !!selectedYear;
   const isMethodSelected = !needsMethodSelector || !!effectiveMethod;
 
-  const canExport =
-    !isExporting &&
+  const selectionComplete =
     selectedOption !== undefined &&
     isFedSelected &&
     isApexSelected &&
@@ -362,134 +345,58 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     isYearSelected &&
     isMethodSelected;
 
-  const handleExport = async () => {
-    if (!selectedOption || !canExport) return;
+  const consolidatedLevel: ConsolidatedLevel =
+    selectedOption?.id === "apex-consolidated"
+      ? "apex"
+      : selectedOption?.id === "federation-consolidated"
+        ? "federation"
+        : selectedOption?.id === "national-consolidated"
+          ? "ministry"
+          : (role as ConsolidatedLevel);
 
-    setIsExporting(true);
-    try {
-      const token = await getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  const reportRef: ReportRef | null = !selectionComplete
+    ? null
+    : isIndividual
+      ? { kind: "submission", submissionId: selectedSubmissionId }
+      : role === "cooperative"
+        ? null
+        : {
+            kind: "consolidated",
+            role,
+            year: Number(selectedYear),
+            apexId:
+              selectedOption?.id === "apex-consolidated" && selectedApexId
+                ? selectedApexId
+                : undefined,
+            federationId:
+              selectedOption?.id === "federation-consolidated" && selectedFedId
+                ? selectedFedId
+                : undefined,
+            questionnaire: effectiveMethod === "questionnaire",
+          };
 
-      let url = "";
-      if (isIndividual) {
-        url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?lang=${reportLang}`;
-      } else {
-        const queryParams = new URLSearchParams();
-        if (selectedOption.id === "federation-consolidated" && selectedFedId) {
-          queryParams.append("federation_id", selectedFedId);
-        } else if (selectedOption.id === "apex-consolidated" && selectedApexId) {
-          queryParams.append("apex_id", selectedApexId);
-        }
-
-        if (selectedYear) {
-          queryParams.append("reporting_year", selectedYear);
-        }
-        if (effectiveMethod === "questionnaire") {
-          queryParams.append("method", "questionnaire");
-        }
-        queryParams.append("lang", reportLang);
-
-        if (role === "apex") url = `${baseUrl}/api/v1/apex/export?${queryParams}`;
-        else if (role === "federation") url = `${baseUrl}/api/v1/federation/export?${queryParams}`;
-        else if (role === "ministry") url = `${baseUrl}/api/v1/ministry/export?${queryParams}`;
-      }
-
-      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || `Export failed with status ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      let filename = `${selectedOption.id}_report.pdf`;
-
-      if (isIndividual && selectedSubmissionId) {
-        const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
-        filename = individualFilename(sub?.cooperative_name, sub?.reporting_year);
-      } else {
-        const level =
-          selectedOption.id === "apex-consolidated"
-            ? "apex"
-            : selectedOption.id === "federation-consolidated"
-              ? "federation"
-              : selectedOption.id === "national-consolidated"
-                ? "ministry"
-                : (role as ConsolidatedLevel);
-        const entityName =
-          level === "apex"
-            ? (apexList.find((a) => a.id === selectedApexId)?.name ??
-              rawSubmissions.find((sub) => sub.apex_name)?.apex_name)
-            : level === "federation"
-              ? (federationList.find((f) => f.id === selectedFedId)?.name ??
-                rawSubmissions.find((sub) => sub.federation_name)?.federation_name)
-              : undefined;
-        filename = consolidatedFilename({
-          level,
-          entityName,
-          year: selectedYear,
-          method: effectiveMethod || undefined,
-        });
-      }
-
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-
-      toast.success(t("reportExport.exportedAs", { label: selectedOption.label }));
-      setIsModalOpen(false);
-    } catch (err) {
-      console.error(err);
-      toast.error(
-        t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }),
-      );
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleRegenerate = async () => {
-    if (!selectedOption || !canExport || !isIndividual || !selectedSubmissionId) return;
-
-    setIsRegenerating(true);
-    try {
-      const token = await getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const url = `${baseUrl}/api/v1/cooperative/submissions/${selectedSubmissionId}/export?regenerate=true&lang=${reportLang}`;
-
-      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || `Regeneration failed with status ${response.status}`);
-      }
-
-      const blob = await response.blob();
+  const reportFilename = (lang: string) => {
+    if (isIndividual) {
       const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
-      const filename = individualFilename(sub?.cooperative_name, sub?.reporting_year);
-
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-
-      toast.success(t("reportExport.regeneratedAndDownloaded"));
-      setIsModalOpen(false);
-    } catch (err) {
-      console.error(err);
-      toast.error(
-        t("reportExport.exportFailed", { error: err instanceof Error ? err.message : String(err) }),
-      );
-    } finally {
-      setIsRegenerating(false);
+      return withLanguage(individualFilename(sub?.cooperative_name, sub?.reporting_year), lang);
     }
+    const entityName =
+      consolidatedLevel === "apex"
+        ? (apexList.find((a) => a.id === selectedApexId)?.name ??
+          rawSubmissions.find((sub) => sub.apex_name)?.apex_name)
+        : consolidatedLevel === "federation"
+          ? (federationList.find((f) => f.id === selectedFedId)?.name ??
+            rawSubmissions.find((sub) => sub.federation_name)?.federation_name)
+          : undefined;
+    return withLanguage(
+      consolidatedFilename({
+        level: consolidatedLevel,
+        entityName,
+        year: selectedYear,
+        method: effectiveMethod || undefined,
+      }),
+      lang,
+    );
   };
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -575,8 +482,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
               </div>
               <button
                 onClick={closeModal}
-                disabled={isExporting}
-                className="press-feedback rounded-lg p-1.5 hover:bg-muted text-muted-foreground disabled:opacity-50"
+                aria-label={t("reportExport.close")}
+                className="press-feedback rounded-lg p-1.5 hover:bg-muted text-muted-foreground"
               >
                 <X className="size-4" />
               </button>
@@ -706,6 +613,14 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                     </span>
                   </div>
                 )}
+
+              {reportRef && (
+                <ReportReadiness
+                  key={JSON.stringify(reportRef)}
+                  reportRef={reportRef}
+                  filename={reportFilename}
+                />
+              )}
             </div>
 
             {/* Footer */}
@@ -777,46 +692,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                 <button
                   type="button"
                   onClick={closeModal}
-                  disabled={isExporting || isRegenerating}
-                  className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
+                  className="press-feedback px-4 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/40 transition-colors"
                 >
-                  {t("reportExport.cancel")}
-                </button>
-                {/* Regenerate button — only for individual submission exports */}
-                {isIndividual && selectedSubmissionId && (
-                  <button
-                    type="button"
-                    onClick={handleRegenerate}
-                    disabled={!canExport || isExporting || isRegenerating}
-                    title={t("reportExport.regenerateTooltip")}
-                    className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-warning/30 bg-warning/10 text-xs font-semibold text-warning-foreground hover:bg-warning/15 transition-colors disabled:opacity-40"
-                  >
-                    {isRegenerating ? (
-                      <>
-                        <Spinner size="sm" /> {t("reportExport.regenerating")}
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="size-3.5" /> {t("reportExport.regenerateAndExport")}
-                      </>
-                    )}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  disabled={!canExport || isRegenerating}
-                  className="press-feedback inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/95 transition-colors shadow-sm disabled:opacity-40"
-                >
-                  {isExporting ? (
-                    <>
-                      <Spinner size="sm" /> {t("reportExport.exporting")}
-                    </>
-                  ) : (
-                    <>
-                      <Download className="size-3.5" /> {t("reportExport.exportPdf")}
-                    </>
-                  )}
+                  {t("reportExport.close")}
                 </button>
               </div>
             </div>

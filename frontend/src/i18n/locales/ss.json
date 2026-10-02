@@ -1281,10 +1281,6 @@
       "draft": "Idrafti"
     },
     "exporting": "Kukhipha…",
-    "exportPdf": "Khipha PDF",
-    "rowActions": "Tento temsebenti",
-    "exportSuccess": "Umbiko ukhishiwe njenge {{format}}!",
-    "exportFailed": "Kwehlulekile kukhipha umbiko.",
     "recentDataSubmissions": "Imibiko Yedata Yakamuva",
     "recentDataSubmissionsDesc": "Titatimende tetimali takamuva kakhulu — chofoza Khipha ukuze ulayishe phansi",
     "entriesCount": "{{count}} okungenile",
@@ -1299,7 +1295,8 @@
     "actionsHeader": "Tento",
     "financialReportLabel": "Umbiko Wetimali we-{{year}}",
     "showingMostRecent": "Kubonisa {{count}} imibiko yakamuva kakhulu. Sebentisa iPhaneli Yekukhipha ngenhla yemibiko ehlanganisiwe.",
-    "myCooperative": "Ikhopharethi Yami"
+    "myCooperative": "Ikhopharethi Yami",
+    "downloadReport": "Layisha phansi umbiko"
   },
   "benchmarking": {
     "title": "Ukufananisa Ukusebenta",
@@ -4315,11 +4312,6 @@
     "title": "Khipha Imibiko",
     "subtitle": "Khiqiza futsi ulayishe phansi imibiko ngokusekelwe ezingeni lakho lokufinyelela",
     "exportReport": "Khipha Umbiko",
-    "exportPdf": "Khipha PDF",
-    "exporting": "Kukhipha...",
-    "cancel": "Khansela",
-    "exportedAs": "{{label}} ikhishiwe njenge-PDF!",
-    "exportFailed": "Ukukhipha kwehlulekile: {{error}}",
     "scopeFederation": "Lombiko uhlanganisa data ehlanganisiwe yefederesheni: {{name}}.",
     "scopeApex": "Lombiko uhlanganisa data ehlanganisiwe yepheksi: {{name}}.",
     "scopeNational": "Lombiko uhlanganisa data kusuka kuwo wonke emafederesheni, emapheksi, nemakhopharethi esiveni lonke.",
@@ -4327,10 +4319,6 @@
     "scopeApexAll": "Lombiko uhlanganisa data kusuka kuwo wonke emakhopharethi angaphansi kwenhlangano yepheksi yakho.",
     "selectedFederation": "ifederesheni ekhethiwe",
     "selectedApex": "ipheksi ekhethiwe",
-    "regenerateAndExport": "Yenta Kabusha & Khipha",
-    "regenerating": "Kuyenta Kabusha...",
-    "regeneratedAndDownloaded": "Umbiko wentelwe kabusha futsi ulayishwe phansi!",
-    "regenerateTooltip": "Cosha ukukhiqizwa kwe-PDF lokutsha, ukususa inguqulo ebe igciniwe",
     "method": {
       "title": "Inhlobo yembiko",
       "choose": "Tonkhe tinhlobo tinedatha yalokukhetsiwe. Khetsa kutsi ngumuphi umbiko lokufanele ukhishwe.",
@@ -4341,6 +4329,29 @@
       "questionnaire": "Umbiko wemibuzo",
       "questionnaireDesc": "Wakhiwe kusuka etimphenduleni tembiko wemibuzo (imibiko lengu-{{count}} lephasisiwe)",
       "summary": "Inhlobo yembiko"
+    },
+    "close": "Vala",
+    "status": {
+      "loading": "Kuhlolwa simo semubiko…",
+      "unavailable": "Simo semubiko asikhonanga kulayishwa. Sicela uphindze kungekudzala.",
+      "ready": "Ulungele kulayishwa phansi",
+      "preparingEnglish": "Kulungiswa umbiko… loku kuvame kutsatsa umzuzu longaba munye.",
+      "translating": "Kuhunyushwa umbiko… loku kungatsatsa kufika emzuzwini munye.",
+      "failed": "Lombiko awukhonanga kulungiswa. Sicela uphindze.",
+      "notPreparedEnglish": "Awukalungiswa",
+      "notPrepared": "Awukalungiswa — wulungise kute uwulayishe phansi ngalolulwimi",
+      "locked": "Utawutfolakala nangabe umbiko weSingisi sewulungile",
+      "lockedHint": "Letinye tilwimi tihunyushwa kusuka embikweni weSingisi, ngako titawuvuleka nangabe sewulungile.",
+      "otherLanguages": "Letinye tilwimi",
+      "yourLanguage": "Lulwimi lwakho",
+      "prepare": "Lungisa",
+      "download": "Layisha phansi",
+      "tryAgain": "Phindza",
+      "update": "Buyeketa umbiko",
+      "updateHint": "Kwakha kabusha umbiko ngelwatiso lolusha. Letinye tilwimi titawuphindze tilungiswe nawucela.",
+      "readyToast": "Umbiko nge-{{language}} sewulungele kulayishwa phansi.",
+      "failedToast": "Umbiko nge-{{language}} awukhonanga kulungiswa. Sicela uphindze.",
+      "actionFailed": "Kukhona lokuhambe kabi. Sicela uphindze."
     }
   },
   "analyticsFilter": {

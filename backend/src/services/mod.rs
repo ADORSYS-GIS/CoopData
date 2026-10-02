@@ -21,6 +21,7 @@ pub mod period_rules;
 pub mod period_series;
 pub mod questionnaire_kpi;
 pub mod questionnaire_report;
+pub mod report_jobs;
 pub mod report_narrative;
 pub mod submission_workflow;
 pub mod verification_token;

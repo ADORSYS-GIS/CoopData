@@ -1281,10 +1281,6 @@
       "draft": "Draft"
     },
     "exporting": "Exporting…",
-    "exportPdf": "Export PDF",
-    "rowActions": "Row actions",
-    "exportSuccess": "Report exported as {{format}}!",
-    "exportFailed": "Failed to export report.",
     "recentDataSubmissions": "Recent Data Submissions",
     "recentDataSubmissionsDesc": "Most recently submitted financial statements — click Export to download",
     "entriesCount": "{{count}} entry",
@@ -1299,7 +1295,8 @@
     "actionsHeader": "Actions",
     "financialReportLabel": "{{year}} Financial Report",
     "showingMostRecent": "Showing the {{count}} most recent submissions. Use the Export Panel above for consolidated reports.",
-    "myCooperative": "My Cooperative"
+    "myCooperative": "My Cooperative",
+    "downloadReport": "Download report"
   },
   "benchmarking": {
     "title": "Performance Benchmarking",
@@ -4315,11 +4312,6 @@
     "title": "Export Reports",
     "subtitle": "Generate and download reports based on your access level",
     "exportReport": "Export Report",
-    "exportPdf": "Export PDF",
-    "exporting": "Exporting...",
-    "cancel": "Cancel",
-    "exportedAs": "{{label}} exported as PDF!",
-    "exportFailed": "Export failed: {{error}}",
     "scopeFederation": "This report includes consolidated data for federation: {{name}}.",
     "scopeApex": "This report includes consolidated data for apex: {{name}}.",
     "scopeNational": "This report includes data from all federations, apexes, and cooperatives nationwide.",
@@ -4327,10 +4319,6 @@
     "scopeApexAll": "This report includes data from all cooperatives under your apex organization.",
     "selectedFederation": "selected federation",
     "selectedApex": "selected apex",
-    "regenerateAndExport": "Regenerate & Export",
-    "regenerating": "Regenerating...",
-    "regeneratedAndDownloaded": "Report regenerated and downloaded!",
-    "regenerateTooltip": "Force a fresh PDF generation, replacing the cached version",
     "method": {
       "title": "Report type",
       "choose": "Both types have data for this selection. Choose which report to export.",
@@ -4341,6 +4329,29 @@
       "questionnaire": "Questionnaire report",
       "questionnaireDesc": "Built from questionnaire answers ({{count}} approved submissions)",
       "summary": "Report type"
+    },
+    "close": "Close",
+    "status": {
+      "loading": "Checking the report status…",
+      "unavailable": "The report status couldn't be loaded. Please try again in a moment.",
+      "ready": "Ready to download",
+      "preparingEnglish": "Preparing the report… this usually takes about a minute.",
+      "translating": "Translating the report… this can take up to a minute.",
+      "failed": "This report couldn't be prepared. Please try again.",
+      "notPreparedEnglish": "Not prepared yet",
+      "notPrepared": "Not prepared yet — prepare it to download in this language",
+      "locked": "Available once the English report is ready",
+      "lockedHint": "Other languages are translated from the English report, so they open up once it is ready.",
+      "otherLanguages": "Other languages",
+      "yourLanguage": "Your language",
+      "prepare": "Prepare",
+      "download": "Download",
+      "tryAgain": "Try again",
+      "update": "Update report",
+      "updateHint": "Rebuild the report from the latest data. Other languages are then prepared again on request.",
+      "readyToast": "The {{language}} report is ready to download.",
+      "failedToast": "The {{language}} report couldn't be prepared. Please try again.",
+      "actionFailed": "Something went wrong. Please try again."
     }
   },
   "analyticsFilter": {

@@ -30,40 +30,40 @@ calendar data).
 
 1. **English analysis.** The existing 5 (cooperative) or 3–5 (consolidated) section
    prompts run once, in English, with the full financial context.
-2. **Translation.** The finished English paragraphs — no financial tables — are sent
-   to the LLM three times concurrently (French, Portuguese, Siswati) through
-   `ReportNarrativeGenerator::translate_narrative_json`.
+2. **Translation, on demand.** When a user asks for the report in French, Portuguese
+   or Siswati, the finished English paragraphs (no financial tables) are sent to the LLM
+   for that one language through `ReportNarrativeGenerator::translate_narrative_json`.
+   Languages nobody asks for are never translated.
 3. **Validation.** Each translation is accepted only when it:
    - is a JSON object with exactly the English keys,
    - translates every non-trivial field (it must not come back identical),
    - keeps every figure of the English text. Figures are compared digit-for-digit,
      so `1,234.5`, `1 234,5` and `1.234,5` are equal; whole numbers below ten may be
      written as words.
-4. **Retries and fallback.** A rejected translation is retried up to 3 times. If it
-   still fails, that locale holds the English text and is listed in `untranslated`.
-5. **Storage.** One write per entity:
+4. **Retries.** A rejected translation is retried up to 3 times. If it still fails, the
+   report job fails: the user sees a generic error and can try again. A PDF with
+   translated headings and English paragraphs is never produced.
+5. **Storage.** English is stored when generated. Each translation is added next to it
+   by a single SQL statement (`repositories/report_narrative_store.rs`), so two languages
+   translated at the same time never overwrite each other:
 
 ```json
 {
   "ai_narratives": {
     "en": { "executive_summary": "…", "…": "…" },
-    "fr": { "…": "…" },
-    "pt": { "…": "…" },
-    "ss": { "…": "…" },
-    "untranslated": []
+    "ss": { "…": "…" }
   }
 }
 ```
 
 Apex and federation narratives live under `ai_narratives_{year}`; ministry narratives
-in `ministry_report_narratives`. Narratives stored before this feature (a flat English
-object) are still read, and are translated the first time another language is needed.
+in `ministry_report_narratives`. Older shapes are still read: a flat English-only object,
+and languages listed in a legacy `untranslated` array, which count as not translated.
 
 ### Concurrency
 
 `ai_semaphore` (18 permits) limits **jobs**, not HTTP requests: one permit covers the
-5 concurrent analysis calls, and a separate permit covers the 3 translation calls. A
-task releases its analysis permit before it asks for the translation permit, so it
+5 concurrent analysis calls, and a separate permit covers one translation. A task
 never holds two permits at once (holding one while waiting for another can deadlock
 when all permits are taken).
 
@@ -73,21 +73,30 @@ when all permits are taken).
 
 `backend/src/services/export_generator.rs`, `backend/src/api/handlers/export.rs`
 
-- **On approval** the background job generates fresh narratives and renders one PDF
-  per locale through Gotenberg (`/print/{tier}/{id}?…&lng=xx`). Locales whose
-  translation failed are **not** rendered or cached, so their next download retries
-  the translation instead of serving English labelled as another language.
-- **Download** (`GET …/export?lang=fr`, `lng` also accepted): serves the cached PDF
-  for that locale; on a miss it completes the narratives (generate / upgrade legacy /
-  retry failed locales) and renders that locale. English downloads also fall back to
-  PDFs cached before this feature.
-- **Regenerate** (`regenerate=true` or the manual "generate narratives" action)
-  replaces the narratives and rebuilds every locale's cached PDF in the background.
-- Cache keys: `exports/v5/individual/{id}/submission_{id}_{lng}.pdf`,
-  `…/apex/{id}/apex_{id}_{year}{tag}_{lng}.pdf`, and likewise for federation and
-  ministry.
+PDFs are prepared on demand, one background job per report and language. Their
+status is tracked in `report_exports`. See
+[report-export-on-demand.md](report-export-on-demand.md) for the full design.
 
-The frontend sends the user's current app language with every download.
+- **On approval:** the English cooperative report is generated (narrative and
+  PDF). Every consolidated report the approval changes (apex, federation, ministry)
+  is deleted and rebuilt in English in the background; its other languages are
+  prepared again on request.
+- **Prepare** (`POST …/report/prepare?lang=xx`): English is generated from the data.
+  Another language is translated from the stored English, which must be ready first.
+  `regenerate=true` rebuilds English and drops the other languages.
+- **Status** (`GET …/report`): `preparing`, `ready` or `failed` per language. A job
+  still preparing after `REPORT_JOB_TIMEOUT_SECS` (default 600) counts as failed and
+  can be retried.
+- **Download** (`GET …/export?lang=xx`): serves a ready PDF, otherwise 409. Nothing is
+  generated inside a download request.
+- Storage keys: `exports/v5/individual/{id}/submission_{id}_{lng}.pdf`,
+  `…/apex/{id}/apex_{id}_{year}{tag}_{lng}.pdf`, and likewise for federation and
+  ministry. PDFs stored before status tracking are recognised and served.
+
+In the UI, the report card lists every language:
+- English comes first, then the user's own language.
+- Each language shows Ready, Preparing/Translating or Failed, with the one action that fits it.
+- Other languages unlock once English is ready.
 
 ---
 

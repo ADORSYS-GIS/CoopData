@@ -8,34 +8,23 @@ import {
   Clock3,
   XCircle,
   AlertCircle,
-  RefreshCw,
-  MoreVertical,
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
 
 import { AppShell } from "@/components/app-shell";
-import { normalizeAppLang } from "@/lib/contentLocalization";
 import { type Role, useUserRole } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
-import { toast } from "sonner";
+import { ReportDownloadDialog } from "@/components/reports/report-download-dialog";
+import { withLanguage } from "@/lib/report-filename";
 import {
   useCooperativeSubmissions,
   useApexSubmissions,
   useFederationSubmissions,
   useMinistrySubmissions,
 } from "@/hooks/submissions/useSubmissions";
-import { getAccessToken } from "@/services/shared/authService";
 import { useState } from "react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
-import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -93,61 +82,11 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ─── Export format picker ─────────────────────────────────────────────────────
-
-type ExportFormat = "pdf";
-
-function RowActions({
-  submissionId,
-  filename,
-  onExport,
-  isExporting,
-}: {
+interface OpenReport {
   submissionId: string;
-  filename: string;
-  onExport: (id: string, format: ExportFormat, name: string, regenerate?: boolean) => void;
-  isExporting: string | null;
-}) {
-  const { t } = useOrganizationLabelsContext();
-  const isExportingThis = isExporting === submissionId;
-  const isRegeneratingThis = isExporting === submissionId + "-regen";
-  const busy = isExporting !== null;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          disabled={busy}
-          className="flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:bg-accent hover:text-white hover:border-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label={t("reports.rowActions")}
-        >
-          {isExportingThis || isRegeneratingThis ? (
-            <Spinner size="sm" />
-          ) : (
-            <MoreVertical className="size-4" />
-          )}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem
-          disabled={busy}
-          onClick={() => onExport(submissionId, "pdf", filename, false)}
-          className="cursor-pointer"
-        >
-          <Download className="size-4" />
-          {t("reports.exportPdf")}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={busy}
-          onClick={() => onExport(submissionId, "pdf", filename, true)}
-          className="cursor-pointer"
-        >
-          <RefreshCw className="size-4" />
-          {t("reportExport.regenerateAndExport")}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  title: string;
+  subtitle: string;
+  baseName: string;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -156,9 +95,7 @@ export const ReportsPage: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
   const { user } = useAuth();
-  const [isExporting, setIsExporting] = useState<string | null>(null);
-  const { i18n } = useTranslation();
-  const reportLang = normalizeAppLang(i18n.resolvedLanguage ?? i18n.language);
+  const [openReport, setOpenReport] = useState<OpenReport | null>(null);
 
   const cooperativeQuery = useCooperativeSubmissions(role === "cooperative");
   const apexQuery = useApexSubmissions(role === "apex");
@@ -209,42 +146,6 @@ export const ReportsPage: React.FC = () => {
   // Resolve cooperative name: use field from submission, fall back to Keycloak org name
   const resolveCoopName = (s: (typeof submissions)[number]) =>
     s.cooperative_name ?? user?.organizationName ?? t("reports.myCooperative");
-
-  const handleExport = async (
-    submissionId: string,
-    format: string,
-    filename: string,
-    regenerate = false,
-  ) => {
-    setIsExporting(submissionId + (regenerate ? "-regen" : ""));
-    try {
-      const token = await getAccessToken();
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-      const url = `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/export?format=${format}&lang=${reportLang}${
-        regenerate ? "&regenerate=true" : ""
-      }`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
-      const blob = await res.blob();
-      const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(blob);
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(link.href);
-      if (regenerate) {
-        toast.success(t("reportExport.regeneratedAndDownloaded"));
-      } else {
-        toast.success(t("reports.exportSuccess", { format: format.toUpperCase() }));
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error(t("reports.exportFailed"));
-    } finally {
-      setIsExporting(null);
-    }
-  };
 
   return (
     <AppShell title={titleByRole[role]} subtitle={subtitleByRole[role]}>
@@ -360,12 +261,23 @@ export const ReportsPage: React.FC = () => {
 
                         {/* Export actions */}
                         <div className="flex justify-end">
-                          <RowActions
-                            submissionId={s.id}
-                            filename={`${baseName}.pdf`}
-                            onExport={handleExport}
-                            isExporting={isExporting}
-                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenReport({
+                                submissionId: s.id,
+                                title: coopName,
+                                subtitle: t("reports.financialReportLabel", {
+                                  year: s.reporting_year,
+                                }),
+                                baseName,
+                              })
+                            }
+                            className="press-feedback inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:border-accent hover:bg-accent hover:text-white transition-all"
+                          >
+                            <Download className="size-3.5" aria-hidden />
+                            {t("reports.downloadReport")}
+                          </button>
                         </div>
                       </li>
                     );
@@ -381,6 +293,16 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {openReport && (
+        <ReportDownloadDialog
+          title={openReport.title}
+          subtitle={openReport.subtitle}
+          reportRef={{ kind: "submission", submissionId: openReport.submissionId }}
+          filename={(lang) => withLanguage(`${openReport.baseName}.pdf`, lang)}
+          onClose={() => setOpenReport(null)}
+        />
+      )}
     </AppShell>
   );
 };

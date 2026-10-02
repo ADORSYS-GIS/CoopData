@@ -1,13 +1,12 @@
 //! Multilingual AI narratives: "generate once in English, translate many".
 //!
 //! The expensive financial analysis runs once in English. The finished paragraphs
-//! (no financial tables) are then translated into every other report locale, and
-//! each translation is validated before it is accepted so a report never ships with
-//! altered figures or untranslated English labelled as another language.
+//! (no financial tables) are translated into another report locale only when a
+//! report in that locale is requested, and each translation is validated before it
+//! is accepted so a report never ships with altered figures or untranslated English
+//! labelled as another language.
 
 use std::collections::BTreeSet;
-
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::services::report_narrative::ReportNarrativeGenerator;
 
@@ -15,188 +14,80 @@ use crate::services::report_narrative::ReportNarrativeGenerator;
 pub const TRANSLATION_TARGETS: [(&str, &str); 3] =
     [("fr", "French"), ("pt", "Portuguese"), ("ss", "Siswati")];
 
-/// Attempts per locale before falling back to English.
+/// Attempts per locale before the translation is reported as failed.
 const MAX_ATTEMPTS: u32 = 3;
 
 /// Fields at least this long must not come back identical to the English text;
 /// shorter ones (e.g. a lone acronym) may legitimately be unchanged.
 const MIN_LEN_REQUIRING_CHANGE: usize = 40;
 
-/// One narrative set per supported report locale, as stored in metadata under
-/// `ai_narratives` (submissions) or `ai_narratives_{year}` (apex / federation).
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-pub struct Multilingual<T> {
-    pub en: T,
-    pub fr: T,
-    pub pt: T,
-    pub ss: T,
-    /// Locales that hold an English copy because translation failed. They are
-    /// retried the next time narratives are requested.
-    #[serde(default)]
-    pub untranslated: Vec<String>,
-}
-
-impl<T: Clone> Multilingual<T> {
-    /// Every locale holds the English text and is marked for translation.
-    pub fn english_only(en: T) -> Self {
-        Self {
-            fr: en.clone(),
-            pt: en.clone(),
-            ss: en.clone(),
-            en,
-            untranslated: TRANSLATION_TARGETS
-                .iter()
-                .map(|(code, _)| (*code).to_string())
-                .collect(),
-        }
-    }
-
-    pub fn get(&self, lng: &str) -> &T {
-        match lng {
-            "fr" => &self.fr,
-            "pt" => &self.pt,
-            "ss" => &self.ss,
-            _ => &self.en,
-        }
-    }
-
-    fn set(&mut self, lng: &str, value: T) {
-        match lng {
-            "fr" => self.fr = value,
-            "pt" => self.pt = value,
-            "ss" => self.ss = value,
-            _ => self.en = value,
-        }
-    }
-
-    pub fn is_complete(&self) -> bool {
-        self.untranslated.is_empty()
-    }
-}
-
-/// Narratives read back from metadata, in either the multilingual shape or the
-/// legacy English-only shape written before multilingual reports existed.
-pub enum StoredNarratives<T> {
-    Multilingual(Multilingual<T>),
-    Legacy(T),
-}
-
-pub fn parse_stored<T: DeserializeOwned>(value: &serde_json::Value) -> Option<StoredNarratives<T>> {
-    if value.get("en").is_some() {
-        serde_json::from_value(value.clone())
-            .ok()
-            .map(StoredNarratives::Multilingual)
-    } else {
-        serde_json::from_value(value.clone())
-            .ok()
-            .map(StoredNarratives::Legacy)
-    }
-}
-
-/// Picks the narratives for one locale out of a stored metadata value, accepting
-/// both the multilingual and the legacy English-only shape.
-pub fn select_locale(value: serde_json::Value, lng: &str) -> serde_json::Value {
+/// The English narratives of a stored value, accepting both the multilingual shape
+/// (`{ "en": {...}, "fr": {...} }`) and the legacy flat English-only object.
+pub fn english_of(
+    value: &serde_json::Value,
+) -> Option<&serde_json::Map<String, serde_json::Value>> {
     match value.get("en") {
-        Some(en) => value.get(lng).cloned().unwrap_or_else(|| en.clone()),
+        Some(en) => en.as_object(),
+        None => value.as_object(),
+    }
+}
+
+/// Whether a stored value holds narratives for `lng`: English once generated,
+/// another language only once its translation was accepted. Languages listed in
+/// a legacy `untranslated` array hold an English copy and do not count.
+pub fn has_locale(value: &serde_json::Value, lng: &str) -> bool {
+    if lng == "en" {
+        return english_of(value).is_some();
+    }
+    let flagged = value
+        .get("untranslated")
+        .and_then(|u| u.as_array())
+        .is_some_and(|list| list.iter().any(|l| l.as_str() == Some(lng)));
+    value.get("en").is_some() && value.get(lng).is_some_and(|v| v.is_object()) && !flagged
+}
+
+/// Picks the narratives for one locale out of a stored metadata value, falling
+/// back to English while that locale has not been translated.
+pub fn select_locale(value: serde_json::Value, lng: &str) -> serde_json::Value {
+    if has_locale(&value, lng) {
+        if let Some(localized) = value.get(lng) {
+            return localized.clone();
+        }
+    }
+    match value.get("en") {
+        Some(en) => en.clone(),
         None => value,
     }
 }
 
-/// Translates English narratives into every target locale concurrently.
-/// Locales whose translation fails validation keep the English text and are
-/// listed in `untranslated`.
-pub async fn translate_all<T>(
+/// Translates English narratives into one locale, validating the result.
+/// Returns the reason when every attempt was rejected or the request failed.
+pub async fn translate_locale(
     generator: &dyn ReportNarrativeGenerator,
-    english: &T,
-) -> Multilingual<T>
-where
-    T: Serialize + DeserializeOwned + Clone + Send + Sync,
-{
-    let mut result = Multilingual::english_only(english.clone());
-    result.untranslated.clear();
-    retranslate(generator, &mut result, &all_targets()).await;
+    english: &serde_json::Map<String, serde_json::Value>,
+    lng: &str,
+) -> Result<serde_json::Value, String> {
+    let language = TRANSLATION_TARGETS
+        .iter()
+        .find(|(code, _)| *code == lng)
+        .map(|(_, name)| *name)
+        .ok_or_else(|| format!("no translation target for locale `{lng}`"))?;
+    let start = std::time::Instant::now();
+    let result = translate_one(generator, english, language).await;
+    tracing::info!(
+        lng,
+        ok = result.is_ok(),
+        elapsed_ms = start.elapsed().as_millis(),
+        "[translation] 🌍 Translation finished"
+    );
     result
 }
 
-/// Fills the locales listed in `untranslated` of an existing multilingual set.
-pub async fn complete_missing<T>(
-    generator: &dyn ReportNarrativeGenerator,
-    narratives: &mut Multilingual<T>,
-) where
-    T: Serialize + DeserializeOwned + Clone + Send + Sync,
-{
-    let pending: Vec<String> = std::mem::take(&mut narratives.untranslated);
-    retranslate(generator, narratives, &pending).await;
-}
-
-fn all_targets() -> Vec<String> {
-    TRANSLATION_TARGETS
-        .iter()
-        .map(|(code, _)| (*code).to_string())
-        .collect()
-}
-
-async fn retranslate<T>(
-    generator: &dyn ReportNarrativeGenerator,
-    narratives: &mut Multilingual<T>,
-    codes: &[String],
-) where
-    T: Serialize + DeserializeOwned + Clone + Send + Sync,
-{
-    let english = match serde_json::to_value(&narratives.en) {
-        Ok(serde_json::Value::Object(map)) => map,
-        _ => {
-            tracing::error!("[translation] English narratives are not a JSON object");
-            narratives.untranslated = codes.to_vec();
-            return;
-        }
-    };
-
-    let wanted = |code: &str| codes.iter().any(|c| c == code);
-    let start = std::time::Instant::now();
-    let (fr, pt, ss) = tokio::join!(
-        translate_if(wanted("fr"), generator, &english, "French"),
-        translate_if(wanted("pt"), generator, &english, "Portuguese"),
-        translate_if(wanted("ss"), generator, &english, "Siswati"),
-    );
-
-    for (code, outcome) in [("fr", fr), ("pt", pt), ("ss", ss)] {
-        match outcome {
-            None => {}
-            Some(Ok(value)) => narratives.set(code, value),
-            Some(Err(reason)) => {
-                tracing::warn!(lng = code, reason = %reason, "[translation] ⚠️ Falling back to English");
-                narratives.set(code, narratives.en.clone());
-                narratives.untranslated.push(code.to_string());
-            }
-        }
-    }
-
-    tracing::info!(
-        elapsed_ms = start.elapsed().as_millis(),
-        untranslated = ?narratives.untranslated,
-        "[translation] 🌍 Translation step finished"
-    );
-}
-
-async fn translate_if<T: DeserializeOwned>(
-    wanted: bool,
+async fn translate_one(
     generator: &dyn ReportNarrativeGenerator,
     english: &serde_json::Map<String, serde_json::Value>,
     language: &str,
-) -> Option<Result<T, String>> {
-    if wanted {
-        Some(translate_one(generator, english, language).await)
-    } else {
-        None
-    }
-}
-
-async fn translate_one<T: DeserializeOwned>(
-    generator: &dyn ReportNarrativeGenerator,
-    english: &serde_json::Map<String, serde_json::Value>,
-    language: &str,
-) -> Result<T, String> {
+) -> Result<serde_json::Value, String> {
     let payload = serde_json::to_string_pretty(english).map_err(|e| e.to_string())?;
     let mut last_error = String::new();
 
@@ -207,9 +98,7 @@ async fn translate_one<T: DeserializeOwned>(
             .await
             .map_err(|e| format!("{language} translation request failed: {e}"))?;
 
-        match validate_translation(english, &raw)
-            .and_then(|value| serde_json::from_value::<T>(value).map_err(|e| e.to_string()))
-        {
+        match validate_translation(english, &raw) {
             Ok(translated) => return Ok(translated),
             Err(reason) => {
                 tracing::warn!(
@@ -356,7 +245,7 @@ English JSON:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::report_narrative::{CooperativeNarratives, MockNarrativeGenerator};
+    use crate::services::report_narrative::MockNarrativeGenerator;
 
     fn english() -> serde_json::Map<String, serde_json::Value> {
         serde_json::json!({
@@ -432,28 +321,50 @@ mod tests {
         assert_eq!(select_locale(legacy.clone(), "fr"), legacy);
     }
 
-    #[tokio::test]
-    async fn untranslated_locales_fall_back_to_english_and_are_flagged() {
-        let en = CooperativeNarratives {
-            executive_summary:
-                "The cooperative remained solvent throughout the reporting year 2024.".into(),
-            ..Default::default()
-        };
+    #[test]
+    fn locales_flagged_untranslated_do_not_count() {
+        let stored = serde_json::json!({
+            "en": { "a": "x" },
+            "fr": { "a": "x" },
+            "pt": { "a": "z" },
+            "untranslated": ["fr"]
+        });
 
-        // The mock echoes the English text back, which validation must reject.
-        let result = translate_all(&MockNarrativeGenerator, &en).await;
-
-        assert_eq!(result.fr.executive_summary, en.executive_summary);
-        assert_eq!(result.untranslated, vec!["fr", "pt", "ss"]);
-        assert!(!result.is_complete());
+        assert!(has_locale(&stored, "en"));
+        assert!(!has_locale(&stored, "fr"));
+        assert!(has_locale(&stored, "pt"));
+        assert!(!has_locale(&stored, "ss"));
+        assert_eq!(select_locale(stored, "fr"), serde_json::json!({ "a": "x" }));
     }
 
     #[test]
-    fn parse_stored_detects_legacy_shape() {
-        let legacy = serde_json::to_value(CooperativeNarratives::default()).unwrap_or_default();
+    fn legacy_flat_narratives_are_english() {
+        let legacy = serde_json::json!({ "executive_summary": "x" });
 
-        let parsed = parse_stored::<CooperativeNarratives>(&legacy);
+        assert!(has_locale(&legacy, "en"));
+        assert!(!has_locale(&legacy, "fr"));
+        assert_eq!(english_of(&legacy).map(|m| m.len()), Some(1));
+    }
 
-        assert!(matches!(parsed, Some(StoredNarratives::Legacy(_))));
+    #[tokio::test]
+    async fn a_translation_left_in_english_fails() {
+        let english = serde_json::json!({
+            "executive_summary": "The cooperative remained solvent throughout the reporting year 2024."
+        })
+        .as_object()
+        .cloned()
+        .unwrap_or_default();
+
+        // The mock echoes the English text back, which validation must reject.
+        let result = translate_locale(&MockNarrativeGenerator, &english, "fr").await;
+
+        assert!(result.unwrap_err().contains("left in English"));
+    }
+
+    #[tokio::test]
+    async fn unknown_locale_is_rejected() {
+        let result = translate_locale(&MockNarrativeGenerator, &serde_json::Map::new(), "de").await;
+
+        assert!(result.is_err());
     }
 }

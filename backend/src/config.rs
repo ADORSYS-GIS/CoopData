@@ -39,6 +39,9 @@ pub struct AppConfig {
     // Rate limiting
     pub rate_limit_auth_max: u64,
     pub rate_limit_auth_window_secs: u64,
+    /// A report job still "preparing" after this many seconds is presumed lost
+    /// (e.g. the process restarted) and may be started again.
+    pub report_job_timeout_secs: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -126,6 +129,10 @@ impl AppConfig {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(60),
+            report_job_timeout_secs: env::var("REPORT_JOB_TIMEOUT_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(600),
         })
     }
 
@@ -195,6 +202,7 @@ mod tests {
             s3_region: "us-east-1".into(),
             rate_limit_auth_max: 5,
             rate_limit_auth_window_secs: 60,
+            report_job_timeout_secs: 600,
         }
     }
 

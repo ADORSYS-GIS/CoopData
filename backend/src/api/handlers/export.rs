@@ -1,19 +1,20 @@
 use axum::body::Body;
+use axum::http::StatusCode;
 use axum::response::Response;
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
-    Extension,
+    Extension, Json,
 };
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::api::dto::report_export::ReportStatusResponse;
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
-use crate::services::export_generator::{
-    ExportGenerator, EXPORT_LOCALES, EXPORT_PREFIX, QUESTIONNAIRE_LOCALE,
-};
+use crate::services::export_generator::QUESTIONNAIRE_LOCALE;
 use crate::services::narrative_translation;
+use crate::services::report_jobs::{self, ReportTarget};
 use crate::AppState;
 
 #[derive(Debug, serde::Deserialize)]
@@ -28,16 +29,19 @@ pub struct ExportQuery {
     /// Report locale (`en`, `fr`, `pt`, `ss`). Accepts `lng` as an alias. Defaults to `en`.
     #[serde(alias = "lng")]
     pub lang: Option<String>,
+    /// Prepare: regenerate the English report from the current data.
+    #[serde(default)]
+    pub regenerate: bool,
 }
 
 #[derive(Debug, serde::Deserialize, Default)]
 pub struct SingleExportQuery {
-    /// Pass `regenerate=true` to bypass the cached PDF and force a fresh generation.
-    #[serde(default)]
-    pub regenerate: bool,
     /// Report locale (`en`, `fr`, `pt`, `ss`). Accepts `lng` as an alias. Defaults to `en`.
     #[serde(alias = "lng")]
     pub lang: Option<String>,
+    /// Prepare: regenerate the English report from the current data.
+    #[serde(default)]
+    pub regenerate: bool,
 }
 
 /// Normalises a requested report locale, defaulting to English.
@@ -46,31 +50,19 @@ fn requested_locale(lang: Option<&str>) -> String {
         .unwrap_or_else(|| crate::services::localization::FALLBACK_LOCALE.to_string())
 }
 
-/// GET /api/v1/cooperative/submissions/{id}/export
-/// Exports a single cooperative submission in PDF.
-#[utoipa::path(
-    get,
-    path = "/api/v1/cooperative/submissions/{id}/export",
-    params(
-        ("id" = Uuid, Path, description = "Submission ID"),
-        ("regenerate" = Option<bool>, Query, description = "Force PDF re-generation"),
-        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)")
-    ),
-    responses(
-        (status = 200, description = "Export file stream"),
-        (status = 403, description = "Forbidden"),
-        (status = 404, description = "Not found")
-    ),
-    tag = "Export"
-)]
-pub async fn export_single_submission(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Path(id): Path<Uuid>,
-    Query(query): Query<SingleExportQuery>,
-) -> AppResult<impl IntoResponse> {
+/// The requested locale, or English for English-only (questionnaire) reports.
+fn report_locale(target: ReportTarget, lang: Option<&str>) -> String {
+    if target.languages().len() == 1 {
+        QUESTIONNAIRE_LOCALE.to_string()
+    } else {
+        requested_locale(lang)
+    }
+}
+
+/// The report of a submission the caller may access.
+async fn submission_target(state: &AppState, claims: &Claims, id: Uuid) -> AppResult<ReportTarget> {
     let allowed_coops =
-        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(state, claims).await?;
 
     let submission = state
         .submission_repo
@@ -84,129 +76,40 @@ pub async fn export_single_submission(
         ));
     }
 
-    let questionnaire = crate::services::questionnaire_report::is_questionnaire_method(
-        &submission.submission_method,
-    );
-    // Questionnaire reports are English-only.
-    let lang = if questionnaire {
-        QUESTIONNAIRE_LOCALE.to_string()
-    } else {
-        requested_locale(query.lang.as_deref())
-    };
-    let filename = format!("submission_{id}_{lang}.pdf");
-    let storage_key = ExportGenerator::submission_pdf_key(id, &lang);
-    // PDFs exported before multilingual reports existed are English-only.
-    let legacy_key = format!("{EXPORT_PREFIX}/individual/{id}/submission_{id}.pdf");
-
-    let cached = if query.regenerate {
-        None
-    } else {
-        match state.storage.get_object(&storage_key).await {
-            Ok(b) => Some(b),
-            Err(_) if lang == "en" => state.storage.get_object(&legacy_key).await.ok(),
-            Err(_) => None,
-        }
-    };
-
-    let bytes = match cached {
-        Some(b) => {
-            tracing::info!(submission_id = %id, lang = %lang, "Serving cached PDF from storage");
-            b
-        }
-        None => {
-            tracing::info!(
-                submission_id = %id,
-                lang = %lang,
-                regenerate = query.regenerate,
-                "Generating PDF"
-            );
-            let (generated, untranslated) =
-                ExportGenerator::generate_submission_pdf(&state, id, &lang, query.regenerate)
-                    .await?;
-            let cacheable = ExportGenerator::report_locales(questionnaire, untranslated.as_ref());
-            if cacheable.contains(&lang.as_str()) {
-                state
-                    .storage
-                    .store(&storage_key, &generated, "application/pdf")
-                    .await?;
-            } else {
-                tracing::warn!(
-                    submission_id = %id,
-                    lang = %lang,
-                    "Narratives missing or untranslated — PDF served but not cached"
-                );
-            }
-            if query.regenerate {
-                // Fresh narratives make every other locale's cached PDF stale.
-                let state = state.clone();
-                let others: Vec<&'static str> =
-                    cacheable.into_iter().filter(|l| *l != lang).collect();
-                let stale: Vec<&'static str> =
-                    EXPORT_LOCALES.into_iter().filter(|l| *l != lang).collect();
-                tokio::spawn(async move {
-                    for locale in stale {
-                        let _ = state
-                            .storage
-                            .delete(&ExportGenerator::submission_pdf_key(id, locale))
-                            .await;
-                    }
-                    ExportGenerator::store_submission_locales(&state, id, questionnaire, &others)
-                        .await;
-                });
-            }
-            generated
-        }
-    };
-
-    let res = Response::builder()
-        .header("Content-Type", "application/pdf")
-        .header(
-            "Content-Disposition",
-            format!("attachment; filename=\"{}\"", filename),
-        )
-        .body(Body::from(bytes))
-        .unwrap();
-    Ok(res)
+    Ok(ReportTarget::Submission {
+        id,
+        questionnaire: crate::services::questionnaire_report::is_questionnaire_method(
+            &submission.submission_method,
+        ),
+    })
 }
 
-/// GET /api/v1/apex/export
-/// GET /api/v1/federation/export
-/// GET /api/v1/ministry/export
-/// Exports a consolidated PDF report of all cooperatives within the user's scope.
-#[utoipa::path(
-    get,
-    path = "/api/v1/apex/export",
-    responses(
-        (status = 200, description = "Consolidated PDF file stream"),
-        (status = 403, description = "Forbidden")
-    ),
-    tag = "Export"
-)]
-pub async fn export_bulk_consolidated(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Query(mut query): Query<ExportQuery>,
-) -> AppResult<impl IntoResponse> {
-    if let Some(year) = query.reporting_year {
-        query.reporting_year = Some(year.clamp(1900, 2100));
-    }
-    if query.apex_id.is_none() && claims.is_apex() {
+/// The consolidated report (apex, federation or national) the caller asked for,
+/// restricted to the caller's scope.
+async fn consolidated_target(
+    state: &AppState,
+    claims: &Claims,
+    query: &ExportQuery,
+) -> AppResult<ReportTarget> {
+    let mut apex_id = query.apex_id;
+    let mut federation_id = query.federation_id;
+    if apex_id.is_none() && claims.is_apex() {
         if let Ok(id) =
-            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await
+            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(state, claims).await
         {
-            query.apex_id = Some(id);
+            apex_id = Some(id);
         }
     }
-    if query.federation_id.is_none() && claims.is_federation() {
+    if federation_id.is_none() && claims.is_federation() {
         if let Some(org_id) = claims.get_organization_id() {
             if let Ok(Some(fed)) = state.federation_repo.find_by_keycloak_id(&org_id).await {
-                query.federation_id = Some(fed.id);
+                federation_id = Some(fed.id);
             }
         }
     }
 
     let mut allowed_coops =
-        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(state, claims).await?;
 
     if allowed_coops.is_empty() {
         return Err(AppError::Forbidden(
@@ -214,11 +117,11 @@ pub async fn export_bulk_consolidated(
         ));
     }
 
-    if let Some(apex_id) = query.apex_id {
+    if let Some(apex_id) = apex_id {
         let coops = state.cooperative_repo.find_by_apex_id(apex_id).await?;
         let coop_ids: Vec<Uuid> = coops.into_iter().map(|c| c.id).collect();
         allowed_coops.retain(|id| coop_ids.contains(id));
-    } else if let Some(fed_id) = query.federation_id {
+    } else if let Some(fed_id) = federation_id {
         let apexes = state.apex_repo.find_by_federation_id(fed_id).await?;
         let mut coop_ids = vec![];
         for apex in apexes {
@@ -238,128 +141,227 @@ pub async fn export_bulk_consolidated(
         .method
         .as_deref()
         .is_some_and(|m| m.eq_ignore_ascii_case("questionnaire"));
-    let tag = if questionnaire { "_questionnaire" } else { "" };
+    let year = query
+        .reporting_year
+        .ok_or_else(|| {
+            AppError::BadRequest("reporting_year is required for consolidated exports".into())
+        })?
+        .clamp(1900, 2100);
 
-    // Questionnaire reports are English-only.
-    let lang = if questionnaire {
-        QUESTIONNAIRE_LOCALE.to_string()
-    } else {
-        requested_locale(query.lang.as_deref())
-    };
-    let year = query.reporting_year.ok_or_else(|| {
-        AppError::BadRequest("reporting_year is required for consolidated exports".into())
-    })?;
+    Ok(match (apex_id, federation_id) {
+        (Some(id), _) => ReportTarget::Apex {
+            id,
+            year,
+            questionnaire,
+        },
+        (None, Some(id)) => ReportTarget::Federation {
+            id,
+            year,
+            questionnaire,
+        },
+        (None, None) => ReportTarget::Ministry {
+            year,
+            questionnaire,
+        },
+    })
+}
 
-    let (storage_key, legacy_key) = match (query.apex_id, query.federation_id) {
-        (Some(aid), _) => (
-            ExportGenerator::apex_pdf_key(aid, year, tag, &lang),
-            format!("{EXPORT_PREFIX}/apex/{aid}/apex_{aid}_{year}{tag}.pdf"),
-        ),
-        (None, Some(fid)) => (
-            ExportGenerator::federation_pdf_key(fid, year, tag, &lang),
-            format!("{EXPORT_PREFIX}/federation/{fid}/federation_{fid}_{year}{tag}.pdf"),
-        ),
-        (None, None) => (
-            ExportGenerator::ministry_pdf_key(year, tag, &lang),
-            format!("{EXPORT_PREFIX}/ministry/ministry_{year}{tag}.pdf"),
-        ),
-    };
-    let display_filename = storage_key
-        .rsplit('/')
-        .next()
-        .unwrap_or("report.pdf")
-        .to_string();
-
-    // PDFs exported before multilingual reports existed are English-only.
-    let cached = match state.storage.get_object(&storage_key).await {
-        Ok(b) => Some(b),
-        Err(_) if lang == "en" => state.storage.get_object(&legacy_key).await.ok(),
-        Err(_) => None,
-    };
-    if let Some(bytes) = cached {
-        tracing::info!(key = %storage_key, lang = %lang, "Bucket HIT for consolidated export");
-        return Ok(pdf_response(bytes, &display_filename));
+/// Streams the PDF of a ready language; 409 while it is not ready.
+async fn download(state: &AppState, target: ReportTarget, lang: &str) -> AppResult<Response> {
+    match report_jobs::ready_pdf(state, target, lang).await? {
+        Some(bytes) => Ok(pdf_response(bytes, &target.filename(lang))),
+        None => Err(AppError::Conflict("The report is not ready yet".into())),
     }
+}
 
-    // Upgrade legacy English-only narratives and retry failed translations before
-    // rendering. Questionnaire consolidated reports carry no AI narratives.
-    let untranslated = if questionnaire {
-        None
-    } else {
-        match (query.apex_id, query.federation_id) {
-            (Some(aid), _) => {
-                ExportGenerator::ensure_apex_narratives(&state, aid, year, None).await
-            }
-            (None, Some(fid)) => {
-                ExportGenerator::ensure_federation_narratives(&state, fid, year, None).await
-            }
-            (None, None) => ExportGenerator::ensure_ministry_narratives(&state, year, None).await,
-        }
-    };
-    // Without stored narratives the report renders its factual sections only, which
-    // stays valid until the next background export replaces it.
-    let cacheable = match untranslated {
-        Some(untranslated) => !untranslated.contains(&lang),
-        None => true,
-    };
+async fn status_response(
+    state: &AppState,
+    target: ReportTarget,
+) -> AppResult<Json<ReportStatusResponse>> {
+    let statuses = report_jobs::statuses(state, target).await?;
+    Ok(Json(ReportStatusResponse::new(target, statuses)))
+}
 
-    let token = state.keycloak.get_admin_token().await?;
-    let base = &state.config.gotenberg_frontend_url;
-    let print_url = match (query.apex_id, query.federation_id) {
-        (Some(aid), _) => {
-            let apex = state
-                .apex_repo
-                .find_by_id(aid)
-                .await?
-                .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
-            let name = urlencoding::encode(&apex.display_name);
-            if questionnaire {
-                format!("{base}/print/questionnaire-consolidated?token={token}&year={year}&scope=apex&id={aid}&name={name}&lng={lang}")
-            } else {
-                // The apex print page and its APIs address the apex by Keycloak ID.
-                format!(
-                    "{base}/print/apex/{}?token={token}&year={year}&name={name}&lng={lang}",
-                    apex.keycloak_id
-                )
-            }
-        }
-        (None, Some(fid)) => {
-            let federation = state
-                .federation_repo
-                .find_by_id(fid)
-                .await?
-                .ok_or_else(|| AppError::NotFound("Federation not found".into()))?;
-            let name = urlencoding::encode(&federation.display_name);
-            if questionnaire {
-                format!("{base}/print/questionnaire-consolidated?token={token}&year={year}&scope=federation&id={fid}&name={name}&lng={lang}")
-            } else {
-                format!(
-                    "{base}/print/federation/{}?token={token}&year={year}&name={name}&lng={lang}",
-                    federation.keycloak_id
-                )
-            }
-        }
-        (None, None) if questionnaire => format!(
-            "{base}/print/questionnaire-consolidated?token={token}&year={year}&scope=ministry&lng={lang}"
-        ),
-        (None, None) => format!("{base}/print/ministry?token={token}&year={year}&lng={lang}"),
-    };
+async fn prepare_response(
+    state: &AppState,
+    target: ReportTarget,
+    lang: Option<&str>,
+    regenerate: bool,
+) -> AppResult<(StatusCode, Json<ReportStatusResponse>)> {
+    let lang = report_locale(target, lang);
+    let statuses = report_jobs::prepare(state, target, &lang, regenerate).await?;
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(ReportStatusResponse::new(target, statuses)),
+    ))
+}
 
-    let bytes = ExportGenerator::generate_pdf_via_gotenberg(&state, &print_url).await?;
+/// GET /api/v1/{tier}/submissions/{id}/export
+/// Downloads the PDF of a submission report in one language once it is ready.
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/export",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)")
+    ),
+    responses(
+        (status = 200, description = "PDF file stream"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "The report is not ready in this language")
+    ),
+    tag = "Export"
+)]
+pub async fn export_single_submission(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<SingleExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = submission_target(&state, &claims, id).await?;
+    let lang = report_locale(target, query.lang.as_deref());
+    download(&state, target, &lang).await
+}
 
-    if cacheable {
-        if let Err(e) = state
-            .storage
-            .store(&storage_key, &bytes, "application/pdf")
-            .await
-        {
-            tracing::warn!(error = %e, key = %storage_key, "Failed to cache live-generated export");
-        }
-    } else {
-        tracing::warn!(key = %storage_key, lang = %lang, "Narratives untranslated — PDF served but not cached");
-    }
+/// GET /api/v1/{tier}/submissions/{id}/report
+/// Status of every language of a submission report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/report",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Report status per language", body = ReportStatusResponse),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_submission_report_status(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let target = submission_target(&state, &claims, id).await?;
+    status_response(&state, target).await
+}
 
-    Ok(pdf_response(bytes, &display_filename))
+/// POST /api/v1/{tier}/submissions/{id}/report/prepare
+/// Starts preparing one language of a submission report in the background.
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/report/prepare",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)"),
+        ("regenerate" = Option<bool>, Query, description = "Regenerate the English report from the current data")
+    ),
+    responses(
+        (status = 202, description = "Preparation started (or already running)", body = ReportStatusResponse),
+        (status = 400, description = "Language not available for this report"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "The English report must be ready first")
+    ),
+    tag = "Export"
+)]
+pub async fn prepare_submission_report(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<SingleExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = submission_target(&state, &claims, id).await?;
+    tracing::info!(report = %target.key(), lang = ?query.lang, regenerate = query.regenerate, "Report preparation requested");
+    prepare_response(&state, target, query.lang.as_deref(), query.regenerate).await
+}
+
+/// GET /api/v1/apex/export
+/// GET /api/v1/federation/export
+/// GET /api/v1/ministry/export
+/// Downloads a consolidated report PDF of the caller's scope once it is ready.
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/export",
+    params(
+        ("apex_id" = Option<Uuid>, Query, description = "Apex (federation and ministry users)"),
+        ("federation_id" = Option<Uuid>, Query, description = "Federation (ministry users)"),
+        ("reporting_year" = i32, Query, description = "Reporting year"),
+        ("method" = Option<String>, Query, description = "`questionnaire` for the questionnaire report"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)")
+    ),
+    responses(
+        (status = 200, description = "Consolidated PDF file stream"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "The report is not ready in this language")
+    ),
+    tag = "Export"
+)]
+pub async fn export_bulk_consolidated(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = consolidated_target(&state, &claims, &query).await?;
+    let lang = report_locale(target, query.lang.as_deref());
+    download(&state, target, &lang).await
+}
+
+/// GET /api/v1/{apex|federation|ministry}/report
+/// Status of every language of a consolidated report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/report",
+    params(
+        ("apex_id" = Option<Uuid>, Query, description = "Apex (federation and ministry users)"),
+        ("federation_id" = Option<Uuid>, Query, description = "Federation (ministry users)"),
+        ("reporting_year" = i32, Query, description = "Reporting year"),
+        ("method" = Option<String>, Query, description = "`questionnaire` for the questionnaire report")
+    ),
+    responses(
+        (status = 200, description = "Report status per language", body = ReportStatusResponse),
+        (status = 400, description = "reporting_year missing"),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Export"
+)]
+pub async fn get_consolidated_report_status(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = consolidated_target(&state, &claims, &query).await?;
+    status_response(&state, target).await
+}
+
+/// POST /api/v1/{apex|federation|ministry}/report/prepare
+/// Starts preparing one language of a consolidated report in the background.
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/report/prepare",
+    params(
+        ("apex_id" = Option<Uuid>, Query, description = "Apex (federation and ministry users)"),
+        ("federation_id" = Option<Uuid>, Query, description = "Federation (ministry users)"),
+        ("reporting_year" = i32, Query, description = "Reporting year"),
+        ("method" = Option<String>, Query, description = "`questionnaire` for the questionnaire report"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)"),
+        ("regenerate" = Option<bool>, Query, description = "Regenerate the English report from the current data")
+    ),
+    responses(
+        (status = 202, description = "Preparation started (or already running)", body = ReportStatusResponse),
+        (status = 400, description = "Language not available for this report"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "The English report must be ready first")
+    ),
+    tag = "Export"
+)]
+pub async fn prepare_consolidated_report(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = consolidated_target(&state, &claims, &query).await?;
+    tracing::info!(report = %target.key(), lang = ?query.lang, regenerate = query.regenerate, "Report preparation requested");
+    prepare_response(&state, target, query.lang.as_deref(), query.regenerate).await
 }
 
 fn pdf_response(bytes: Vec<u8>, filename: &str) -> Response {
@@ -469,25 +471,7 @@ pub async fn generate_submission_narratives(
     let questionnaire = crate::services::questionnaire_report::is_questionnaire_method(
         &submission.submission_method,
     );
-    let untranslated =
-        ExportGenerator::ensure_submission_narratives(&state, id, questionnaire, true)
-            .await
-            .ok_or_else(|| {
-                AppError::ExternalServiceError("Failed to generate narratives".into())
-            })?;
-
-    // Cached PDFs embed the previous narratives; rebuild them in the background.
-    let refreshed = state.clone();
-    tokio::spawn(async move {
-        for locale in EXPORT_LOCALES {
-            let _ = refreshed
-                .storage
-                .delete(&ExportGenerator::submission_pdf_key(id, locale))
-                .await;
-        }
-        let locales = ExportGenerator::report_locales(questionnaire, Some(&untranslated));
-        ExportGenerator::store_submission_locales(&refreshed, id, questionnaire, &locales).await;
-    });
+    report_jobs::regenerate_submission_narratives(&state, id, questionnaire).await?;
 
     let stored = state
         .submission_repo
