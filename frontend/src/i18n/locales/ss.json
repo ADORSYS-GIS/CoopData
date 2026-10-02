@@ -1211,6 +1211,53 @@
       "currentBadge": "Indlela yekufaka: {{method}}",
       "changeHint": "Ungashintja indlela yekufaka ngenkathi lommbiko usengumtselelo (draft).",
       "changeBtn": "Shintja indlela"
+    },
+    "access": {
+      "readOnly": "Kufundza kuphela",
+      "reclaimedAt": "Kubuyiswe nga-{{time}}",
+      "noteFrom": "Simonyoro ({{apex}})",
+      "badge": {
+        "editing": "Uyahlela",
+        "waiting": "Kulungele kutsi uhlele",
+        "colleague": "Kuyahlelwa",
+        "colleagueNamed": "{{name}} uyahlela",
+        "reclaimed": "Kubuyiswe · {{apex}}",
+        "reclaimedNamed": "Kubuyiswe ngu-{{name}}",
+        "withApex": "Ku-{{apex}}",
+        "withApexNamed": "Ku-{{apex}} · {{name}}",
+        "withCooperative": "Ku-{{coop}}",
+        "withCooperativeNamed": "Ku-{{coop}} · {{name}}"
+      },
+      "banner": {
+        "reclaimed": {
+          "title": "Lombiko ubuyiselwe emuva ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) ubuyisele lombiko emuva",
+          "body": "Usengakubona konkhe lokugcwalisiwe, kodvwa angeke usakwati kuhlela. Uma kusenalokufanele kushintjwe, tsintsana na-{{apex}}.",
+          "bodyNamed": "Usengakubona konkhe lokugcwalisiwe, kodvwa angeke usakwati kuhlela. Uma kusenalokufanele kushintjwe, tsintsana na-{{name}}."
+        },
+        "withApex": {
+          "title": "Lombiko usalungiswa ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) usalungisa lombiko",
+          "body": "Wenteka egameni lakho ({{apex}}). Ungawubuka nyalo, futsi utawukhona kuwuhlela uma usunikwe wena.",
+          "bodyNamed": "Wenteka egameni lakho ({{apex}}). Ungawubuka nyalo, futsi utawukhona kuwuhlela uma {{name}} asakunikile."
+        },
+        "colleague": {
+          "title": "Lomunye umuntfu uhlela lombiko",
+          "titleNamed": "{{name}} uhlela lombiko",
+          "body": "Ngumuntfu munye kuphela longahlela umbiko ngesikhatsi sinye, ngako-ke ungawufundza kuphela ngalesikhatsi.",
+          "bodyNamed": "Ngumuntfu munye kuphela longahlela umbiko ngesikhatsi sinye, ngako-ke ungawufundza kuphela ngalesikhatsi {{name}} asebenta kuwo."
+        }
+      },
+      "lost": {
+        "title": "Imvume yakho yekuhlela iphelile",
+        "reclaimed": "Lombiko ubuyiselwe emuva ({{apex}}). Lokushintjile lobekungakalondvolozwa akugcinwanga.",
+        "reclaimedNamed": "{{name}} ({{apex}}) ubuyisele lombiko emuva. Lokushintjile lobekungakalondvolozwa akugcinwanga.",
+        "colleague": "Lomunye umuntfu sewuyahlela lombiko. Lokushintjile lobekungakalondvolozwa akugcinwanga.",
+        "colleagueNamed": "{{name}} sewuyahlela lombiko. Lokushintjile lobekungakalondvolozwa akugcinwanga.",
+        "generic": "Lombiko sewuphetfwe ngulomunye umuntfu, ngako-ke lushintjo lwakho lwekugcina alulondvolozwanga.",
+        "readOnlyNow": "Likhasi selingelekufundza kuphela. Konkhe lowakulondvoloza ngaphambilini kuphephile.",
+        "ok": "Ngiyevisisa"
+      }
     }
   },
   "reports": {

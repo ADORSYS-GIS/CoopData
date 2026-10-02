@@ -1211,6 +1211,53 @@
       "currentBadge": "Méthode de soumission : {{method}}",
       "changeHint": "Vous pouvez changer la méthode de soumission tant que cette soumission est encore un brouillon.",
       "changeBtn": "Changer de méthode"
+    },
+    "access": {
+      "readOnly": "Lecture seule",
+      "reclaimedAt": "Repris le {{time}}",
+      "noteFrom": "Note ({{apex}})",
+      "badge": {
+        "editing": "Vous modifiez",
+        "waiting": "Prêt à être modifié",
+        "colleague": "En cours de modification",
+        "colleagueNamed": "{{name}} modifie",
+        "reclaimed": "Repris · {{apex}}",
+        "reclaimedNamed": "Repris par {{name}}",
+        "withApex": "Chez : {{apex}}",
+        "withApexNamed": "Chez : {{apex}} · {{name}}",
+        "withCooperative": "Chez : {{coop}}",
+        "withCooperativeNamed": "Chez : {{coop}} · {{name}}"
+      },
+      "banner": {
+        "reclaimed": {
+          "title": "Cette déclaration a été reprise ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) a repris cette déclaration",
+          "body": "Vous pouvez toujours consulter tout ce qui a été saisi, mais la modification vous est désormais fermée. Si quelque chose doit encore changer, contactez votre interlocuteur ({{apex}}).",
+          "bodyNamed": "Vous pouvez toujours consulter tout ce qui a été saisi, mais la modification vous est désormais fermée. Si quelque chose doit encore changer, contactez {{name}}."
+        },
+        "withApex": {
+          "title": "Cette déclaration est en préparation ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) prépare cette déclaration",
+          "body": "Elle a été créée pour votre compte ({{apex}}). Vous pouvez la consulter dès maintenant et pourrez la modifier lorsqu'elle vous sera confiée.",
+          "bodyNamed": "Elle a été créée pour votre compte ({{apex}}). Vous pouvez la consulter dès maintenant et pourrez la modifier lorsque {{name}} vous la confiera."
+        },
+        "colleague": {
+          "title": "Quelqu'un d'autre modifie cette déclaration",
+          "titleNamed": "{{name}} modifie cette déclaration",
+          "body": "Une seule personne peut modifier une déclaration à la fois ; elle est donc en lecture seule pour vous pendant ce temps.",
+          "bodyNamed": "Une seule personne peut modifier une déclaration à la fois ; elle est donc en lecture seule pour vous pendant que {{name}} y travaille."
+        }
+      },
+      "lost": {
+        "title": "Votre accès en modification a pris fin",
+        "reclaimed": "Cette déclaration a été reprise ({{apex}}). Les modifications non encore enregistrées n'ont pas été conservées.",
+        "reclaimedNamed": "{{name}} ({{apex}}) a repris cette déclaration. Les modifications non encore enregistrées n'ont pas été conservées.",
+        "colleague": "Quelqu'un d'autre modifie désormais cette déclaration. Les modifications non encore enregistrées n'ont pas été conservées.",
+        "colleagueNamed": "{{name}} modifie désormais cette déclaration. Les modifications non encore enregistrées n'ont pas été conservées.",
+        "generic": "Cette déclaration est désormais détenue par quelqu'un d'autre ; votre dernière modification n'a donc pas été enregistrée.",
+        "readOnlyNow": "La page est maintenant en lecture seule. Tout ce que vous avez enregistré auparavant est conservé.",
+        "ok": "Compris"
+      }
     }
   },
   "reports": {

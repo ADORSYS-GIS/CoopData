@@ -5,6 +5,7 @@ pub mod basic_dashboard;
 pub mod benchmark;
 pub mod cache;
 pub mod coa_rollup;
+pub mod edit_access;
 pub mod export_generator;
 pub mod extraction_pipeline;
 pub mod extraction_sanitizer;

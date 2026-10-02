@@ -1932,14 +1932,7 @@ pub async fn update_submission_section(
     }
 
     // Enforce exclusive editor: only the user who owns the draft can edit sections
-    let current_user_id = Uuid::parse_str(&claims.sub).ok();
-    if let Some(editor_id) = submission.edited_by {
-        if current_user_id != Some(editor_id) {
-            return Err(AppError::Forbidden(
-                "Only the editor assigned to this submission can modify sections".into(),
-            ));
-        }
-    }
+    crate::services::edit_access::ensure_submission_editor(&submission, &claims)?;
 
     if !crate::repositories::submission_section::SECTIONS.contains(&section.as_str()) {
         return Err(AppError::BadRequest(format!(
@@ -2489,14 +2482,7 @@ pub async fn update_submission_method(
     }
 
     // Enforce exclusive editor
-    let current_user_id = Uuid::parse_str(&claims.sub).ok();
-    if let Some(editor_id) = submission.edited_by {
-        if current_user_id != Some(editor_id) {
-            return Err(AppError::Forbidden(
-                "Only the editor assigned to this submission can modify it".into(),
-            ));
-        }
-    }
+    crate::services::edit_access::ensure_submission_editor(&submission, &claims)?;
 
     let year_submissions = state
         .submission_repo

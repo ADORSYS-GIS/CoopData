@@ -1211,6 +1211,53 @@
       "currentBadge": "Submission method: {{method}}",
       "changeHint": "You can change the submission method while this submission is still a draft.",
       "changeBtn": "Change method"
+    },
+    "access": {
+      "readOnly": "Read only",
+      "reclaimedAt": "Reclaimed {{time}}",
+      "noteFrom": "Note from the {{apex}}",
+      "badge": {
+        "editing": "You're editing",
+        "waiting": "Ready for you to edit",
+        "colleague": "Being edited",
+        "colleagueNamed": "{{name}} is editing",
+        "reclaimed": "Reclaimed by the {{apex}}",
+        "reclaimedNamed": "Reclaimed by {{name}}",
+        "withApex": "With the {{apex}}",
+        "withApexNamed": "With the {{apex}} · {{name}}",
+        "withCooperative": "With the {{coop}}",
+        "withCooperativeNamed": "With the {{coop}} · {{name}}"
+      },
+      "banner": {
+        "reclaimed": {
+          "title": "The {{apex}} has taken this submission back",
+          "titleNamed": "{{name}} from the {{apex}} has taken this submission back",
+          "body": "You can still see everything that was filled in, but editing is now closed for you. If something still needs to change, contact the {{apex}}.",
+          "bodyNamed": "You can still see everything that was filled in, but editing is now closed for you. If something still needs to change, contact {{name}}."
+        },
+        "withApex": {
+          "title": "The {{apex}} is preparing this submission",
+          "titleNamed": "{{name}} from the {{apex}} is preparing this submission",
+          "body": "The {{apex}} created it on your behalf. You can view it now, and you will be able to edit it once they hand it over to you.",
+          "bodyNamed": "The {{apex}} created it on your behalf. You can view it now, and you will be able to edit it once {{name}} hands it over to you."
+        },
+        "colleague": {
+          "title": "Someone else is editing this submission",
+          "titleNamed": "{{name}} is editing this submission",
+          "body": "Only one person can edit a submission at a time, so it is read-only for you while they work on it.",
+          "bodyNamed": "Only one person can edit a submission at a time, so it is read-only for you while {{name}} works on it."
+        }
+      },
+      "lost": {
+        "title": "Your editing access has ended",
+        "reclaimed": "The {{apex}} has taken this submission back. Anything you had not saved yet was not kept.",
+        "reclaimedNamed": "{{name}} from the {{apex}} has taken this submission back. Anything you had not saved yet was not kept.",
+        "colleague": "Someone else is now editing this submission. Anything you had not saved yet was not kept.",
+        "colleagueNamed": "{{name}} is now editing this submission. Anything you had not saved yet was not kept.",
+        "generic": "Someone else now holds this submission, so your last change was not saved.",
+        "readOnlyNow": "The page is now read-only. Everything you saved before is safe.",
+        "ok": "Got it"
+      }
     }
   },
   "reports": {

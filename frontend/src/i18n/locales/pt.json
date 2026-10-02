@@ -1211,6 +1211,53 @@
       "currentBadge": "Método de submissão: {{method}}",
       "changeHint": "Pode alterar o método de submissão enquanto esta submissão ainda for um rascunho.",
       "changeBtn": "Alterar método"
+    },
+    "access": {
+      "readOnly": "Só leitura",
+      "reclaimedAt": "Retomada em {{time}}",
+      "noteFrom": "Nota ({{apex}})",
+      "badge": {
+        "editing": "Está a editar",
+        "waiting": "Pronta para editar",
+        "colleague": "Em edição",
+        "colleagueNamed": "{{name}} está a editar",
+        "reclaimed": "Retomada · {{apex}}",
+        "reclaimedNamed": "Retomada por {{name}}",
+        "withApex": "Com: {{apex}}",
+        "withApexNamed": "Com: {{apex}} · {{name}}",
+        "withCooperative": "Com: {{coop}}",
+        "withCooperativeNamed": "Com: {{coop}} · {{name}}"
+      },
+      "banner": {
+        "reclaimed": {
+          "title": "Esta submissão foi retomada ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) retomou esta submissão",
+          "body": "Continua a poder ver tudo o que foi preenchido, mas a edição está agora fechada para si. Se ainda for preciso alterar algo, contacte o seu interlocutor ({{apex}}).",
+          "bodyNamed": "Continua a poder ver tudo o que foi preenchido, mas a edição está agora fechada para si. Se ainda for preciso alterar algo, contacte {{name}}."
+        },
+        "withApex": {
+          "title": "Esta submissão está em preparação ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) está a preparar esta submissão",
+          "body": "Foi criada em seu nome ({{apex}}). Pode consultá-la já e poderá editá-la quando lhe for entregue.",
+          "bodyNamed": "Foi criada em seu nome ({{apex}}). Pode consultá-la já e poderá editá-la quando {{name}} lha entregar."
+        },
+        "colleague": {
+          "title": "Outra pessoa está a editar esta submissão",
+          "titleNamed": "{{name}} está a editar esta submissão",
+          "body": "Só uma pessoa pode editar uma submissão de cada vez, por isso está em modo de leitura para si enquanto isso.",
+          "bodyNamed": "Só uma pessoa pode editar uma submissão de cada vez, por isso está em modo de leitura para si enquanto {{name}} trabalha nela."
+        }
+      },
+      "lost": {
+        "title": "O seu acesso de edição terminou",
+        "reclaimed": "Esta submissão foi retomada ({{apex}}). As alterações ainda não guardadas não foram mantidas.",
+        "reclaimedNamed": "{{name}} ({{apex}}) retomou esta submissão. As alterações ainda não guardadas não foram mantidas.",
+        "colleague": "Outra pessoa está agora a editar esta submissão. As alterações ainda não guardadas não foram mantidas.",
+        "colleagueNamed": "{{name}} está agora a editar esta submissão. As alterações ainda não guardadas não foram mantidas.",
+        "generic": "Esta submissão está agora com outra pessoa, por isso a sua última alteração não foi guardada.",
+        "readOnlyNow": "A página está agora em modo de leitura. Tudo o que guardou antes está seguro.",
+        "ok": "Entendido"
+      }
     }
   },
   "reports": {

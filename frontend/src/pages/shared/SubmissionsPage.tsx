@@ -24,6 +24,8 @@ import {
   Trash2,
   Filter,
 } from "lucide-react";
+import { SubmissionAccessBadge } from "@/components/submissions/SubmissionAccessBadge";
+import { submissionAccess } from "@/lib/submissionAccess";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -643,7 +645,7 @@ function SubmissionTable({
 }) {
   const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
-  const { isOffline } = useAuth();
+  const { isOffline, user } = useAuth();
   const { verifyIdentity } = useVerifyIdentity();
   const deleteSubmission = useDeleteSubmission();
   const canValidate = true;
@@ -815,7 +817,12 @@ function SubmissionTable({
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <StatusPill tone={statusTone(s.status)}>{statusLabel(s.status, t)}</StatusPill>
+                    <div className="flex flex-col items-start gap-1">
+                      <StatusPill tone={statusTone(s.status)}>
+                        {statusLabel(s.status, t)}
+                      </StatusPill>
+                      <SubmissionAccessBadge compact access={submissionAccess(s, role, user?.id)} />
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-right">
                     <div className="inline-flex items-center gap-2 justify-end">
