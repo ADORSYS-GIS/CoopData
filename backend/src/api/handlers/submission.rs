@@ -2653,7 +2653,8 @@ pub async fn create_apex_submission(
         period_value: Set(period_value.clone()),
         fiscal_start_month: Set(body.fiscal_start_month),
         status: Set(crate::entities::enums::SubmissionStatus::Draft),
-        current_tier: Set(crate::entities::enums::ReviewTier::Cooperative),
+        // The apex holds its own draft until it delegates it to the cooperative.
+        current_tier: Set(crate::entities::enums::ReviewTier::Apex),
         submitted_by: Set(submitted_by),
         submitted_at: Set(None),
         last_reviewed_by: Set(None),
