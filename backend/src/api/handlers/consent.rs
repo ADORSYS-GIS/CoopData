@@ -15,6 +15,7 @@ use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
 
+/// Version reported before any policy has been published.
 const DEFAULT_TERMS_VERSION: &str = "1.0";
 const DEFAULT_PRIVACY_VERSION: &str = "1.0";
 
@@ -29,23 +30,26 @@ fn document_type_to_slug(document_type: &str) -> Option<&'static str> {
         "ACCEPTABLE_USE" => Some("acceptable-use"),
         "SECURITY_PROTECTION" => Some("security"),
         "DATA_RETENTION" => Some("data-retention"),
+        "DATA_USE_CONSENT" => Some("data-use"),
+        "DATA_PROCESSING_GOVERNANCE" => Some("data-processing"),
         _ => None,
     }
 }
 
+/// How a policy version is shown and stored in consent records, e.g. `2.0`.
+fn version_label(version: i32) -> String {
+    format!("{version}.0")
+}
+
 /// Resolves the current published version string for a document type from the
 /// legal_policies table, falling back to a default when no policy is seeded.
-async fn current_policy_version(
-    state: &AppState,
-    document_type: &str,
-    default: &str,
-) -> String {
+async fn current_policy_version(state: &AppState, document_type: &str, default: &str) -> String {
     let Some(slug) = document_type_to_slug(document_type) else {
         return default.to_string();
     };
 
     match state.legal_policy_repo.get_latest_by_slug(slug).await {
-        Ok(Some(policy)) => format!("{}.0", policy.version),
+        Ok(Some(policy)) => version_label(policy.version),
         _ => default.to_string(),
     }
 }
@@ -67,7 +71,15 @@ pub async fn record_consent(
     headers: HeaderMap,
     Json(payload): Json<RecordConsentRequest>,
 ) -> AppResult<impl IntoResponse> {
-    payload.validate().map_err(|e| AppError::ValidationError(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| AppError::ValidationError(e.to_string()))?;
+    if document_type_to_slug(&payload.document_type).is_none() {
+        return Err(AppError::BadRequest("Unknown document type".into()));
+    }
+    // The accepted version is the one published now, never what the client says.
+    let document_version =
+        current_policy_version(&state, &payload.document_type, DEFAULT_TERMS_VERSION).await;
 
     let ip_address = headers
         .get("x-forwarded-for")
@@ -84,16 +96,13 @@ pub async fn record_consent(
         .record_consent(
             &claims.sub,
             &payload.document_type,
-            &payload.document_version,
+            &document_version,
             ip_address,
             user_agent,
         )
         .await?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(UserConsentResponse::from(model)),
-    ))
+    Ok((StatusCode::CREATED, Json(UserConsentResponse::from(model))))
 }
 
 #[utoipa::path(
@@ -110,8 +119,10 @@ pub async fn get_my_consents(
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
     let consents = state.consent_repo.get_user_consents(&claims.sub).await?;
-    let response: Vec<UserConsentResponse> =
-        consents.into_iter().map(UserConsentResponse::from).collect();
+    let response: Vec<UserConsentResponse> = consents
+        .into_iter()
+        .map(UserConsentResponse::from)
+        .collect();
 
     Ok((StatusCode::OK, Json(response)))
 }
@@ -162,7 +173,10 @@ pub async fn get_consent_status(
         privacy_accepted,
         privacy_version: current_privacy_version,
         has_accepted_all_required: terms_accepted && privacy_accepted,
-        accepted_consents: all_consents.into_iter().map(UserConsentResponse::from).collect(),
+        accepted_consents: all_consents
+            .into_iter()
+            .map(UserConsentResponse::from)
+            .collect(),
     };
 
     Ok((StatusCode::OK, Json(response)))
@@ -184,7 +198,9 @@ pub async fn submit_privacy_request(
     Extension(claims): Extension<Arc<Claims>>,
     Json(payload): Json<PrivacyRequestInput>,
 ) -> AppResult<impl IntoResponse> {
-    payload.validate().map_err(|e| AppError::ValidationError(e.to_string()))?;
+    payload
+        .validate()
+        .map_err(|e| AppError::ValidationError(e.to_string()))?;
 
     let model = state
         .consent_repo
@@ -210,9 +226,14 @@ pub async fn get_my_privacy_requests(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
-    let requests = state.consent_repo.get_user_privacy_requests(&claims.sub).await?;
-    let response: Vec<PrivacyRequestResponse> =
-        requests.into_iter().map(PrivacyRequestResponse::from).collect();
+    let requests = state
+        .consent_repo
+        .get_user_privacy_requests(&claims.sub)
+        .await?;
+    let response: Vec<PrivacyRequestResponse> = requests
+        .into_iter()
+        .map(PrivacyRequestResponse::from)
+        .collect();
     Ok((StatusCode::OK, Json(response)))
 }
 
@@ -230,8 +251,10 @@ pub async fn list_all_privacy_requests(
     State(state): State<AppState>,
 ) -> AppResult<impl IntoResponse> {
     let requests = state.consent_repo.list_all_privacy_requests().await?;
-    let response: Vec<PrivacyRequestResponse> =
-        requests.into_iter().map(PrivacyRequestResponse::from).collect();
+    let response: Vec<PrivacyRequestResponse> = requests
+        .into_iter()
+        .map(PrivacyRequestResponse::from)
+        .collect();
     Ok((StatusCode::OK, Json(response)))
 }
 
@@ -271,4 +294,45 @@ pub async fn update_privacy_request_status(
         .ok_or_else(|| AppError::NotFound("Privacy request not found".into()))?;
 
     Ok((StatusCode::OK, Json(PrivacyRequestResponse::from(model))))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_policy_document_maps_to_its_published_slug() {
+        assert_eq!(document_type_to_slug("TERMS_OF_SERVICE"), Some("terms"));
+        assert_eq!(document_type_to_slug("PRIVACY_POLICY"), Some("privacy"));
+        assert_eq!(document_type_to_slug("COOKIE_POLICY"), Some("cookies"));
+        assert_eq!(
+            document_type_to_slug("ACCEPTABLE_USE"),
+            Some("acceptable-use")
+        );
+        assert_eq!(
+            document_type_to_slug("SECURITY_PROTECTION"),
+            Some("security")
+        );
+        assert_eq!(
+            document_type_to_slug("DATA_RETENTION"),
+            Some("data-retention")
+        );
+        assert_eq!(document_type_to_slug("DATA_USE_CONSENT"), Some("data-use"));
+        assert_eq!(
+            document_type_to_slug("DATA_PROCESSING_GOVERNANCE"),
+            Some("data-processing")
+        );
+    }
+
+    #[test]
+    fn unknown_documents_cannot_be_accepted() {
+        assert_eq!(document_type_to_slug("MARKETING"), None);
+        assert_eq!(document_type_to_slug(""), None);
+    }
+
+    #[test]
+    fn versions_are_labelled_as_major_versions() {
+        assert_eq!(version_label(1), "1.0");
+        assert_eq!(version_label(12), "12.0");
+    }
 }

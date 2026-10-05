@@ -65,14 +65,12 @@ export const LoginConsentModal: React.FC<LoginConsentModalProps> = ({
       await apiClient.POST("/api/v1/consents", {
         body: {
           document_type: "TERMS_OF_SERVICE",
-          document_version: "1.0",
         },
       });
 
       await apiClient.POST("/api/v1/consents", {
         body: {
           document_type: "PRIVACY_POLICY",
-          document_version: "1.0",
         },
       });
 

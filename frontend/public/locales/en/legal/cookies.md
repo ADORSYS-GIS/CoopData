@@ -1,70 +1,54 @@
-# Cookie & Storage Policy
+# Cookie & Similar Technologies Policy
 
-**Effective Date:** 1 January 2026
-**Version:** 1.0
+**Proposed effective date:** 1 October 2026
 
-## 1. Introduction
+## 1. Scope
 
-This Cookie & Storage Policy explains how CoopData uses cookies, local storage, and similar technologies to recognize you when you visit our platform. It explains what these technologies are, why we use them, and your rights to control their use.
+This policy explains the use of cookies and similar technologies on CoopData web interfaces.
 
-## 2. What Are Cookies?
+## 2. Essential technologies
 
-Cookies are small data files placed on your device when you visit a website. They are widely used to make websites work efficiently and to provide reporting information.
+CoopData may use strictly necessary technologies for authentication, session management, security, load balancing and user preferences. These technologies are required for core functionality and are not intended for advertising.
 
-## 3. Types of Cookies We Use
+## 3. Optional technologies
 
-### 3.1 Strictly Necessary Cookies
-These cookies are essential for the Service to function and cannot be switched off. They include:
-- Authentication and session cookies;
-- Security cookies;
-- Load-balancing cookies.
+If analytics, performance monitoring, embedded content or other non-essential technologies are introduced, they should be documented and, where required, presented through an appropriate consent mechanism before activation.
 
-### 3.2 Functional Cookies
-These cookies enable enhanced functionality and personalization, such as remembering your language preferences and settings.
+## 4. Cookie information
 
-### 3.3 Analytics Cookies
-These cookies help us understand how visitors interact with the Service by collecting and reporting information anonymously. We use this data to improve the Service.
+CoopData currently uses only the essential technologies listed below. It does not use analytics, advertising or third-party tracking cookies.
 
-### 3.4 Preference Cookies
-These cookies remember your choices, such as language and region, to provide a more personalized experience.
+### Cookies
 
-## 4. Local Storage and IndexedDB
+| Name | Purpose | Provider | Duration | Type | Consent status |
+|---|---|---|---|---|---|
+| `AUTH_SESSION_ID` | Keeps track of a sign-in in progress | First-party (CoopData sign-in service) | Until the browser is closed | Session | Essential |
+| `KC_AUTH_SESSION_HASH` | Protects the sign-in process against tampering | First-party (CoopData sign-in service) | A few minutes, during sign-in | Session | Essential |
+| `KC_RESTART` | Allows an interrupted sign-in to be resumed | First-party (CoopData sign-in service) | Until sign-in completes or times out | Session | Essential |
+| `KEYCLOAK_IDENTITY` | Keeps the user signed in securely | First-party (CoopData sign-in service) | Until sign-out or the sign-in session expires (after 30 minutes of inactivity, at most 10 hours); kept longer if “Remember me” is selected | Session, or persistent with “Remember me” | Essential |
+| `KEYCLOAK_SESSION` | Identifies the active sign-in session | First-party (CoopData sign-in service) | Until sign-out or the sign-in session expires (after 30 minutes of inactivity, at most 10 hours); kept longer if “Remember me” is selected | Session, or persistent with “Remember me” | Essential |
+| `KEYCLOAK_LOCALE` | Remembers the language chosen on the sign-in page | First-party (CoopData sign-in service) | Until the browser is closed | Session | Essential (preference) |
+| `sidebar_state` | Remembers whether the navigation menu is open or collapsed | First-party | 7 days | Persistent | Essential (preference) |
 
-CoopData uses browser local storage and IndexedDB to enable offline-first functionality. This allows you to:
-- Access the Service when offline;
-- Cache application data locally;
-- Queue submissions for synchronization when connectivity is restored.
+### Similar technologies (browser storage)
 
-Data stored locally is used solely to provide the Service and is synchronized with our servers when you are online.
+| Name | Purpose | Provider | Duration | Type | Consent status |
+|---|---|---|---|---|---|
+| `i18nextLng` | Remembers the chosen interface language | First-party | Until browser data is cleared | Persistent (local storage) | Essential (preference) |
+| `coopdata_theme` | Remembers the light/dark display choice | First-party | Until browser data is cleared | Persistent (local storage) | Essential (preference) |
+| `coopdata_cookie_consent` | Records the cookie choice made in the banner | First-party | Until browser data is cleared | Persistent (local storage) | Essential |
+| `coopdata_user_profile` | Keeps a copy of the signed-in user’s profile so the Platform works offline | First-party | Until sign-out or browser data is cleared | Persistent (local storage) | Essential |
+| `coopdata_draft_financial` | Keeps an unsent financial entry draft so work is not lost | First-party | Until the draft is submitted or discarded | Persistent (local storage) | Essential |
+| `coopdata:period-reminders-dismissed` | Remembers reporting reminders the user has dismissed | First-party | Until browser data is cleared | Persistent (local storage) | Essential (preference) |
+| `CoopDataOfflineDB` | Stores data and pending submissions so the Platform works without a connection | First-party | Until synchronized, sign-out or browser data is cleared | Persistent (IndexedDB) | Essential |
+| `coopdata_tokens` | Keeps the sign-in tokens needed to work offline | First-party | Until sign-out | Persistent (IndexedDB) | Essential |
+| `coopdata_query_cache` | Caches recently viewed data for faster, offline-capable loading | First-party | Until browser data is cleared | Persistent (IndexedDB) | Essential |
+| Offline application cache | Stores the Platform’s application files so it can start without a connection | First-party | Until the next application update | Persistent (service worker cache) | Essential |
 
-## 5. Cookies We Use
+## 5. Managing preferences
 
-| Cookie Type | Purpose | Duration |
-|---|---|---|
-| Session cookie | Maintain your authenticated session | Session |
-| Language preference | Remember your selected language | 1 year |
-| Consent status | Track your consent choices | 1 year |
-| Analytics | Understand usage patterns | 13 months |
+Where applicable, Users may manage non-essential cookie preferences through the Platform’s consent interface or their browser settings. Disabling essential technologies may affect Platform functionality.
 
-## 6. Managing Cookies
+## 6. Updates
 
-You can control and manage cookies through your browser settings. You may:
-- Block or delete cookies;
-- Set your browser to notify you before accepting cookies;
-- Disable local storage.
-
-Please note that disabling essential cookies may affect the functionality of the Service.
-
-## 7. Third-Party Cookies
-
-Some cookies may be set by third-party services we use, such as analytics providers. These third parties have their own privacy policies.
-
-## 8. Changes to This Policy
-
-We may update this Cookie Policy from time to time. Any changes will be posted on this page with an updated effective date.
-
-## 9. Contact Information
-
-For questions about this Cookie Policy, contact:
-- **Email:** privacy@coopdata.gov.sz
-- **Address:** Ministry of Cooperatives, Mbabane, Kingdom of Eswatini
+This policy should be updated whenever cookie technologies, analytics providers or tracking mechanisms materially change.

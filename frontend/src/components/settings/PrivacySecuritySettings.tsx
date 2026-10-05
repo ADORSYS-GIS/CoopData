@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Link } from "@tanstack/react-router";
+import { useLegalDocuments } from "@/hooks/shared/useLegalDocuments";
 
 export const PrivacySecuritySettings: React.FC = () => {
   const { t } = useTranslation();
@@ -28,6 +29,7 @@ export const PrivacySecuritySettings: React.FC = () => {
   const { data: history, isLoading: historyLoading } = useMyConsents();
   const recordConsent = useRecordConsent();
   const submitRequest = useSubmitPrivacyRequest();
+  const { policies } = useLegalDocuments();
 
   const [requestType, setRequestType] = useState<"EXPORT_DATA" | "CORRECT_DATA" | "DELETE_ACCOUNT">(
     "EXPORT_DATA",
@@ -57,46 +59,39 @@ export const PrivacySecuritySettings: React.FC = () => {
     }
   };
 
+  // Each policy's published version; a consent counts only for that version.
+  const publishedVersion = (slug: string) =>
+    `${policies.find((p) => p.slug === slug)?.version ?? 1}.0`;
+  const acceptedCurrent = (type: string, version: string) =>
+    status?.accepted_consents.some(
+      (c) => c.document_type === type && c.document_version === version,
+    ) ?? false;
+  const policy = (type: string, slug: string, title: string) => {
+    const version = publishedVersion(slug);
+    return { type, title, version, accepted: acceptedCurrent(type, version) };
+  };
+
   const requiredPolicies = [
     {
       type: "TERMS_OF_SERVICE",
       title: t("legal.termsOfService", "Terms of Service"),
-      version: "1.0",
+      version: status?.terms_version ?? publishedVersion("terms"),
       accepted: status?.terms_accepted ?? false,
     },
     {
       type: "PRIVACY_POLICY",
       title: t("legal.privacyPolicy", "Privacy Policy"),
-      version: "1.0",
+      version: status?.privacy_version ?? publishedVersion("privacy"),
       accepted: status?.privacy_accepted ?? false,
     },
-    {
-      type: "COOKIE_POLICY",
-      title: t("legal.cookiePolicy", "Cookie Policy"),
-      version: "1.0",
-      accepted: status?.accepted_consents.some((c) => c.document_type === "COOKIE_POLICY") ?? false,
-    },
-    {
-      type: "ACCEPTABLE_USE",
-      title: t("legal.acceptableUse", "Acceptable Use Policy"),
-      version: "1.0",
-      accepted:
-        status?.accepted_consents.some((c) => c.document_type === "ACCEPTABLE_USE") ?? false,
-    },
-    {
-      type: "SECURITY_PROTECTION",
-      title: t("legal.securityProtection", "Security & Protection Policy"),
-      version: "1.0",
-      accepted:
-        status?.accepted_consents.some((c) => c.document_type === "SECURITY_PROTECTION") ?? false,
-    },
-    {
-      type: "DATA_RETENTION",
-      title: t("legal.dataRetention", "Data Retention Policy"),
-      version: "1.0",
-      accepted:
-        status?.accepted_consents.some((c) => c.document_type === "DATA_RETENTION") ?? false,
-    },
+    policy("COOKIE_POLICY", "cookies", t("legal.cookiePolicy", "Cookie Policy")),
+    policy("ACCEPTABLE_USE", "acceptable-use", t("legal.acceptableUse", "Acceptable Use Policy")),
+    policy(
+      "SECURITY_PROTECTION",
+      "security",
+      t("legal.securityProtection", "Security & Protection Policy"),
+    ),
+    policy("DATA_RETENTION", "data-retention", t("legal.dataRetention", "Data Retention Policy")),
   ];
 
   return (
@@ -145,10 +140,7 @@ export const PrivacySecuritySettings: React.FC = () => {
                       <button
                         onClick={async () => {
                           try {
-                            await recordConsent.mutateAsync({
-                              document_type: pol.type,
-                              document_version: pol.version,
-                            });
+                            await recordConsent.mutateAsync({ document_type: pol.type });
                             toast.success(t("legal.consentRecorded", "Consent recorded!"));
                           } catch (err) {
                             toast.error(

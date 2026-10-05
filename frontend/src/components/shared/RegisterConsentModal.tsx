@@ -55,13 +55,11 @@ export const RegisterConsentModal: React.FC = () => {
       if (!status?.terms_accepted) {
         await recordConsent.mutateAsync({
           document_type: "TERMS_OF_SERVICE",
-          document_version: "1.0",
         });
       }
       if (!status?.privacy_accepted) {
         await recordConsent.mutateAsync({
           document_type: "PRIVACY_POLICY",
-          document_version: "1.0",
         });
       }
 

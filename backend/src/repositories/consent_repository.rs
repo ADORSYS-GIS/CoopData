@@ -1,20 +1,19 @@
 use chrono::Utc;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use uuid::Uuid;
 
+use crate::database::Database;
 use crate::entities::{privacy_requests, user_consents, PrivacyRequestsColumn, UserConsentsColumn};
 use crate::error::{AppError, AppResult};
 
 #[derive(Clone)]
 pub struct ConsentRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl ConsentRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn record_consent(
@@ -109,9 +108,7 @@ impl ConsentRepository {
             .map_err(AppError::DatabaseError)
     }
 
-    pub async fn list_all_privacy_requests(
-        &self,
-    ) -> AppResult<Vec<privacy_requests::Model>> {
+    pub async fn list_all_privacy_requests(&self) -> AppResult<Vec<privacy_requests::Model>> {
         privacy_requests::Entity::find()
             .order_by_desc(PrivacyRequestsColumn::CreatedAt)
             .all(&self.db)
@@ -136,6 +133,10 @@ impl ConsentRepository {
         let mut active: privacy_requests::ActiveModel = model.into();
         active.status = Set(status.to_string());
         active.updated_at = Set(Utc::now());
-        active.update(&self.db).await.map_err(AppError::DatabaseError).map(Some)
+        active
+            .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+            .map(Some)
     }
 }

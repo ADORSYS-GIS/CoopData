@@ -5425,5 +5425,15 @@
     },
     "lockedFrequency": "{{year}} est déjà fixée sur une déclaration {{frequency}}.",
     "lockedFrequencyDrafts": "{{year}} est fixée sur une déclaration {{frequency}}. Supprimez vos brouillons de cette année pour la modifier."
+  },
+  "legal": {
+    "termsOfService": "Conditions d’utilisation",
+    "privacyPolicy": "Politique de confidentialité",
+    "cookiePolicy": "Politique relative aux cookies",
+    "acceptableUse": "Utilisation acceptable",
+    "securityProtection": "Sécurité et protection des données",
+    "dataRetention": "Conservation des données",
+    "dataUse": "Utilisation et agrégation des données",
+    "dataProcessing": "Rôles dans le traitement des données"
   }
 }

@@ -1,96 +1,87 @@
-# Conditions d'utilisation
+# Conditions d’utilisation
 
-**Date d'entrée en vigueur :** 1er janvier 2026
-**Version :** 1.0
-**Droit applicable :** Loi sur les sociétés coopératives (Eswatini), Loi sur les transactions électroniques
+**Date d’entrée en vigueur proposée :** 1er octobre 2026
 
-## 1. Introduction
+## 1. Parties et acceptation
 
-Bienvenue sur CoopData, la plateforme de gestion des données financières coopératives exploitée par le Ministère des Coopératives du Royaume d'Eswatini. Les présentes Conditions d'utilisation (« Conditions ») régissent votre accès et votre utilisation de la plateforme CoopData, de son site web, de ses applications mobiles et de ses services associés (collectivement, le « Service »).
+Les présentes Conditions d’utilisation (les « Conditions ») régissent l’accès à la plateforme CoopData (la « Plateforme ») et son utilisation. La Plateforme est exploitée par la DGRV et le ministère du Commerce, de l’Industrie et du Commerce extérieur (Ministry of Commerce, Trade and Industries), Département du développement coopératif. Pour __________ (« CoopData », « nous » ou « notre »).
 
-En créant un compte, en accédant ou en utilisant le Service, vous acceptez d'être lié par les présentes Conditions. Si vous n'acceptez pas ces Conditions, vous ne devez pas accéder au Service ni l'utiliser.
+En créant un compte, en accédant à la Plateforme ou en cliquant sur un bouton d’acceptation lorsqu’il est proposé, l’utilisateur (l’« Utilisateur ») accepte les présentes Conditions.
 
-## 2. Définitions
+Lorsqu’une organisation conclut un accord avec CoopData, cette organisation est le « Client » et les présentes Conditions s’appliquent conjointement à l’accord applicable. En cas de contradiction, l’accord signé prévaut dans la mesure de la contradiction.
 
-- **« Coopérative »** désigne une société coopérative enregistrée en vertu de la Loi sur les sociétés coopératives d'Eswatini.
-- **« Utilisateur »** désigne toute personne qui crée un compte ou accède au Service.
-- **« Données personnelles »** désigne toute information relative à une personne physique identifiée ou identifiable.
-- **« Données financières »** désigne les données relatives aux états financiers, aux transactions et aux registres d'une coopérative.
-- **« Contenu »** désigne toutes les données, textes, fichiers, informations et matériels soumis ou stockés sur le Service.
+## 2. Éligibilité et utilisation autorisée
 
-## 3. Éligibilité et création de compte
+- Les Utilisateurs doivent fournir des informations d’inscription exactes et être autorisés à agir pour l’organisation qu’ils représentent.
+- Les Utilisateurs doivent garder leurs identifiants confidentiels et ne doivent pas partager de comptes, sauf si la Plateforme prévoit expressément un accès délégué.
+- Les Utilisateurs sont responsables des activités réalisées au moyen de leur compte, sauf dans la mesure où elles résultent d’un manquement de CoopData ou d’un accès non autorisé imputable à CoopData.
+- Les Utilisateurs doivent respecter les lois, réglementations, exigences du secteur coopératif, obligations contractuelles et politiques internes applicables.
 
-3.1 Vous devez avoir au moins 18 ans pour créer un compte.
-3.2 Vous devez fournir des informations exactes, à jour et complètes lors de l'inscription.
-3.3 Vous êtes responsable du maintien de la confidentialité de vos identifiants de connexion.
-3.4 Vous êtes responsable de toutes les activités effectuées sous votre compte.
-3.5 Vous devez informer immédiatement CoopData de toute utilisation non autorisée de votre compte.
+## 3. Finalité de la Plateforme
 
-## 4. Utilisation acceptable
+CoopData est une plateforme de collecte, de gestion, d’analyse et de communication de données destinée à soutenir la gestion de l’information du secteur coopératif, le suivi, la planification, la recherche, l’analyse comparative et les activités de développement connexes. CoopData ne valide pas de manière indépendante chaque donnée soumise par les Utilisateurs et ne fournit pas de conseil comptable, d’audit, juridique, fiscal, d’investissement ou réglementaire du seul fait qu’elle présente des données ou des rapports.
 
-4.1 Vous acceptez de ne pas faire un mauvais usage du Service, notamment :
-- Tenter d'accéder, de modifier ou d'utiliser des zones non publiques du Service ;
-- Téléverser des codes malveillants, des virus ou du contenu nuisible ;
-- Interférer avec le fonctionnement du Service ou l'accès des autres utilisateurs ;
-- Utiliser le Service à des fins illégales ;
-- Soumettre des informations fausses, trompeuses ou frauduleuses ;
-- Tenter de sonder, analyser ou tester la vulnérabilité du Service.
+## 4. Données du Client et propriété
 
-## 5. Contenu et données de l'utilisateur
+Le Client et/ou l’Utilisateur conserve ses droits sur les données qu’il soumet (les « Données du Client »), sous réserve des autorisations accordées à CoopData dans les présentes Conditions et dans l’accord applicable. L’Utilisateur déclare disposer de l’autorité et de toutes les autorisations nécessaires pour soumettre les Données du Client et permettre à CoopData de les traiter aux fins indiquées.
 
-5.1 Vous conservez la propriété du Contenu que vous soumettez au Service.
-5.2 Vous accordez à CoopData une licence limitée pour stocker, traiter et afficher votre Contenu uniquement pour fournir le Service.
-5.3 Vous déclarez avoir le droit de soumettre tout Contenu et qu'il ne viole aucune loi ni aucun droit de tiers.
-5.4 CoopData peut agréger des données anonymisées à des fins statistiques et d'analyse comparative.
+CoopData peut traiter les Données du Client pour exploiter, sécuriser, maintenir, améliorer et assurer le support de la Plateforme ; produire les rapports demandés ; diagnostiquer et tester les fonctionnalités ; se conformer à la loi ; et établir des statistiques agrégées ou désidentifiées, comme décrit dans le Consentement relatif à l’utilisation et à l’agrégation des données.
+
+## 5. Exactitude et responsabilité des soumissions
+
+- Les Utilisateurs sont responsables de la licéité, de l’exactitude, de l’exhaustivité et de l’actualité des informations qu’ils soumettent.
+- Les Utilisateurs ne doivent pas téléverser d’informations qu’ils ne sont pas autorisés à divulguer.
+- Lorsque des données sont saisies pour le compte d’une coopérative ou d’une autre organisation, l’Utilisateur confirme que cette organisation a autorisé la soumission et les finalités indiquées.
+- Les Utilisateurs devraient vérifier les rapports avant de s’en servir pour des décisions opérationnelles, financières, réglementaires ou de gestion.
 
 ## 6. Propriété intellectuelle
 
-6.1 Le Service, y compris son logiciel, sa conception, ses textes, ses graphiques et ses logos, appartient à CoopData ou à ses concédants.
-6.2 Vous ne pouvez pas copier, modifier, distribuer, vendre ou louer une partie du Service sans consentement écrit préalable.
-6.3 Vous ne pouvez pas faire de rétro-ingénierie ni tenter d'extraire le code source du Service.
+La Plateforme, les logiciels, les interfaces, la documentation, l’identité visuelle, les modèles, les flux de travail, les rapports générés par le système en tant que fonctionnalité du système et la technologie sous-jacente appartiennent à DGRV - CoopData ou lui sont concédés sous licence, et sont protégés par les lois applicables en matière de propriété intellectuelle. Les présentes Conditions ne transfèrent aux Utilisateurs aucune propriété sur la Plateforme.
 
-## 7. Confidentialité et protection des données
+Les Utilisateurs reçoivent un droit limité, non exclusif et non transférable d’utiliser la Plateforme aux fins autorisées du Client pendant la période d’abonnement, de projet ou d’accès applicable.
 
-7.1 Votre utilisation du Service est soumise à notre Politique de confidentialité, incorporée aux présentes Conditions par référence.
-7.2 CoopData traite les Données personnelles conformément aux lois applicables sur la protection des données, y compris la Loi sur la protection des données d'Eswatini.
-7.3 Vous consentez à la collecte, au traitement et au stockage de vos Données personnelles comme décrit dans la Politique de confidentialité.
+## 7. Utilisation acceptable
 
-## 8. Disponibilité et modifications du service
+Les Utilisateurs doivent respecter la Politique d’utilisation acceptable de CoopData. Sont notamment interdits : l’accès non autorisé, le partage d’identifiants, les tests de sécurité sans autorisation, l’extraction automatisée de contenu (scraping), les logiciels malveillants, les tentatives de contournement des contrôles d’accès, le traitement illicite, les soumissions frauduleuses, l’ingénierie inverse sauf lorsque la loi l’autorise, et toute utilisation susceptible de perturber ou d’endommager la Plateforme ou un autre utilisateur.
 
-8.1 CoopData peut modifier, suspendre ou interrompre toute partie du Service à tout moment.
-8.2 CoopData peut mettre à jour les présentes Conditions de temps à autre. Les modifications importantes vous seront communiquées, et la poursuite de l'utilisation du Service constitue une acceptation des Conditions révisées.
-8.3 Nous fournirons un préavis raisonnable de toute maintenance planifiée pouvant affecter le Service.
+## 8. Disponibilité et modifications
 
-## 9. Résiliation
+CoopData déploiera des efforts raisonnables pour assurer la disponibilité, mais ne garantit pas un fonctionnement ininterrompu ou exempt d’erreurs. La maintenance, les mesures de sécurité, les mises à niveau, les dépendances envers des tiers, les défaillances des télécommunications et les événements échappant à un contrôle raisonnable peuvent affecter la disponibilité.
 
-9.1 Vous pouvez résilier votre compte à tout moment en contactant le support.
-9.2 CoopData peut suspendre ou résilier votre accès si vous violez les présentes Conditions ou la loi applicable.
-9.3 À la résiliation, votre droit d'utiliser le Service cesse immédiatement.
-9.4 Les registres financiers statutaires peuvent être conservés conformément aux exigences de conservation applicables.
+CoopData peut modifier les fonctionnalités de la Plateforme lorsque cela est raisonnablement nécessaire pour la sécurité, la conformité juridique, la maintenance ou l’amélioration. Les modifications importantes des présentes Conditions seront communiquées par l’intermédiaire de la Plateforme ou par tout autre moyen raisonnable.
 
-## 10. Exclusion de garanties
+## 9. Confidentialité
 
-10.1 Le Service est fourni « en l'état » et « selon disponibilité » sans garanties d'aucune sorte, expresses ou implicites.
-10.2 CoopData ne garantit pas que le Service sera ininterrompu, sans erreur ou sécurisé.
-10.3 CoopData ne fournit pas de conseils juridiques, financiers ou comptables.
+Chaque partie doit protéger les informations confidentielles reçues de l’autre partie et ne les utiliser qu’à des fins autorisées. Cette obligation ne s’applique pas aux informations rendues publiques sans manquement, développées de manière indépendante, reçues légalement d’une autre source ou dont la divulgation est exigée par la loi. Lorsque la loi le permet, la partie tenue de divulguer des informations confidentielles en avisera l’autre au préalable.
 
-## 11. Limitation de responsabilité
+## 10. Services de tiers
 
-11.1 Dans toute la mesure permise par la loi, CoopData ne sera pas responsable des dommages indirects, accessoires, spéciaux, consécutifs ou punitifs.
-11.2 La responsabilité totale de CoopData ne dépassera pas le montant payé par vous pour le Service au cours des douze (12) mois précédant la réclamation.
+La Plateforme peut recourir à des prestataires d’hébergement, de services infonuagiques, de communication, d’analyse, de sécurité, d’authentification ou à d’autres prestataires. Lorsque ces prestataires traitent des données personnelles pour le compte de CoopData, CoopData appliquera des mesures contractuelles et techniques appropriées, conformes aux exigences applicables en matière de protection des données.
 
-## 12. Indemnisation
+## 11. Exclusions de garantie
 
-Vous acceptez d'indemniser et de dégager CoopData et ses dirigeants, employés et agents de toute réclamation, dommage ou dépense découlant de votre utilisation du Service ou de la violation des présentes Conditions.
+Dans la mesure permise par la loi, la Plateforme est fournie « selon disponibilité ». CoopData ne garantit pas que chaque jeu de données soumis est exact, complet ou adapté à une décision particulière, ni que la Plateforme répondra à chaque exigence opérationnelle spécifique.
 
-## 13. Droit applicable et règlement des litiges
+Aucune disposition des présentes Conditions n’exclut une responsabilité qui ne peut légalement être exclue, notamment la responsabilité découlant d’une fraude ou d’autres obligations légales impératives.
 
-13.1 Les présentes Conditions sont régies par les lois du Royaume d'Eswatini.
-13.2 Tout litige sera résolu par la négociation, puis la médiation, et enfin par les tribunaux d'Eswatini.
-13.3 Vous acceptez de vous soumettre à la juridiction exclusive des tribunaux d'Eswatini.
+## 12. Limitation de responsabilité
 
-## 14. Coordonnées
+Dans toute la mesure permise par la loi applicable, CoopData ne sera pas responsable des pertes indirectes, accessoires, spéciales ou consécutives découlant de l’utilisation de la Plateforme, y compris les pertes causées par des Données du Client inexactes soumises par les Utilisateurs, sauf lorsque cette limitation est interdite par la loi. Tout plafond de responsabilité contractuelle devrait être inséré ici après examen juridique et aligné sur l’accord conclu avec le Client.
 
-Pour toute question sur les présentes Conditions, contactez :
-- **Courriel :** legal@coopdata.gov.sz
-- **Adresse :** Ministère des Coopératives, Mbabane, Royaume d'Eswatini
+## 13. Suspension et résiliation
+
+CoopData peut suspendre l’accès lorsque cela est raisonnablement nécessaire pour protéger la sécurité, se conformer à la loi, prévenir une utilisation abusive, traiter un défaut de paiement le cas échéant ou répondre à un manquement important.
+
+Les Utilisateurs peuvent cesser d’utiliser la Plateforme et demander le traitement de leur compte ou de leurs données conformément à la Politique de confidentialité, au Calendrier de conservation et d’effacement et à l’accord Client applicable.
+
+La résiliation ne supprime pas les obligations qui, par leur nature, survivent à la résiliation, notamment la confidentialité, la propriété intellectuelle, les obligations de paiement échues et la conservation exigée par la loi.
+
+## 14. Droit applicable et règlement des litiges
+
+Droit applicable et juridiction compétente : le Royaume d’Eswatini.
+
+## 15. Contact
+
+- **Contact juridique/contractuel :** DGRV, Confédération allemande des coopératives et Raiffeisen (German Cooperative and Raiffeisen Confederation)
+- **Adresse :** 743 Honey Crescent & Jubela Streets, Kentrock, Mbabane, H100, Eswatini
+- **E-mail :** eswatini@dgrv.coop

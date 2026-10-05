@@ -12,14 +12,14 @@ use coop_data_backend::{
     },
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, CalamineNfParser,
-    ChartOfAccountsRepository, ConsentRepository, CooperativeRepository, ExtractionJobRepository, 
-    FarmCoopRepository, FederationRepository, FinancialStatementRepository, FixedDepositRepository, 
-    LoanRepository, MemberRepository, MinistryReportNarrativesRepository, 
-    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository, 
-    ObjectStorageService, OrganizationLabelRepository, OrganizationRepository, 
-    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository, 
-    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository, 
-    UploadedFileRepository, UserRepository, LegalPolicyRepository,
+    ChartOfAccountsRepository, ConsentRepository, CooperativeRepository, ExtractionJobRepository,
+    FarmCoopRepository, FederationRepository, FinancialStatementRepository, FixedDepositRepository,
+    LegalPolicyRepository, LoanRepository, MemberRepository, MinistryReportNarrativesRepository,
+    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
+    ObjectStorageService, OrganizationLabelRepository, OrganizationRepository,
+    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
+    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
+    UploadedFileRepository, UserRepository,
 };
 
 #[tokio::main]

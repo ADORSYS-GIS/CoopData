@@ -1,80 +1,34 @@
-# Politique de conservation et de traitement des données
+# Calendrier de conservation et d’effacement des données
 
-**Date d'entrée en vigueur :** 1er janvier 2026
-**Version :** 1.0
-**Droit applicable :** Loi sur les sociétés coopératives (Eswatini), Loi sur la protection des données
+**Date d’entrée en vigueur proposée :** 1er octobre 2026
 
-## 1. Objet
+## 1. Principe
 
-La présente Politique de conservation et de traitement des données (« Politique ») établit les règles et procédures de conservation, de traitement, d'archivage et de suppression des données collectées et traitées par la plateforme CoopData.
+CoopData ne conservera pas les informations plus longtemps que raisonnablement nécessaire à la finalité pour laquelle elles sont traitées, sous réserve des exigences légales, contractuelles, d’audit, de sécurité et de règlement des litiges. Les durées de conservation ci-dessous sont des valeurs opérationnelles par défaut proposées et doivent être validées par des conseillers juridiques/comptables au regard des lois applicables à chaque Client et à chaque projet.
 
-## 2. Portée
+## 2. Calendrier proposé
 
-La présente Politique s'applique à toutes les données traitées par CoopData, y compris :
-- Les données personnelles des utilisateurs, membres et administrateurs ;
-- Les états financiers et les registres de soumission ;
-- Les journaux opérationnels et d'audit ;
-- Les registres de consentement et de conformité ;
-- Les données de sauvegarde et d'archivage.
+- **Données de compte et de profil utilisateur :** pendant la durée d’activité du compte et jusqu’à 24 mois après sa clôture, sauf si une conservation plus longue est requise à des fins juridiques, de sécurité ou de règlement des litiges.
+- **Registres de consentement et d’acceptation juridique :** conservés pendant la durée nécessaire pour démontrer la validité et l’historique du consentement/de l’acceptation et pour satisfaire aux exigences de prescription/d’audit applicables ; durée proposée par défaut : 7 ans après la fin de la relation concernée.
+- **Journaux d’audit/de sécurité :** durée proposée par défaut de 12 à 24 mois, avec une conservation plus longue lorsque cela est nécessaire à une enquête de sécurité ou à une obligation légale.
+- **Registres financiers/transactionnels ou d’audit soumis à la Plateforme :** durée proposée par défaut jusqu’à 7 ans après la période de déclaration concernée ou la fin de la relation, le cas échéant ; plus longue uniquement lorsqu’une exigence légale, contractuelle, d’audit ou liée à un litige l’impose.
+- **Tickets de support et correspondance :** durée proposée par défaut de 3 ans après la clôture, sauf s’ils sont liés à un litige ou à une obligation légale.
+- **Sauvegardes :** conservées selon le cycle de sauvegarde ; la suppression des systèmes actifs peut précéder l’expiration naturelle des sauvegardes chiffrées. Les données de sauvegarde ne devraient être restaurées qu’à des fins légitimes de reprise.
+- **Données statistiques agrégées/désidentifiées :** peuvent être conservées plus longtemps lorsqu’elles n’identifient plus de personnes et ne peuvent raisonnablement pas être reliées à nouveau à des enregistrements identifiants.
+- **Comptes supprimés :** la suppression des systèmes actifs ou l’anonymisation irréversible devrait normalement intervenir dans les 30 jours suivant l’achèvement des vérifications requises, sous réserve des conservations à titre conservatoire et des exigences de conservation.
 
-## 3. Principes de conservation des données
+## 3. Conservation à titre conservatoire
 
-3.1 Les données sont conservées uniquement aussi longtemps que nécessaire aux fins pour lesquelles elles ont été collectées.
-3.2 Les périodes de conservation sont déterminées par les exigences légales, réglementaires et opérationnelles.
-3.3 Les données sont stockées et protégées de manière sécurisée tout au long de leur cycle de vie.
-3.4 Les données sont supprimées ou anonymisées lorsqu'elles ne sont plus nécessaires.
+Lorsque des données font l’objet d’un litige, d’une enquête, d’un audit, d’une mesure de conservation à titre conservatoire ou d’une exigence réglementaire, la suppression normale peut être suspendue pour les enregistrements concernés jusqu’à la levée de cette mesure.
 
-## 4. Périodes de conservation
+## 4. Élimination sécurisée
 
-| Catégorie de données | Période de conservation | Base |
-|---|---|---|
-| États financiers | 10 ans | Exigence légale |
-| Registres de soumission | 10 ans | Conformité réglementaire |
-| Données de compte utilisateur | Durée du compte + 5 ans | Opérationnelle |
-| Registres de consentement | Durée + 10 ans | Audit et conformité |
-| Journaux d'audit | 7 ans | Sécurité et conformité |
-| Données de session | 30 jours | Opérationnelle |
-| Données de sauvegarde | 30 jours | Opérationnelle |
+La suppression doit faire appel à des mesures techniques et organisationnelles appropriées. Les supports physiques, exports et fichiers temporaires contenant des informations personnelles ou confidentielles doivent être éliminés ou détruits de manière sécurisée lorsqu’ils ne sont plus nécessaires.
 
-## 5. Traitement des données
+## 5. Demandes de suppression des utilisateurs
 
-5.1 Les données sont traitées de manière licite, loyale et transparente.
-5.2 Le traitement est limité aux fins pour lesquelles les données ont été collectées.
-5.3 Les données sont exactes, complètes et tenues à jour.
-5.4 Les données sont traitées avec des mesures de sécurité appropriées.
+Une demande de suppression n’entraîne pas automatiquement la suppression lorsque la conservation est exigée par la loi, nécessaire à la constatation ou à la défense de droits en justice, requise pour la sécurité ou autrement permise par la loi applicable. Lorsque la suppression ne peut être effectuée, CoopData devrait expliquer au demandeur la limitation applicable lorsque la loi le permet.
 
-## 6. Archivage des données
+## 6. Approbation
 
-6.1 Les données qui ne sont plus activement utilisées mais doivent être conservées sont déplacées vers un stockage d'archivage sécurisé.
-6.2 Les données archivées sont protégées avec les mêmes mesures de sécurité que les données actives.
-6.3 L'accès aux données archivées est restreint et journalisé.
-
-## 7. Suppression et anonymisation des données
-
-7.1 Les données ayant atteint la fin de leur période de conservation sont supprimées de manière sécurisée.
-7.2 Lorsque la suppression n'est pas possible (par exemple, retenues légales), les données sont anonymisées.
-7.3 La suppression est effectuée de manière à empêcher toute récupération.
-7.4 Les activités de suppression et d'anonymisation sont journalisées et documentées.
-
-## 8. Droits des utilisateurs
-
-Les utilisateurs peuvent demander :
-- L'accès à leurs données personnelles ;
-- La correction des données inexactes ;
-- La suppression des données personnelles (sous réserve de la conservation légale) ;
-- La restriction du traitement ;
-- La portabilité des données.
-
-Les demandes sont traitées via la fonctionnalité Demande de confidentialité et de données ou en contactant notre Délégué à la protection des données.
-
-## 9. Conformité et surveillance
-
-9.1 La conformité à la présente Politique est surveillée et examinée régulièrement.
-9.2 Les calendriers de conservation sont examinés et mis à jour si nécessaire.
-9.3 Les violations de la présente Politique sont signalées et traitées.
-
-## 10. Coordonnées
-
-Pour toute question sur la présente Politique, contactez :
-- **Courriel :** privacy@coopdata.gov.sz
-- **Délégué à la protection des données :** dpo@coopdata.gov.sz
+Avant publication, les durées de conservation définitives devraient être confirmées par les conseillers juridiques, fiscaux/comptables et en protection des données responsables des juridictions et des secteurs concernés.

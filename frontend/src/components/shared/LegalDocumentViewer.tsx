@@ -3,14 +3,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { LegalPolicy, LegalLang } from "@/types/legalPolicy";
-import {
-  FileText,
-  Calendar,
-  GitCommit,
-  ShieldCheck,
-  Loader2,
-  BookOpen,
-} from "lucide-react";
+import { FileText, Calendar, GitCommit, ShieldCheck, Loader2, BookOpen } from "lucide-react";
 
 interface LegalDocumentViewerProps {
   policy: LegalPolicy;
@@ -25,6 +18,8 @@ const SLUG_TO_FILE: Record<string, string> = {
   "acceptable-use": "acceptable_use.md",
   security: "security.md",
   "data-retention": "data_retention.md",
+  "data-use": "data_use.md",
+  "data-processing": "data_processing.md",
 };
 
 const LOCALE: Record<LegalLang, string> = {
@@ -61,17 +56,8 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
           : policy.content_en;
 
   useEffect(() => {
-    // Normalization helper for raw markdown strings
-    const processMarkdown = (raw: string) => {
-      let text = raw.replace(/\\n/g, "\n");
-      // Remove leading # Title line to avoid repeating the header title from top banner card
-      text = text.replace(/^#\s+.+(\r?\n)+/, "");
-      // Fix inline bullets that were joined without newlines
-      text = text.replace(/([^\n])\s*-\s+([A-Z0-9])/g, "$1\n- $2");
-      // Fix headings that lack preceding newlines
-      text = text.replace(/([^\n])\s*(#{1,4}\s+[A-Z0-9])/gi, "$1\n\n$2");
-      return text;
-    };
+    // The document's own "# Title" line is already shown in the header card.
+    const processMarkdown = (raw: string) => raw.replace(/^\uFEFF?#\s+.+(\r?\n)+/, "");
 
     if (dbContent && dbContent.trim().length > 10) {
       setContent(processMarkdown(dbContent));
@@ -122,8 +108,8 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
   const nodeToString = (node: React.ReactNode): string => {
     if (typeof node === "string" || typeof node === "number") return String(node);
     if (Array.isArray(node)) return node.map(nodeToString).join("");
-    if (React.isValidElement(node) && node.props && node.props.children) {
-      return nodeToString((node.props as { children?: React.ReactNode }).children);
+    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+      return nodeToString(node.props.children);
     }
     return "";
   };
@@ -205,7 +191,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
         )}
 
         {/* Main content */}
-        <div className="min-h-[400px] flex-1 px-6 py-8 md:px-10 md:py-10">
+        <div className="min-h-[400px] min-w-0 flex-1 px-6 py-8 md:px-10 md:py-10">
           {isLoadingContent ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
               <Loader2 className="size-8 animate-spin text-accent" />
@@ -242,14 +228,10 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
                     </h4>
                   ),
                   h4: ({ children }) => (
-                    <h5 className="mb-2 mt-4 text-sm font-semibold text-foreground">
-                      {children}
-                    </h5>
+                    <h5 className="mb-2 mt-4 text-sm font-semibold text-foreground">{children}</h5>
                   ),
                   p: ({ children }) => (
-                    <p className="my-3 text-sm leading-7 text-muted-foreground">
-                      {children}
-                    </p>
+                    <p className="my-3 text-sm leading-7 text-muted-foreground">{children}</p>
                   ),
                   strong: ({ children }) => (
                     <strong className="font-semibold text-foreground">{children}</strong>
@@ -308,9 +290,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
                       <table className="w-full border-collapse text-sm">{children}</table>
                     </div>
                   ),
-                  thead: ({ children }) => (
-                    <thead className="bg-muted/60">{children}</thead>
-                  ),
+                  thead: ({ children }) => <thead className="bg-muted/60">{children}</thead>,
                   th: ({ children }) => (
                     <th className="border-b border-border px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-foreground">
                       {children}
@@ -324,9 +304,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
                   tr: ({ children }) => (
                     <tr className="transition-colors hover:bg-muted/30">{children}</tr>
                   ),
-                  hr: () => (
-                    <hr className="my-8 border-0 border-t border-border" />
-                  ),
+                  hr: () => <hr className="my-8 border-0 border-t border-border" />,
                 }}
               >
                 {content}

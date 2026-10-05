@@ -1,94 +1,84 @@
 # Privacy Policy
 
-**Effective Date:** 1 January 2026
-**Version:** 1.0
-**Applicable Law:** Data Protection Act (Eswatini), GDPR (where applicable), NDPR
+**Proposed effective date:** 1 October 2026
 
-## 1. Introduction
+## 1. Scope
 
-CoopData ("we", "us", "our") is committed to protecting the privacy and personal data of cooperative members, administrators, and users. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use the CoopData platform.
+This Privacy Policy explains how CoopData collects, uses, stores, shares and protects personal information in connection with the Platform. It applies to Platform users, account administrators, authorized representatives and other individuals whose personal information is processed through the Platform, subject to the role of each party under the applicable agreement.
 
-## 2. Information We Collect
+## 2. Roles
 
-### 2.1 Information You Provide
-- Account registration details (name, email, username, role);
-- Cooperative and organizational information;
-- Financial statements and submission data;
-- Profile and preference information;
-- Communications with support.
+Depending on the processing activity, the Customer may act as data controller and CoopData may act as data processor/service provider. For account administration, Platform security, support, legal compliance and certain operational purposes, CoopData may determine purposes and means of processing and may therefore act as a controller. The final controller/processor allocation should be documented in the Customer agreement or Data Processing Agreement where required.
 
-### 2.2 Information Collected Automatically
-- IP address, browser type, and device information;
-- Usage data and access logs;
-- Cookies and similar technologies (see our Cookie Policy);
-- Consent records including timestamps.
+## 3. Information collected
 
-## 3. Legal Basis for Processing
+- **Account and identity information:** name, organization, role, email, telephone number and login identifiers.
+- **Cooperative/organizational information:** registration details, membership statistics, governance information, financial and operational indicators, and other information entered by authorized users.
+- **Usage and technical information:** login records, timestamps, IP address or similar technical identifiers, device/browser information, error logs and security events.
+- **Support information:** correspondence, requests, uploaded documents and information necessary to resolve support issues.
+- **Consent and compliance records:** acceptance status, version of documents accepted, timestamp, user/account identifier and relevant technical evidence.
 
-We process personal data based on the following legal bases:
-- **Consent:** Where you have given explicit consent (e.g., marketing communications);
-- **Contract:** Where processing is necessary to provide the Service;
-- **Legal obligation:** Where processing is required by law;
-- **Legitimate interest:** Where processing is necessary for our legitimate interests.
+## 4. Purposes
 
-## 4. How We Use Your Information
+- Providing, maintaining and securing the Platform.
+- Authenticating users and managing permissions.
+- Collecting, validating, consolidating and reporting cooperative-sector information according to the Customer’s instructions and authorized purposes.
+- Producing aggregated or de-identified statistics, benchmarks, sector analyses and development reports where permitted.
+- Monitoring performance, troubleshooting and improving the Platform.
+- Preventing fraud, misuse, security incidents and unauthorized access.
+- Complying with legal, regulatory, contractual and audit requirements.
+- Communicating operational notices and support information.
 
-We use your information to:
-- Provide, operate, and maintain the Service;
-- Process and validate financial submissions;
-- Generate reports and analytics;
-- Ensure security and prevent fraud;
-- Comply with legal and regulatory obligations;
-- Communicate with you about the Service.
+## 5. Lawful basis
 
-## 5. Data Sharing and Disclosure
+Processing will be based on the lawful ground applicable to the activity, which may include consent, performance of a contract, compliance with a legal obligation, protection of legitimate interests where recognized by applicable law, or another lawful basis available under the applicable data-protection framework. Consent will be used where consent is the appropriate legal basis and will be recorded in an auditable manner.
 
-We do not sell your personal data. We may share data with:
-- **Service providers** who assist in operating the Service;
-- **Regulatory authorities** where required by law;
-- **Cooperatives and apex bodies** for legitimate reporting purposes;
-- **Legal advisors** in connection with legal proceedings.
+## 6. Data minimization and accuracy
 
-## 6. Data Retention
+CoopData will seek to process information that is relevant to the stated purpose and avoid unnecessary collection. Customers and Users remain responsible for the accuracy and lawful collection of Customer Data. Users should promptly correct inaccurate information through the Platform or the designated support channel.
 
-6.1 We retain personal data only as long as necessary for the purposes described in this Policy.
-6.2 Financial statements and regulatory records are retained for the statutory retention period (10 years) as required by law.
-6.3 Consent records are retained for audit and compliance purposes.
+## 7. Sharing and disclosures
 
-## 7. Your Rights
+CoopData may disclose information to authorized Customer personnel, contracted processors/service providers, professional advisers, auditors, security providers, regulators or law-enforcement bodies where legally required or permitted. CoopData will not sell personal information as a commercial data product.
 
-You have the right to:
-- **Access** your personal data;
-- **Rectify** inaccurate or incomplete data;
-- **Erase** your personal data (subject to legal retention requirements);
-- **Restrict** or **object** to processing;
-- **Data portability** — receive your data in a structured format;
-- **Withdraw consent** at any time.
+Where aggregated or de-identified information is used for sector reporting, the reporting design will seek to prevent identification of an individual or organization unless separate authorization permits identifiable publication.
 
-To exercise these rights, use the Privacy & Data Request feature in your account settings or contact us.
+## 8. International transfers
 
-## 8. Data Security
+CoopData may use infrastructure or service providers located outside Eswatini. Where personal data is transferred across borders, CoopData will apply the safeguards and transfer conditions required by applicable law and relevant contractual arrangements. The final list of hosting and sub-processing locations should be maintained in the internal vendor register.
 
-8.1 We implement appropriate technical and organizational measures to protect your data.
-8.2 Data is encrypted in transit and at rest.
-8.3 Access to personal data is restricted to authorized personnel.
-8.4 We conduct regular security assessments and audits.
+## 9. Retention
 
-## 9. International Data Transfers
+Personal information is retained only for as long as reasonably necessary for the purpose for which it was collected, applicable legal/contractual requirements, security, dispute resolution and legitimate recordkeeping. Specific periods are defined in the CoopData Data Retention & Erasure Schedule. Where a longer retention period is legally required, the legal requirement prevails.
 
-Where data is transferred outside the Kingdom of Eswatini, we ensure appropriate safeguards are in place.
+## 10. Data subject rights
 
-## 10. Children's Privacy
+Subject to applicable law and any lawful limitations, individuals may have rights to access, correction, deletion/erasure, restriction or objection to certain processing, portability/export where applicable, and withdrawal of consent where consent is the legal basis.
 
-The Service is not directed to individuals under 18 years of age, and we do not knowingly collect their personal data.
+Requests may be submitted to the designated privacy contact.
 
-## 11. Changes to This Policy
+CoopData may need to verify identity and may coordinate with the Customer where the Customer is the controller responsible for the relevant data.
 
-We may update this Privacy Policy from time to time. Material changes will be communicated to you, and continued use of the Service constitutes acceptance of the revised Policy.
+## 11. Security
 
-## 12. Contact Information
+CoopData applies proportionate technical and organizational safeguards, including access controls, authentication, encryption in transit and at rest where supported, logging, backups, vulnerability management and incident-response procedures. No internet-based service can guarantee absolute security.
 
-For privacy inquiries or to exercise your rights, contact:
-- **Email:** privacy@coopdata.gov.sz
-- **Data Protection Officer:** dpo@coopdata.gov.sz
-- **Address:** Ministry of Cooperatives, Mbabane, Kingdom of Eswatini
+## 12. Children
+
+The Platform is intended for organizational and professional use. Users must not knowingly submit children’s personal information unless there is a lawful and documented reason to do so and the required safeguards are in place.
+
+## 13. Complaints and contact
+
+- **Privacy contact:** eswatini@dgrv.coop
+- **Organization:** DGRV, German Cooperative and Raiffeisen Confederation
+- **Address:** 743 Honey Crescent & Jubela Streets, Kentrock, Mbabane, H100, Eswatini
+
+Users may also contact the competent data-protection authority or other regulator where they have a lawful right to do so.
+
+## 14. Updates
+
+This Privacy Policy may be updated to reflect changes in the Platform, processing activities or legal requirements. The version and effective date shown at the beginning of the policy will identify the applicable version.
+
+## 15. Legal reference
+
+This policy is designed with reference to the Eswatini Data Protection Act, 2022 (Act No. 5 of 2022), which regulates collection, processing, disclosure and protection of personal data. The final policy should be checked against any regulations, amendments, sector rules and other jurisdictions applicable to the Platform.

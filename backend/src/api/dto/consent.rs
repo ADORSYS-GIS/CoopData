@@ -8,10 +8,14 @@ use crate::entities::{privacy_requests, user_consents};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct RecordConsentRequest {
+    /// TERMS_OF_SERVICE, PRIVACY_POLICY, COOKIE_POLICY, ACCEPTABLE_USE,
+    /// SECURITY_PROTECTION or DATA_RETENTION.
     #[validate(length(min = 1, max = 50))]
     pub document_type: String,
-    #[validate(length(min = 1, max = 20))]
-    pub document_version: String,
+    /// Ignored: the server records the version currently published. Kept so
+    /// older clients that still send it are accepted.
+    #[serde(default)]
+    pub document_version: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

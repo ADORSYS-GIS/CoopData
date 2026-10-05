@@ -53,7 +53,6 @@ export default defineConfig(({ mode }) => {
           // Pre-cache all JS, CSS, HTML, fonts, and icons
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,webp}"],
           globIgnores: ["**/test data/**"],
-          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           navigateFallback: "/index.html",
           navigateFallbackDenylist: [/^\/api\//, /^\/auth\//, /^\/realms\//, /\.[a-z0-9]+$/i],
           runtimeCaching: [

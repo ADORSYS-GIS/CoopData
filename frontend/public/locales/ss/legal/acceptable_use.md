@@ -1,72 +1,35 @@
-# Kusetjentiswa Lokwemukelekako Nekhodi Yekutiphatsa
+# Inchubomgomo Yekusebentisa Lokwemukelekako
 
-**Lusuku Lwekucala:** 1 Bhimbidvwane 2026
-**Inhlobo:** 1.0
+**Lusuku loluhlongotwako lwekucala kusebenta:** 1 iMphala 2026
 
-## 1. Injongo
+## 1. Inhloso
 
-LeNqubomgomo Yekusetjentiswa Lokwemukelekako neKhodI Yekutiphatsa ("Nqubomgomo") isungula emazinga ekutiphatsa lokulindzelwe kubo bonkhe basebentisi bepulatifomu ye-CoopData. Yakhelwe kucinisekisa indzawo lephephile, lehloniphako, nelekhiqizo kubo bonkhe bantfu labatsintsekako betimphakatsi tekusebentisana.
+Le nchubomgomo ibeka imitsetfo yekusebentisa i-CoopData ngendlela lephephile, lesemtsetfweni nalenemtfwalo. Isebenta kubo bonkhe labasebentisi, baphatsi, kuhlanganiswa kwemalunga eluhlelo kanye naletinye tinhlangotsi letingena eNkundleni.
 
-## 2. Umkhawulo
+## 2. Imisebenti lenqatjelwe
 
-LeNqubomgomo isebenta kubo bonkhe basebentisi, kufaka phakatsi emalunga etimphakatsi tekusebentisana, baphathi, tikhulu temnyango, basebenti betimfelandvunye netinhlangano letikhulu, nanoma ngubani lofinyelela Insita.
+- Kungena lokungakagunyatwa, kwabelana ngemininingwane yekungena, kutikhulisela emandla ekungena noma kuzama kungena kumininingwane yalenye inhlangano.
+- Kulayisha emaphrogramu lalimatako (malware), emaphrogramu lavalela imininingwane kute kufunwe imali (ransomware), ema-script lalimatako noma lokucuketfwe lokuhloswe kulimata tinhlelo.
+- Kudvonsa imininingwane ngemishini (scraping), kukhipha imininingwane ngebunyenti, kuhlaselwa ngema-bot noma ticelo letedlulele letingakavunyelwa ngalokucacile.
+- Kuzama kwedlula kucinisekiswa kwebunjalo, kulawulwa kwekungena, imikhawulo yeticelo noma letinye tindlela tekuvikeleka.
+- Kufaka imininingwane yenkhohliso, ledukisako, lengekho emtsetfweni noma lephambaniswe ngemabomu.
+- Kucubungula imininingwane yemuntu ngaphandle kwesisekelo semtsetfo lesifanele noma imvume.
+- Kuhlakata luhlelo, kulubuyisela emuva noma kukhipha likhodi yalo ngaphandle kwalapho kusebenta lilungelo lemtsetfo lelingenakuyekwa.
+- Kuhlola kuvikeleka, kuhlola ngekungena ngelikhono (penetration testing) noma kuhlola butsakatsaka ngaphandle kwemvume lebhaliwe.
+- Kusebentisa Inkundla kute uhlukumete, usongele, ubandlulule noma uvete lomunye umuntu ngalokungekho emtsetfweni.
+- Kuphazamisa kutfolakala, kuphelela noma kusebenta kweNkundla.
 
-## 3. Kutiphatsa Lokungavunyelwe
+## 3. Imitsetfo yekuphatsa imininingwane
 
-Akukafanele:
+- Layisha kuphela imininingwane lefanele inhloso legunyatiwe.
+- Ungalayishi emaphasiwedi, emakhiye ekubetsela langasese, imininingwane yemakhadi ekukhokha noma leminye imininingwane lebucayi lengahlobani.
+- Ungabelani ngemibiko lekhishiwe ngaphandle kwenhlangano ngaphandle kwemvume.
+- Susa noma ulungise imininingwane letfolakala ingasilo liciniso noma ilayishwe ngalokungekho emtsetfweni.
 
-### 3.1 Kwephula Kuvikeleka
-- Ufune kufinyelela lokungagunyatiwe kunoma yiphi ingxenye yeNsita;
-- Uhlole, uskeni, noma uhlole buthakathaka betinhlelo ngaphandle kwemvume;
-- Ubambe noma uphazamise kukhulumisana kwenethiwekhi;
-- Ufake i-malware, emagciwane, noma likhodi lelimbi;
-- Uphambukise tindlela tekuphepha noma kulawula kufakazela.
+## 4. Kucinisekisa kulandzelwa
 
-### 3.2 Bufakazi Bedatha
-- Ufake datha yetimali lengemanga, lengacondzile, noma yebucili;
-- Ushintje, ucise, noma ulimaze emarekhodi ngaphandle kwemvume;
-- Ufihle buminandzaba bakho, indzima, noma kuhlangana kwakho;
-- Ufinyelele datha ngaphandle kwemkhawulo wakho logunyatiwe.
+I-CoopData ingaphenya kwephula lokusolwako futsi ingakhawulela kungena okwesikhashana lapho kudzingeka ngalokufanele kute kuvikelwe labasebentisi, imininingwane noma Inkundla. Lapho kufanele khona, i-CoopData ingatjela Likhasimende, igcine bufakazi lobufanele, ilungise inkinga futsi idlulisele kutiphatsa lokusolwa kutsi akukho emtsetfweni etiphatsimandleni letifanele.
 
-### 3.3 Kutiphatsa Lokuhloniphako
-- Uhlukumeze, usongele, noma ubhandluze abanye basebentisi;
-- Ufake lokuqukethwe lokulimako, lokudicilela phansi, noma lokungafanele;
-- Ulingise omunye umuntfu noma inhlangano;
-- Uhlanganyele kunoma yikuphi kutiphatsa lokuphazamisa Insita.
+## 5. Kubika
 
-### 3.4 Kuhambisana Nemtsetfo
-- Usebentise Insita nganoma yini lengemtsetfweni;
-- Wephule imitsetfo noma imigomo lesebentako;
-- Wephule emalungelo ebunikazi bekuhlakanipha ebantfu.
-
-## 4. Bumfihlo Bedatha
-
-4.1 Basebentisi kufanele bagcine bumfihlo bedatha yetimali neyomuntfu lebucayi.
-4.2 Datha kufanele ifinyelelwe futhi isetjentiswe kuphela ngetinhloso lebhizinisi lefanele.
-4.3 Basebentisi akukafanele badlulisele lwati luyimfihlo kubantfu labangagunyatiwe.
-
-## 5. Kuvikeleka Kwe-Akhawunti
-
-5.1 Basebentisi banesibopho sekugcina imininingwane yabo yekungena.
-5.2 Imininingwane yekungena akukafanele yabelwane nabanye.
-5.3 Basebentisi kufanele babike ngokushesha tigameko tekuphepha letisoliswa.
-
-## 6. Kubika Kwephula
-
-Uma wati ngekwephula leNqubomgomo, kubike ku:
-- **I-imeyili:** security@coopdata.gov.sz
-- **E-aphu:** sebenzisa sici selusito noma sekubika
-
-## 7. Imiphumela Yekwephula
-
-Kwephula leNqubomgomo kungaholela ku:
-- Kumiswa noma kuphela kwekusebentisa;
-- Kuhoxiswa kwemalungelo;
-- Kubikwa etiphathimandla letifanele;
-- Kutsatsa emtsetfweni lapho kusebenta khona.
-
-## 8. Lwati Lwekuthintana
-
-Ngemibuto ngalemiGomo, thintana:
-- **I-imeyili:** legal@coopdata.gov.sz
-- **Likheli:** UMnyango Wetimphakatsi Tekusebentisana, eMbabane, eMbusweni weSwatini
+Imibiko mayelana nekuvikeleka noma kusetjentiswa lokubi kufanele itfunyelwe ku-eswatini@dgrv.coop noma kulotsintsanwa naye ngetekuvikeleka lobekiwe lokhonjiswe eNkundleni.

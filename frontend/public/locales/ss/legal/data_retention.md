@@ -1,80 +1,34 @@
-# Inqubomgomo Yekugcina Nekucubungula Datha
+# Luhlelo Lwekugcinwa Nekucishwa Kwemininingwane
 
-**Lusuku Lwekucala:** 1 Bhimbidvwane 2026
-**Inhlobo:** 1.0
-**Umtsetfo Locondzile:** Umtsetfo Wetimphakatsi Tekusebentisana (eSwatini), Umtsetfo Wekuvikela Datha
+**Lusuku loluhlongotwako lwekucala kusebenta:** 1 iMphala 2026
 
-## 1. Injongo
+## 1. Simiso
 
-LeNqubomgomo Yekugcina Nekucubungula Datha ("Nqubomgomo") isungula imitsetfo netinqubo tekugcina, kucubungula, kugcina emakhothamo, nekucisha datha lebutswe futhi yacubungulwa yipulatifomu ye-CoopData.
+I-CoopData ngeke iyigcine imininingwane sikhatsi lesidze kunalesidzingekako ngalokufanele ngenhloso leyicubungulelwako, ngaphansi kwetimfuneko temtsetfo, tesivumelwano, tekuhlolwa kwetimali, tekuvikeleka kanye netekuxazululwa kwetimphikiswano. Tikhatsi tekugcina letingentasi letijwayelekile tekusebenta letihlongotwako futsi kufanele ticinisekiswe ngulabeluleki ngetemtsetfo/ngekubalwa kwetimali ngekucatsaniswa nemitsetfo lesebenta kuLikhasimende ngalinye nakusiphrojekthi ngasinye.
 
-## 2. Umkhawulo
+## 2. Luhlelo loluhlongotwako
 
-LeNqubomgomo isebenta kuyo yonkhe datha leyacubungulwa yi-CoopData, kufaka phakatsi:
-- Datha yomuntfu yabasebentisi, emalunga, nebaphathi;
-- Titatimende tetimali nemarekhodi ekufaka;
-- Emarekhodi ekusebenta nekuhlola;
-- Emarekhodi emvume nekuhambisana;
-- Datha yemabhakufesi nekugcina emakhothamo.
+- **Imininingwane ye-akhawunti neyephrofayili yemsebentisi:** nangabe i-akhawunti isasebenta kanye nekufika etinyangeni letingu-24 ngemuva kwekuvalwa kwayo, ngaphandle kwekutsi kugcinwa lokudze kudzingeka ngetinhloso temtsetfo, tekuvikeleka noma tetimphikiswano.
+- **Emarekhodi emvume nekwemukela kwetemtsetfo:** agcinwa sikhatsi lesidzingekako kute kukhonjiswe kusebenta nemlandvo wemvume/wekwemukela kanye netimfuneko tekuphelelwa sikhatsi/tekuhlolwa letisebentako; lokuhlongotwako lokujwayelekile: iminyaka lesi-7 ngemuva kwekuphela kwebudlelwane lobufanele.
+- **Emarekhodi ekuhlolwa/ekuvikeleka:** lokuhlongotwako lokujwayelekile tinyanga letingu-12 kuya ku-24, nekugcinwa lokudze lapho kudzingekela luphenyo lwekuvikeleka noma sibopho semtsetfo.
+- **Emarekhodi etimali/etekuhweba noma ekuhlolwa lafakwe eNkundleni:** lokuhlongotwako lokujwayelekile kufika eminyakeni lesi-7 ngemuva kwesikhatsi sekubika lesifanele noma kuphela kwebudlelwane, lapho kusebenta khona; sikhatsi lesidze kuphela lapho imfuneko yemtsetfo, yesivumelwano, yekuhlolwa noma yetimphikiswano iyidzinga.
+- **Ticelo tekusekela nekubhalelana:** lokuhlongotwako lokujwayelekile iminyaka lemi-3 ngemuva kwekuvalwa, ngaphandle kwekutsi kuhlobene nemphikiswano noma sibopho semtsetfo.
+- **Emakhophi ekulondvoloza:** agcinwa ngekuya ngemjikeleto wemakhophi ekulondvoloza; kucishwa etinhlelweni letisebentako kungandvulela kuphelelwa sikhatsi kwemakhophi ekulondvoloza labetselwe ngelikhodi. Imininingwane yemakhophi ekulondvoloza akukafanele ibuyiselwe ngaphandle kwetinhloso letisemtsetfweni tekubuyisela.
+- **Imininingwane yetibalo lehlanganisiwe/lesusiwe bunjalo bemuntu:** ingagcinwa sikhatsi lesidze lapho ingasaveti bantfu futsi ingeke yaphindze yaxhunyaniswa ngalokufanele nemarekhodi laveta bunjalo.
+- **Ema-akhawunti lacishiwe:** kucishwa etinhlelweni letisebentako noma kususwa bunjalo lokungenakubuyiselwa kufanele ngalokujwayelekile kwenteke ngekhatsi kwemalanga langu-30 ngemuva kwekuphotfulwa kwekucinisekisa lokudzingekako futsi ngaphansi kwekugcinwa kwetemtsetfo netimfuneko tekugcina.
 
-## 3. Imigomo Yekugcina Datha
+## 3. Kugcinwa ngenca yemtsetfo
 
-3.1 Datha igcinwa kuphela ngesikhatsi lesidzingekako ngetinhloso lebeyibutswe ngato.
-3.2 Tikhatsi tekugcina tincunywa yimigomo yemtsetfo, yelawulo, nekusebenta.
-3.3 Datha igcinwa futhi ivikelwe ngekuphepha kuyo yonkhe impilo yayo.
-3.4 Datha iyacishwa noma ibhalwe ngaphandle kwekukhonjwa ngesikhatsi singasadingeki.
+Lapho imininingwane ingaphansi kwemphikiswano, luphenyo, kuhlolwa kwetimali, kugcinwa ngenca yemtsetfo noma imfuneko yekulawula, kucishwa lokujwayelekile kungamiswa kulamarekhodi lafanele kute kube kugcinwa kukhululwa.
 
-## 4. Tikhatsi Tekugcina
+## 4. Kulahla ngendlela lephephile
 
-| Sigaba Sedatha | Sikhatsi Sekugcina | Sisekelo |
-|---|---|---|
-| Titatimende tetimali | Iminyaka lelishumi | Umtsetfo |
-| Emarekhodi ekufaka | Iminyaka lelishumi | Kuhambisana nelawulo |
-| Datha ye-akhawunti yemsebentisi | Sikhatsi se-akhawunti + iminyaka le-5 | Kusebenta |
-| Emarekhodi emvume | Sikhatsi + iminyaka lelishumi | Kuhlola nekuhambisana |
-| Emarekhodi ekuhlola | Iminyaka le-7 | Kuvikeleka nekuhambisana |
-| Datha yesesheni | Tinsuku letingu-30 | Kusebenta |
-| Datha yemabhakufesi | Tinsuku letingu-30 | Kusebenta |
+Kucisha kufanele kusebentise tinyatselo tebuchwepheshe netenhlangano letifanele. Tintfo letiphatsekako, imininingwane lekhishiwe kanye nemafayela esikhashana lacuketse imininingwane yemuntu noma leyimfihlo kufanele kulahlwe noma kubhujiswe ngendlela lephephile nangabe kungasadzingeki.
 
-## 5. Kucubungula Datha
+## 5. Ticelo tekucisha temsebentisi
 
-5.1 Datha icubungulwa ngemtsetfo, ngekufanele, nangekubonakala.
-5.2 Kucubungula kukhawulelwe etinhlosweni lebeyibutswe ngato datha.
-5.3 Datha inembile, iphelele, futsi igcinwa isesikhatsini.
-5.4 Datha icubungulwa ngetindlela tekuphepha letifanele.
+Sicelo sekucisha asidzingi ngalokuzenzakalelako kutsi kucishwe lapho kugcina kudzingwa ngumtsetfo, kudzingekela kusungula noma kuvikela timangalo temtsetfo, kudzingekela kuvikeleka, noma kuvunyelwe ngalenye indlela ngumtsetfo losebentako. Lapho kucisha kungeke kwaphotfulwa, i-CoopData kufanele ichazele lowo locelile ngemkhawulo lowusebentako lapho kuvunyelwe ngumtsetfo.
 
-## 6. Kugcina Emakhothamo
+## 6. Kuvunywa
 
-6.1 Datha lengasasetsetjentiswa kakhulu kodvwa okufanele igcinwe iyiswa ekugcineni kwemakhothamo lokuphephile.
-6.2 Datha yemakhothamo ivikelwa ngetindlela tekuphepha letifanako nedatha lesebentako.
-6.3 Kufinyelela datha yemakhothamo kukhawulelwe futsi kubhalwe phansi.
-
-## 7. Kucisha Nekubhala Ngaphandle Kwekukhonjwa Kwedatha
-
-7.1 Datha lefike ekupheleni kwesikhatsi sayo sekugcina iyacishwa ngekuphepha.
-7.2 Lapho kucisha kungenteki khona (isibonelo, kugcinwa ngumtsetfo), datha ibhalwa ngaphandle kwekukhonjwa.
-7.3 Kucisha kwenteka ngendlela levinjela kubuyiselwa.
-7.4 Imisebenti yekucisha nekubhala ngaphandle kwekukhonjwa iyabhalwa futsi ibhalwe phansi.
-
-## 8. Emalungelo Emsebentisi
-
-Basebentisi bangacela:
-- Kufinyelela datha yabo yomuntfu;
-- Kulungiswa kwedatha lenganembile;
-- Kucishwa kwedatha yomuntfu (ngaphansi kwekugcinwa ngumtsetfo);
-- Kukhawulelwa kwekucubungula;
-- Kuthwala datha.
-
-Ticelo ticubungulwa ngesici seSicelo Sebumfihlo Nekudatha noma ngekuthintana neSikhulu Setfu Sekuvikela Datha.
-
-## 9. Kuhambisana Nekulandzelela
-
-9.1 Kuhambisana naleNqubomgomo kuyalandzelelwa futsi kubuyekezwe ngekujwayelekile.
-9.2 Tinhlelo tekugcina tiyabuyekezwa futsi tibuyekezwe njengoba kudzingeka.
-9.3 Kwephula leNqubomgomo kuyabikwa futsi kubukwe.
-
-## 10. Lwati Lwekuthintana
-
-Ngemibuto ngalemiGomo, thintana:
-- **I-imeyili:** privacy@coopdata.gov.sz
-- **Sikhulu Sekuvikela Datha:** dpo@coopdata.gov.sz
+Ngaphambi kwekushicilelwa, tikhatsi tekugcina tekugcina kufanele ticinisekiswe ngulabeluleki labanemtfwalo ngetemtsetfo, ngentsela/ngekubalwa kwetimali kanye nangekuvikelwa kwemininingwane etindzaweni temtsetfo nasemikhakheni lefakiwe.

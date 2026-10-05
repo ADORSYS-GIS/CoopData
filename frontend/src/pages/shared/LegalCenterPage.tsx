@@ -16,7 +16,7 @@ export const LegalCenterPage: React.FC = () => {
   const [lang, setLang] = useState<LegalLang>("en");
   const { user } = useAuth();
 
-  // Ministry role has system-wide admin access including legal policy editing
+  // Ministry admins can see which policy versions are published
   const isAdmin = user?.role === "ministry";
 
   const initialSlug =
@@ -87,7 +87,7 @@ export const LegalCenterPage: React.FC = () => {
                 className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-semibold text-muted-foreground shadow-[var(--shadow-elev-1)] transition-all hover:bg-muted hover:text-foreground"
               >
                 <PenTool className="size-3.5 text-accent" />
-                <span>Policy Editor (Admin)</span>
+                <span>Published versions</span>
               </Link>
             )}
           </div>
@@ -145,9 +145,7 @@ export const LegalCenterPage: React.FC = () => {
                       <span className="flex-1 truncate">{displayTitle}</span>
                       <span
                         className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
-                          isSelected
-                            ? "bg-accent/10 text-accent"
-                            : "bg-muted text-muted-foreground"
+                          isSelected ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
                         }`}
                       >
                         v{p.version || 1}

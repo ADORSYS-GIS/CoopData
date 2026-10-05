@@ -1,0 +1,36 @@
+{
+  "policies": {
+    "acceptable-use": {
+      "migration": "53_publish_legal_policies.sql",
+      "sha256": "e8fbe683c5c2c266878f78cd9834407f4aad754ea1bc04f6511fe102f3f20ba0"
+    },
+    "cookies": {
+      "migration": "53_publish_legal_policies.sql",
+      "sha256": "15bda03b80221cbdf405d7e82c54daf3e810a31fe3870b86a6c08ce9de91564e"
+    },
+    "data-processing": {
+      "migration": "53_publish_legal_policies.sql",
+      "sha256": "802cfe364558d01bada3eceddfaf6a61fbf98ceab8a437bf4a40559b9b0e23a8"
+    },
+    "data-retention": {
+      "migration": "53_publish_legal_policies.sql",
+      "sha256": "a7bf6cd2d2e64051dc0f6892e917d1579d6d99f35c4b8ad9986ca08d1614fb65"
+    },
+    "data-use": {
+      "migration": "53_publish_legal_policies.sql",
+      "sha256": "d2dc4fd498bd0cb6ebff955289599adab8e09deef498203f1573f551639e0c61"
+    },
+    "privacy": {
+      "migration": "53_publish_legal_policies.sql",
+      "sha256": "1075fc7dcc5dfc59e1c2647818dc9722dcbf37eebed33d46dfc21ca893ead35b"
+    },
+    "security": {
+      "migration": "53_publish_legal_policies.sql",
+      "sha256": "0f791873625bf6b02101bc37f31b59a551d8040714a676146c18a7df1956aff2"
+    },
+    "terms": {
+      "migration": "53_publish_legal_policies.sql",
+      "sha256": "b798f9d4a665a1a84a2514285e5145a032839af7e4643c249bceff0a9f4c7306"
+    }
+  }
+}

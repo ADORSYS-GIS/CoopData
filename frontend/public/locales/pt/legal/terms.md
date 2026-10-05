@@ -1,96 +1,87 @@
 # Termos de Serviço
 
-**Data de vigência:** 1 de janeiro de 2026
-**Versão:** 1.0
-**Lei aplicável:** Lei das Sociedades Cooperativas (Essuatíni), Lei das Transações Eletrónicas
+**Data de entrada em vigor proposta:** 1 de outubro de 2026
 
-## 1. Introdução
+## 1. Partes e aceitação
 
-Bem-vindo ao CoopData, a plataforma de gestão de dados financeiros cooperativos operada pelo Ministério das Cooperativas do Reino de Essuatíni. Estes Termos de Serviço ("Termos") regem o seu acesso e utilização da plataforma CoopData, do seu site, aplicações móveis e serviços associados (coletivamente, o "Serviço").
+Os presentes Termos de Serviço («Termos») regem o acesso e a utilização da plataforma CoopData («Plataforma»), operada pela DGRV e pelo Ministério do Comércio, Indústria e Comércio Externo (Ministry of Commerce, Trade and Industries), Departamento de Desenvolvimento Cooperativo. Para __________ («CoopData», «nós» ou «nosso»).
 
-Ao registar uma conta, aceder ou utilizar o Serviço, concorda em ficar vinculado por estes Termos. Se não concordar com estes Termos, não deve aceder nem utilizar o Serviço.
+Ao criar uma conta, aceder à Plataforma ou clicar num botão de aceitação, quando apresentado, o utilizador («Utilizador») aceita os presentes Termos.
 
-## 2. Definições
+Quando uma organização celebra um acordo com a CoopData, essa organização é o «Cliente» e os presentes Termos aplicam-se em conjunto com o acordo aplicável. Em caso de conflito, prevalece o acordo assinado, na medida do conflito.
 
-- **"Cooperativa"** significa uma sociedade cooperativa registada ao abrigo da Lei das Sociedades Cooperativas de Essuatíni.
-- **"Utilizador"** significa qualquer pessoa que registe uma conta ou aceda ao Serviço.
-- **"Dados Pessoais"** significa qualquer informação relativa a uma pessoa natural identificada ou identificável.
-- **"Dados Financeiros"** significa dados relativos às demonstrações financeiras, transações e registos de uma cooperativa.
-- **"Conteúdo"** significa todos os dados, textos, ficheiros, informações e materiais submetidos ou armazenados no Serviço.
+## 2. Elegibilidade e utilização autorizada
 
-## 3. Elegibilidade e registo de conta
+- Os Utilizadores devem fornecer informações de registo exatas e estar autorizados a agir em nome da organização que representam.
+- Os Utilizadores devem manter as credenciais confidenciais e não devem partilhar contas, salvo se a Plataforma permitir expressamente o acesso delegado.
+- Os Utilizadores são responsáveis pela atividade realizada através da sua conta, exceto na medida em que resulte de incumprimento da própria CoopData ou de acesso não autorizado imputável à CoopData.
+- Os Utilizadores devem cumprir as leis, regulamentos, requisitos do setor cooperativo, obrigações contratuais e políticas internas aplicáveis.
 
-3.1 Deve ter pelo menos 18 anos de idade para registar uma conta.
-3.2 Deve fornecer informações precisas, atuais e completas durante o registo.
-3.3 É responsável por manter a confidencialidade das suas credenciais de acesso.
-3.4 É responsável por todas as atividades que ocorram na sua conta.
-3.5 Deve notificar imediatamente o CoopData de qualquer utilização não autorizada da sua conta.
+## 3. Finalidade da Plataforma
 
-## 4. Utilização Aceitável
+A CoopData é uma plataforma de recolha, gestão, análise e comunicação de dados destinada a apoiar a gestão de informação do setor cooperativo, a monitorização, o planeamento, a investigação, a análise comparativa e atividades de desenvolvimento conexas. A CoopData não valida de forma independente cada dado submetido pelos Utilizadores e não presta aconselhamento contabilístico, de auditoria, jurídico, fiscal, de investimento ou regulamentar pelo simples facto de apresentar dados ou relatórios.
 
-4.1 Concorda em não utilizar indevidamente o Serviço, incluindo, mas não se limitando a:
-- Tentar aceder, adulterar ou utilizar áreas não públicas do Serviço;
-- Carregar código malicioso, vírus ou conteúdo prejudicial;
-- Interferir com o funcionamento do Serviço ou o acesso de outros utilizadores;
-- Utilizar o Serviço para qualquer fim ilegal;
-- Submeter informações falsas, enganosas ou fraudulentas;
-- Tentar sondar, analisar ou testar a vulnerabilidade do Serviço.
+## 4. Dados do Cliente e titularidade
 
-## 5. Conteúdo e Dados do Utilizador
+O Cliente e/ou o Utilizador mantém os seus direitos sobre os dados que submete («Dados do Cliente»), sem prejuízo das autorizações concedidas à CoopData nos presentes Termos e no acordo aplicável. O Utilizador declara ter a autoridade e todas as autorizações necessárias para submeter os Dados do Cliente e permitir que a CoopData os trate para as finalidades indicadas.
 
-5.1 Mantém a propriedade do Conteúdo que submete ao Serviço.
-5.2 Concede ao CoopData uma licença limitada para armazenar, processar e exibir o seu Conteúdo apenas para fornecer o Serviço.
-5.3 Declara que tem o direito de submeter todo o Conteúdo e que este não viola qualquer lei ou direitos de terceiros.
-5.4 O CoopData pode agregar dados anonimizados para fins estatísticos e de benchmarking.
+A CoopData pode tratar os Dados do Cliente para operar, proteger, manter, melhorar e prestar apoio à Plataforma; produzir os relatórios solicitados; diagnosticar e testar funcionalidades; cumprir a lei; e criar estatísticas agregadas ou desidentificadas, conforme descrito no Consentimento de Utilização e Agregação de Dados.
 
-## 6. Propriedade Intelectual
+## 5. Exatidão e responsabilidade pelas submissões
 
-6.1 O Serviço, incluindo o seu software, design, textos, gráficos e logótipos, é propriedade do CoopData ou dos seus licenciantes.
-6.2 Não pode copiar, modificar, distribuir, vender ou alugar qualquer parte do Serviço sem consentimento escrito prévio.
-6.3 Não pode fazer engenharia reversa nem tentar extrair o código-fonte do Serviço.
+- Os Utilizadores são responsáveis pela legalidade, exatidão, integralidade e atualidade das informações que submetem.
+- Os Utilizadores não devem carregar informações que não estejam autorizados a divulgar.
+- Quando os dados são introduzidos em nome de uma cooperativa ou de outra organização, o Utilizador confirma que a organização autorizou a submissão e as finalidades indicadas.
+- Os Utilizadores devem rever os relatórios antes de neles se basearem para decisões operacionais, financeiras, regulamentares ou de gestão.
 
-## 7. Privacidade e Proteção de Dados
+## 6. Propriedade intelectual
 
-7.1 A sua utilização do Serviço está sujeita à nossa Política de Privacidade, incorporada nestes Termos por referência.
-7.2 O CoopData processa Dados Pessoais em conformidade com as leis de proteção de dados aplicáveis, incluindo a Lei de Proteção de Dados de Essuatíni.
-7.3 Consente na recolha, processamento e armazenamento dos seus Dados Pessoais conforme descrito na Política de Privacidade.
+A Plataforma, o software, as interfaces, a documentação, a marca, os modelos, os fluxos de trabalho, os relatórios gerados pelo sistema enquanto funcionalidade do sistema e a tecnologia subjacente são propriedade da DGRV - CoopData ou estão licenciados à mesma, e estão protegidos pelas leis de propriedade intelectual aplicáveis. Os presentes Termos não transferem para os Utilizadores qualquer titularidade sobre a Plataforma.
 
-## 8. Disponibilidade e Modificações do Serviço
+Os Utilizadores recebem um direito limitado, não exclusivo e intransmissível de utilizar a Plataforma para as finalidades autorizadas do Cliente durante o período de subscrição, projeto ou acesso aplicável.
 
-8.1 O CoopData pode modificar, suspender ou descontinuar qualquer parte do Serviço a qualquer momento.
-8.2 O CoopData pode atualizar estes Termos periodicamente. Alterações materiais serão comunicadas, e a continuação da utilização do Serviço constitui aceitação dos Termos revistos.
-8.3 Forneceremos aviso razoável de manutenção programada que possa afetar o Serviço.
+## 7. Utilização aceitável
 
-## 9. Rescisão
+Os Utilizadores devem cumprir a Política de Utilização Aceitável da CoopData. São proibidos, entre outros: o acesso não autorizado, a partilha de credenciais, os testes de segurança sem autorização, a extração automatizada de conteúdos (scraping), o software malicioso, as tentativas de contornar controlos de acesso, o tratamento ilícito, as submissões fraudulentas, a engenharia inversa, salvo quando legalmente permitida, e qualquer utilização que possa perturbar ou danificar a Plataforma ou outro utilizador.
 
-9.1 Pode rescindir a sua conta a qualquer momento contactando o suporte.
-9.2 O CoopData pode suspender ou rescindir o seu acesso se violar estes Termos ou a lei aplicável.
-9.3 Após a rescisão, o seu direito de utilizar o Serviço cessa imediatamente.
-9.4 Os registos financeiros estatutários podem ser retidos em conformidade com os requisitos de retenção aplicáveis.
+## 8. Disponibilidade e alterações
 
-## 10. Exclusão de Garantias
+A CoopData envidará esforços razoáveis para manter a disponibilidade, mas não garante um funcionamento ininterrupto ou isento de erros. A manutenção, as medidas de segurança, as atualizações, as dependências de terceiros, as falhas de telecomunicações e os acontecimentos fora do seu controlo razoável podem afetar a disponibilidade.
 
-10.1 O Serviço é fornecido "como está" e "conforme disponível" sem garantias de qualquer tipo, expressas ou implícitas.
-10.2 O CoopData não garante que o Serviço será ininterrupto, sem erros ou seguro.
-10.3 O CoopData não fornece aconselhamento jurídico, financeiro ou contabilístico.
+A CoopData pode alterar as funcionalidades da Plataforma quando tal for razoavelmente necessário para efeitos de segurança, conformidade legal, manutenção ou melhoria. As alterações materiais aos presentes Termos serão comunicadas através da Plataforma ou por outros meios razoáveis.
 
-## 11. Limitação de Responsabilidade
+## 9. Confidencialidade
 
-11.1 Na máxima extensão permitida por lei, o CoopData não será responsável por quaisquer danos indiretos, incidentais, especiais, consequentes ou punitivos.
-11.2 A responsabilidade total do CoopData não excederá o valor pago por si pelo Serviço nos doze (12) meses anteriores à reclamação.
+Cada parte deve proteger as informações confidenciais recebidas da outra parte e utilizá-las apenas para finalidades autorizadas. Esta obrigação não se aplica a informações que sejam públicas sem incumprimento, desenvolvidas de forma independente, recebidas licitamente de outra fonte ou cuja divulgação seja exigida por lei. Quando legalmente permitido, a parte obrigada a divulgar informações confidenciais avisará previamente a outra.
 
-## 12. Indemnização
+## 10. Serviços de terceiros
 
-Concorda em indemnizar e isentar o CoopData e os seus diretores, funcionários e agentes de quaisquer reclamações, danos ou despesas decorrentes da sua utilização do Serviço ou violação destes Termos.
+A Plataforma pode recorrer a prestadores de serviços de alojamento, nuvem, comunicações, análise, segurança, autenticação ou outros. Quando esses prestadores tratarem dados pessoais em nome da CoopData, a CoopData aplicará medidas contratuais e técnicas adequadas, em conformidade com os requisitos de proteção de dados aplicáveis.
 
-## 13. Lei Aplicável e Resolução de Litígios
+## 11. Exclusões de garantia
 
-13.1 Estes Termos são regidos pelas leis do Reino de Essuatíni.
-13.2 Quaisquer litígios serão resolvidos por negociação, depois mediação e, finalmente, pelos tribunais de Essuatíni.
-13.3 Concorda em submeter-se à jurisdição exclusiva dos tribunais de Essuatíni.
+Na medida do permitido por lei, a Plataforma é disponibilizada «conforme disponível». A CoopData não garante que cada conjunto de dados submetido seja exato, completo ou adequado a uma decisão específica, nem que a Plataforma satisfaça todos os requisitos operacionais específicos.
 
-## 14. Informações de Contacto
+Nada nos presentes Termos exclui uma responsabilidade que não possa ser legalmente excluída, incluindo a responsabilidade decorrente de fraude ou de outras obrigações legais imperativas.
 
-Para questões sobre estes Termos, contacte:
-- **Email:** legal@coopdata.gov.sz
-- **Endereço:** Ministério das Cooperativas, Mbabane, Reino de Essuatíni
+## 12. Limitação de responsabilidade
+
+Na máxima medida permitida pela lei aplicável, a CoopData não será responsável por perdas indiretas, acessórias, especiais ou consequenciais decorrentes da utilização da Plataforma, incluindo perdas causadas por Dados do Cliente inexatos submetidos pelos Utilizadores, exceto quando tal limitação seja proibida por lei. Qualquer limite contratual de responsabilidade deve ser aqui inserido após revisão jurídica e alinhado com o acordo do Cliente.
+
+## 13. Suspensão e cessação
+
+A CoopData pode suspender o acesso quando tal for razoavelmente necessário para proteger a segurança, cumprir a lei, prevenir utilizações abusivas, resolver situações de falta de pagamento, quando aplicável, ou responder a um incumprimento material.
+
+Os Utilizadores podem deixar de utilizar a Plataforma e solicitar o tratamento da sua conta/dos seus dados nos termos da Política de Privacidade, do Calendário de Conservação e Eliminação e do acordo do Cliente aplicável.
+
+A cessação não elimina as obrigações que, pela sua natureza, subsistem após a cessação, incluindo a confidencialidade, a propriedade intelectual, as obrigações de pagamento vencidas e a conservação exigida por lei.
+
+## 14. Lei aplicável e resolução de litígios
+
+Lei aplicável e jurisdição: o Reino de Essuatíni.
+
+## 15. Contacto
+
+- **Contacto jurídico/contratual:** DGRV, Confederação Alemã das Cooperativas e Raiffeisen (German Cooperative and Raiffeisen Confederation)
+- **Morada:** 743 Honey Crescent & Jubela Streets, Kentrock, Mbabane, H100, Essuatíni
+- **E-mail:** eswatini@dgrv.coop

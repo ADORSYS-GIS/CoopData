@@ -1,8 +1,8 @@
 // src/api/dto/legal_policy.rs
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LegalPolicyResponse {
@@ -42,29 +42,3 @@ impl From<crate::entities::legal_policy::Model> for LegalPolicyResponse {
         }
     }
 }
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct LegalPolicyCreateRequest {
-    pub slug: String,
-    pub title_en: String,
-    pub title_fr: String,
-    pub title_pt: String,
-    pub title_ss: String,
-    pub content_en: String,
-    pub content_fr: String,
-    pub content_pt: String,
-    pub content_ss: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct LegalPolicyUpdateRequest {
-    pub title_en: Option<String>,
-    pub title_fr: Option<String>,
-    pub title_pt: Option<String>,
-    pub title_ss: Option<String>,
-    pub content_en: Option<String>,
-    pub content_fr: Option<String>,
-    pub content_pt: Option<String>,
-    pub content_ss: Option<String>,
-}
-

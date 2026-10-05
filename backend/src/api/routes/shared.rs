@@ -119,19 +119,12 @@ pub fn shared_routes() -> Router<AppState> {
         )
 }
 
-/// Admin-only legal & privacy management routes (role-guarded in `create_app`).
-/// These mutate platform-wide governance documents and resolve privacy requests,
-/// so they are intentionally separated from the shared read routes.
+/// Admin-only privacy management routes (role-guarded in `create_app`). They
+/// resolve users' privacy requests, so they are separated from the shared routes.
+/// Legal policies are not edited through the API: they are published from the
+/// Markdown files with `scripts/publish-legal.py`.
 pub fn legal_admin_routes() -> Router<AppState> {
     Router::new()
-        .route(
-            "/legal/policies",
-            post(crate::api::handlers::legal_policy::create_policy),
-        )
-        .route(
-            "/legal/policies/{id}",
-            put(crate::api::handlers::legal_policy::update_policy),
-        )
         .route(
             "/privacy/requests",
             get(crate::api::handlers::consent::list_all_privacy_requests),

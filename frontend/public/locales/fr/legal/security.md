@@ -1,74 +1,52 @@
-# Politique de sécurité et de protection
+# Déclaration de sécurité et de protection des données
 
-**Date d'entrée en vigueur :** 1er janvier 2026
-**Version :** 1.0
+**Date d’entrée en vigueur proposée :** 1er octobre 2026
 
 ## 1. Objet
 
-La présente Politique de sécurité et de protection décrit les mesures techniques et organisationnelles que CoopData met en œuvre pour protéger la confidentialité, l'intégrité et la disponibilité du Service et des données qu'il traite.
+La présente déclaration résume les mesures de sécurité appliquées à CoopData. Elle est volontairement rédigée à un niveau adapté aux utilisateurs et aux clients et ne divulgue pas de détails de mise en œuvre sensibles susceptibles d’accroître les risques de sécurité.
 
-## 2. Objectifs de sécurité de l'information
+## 2. Contrôle d’accès
 
-CoopData s'engage à :
-- Protéger les données contre tout accès, divulgation, altération et destruction non autorisés ;
-- Assurer la disponibilité et la fiabilité du Service ;
-- Respecter les réglementations applicables en matière de sécurité et de protection des données ;
-- Améliorer continuellement notre posture de sécurité.
+- Accès fondé sur les rôles et principe du moindre privilège.
+- Comptes utilisateurs individuels et privilèges administratifs contrôlés.
+- Contrôles d’authentification et, lorsqu’elle est disponible, authentification multifacteur pour les accès privilégiés ou sensibles.
+- Revue périodique des droits d’accès et retrait des accès lorsqu’ils ne sont plus nécessaires.
 
-## 3. Mesures techniques de sécurité
+## 3. Chiffrement
 
-### 3.1 Contrôle d'accès
-- Contrôle d'accès basé sur les rôles (RBAC) appliquant la hiérarchie IAM à quatre niveaux ;
-- Authentification forte, y compris l'authentification multifacteur (MFA) ;
-- Principe du moindre privilège pour tous les comptes utilisateurs ;
-- Gestion des sessions et délai d'expiration automatique.
+- TLS ou un transport sécurisé équivalent est utilisé pour les communications prises en charge en transit.
+- Les données au repos devraient être chiffrées à l’aide de mesures reconnues par le secteur, avec AES-256 ou un équivalent lorsque cela est techniquement applicable.
+- Les secrets, mots de passe et clés cryptographiques sont conservés et gérés à l’aide de mécanismes sécurisés appropriés plutôt qu’en clair.
 
-### 3.2 Protection des données
-- Chiffrement des données en transit (TLS 1.2+) ;
-- Chiffrement des données sensibles au repos ;
-- Gestion sécurisée des clés et rotation régulière des clés ;
-- Isolation des données entre les organisations (multi-location).
+## 4. Journalisation et surveillance
 
-### 3.3 Sécurité des applications
-- Validation et assainissement des entrées pour prévenir les attaques par injection ;
-- Protection contre les vulnérabilités OWASP Top 10 ;
-- Limitation du débit pour prévenir les abus et les attaques par force brute ;
-- Tests de sécurité et revue de code réguliers.
+Les événements pertinents pour la sécurité, tels que l’authentification, les modifications d’autorisations, les actions administratives et les erreurs système, peuvent être journalisés à des fins de sécurité, de diagnostic et d’audit. L’accès aux journaux est contrôlé et ceux-ci sont conservés conformément au Calendrier de conservation et d’effacement.
 
-### 3.4 Sécurité de l'infrastructure
-- Segmentation du réseau et pare-feu ;
-- Correctifs et mises à jour de sécurité réguliers ;
-- Surveillance et détection des intrusions ;
-- Sauvegardes sécurisées et reprise après sinistre.
+## 5. Sauvegarde et reprise
 
-## 4. Mesures organisationnelles
+- Des sauvegardes régulières sont effectuées conformément au plan de reprise approuvé.
+- L’accès aux sauvegardes est contrôlé et elles sont protégées contre toute modification non autorisée.
+- Les procédures de reprise devraient être testées périodiquement.
+- La conservation des sauvegardes suit le calendrier de conservation approuvé.
 
-- Formation de sensibilisation à la sécurité du personnel ;
-- Rôles et responsabilités clairs ;
-- Procédures de réponse aux incidents ;
-- Évaluations de sécurité des fournisseurs et des tiers.
+## 6. Gestion des vulnérabilités et des changements
 
-## 5. Gestion des incidents
+L’équipe d’ingénierie devrait appliquer un déploiement contrôlé, une gestion des dépendances, la correction des vulnérabilités, la revue de code et des tests proportionnés au risque de la Plateforme. Les changements sensibles pour la sécurité devraient être documentés et examinés avant leur mise en production.
 
-5.1 Les incidents de sécurité sont détectés, analysés et traités rapidement.
-5.2 Les utilisateurs et autorités concernés sont notifiés conformément aux exigences légales.
-5.3 Les incidents sont documentés et utilisés pour améliorer les mesures de sécurité.
+## 7. Réponse aux incidents
 
-## 6. Responsabilités des utilisateurs
+CoopData dispose d’un processus de réponse aux incidents en cas de suspicion d’accès non autorisé, de perte, de divulgation, d’altération ou d’indisponibilité des données. Les incidents sont évalués, contenus, analysés, corrigés et documentés. Lorsque la loi ou le contrat l’exige, les Clients, autorités de régulation ou personnes concernés seront informés dans le délai applicable.
 
-Les utilisateurs sont tenus de :
-- Utiliser des mots de passe forts et uniques ;
-- Activer l'authentification multifacteur lorsque disponible ;
-- Signaler les incidents de sécurité présumés ;
-- Suivre les directives d'utilisation acceptable ;
-- Protéger leurs identifiants de connexion.
+## 8. Prestataires tiers
 
-## 7. Notification de violation de données
+Les prestataires d’hébergement infonuagique, d’authentification, de communication, d’analyse et d’autres services peuvent traiter des informations pour le compte de CoopData. Les prestataires concernés devraient être évalués en matière de sécurité, de confidentialité, de contrôle d’accès et d’obligations de traitement des données, et inscrits dans un registre interne des sous-traitants/fournisseurs.
 
-En cas de violation de données, CoopData notifiera les personnes concernées et les autorités compétentes dans le délai requis par la loi applicable.
+## 9. Limites de la sécurité
 
-## 8. Coordonnées
+Aucun service connecté à Internet ne peut garantir une sécurité absolue. Les Utilisateurs doivent protéger leurs identifiants, utiliser des appareils pris en charge et signaler rapidement toute compromission présumée.
 
-Pour signaler un problème de sécurité, contactez :
-- **Courriel :** security@coopdata.gov.sz
-- **Adresse :** Ministère des Coopératives, Mbabane, Royaume d'Eswatini
+## 10. Contact
+
+- **Contact sécurité/confidentialité :** eswatini@dgrv.coop
+- **Organisation :** DGRV, Confédération allemande des coopératives et Raiffeisen (German Cooperative and Raiffeisen Confederation)

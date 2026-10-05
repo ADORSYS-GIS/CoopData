@@ -1,4 +1,4 @@
--- Migration 38: User Consents and Privacy Requests
+-- Migration 52: User consents and privacy requests
 
 CREATE TABLE IF NOT EXISTS user_consents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

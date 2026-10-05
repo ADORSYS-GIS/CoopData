@@ -1,70 +1,54 @@
-# Política de Cookies e Armazenamento
+# Política de Cookies e Tecnologias Semelhantes
 
-**Data de vigência:** 1 de janeiro de 2026
-**Versão:** 1.0
+**Data de entrada em vigor proposta:** 1 de outubro de 2026
 
-## 1. Introdução
+## 1. Âmbito
 
-Esta Política de Cookies e Armazenamento explica como o CoopData utiliza cookies, armazenamento local e tecnologias semelhantes para o reconhecer quando visita a nossa plataforma. Explica o que são estas tecnologias, porque as utilizamos e os seus direitos de controlar a sua utilização.
+A presente política explica a utilização de cookies e tecnologias semelhantes nas interfaces web da CoopData.
 
-## 2. O que São Cookies?
+## 2. Tecnologias essenciais
 
-Os cookies são pequenos ficheiros de dados colocados no seu dispositivo quando visita um site. São amplamente utilizados para fazer os sites funcionarem eficientemente e fornecer informações de relatórios.
+A CoopData pode utilizar tecnologias estritamente necessárias para a autenticação, a gestão de sessões, a segurança, a distribuição de carga e as preferências dos utilizadores. Estas tecnologias são necessárias para as funcionalidades essenciais e não se destinam a publicidade.
 
-## 3. Tipos de Cookies que Utilizamos
+## 3. Tecnologias facultativas
 
-### 3.1 Cookies Estritamente Necessários
-Estes cookies são essenciais para o funcionamento do Serviço e não podem ser desativados. Incluem:
-- Cookies de autenticação e sessão;
-- Cookies de segurança;
-- Cookies de balanceamento de carga.
+Se forem introduzidas tecnologias de análise, de monitorização do desempenho, de conteúdos incorporados ou outras tecnologias não essenciais, estas devem ser documentadas e, quando exigido, apresentadas através de um mecanismo de consentimento adequado antes da sua ativação.
 
-### 3.2 Cookies Funcionais
-Estes cookies permitem funcionalidade e personalização melhoradas, como lembrar as suas preferências de idioma e definições.
+## 4. Informações sobre cookies
 
-### 3.3 Cookies Analíticos
-Estes cookies ajudam-nos a compreender como os visitantes interagem com o Serviço, recolhendo e reportando informações anonimamente. Utilizamos estes dados para melhorar o Serviço.
+A CoopData utiliza atualmente apenas as tecnologias essenciais indicadas abaixo. Não utiliza cookies de análise, de publicidade nem de rastreio por terceiros.
 
-### 3.4 Cookies de Preferência
-Estes cookies lembram as suas escolhas, como idioma e região, para proporcionar uma experiência mais personalizada.
+### Cookies
 
-## 4. Armazenamento Local e IndexedDB
+| Nome | Finalidade | Fornecedor | Duração | Tipo | Estado do consentimento |
+|---|---|---|---|---|---|
+| `AUTH_SESSION_ID` | Acompanha um início de sessão em curso | Próprio (serviço de início de sessão da CoopData) | Até o navegador ser fechado | Sessão | Essencial |
+| `KC_AUTH_SESSION_HASH` | Protege o processo de início de sessão contra manipulação | Próprio (serviço de início de sessão da CoopData) | Alguns minutos, durante o início de sessão | Sessão | Essencial |
+| `KC_RESTART` | Permite retomar um início de sessão interrompido | Próprio (serviço de início de sessão da CoopData) | Até o início de sessão terminar ou expirar | Sessão | Essencial |
+| `KEYCLOAK_IDENTITY` | Mantém o utilizador com a sessão iniciada de forma segura | Próprio (serviço de início de sessão da CoopData) | Até terminar a sessão ou esta expirar (após 30 minutos de inatividade, no máximo 10 horas); mais tempo se for selecionado «Lembrar-me» | Sessão, ou persistente com «Lembrar-me» | Essencial |
+| `KEYCLOAK_SESSION` | Identifica a sessão ativa | Próprio (serviço de início de sessão da CoopData) | Até terminar a sessão ou esta expirar (após 30 minutos de inatividade, no máximo 10 horas); mais tempo se for selecionado «Lembrar-me» | Sessão, ou persistente com «Lembrar-me» | Essencial |
+| `KEYCLOAK_LOCALE` | Memoriza a língua escolhida na página de início de sessão | Próprio (serviço de início de sessão da CoopData) | Até o navegador ser fechado | Sessão | Essencial (preferência) |
+| `sidebar_state` | Memoriza se o menu de navegação está aberto ou recolhido | Próprio | 7 dias | Persistente | Essencial (preferência) |
 
-O CoopData utiliza armazenamento local do navegador e IndexedDB para permitir funcionalidade offline-first. Isto permite-lhe:
-- Aceder ao Serviço quando offline;
-- Armazenar dados da aplicação localmente em cache;
-- Colocar submissões em fila para sincronização quando a conectividade for restaurada.
+### Tecnologias semelhantes (armazenamento do navegador)
 
-Os dados armazenados localmente são utilizados apenas para fornecer o Serviço e são sincronizados com os nossos servidores quando está online.
+| Nome | Finalidade | Fornecedor | Duração | Tipo | Estado do consentimento |
+|---|---|---|---|---|---|
+| `i18nextLng` | Memoriza a língua escolhida para a interface | Próprio | Até os dados do navegador serem apagados | Persistente (armazenamento local) | Essencial (preferência) |
+| `coopdata_theme` | Memoriza a escolha de visualização clara/escura | Próprio | Até os dados do navegador serem apagados | Persistente (armazenamento local) | Essencial (preferência) |
+| `coopdata_cookie_consent` | Regista a escolha feita no aviso de cookies | Próprio | Até os dados do navegador serem apagados | Persistente (armazenamento local) | Essencial |
+| `coopdata_user_profile` | Guarda uma cópia do perfil do utilizador com sessão iniciada para que a Plataforma funcione offline | Próprio | Até terminar a sessão ou os dados do navegador serem apagados | Persistente (armazenamento local) | Essencial |
+| `coopdata_draft_financial` | Guarda um rascunho de registo financeiro não enviado para que o trabalho não se perca | Próprio | Até o rascunho ser submetido ou descartado | Persistente (armazenamento local) | Essencial |
+| `coopdata:period-reminders-dismissed` | Memoriza os lembretes de reporte que o utilizador dispensou | Próprio | Até os dados do navegador serem apagados | Persistente (armazenamento local) | Essencial (preferência) |
+| `CoopDataOfflineDB` | Armazena dados e submissões pendentes para que a Plataforma funcione sem ligação | Próprio | Até à sincronização, ao fim da sessão ou ao apagamento dos dados do navegador | Persistente (IndexedDB) | Essencial |
+| `coopdata_tokens` | Guarda os tokens de início de sessão necessários para trabalhar offline | Próprio | Até terminar a sessão | Persistente (IndexedDB) | Essencial |
+| `coopdata_query_cache` | Guarda em cache os dados consultados recentemente para um carregamento mais rápido, incluindo offline | Próprio | Até os dados do navegador serem apagados | Persistente (IndexedDB) | Essencial |
+| Cache da aplicação offline | Armazena os ficheiros da aplicação para que a Plataforma possa arrancar sem ligação | Próprio | Até à próxima atualização da aplicação | Persistente (cache do service worker) | Essencial |
 
-## 5. Cookies que Utilizamos
+## 5. Gestão de preferências
 
-| Tipo de Cookie | Objetivo | Duração |
-|---|---|---|
-| Cookie de sessão | Manter a sua sessão autenticada | Sessão |
-| Preferência de idioma | Lembrar o seu idioma selecionado | 1 ano |
-| Estado de consentimento | Acompanhar as suas escolhas de consentimento | 1 ano |
-| Analítico | Compreender padrões de utilização | 13 meses |
+Quando aplicável, os Utilizadores podem gerir as preferências relativas a cookies não essenciais através da interface de consentimento da Plataforma ou das definições do navegador. A desativação das tecnologias essenciais pode afetar o funcionamento da Plataforma.
 
-## 6. Gestão de Cookies
+## 6. Atualizações
 
-Pode controlar e gerir cookies através das definições do seu navegador. Pode:
-- Bloquear ou eliminar cookies;
-- Configurar o seu navegador para o notificar antes de aceitar cookies;
-- Desativar o armazenamento local.
-
-Tenha em atenção que desativar cookies essenciais pode afetar o funcionamento do Serviço.
-
-## 7. Cookies de Terceiros
-
-Alguns cookies podem ser definidos por serviços de terceiros que utilizamos, como fornecedores de análise. Estes terceiros têm as suas próprias políticas de privacidade.
-
-## 8. Alterações a Esta Política
-
-Podemos atualizar esta Política de Cookies periodicamente. Quaisquer alterações serão publicadas nesta página com uma data de vigência atualizada.
-
-## 9. Informações de Contacto
-
-Para questões sobre esta Política de Cookies, contacte:
-- **Email:** privacy@coopdata.gov.sz
-- **Endereço:** Ministério das Cooperativas, Mbabane, Reino de Essuatíni
+A presente política deve ser atualizada sempre que as tecnologias de cookies, os fornecedores de análise ou os mecanismos de rastreio sofram alterações relevantes.

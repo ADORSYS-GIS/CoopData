@@ -180,57 +180,58 @@ pub fn create_app(state: AppState) -> Router {
         })
         .build_pair();
 
-    let protected = Router::new()
-        .merge(shared_routes())
-        .merge(crate::api::routes::shared::legal_admin_routes().layer(
-            axum::middleware::from_fn(role_guard_layer(&[roles::MINISTRY, roles::FEDERATION])),
-        ))
-        .merge(crate::api::routes::shared::sensitive_auth_routes().layer(
-            axum::middleware::from_fn_with_state(
+    let protected =
+        Router::new()
+            .merge(shared_routes())
+            .merge(crate::api::routes::shared::legal_admin_routes().layer(
+                axum::middleware::from_fn(role_guard_layer(&[roles::MINISTRY, roles::FEDERATION])),
+            ))
+            .merge(crate::api::routes::shared::sensitive_auth_routes().layer(
+                axum::middleware::from_fn_with_state(
+                    state.clone(),
+                    crate::api::rate_limit::rate_limit_auth,
+                ),
+            ))
+            .merge(user_routes())
+            .nest(
+                "/ministry",
+                ministry_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                    roles::MINISTRY,
+                ]))),
+            )
+            .nest(
+                "/federation",
+                federation_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                    roles::FEDERATION,
+                ]))),
+            )
+            .nest(
+                "/apex",
+                apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                    roles::APEX,
+                    roles::MINISTRY,
+                ]))),
+            )
+            .nest(
+                "/cooperative",
+                cooperative_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
+                    roles::COOPERATIVE,
+                    roles::APEX,
+                    roles::FEDERATION,
+                    roles::MINISTRY,
+                ]))),
+            )
+            .layer(axum::middleware::from_fn_with_state(
                 state.clone(),
-                crate::api::rate_limit::rate_limit_auth,
-            ),
-        ))
-        .merge(user_routes())
-        .nest(
-            "/ministry",
-            ministry_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-                roles::MINISTRY,
-            ]))),
-        )
-        .nest(
-            "/federation",
-            federation_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-                roles::FEDERATION,
-            ]))),
-        )
-        .nest(
-            "/apex",
-            apex_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-                roles::APEX,
-                roles::MINISTRY,
-            ]))),
-        )
-        .nest(
-            "/cooperative",
-            cooperative_routes().layer(axum::middleware::from_fn(role_guard_layer(&[
-                roles::COOPERATIVE,
-                roles::APEX,
-                roles::FEDERATION,
-                roles::MINISTRY,
-            ]))),
-        )
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            crate::api::middleware::idempotency_middleware,
-        ))
-        .layer(axum::middleware::from_fn(
-            crate::api::middleware::audit_context_layer,
-        ))
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            auth_layer,
-        ));
+                crate::api::middleware::idempotency_middleware,
+            ))
+            .layer(axum::middleware::from_fn(
+                crate::api::middleware::audit_context_layer,
+            ))
+            .layer(axum::middleware::from_fn_with_state(
+                state.clone(),
+                auth_layer,
+            ));
 
     Router::new()
         .nest("/api/v1", public_routes().merge(protected))

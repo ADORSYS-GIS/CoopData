@@ -1,72 +1,35 @@
-# Uso Aceitável e Código de Conduta
+# Política de Utilização Aceitável
 
-**Data de vigência:** 1 de janeiro de 2026
-**Versão:** 1.0
+**Data de entrada em vigor proposta:** 1 de outubro de 2026
 
-## 1. Objetivo
+## 1. Finalidade
 
-Esta Política de Uso Aceitável e Código de Conduta ("Política") estabelece os padrões de comportamento esperados de todos os utilizadores da plataforma CoopData. Foi concebida para garantir um ambiente seguro, respeitoso e produtivo para todas as partes interessadas das cooperativas.
+A presente política estabelece regras para uma utilização segura, lícita e responsável da CoopData. Aplica-se a todos os utilizadores, administradores, integrações e outras partes que acedam à Plataforma.
 
-## 2. Âmbito
+## 2. Atividades proibidas
 
-Esta Política aplica-se a todos os utilizadores, incluindo membros de cooperativas, administradores, funcionários ministeriais, pessoal de federações e organismos de topo, e qualquer pessoa que aceda ao Serviço.
+- Acesso não autorizado, partilha de credenciais, escalada de privilégios ou tentativas de aceder aos dados de outra organização.
+- Carregamento de software malicioso, ransomware, scripts maliciosos ou conteúdos destinados a comprometer sistemas.
+- Extração automatizada de conteúdos (scraping), extração em massa, ataques de bots ou pedidos excessivos que não estejam expressamente autorizados.
+- Tentativas de contornar a autenticação, os controlos de acesso, os limites de pedidos ou outros mecanismos de segurança.
+- Submissões de dados fraudulentas, enganosas, ilícitas ou deliberadamente falsificadas.
+- Tratamento de dados pessoais sem fundamento jurídico ou autorização adequados.
+- Engenharia inversa, descompilação ou extração de código-fonte, salvo quando se aplique um direito legal irrenunciável.
+- Testes de segurança, testes de intrusão ou análises de vulnerabilidades sem autorização escrita.
+- Utilização da Plataforma para assediar, ameaçar, discriminar ou expor ilicitamente outra pessoa.
+- Interferência com a disponibilidade, a integridade ou o desempenho da Plataforma.
 
-## 3. Conduta Proibida
+## 3. Regras de tratamento de dados
 
-Não deve:
+- Carregar apenas informações relevantes para a finalidade autorizada.
+- Não carregar palavras-passe, chaves de cifragem privadas, credenciais de cartões de pagamento ou informações sensíveis não relacionadas.
+- Não partilhar relatórios exportados fora da organização sem autorização.
+- Remover ou corrigir informações que se verifiquem inexatas ou carregadas ilicitamente.
 
-### 3.1 Violações de Segurança
-- Tentar obter acesso não autorizado a qualquer parte do Serviço;
-- Sondar, analisar ou testar a vulnerabilidade dos sistemas sem autorização;
-- Intercetar ou interferir com comunicações de rede;
-- Introduzir malware, vírus ou código prejudicial;
-- Contornar medidas de segurança ou controlos de autenticação.
+## 4. Aplicação
 
-### 3.2 Integridade dos Dados
-- Submeter dados financeiros falsos, imprecisos ou fraudulentos;
-- Alterar, eliminar ou adulterar registos sem autorização;
-- Deturpar a sua identidade, função ou afiliação;
-- Aceder a dados fora do seu âmbito autorizado.
+A CoopData pode investigar suspeitas de violação e restringir temporariamente o acesso quando tal for razoavelmente necessário para proteger os utilizadores, os dados ou a Plataforma. Quando adequado, a CoopData pode notificar o Cliente, preservar provas relevantes, corrigir o problema e comunicar condutas suspeitas de ilicitude às autoridades competentes.
 
-### 3.3 Conduta Respeitosa
-- Assediar, ameaçar ou discriminar outros utilizadores;
-- Publicar conteúdo ofensivo, difamatório ou inadequado;
-- Fazer-se passar por outra pessoa ou entidade;
-- Envolver-se em qualquer conduta que perturbe o Serviço.
+## 5. Comunicação de incidentes
 
-### 3.4 Conformidade Legal
-- Utilizar o Serviço para qualquer fim ilegal;
-- Violar leis ou regulamentos aplicáveis;
-- Infringir os direitos de propriedade intelectual de terceiros.
-
-## 4. Confidencialidade dos Dados
-
-4.1 Os utilizadores devem manter a confidencialidade dos dados financeiros e pessoais sensíveis.
-4.2 Os dados só devem ser acedidos e utilizados para fins comerciais legítimos.
-4.3 Os utilizadores não devem divulgar informações confidenciais a partes não autorizadas.
-
-## 5. Segurança da Conta
-
-5.1 Os utilizadores são responsáveis por proteger as suas credenciais de acesso.
-5.2 As credenciais não devem ser partilhadas com terceiros.
-5.3 Os utilizadores devem reportar imediatamente incidentes de segurança suspeitos.
-
-## 6. Reportar Violações
-
-Se tiver conhecimento de uma violação desta Política, reporte-a a:
-- **Email:** security@coopdata.gov.sz
-- **Na aplicação:** utilize a funcionalidade de suporte ou reporte
-
-## 7. Consequências das Violações
-
-As violações desta Política podem resultar em:
-- Suspensão ou rescisão do acesso;
-- Revogação de privilégios;
-- Reporte às autoridades competentes;
-- Ação legal quando aplicável.
-
-## 8. Informações de Contacto
-
-Para questões sobre esta Política, contacte:
-- **Email:** legal@coopdata.gov.sz
-- **Endereço:** Ministério das Cooperativas, Mbabane, Reino de Essuatíni
+As comunicações relativas a segurança ou utilização abusiva devem ser enviadas para eswatini@dgrv.coop ou para o contacto de segurança designado indicado na Plataforma.

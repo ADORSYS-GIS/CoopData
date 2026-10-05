@@ -1,8 +1,13 @@
--- 2024-xx-xx_create_legal_policies.sql
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Migration 50: Versioned legal policies (Terms, Privacy, Cookies, ...).
+--
+-- Each published version of a policy is a new row; earlier versions are never
+-- changed. The text comes from frontend/public/locales/{lang}/legal/*.md and is
+-- published with scripts/publish-legal.py, which writes the seeding migrations.
+-- Idempotent, so databases that ran the earlier, mis-numbered version of this
+-- migration accept it again unchanged.
 
-CREATE TABLE legal_policies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS legal_policies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     policy_id UUID NOT NULL,
     slug TEXT NOT NULL,
     title_en TEXT NOT NULL,
@@ -14,5 +19,6 @@ CREATE TABLE legal_policies (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Index for fast lookup of latest version per slug
-CREATE UNIQUE INDEX idx_legal_policies_slug_version ON legal_policies (slug, version DESC);
+-- One row per policy version; also serves the "latest version per slug" lookup.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_legal_policies_slug_version
+    ON legal_policies (slug, version DESC);

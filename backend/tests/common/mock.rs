@@ -12,7 +12,8 @@ use coop_data_backend::{
     NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
     OrganizationLabelRepository, OrganizationRepository, QuestionnaireRepository,
     QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
-    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository, UserRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection as SeaConnection;
 

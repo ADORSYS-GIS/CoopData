@@ -1,6 +1,16 @@
 import React from "react";
 import { Link } from "@tanstack/react-router";
-import { ShieldCheck, Lock, FileText, Cookie, Scale, Server, Settings2 } from "lucide-react";
+import {
+  BarChart3,
+  Cookie,
+  FileText,
+  Lock,
+  Network,
+  Scale,
+  Server,
+  Settings2,
+  ShieldCheck,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { openCookieSettings } from "@/components/shared/CookieConsentBanner";
 
@@ -44,6 +54,18 @@ export const Footer: React.FC<{ className?: string }> = ({ className = "" }) => 
       search: { doc: "data-retention" },
       label: t("legal.dataRetention", "Data Retention"),
       icon: Server,
+    },
+    {
+      to: "/legal",
+      search: { doc: "data-use" },
+      label: t("legal.dataUse", "Data Use & Aggregation"),
+      icon: BarChart3,
+    },
+    {
+      to: "/legal",
+      search: { doc: "data-processing" },
+      label: t("legal.dataProcessing", "Data Processing Roles"),
+      icon: Network,
     },
   ];
 

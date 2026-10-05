@@ -1,74 +1,52 @@
-# Inqubomgomo Yekuvikeleka Nekuvikelwa
+# Sitatimende Sekuvikeleka Nekuvikelwa Kwemininingwane
 
-**Lusuku Lwekucala:** 1 Bhimbidvwane 2026
-**Inhlobo:** 1.0
+**Lusuku loluhlongotwako lwekucala kusebenta:** 1 iMphala 2026
 
-## 1. Injongo
+## 1. Inhloso
 
-LeNqubomgomo Yekuvikeleka Nekuvikelwa ichaza tindlela tebuchwepheshe netenhlangano letisetjive yi-CoopData kuvikela bumfihlo, buqiniso, nekutholakala kweNsita nedatha leyicubungulako.
+Lesitatimende sifingcisa tindlela tekuvikeleka letisetjentiswa ku-CoopData. Sibhalwe ngemabomu ngelizinga lelifanele labasebentisi nemakhasimende futsi asiveti imininingwane lebucayi yekusetjentiswa lengakhulisa ingoti yekuvikeleka.
 
-## 2. Tinhloso Tekuvikeleka Lwati
+## 2. Kulawula kungena
 
-I-CoopData ibopheleke ku:
-- Vikela datha ekufinyeleleni, ekudluliselweni, ekushintjweni, nekubhujisweni lokungagunyatiwe;
-- Cinisekisa kutholakala nekuthembeka kweNsita;
-- Hlanganisa nemigomo lesebentako yekuvikeleka nekuvikela datha;
-- Chubeka ngekutfutfukisa simo setfu sekuphepha.
+- Kungena lokusekelwe emisebentini kanye nesimiso semandla lamancane ladzingekako.
+- Ema-akhawunti labasebentisi lehlukene kanye nemandla ekuphatsa lalawulwako.
+- Tindlela tekucinisekisa bunjalo futsi, lapho kutfolakala khona, kucinisekisa ngetindlela letinyenti (multi-factor authentication) ekungeneni lokunemandla lamakhulu noma lokubucayi.
+- Kubuyeketwa ngetikhatsi emalungelo ekungena kanye nekususwa kwekungena nangabe kungasadzingeki.
 
-## 3. Tindlela Tekuvikeleka Tebuchwepheshe
+## 3. Kubetselwa ngelikhodi (encryption)
 
-### 3.1 Kulawula Kufinyelela
-- Kulawula kufinyelela lokusekelwe endzimeni (RBAC) lokusebentisa sigaba se-IAM lesine;
-- Kufakazela lokunamandla, kufaka phakatsi kufakazela kwemicimbi leminyenti (MFA);
-- Simiso selilungelo lelincane kuto tonkhe tikhawunti tabasebentisi;
-- Kuphatfwa kwetisesheni nekuphela kwesikhatsi ngekuzenzakalelako.
+- I-TLS noma indlela lephephile lelinganako yekudlulisa isetjentiswa ekuchumaneni lokusekelwako lapho imininingwane idluliswa.
+- Imininingwane legciniwe kufanele ibetselwe ngelikhodi kusetjentiswa tindlela letemukelekile embonini, nge-AES-256 noma lokulinganako lapho kusebenta khona ngebuchwepheshe.
+- Timfihlo, emaphasiwedi nemakhiye ekubetsela kugcinwa futsi kulawulwe kusetjentiswa tindlela letiphephile letifanele, hhayi njengemibhalo lengakabetselwa.
 
-### 3.2 Kuvikelwa Kwedatha
-- Kubhalwa kwekhodi kwedatha ekuhambeni (TLS 1.2+);
-- Kubhalwa kwekhodi kwedatha lebucayi ekuphumuleni;
-- Kuphatfwa kwemakhodi lokuphephile nekushintjwa kwemakhodi ngekujwayelekile;
-- Kwehlukaniswa kwedatha emkhatsini wetinhlangano (multi-tenancy).
+## 4. Kurekhoda nekulandzelela
 
-### 3.3 Kuvikeleka Kwe-Application
-- Kucinisekiswa nekuhlanzwa kwekulokufakwayo kuvikela kuhlasela kwe-injection;
-- Kuvikelwa ebuthakathakeni be-OWASP Top 10;
-- Kukhawulelwa kwesilinganiso kuvikela kusetjentiswa kabi nekuhlasela kwe-brute-force;
-- Kuhlolwa kwekuvikela nekubuyekezwa kwekhodi ngekujwayelekile.
+Tehlakalo letibalulekile ekuvikelekeni letinjengekucinisekiswa kwebunjalo, lushintjo lwetimvume, tento tekuphatsa kanye nemaphutsa eluhlelo tingarekhodwa ngetinhloso tekuvikeleka, tekulungisa tinkinga nekuhlolwa. Kungena emarekhodini kuyalawulwa futsi agcinwa ngekuya nge-Luhlelo Lwekugcinwa Nekucishwa.
 
-### 3.4 Kuvikeleka Kwengqalasizinda
-- Kwehlukaniswa kwenethiwekhi nemindvilingo yomlilo;
-- Kulungiswa kwekuvikela nekubuyekeza ngekujwayelekile;
-- Kulandzelela nekutfola kungena lokungagunyatiwe;
-- Emabhakufesi laphephile nekubuyiselwa kwesimo sekwenteka kwelinye.
+## 5. Emakhophi ekulondvoloza nekubuyisela
 
-## 4. Tindlela Tenhlangano
+- Emakhophi ekulondvoloza lajwayelekile agcinwa ngekuya ngeluhlelo lwekubuyisela loluvunyiwe.
+- Kungena emakhophini ekulondvoloza kuyalawulwa futsi avikelwe ekushintjweni lokungakagunyatwa.
+- Tindlela tekubuyisela kufanele tihlolwe ngetikhatsi.
+- Kugcinwa kwemakhophi ekulondvoloza kulandzela luhlelo lwekugcina loluvunyiwe.
 
-- Kutfutfukiswa kwati kwekuvikela kubasebenti;
-- Tindzima netibopho letibonakalako;
-- Tinqubo tekuphendvula tigameko;
-- Tihlolo tekuphepha tebaphakeli nebantfu besitsatfu.
+## 6. Kulawula butsakatsaka nelushintjo
 
-## 5. Kuphatfwa Kwetigameko
+Licembu Lebuchwepheshe kufanele lisebentise kufakwa kweluhlelo lokulawulwako, kulawulwa kwemaphrogramu lekwetsenjelwa kuwo, kulungiswa kwebutsakatsaka, kubuyeketwa kwelikhodi nekuhlola lokulingana nengoti yeNkundla. Lushintjo lolubucayi ekuvikelekeni kufanele lubhalwe futsi lubuyeketwe ngaphambi kwekufakwa ekusebentiseni.
 
-5.1 Tigameko tekuphepha tiyatholwa, tihlaziywe, futsi tiphendvulwe ngokushesha.
-5.2 Basebentisi netiphathimandla letitsintsekako bayaziswa ngemigomo yemtsetfo.
-5.3 Tigameko tiyabhalwa futsi tisetjentiswe kutfutfukisa tindlela tekuphepha.
+## 7. Kuphendvula etehlakalweni
 
-## 6. Emabopho Emsebentisi
+I-CoopData inendlela yekuphendvula etehlakalweni nakusolwa kungena lokungakagunyatwa, kulahleka, kuvetwa, konakala noma kungatfolakali kwemininingwane. Tehlakalo tiyahlolwa, tilawulwe, tiphenywe, tilungiswe futsi tibhalwe. Lapho kudzingwa ngumtsetfo noma sivumelwano, Emakhasimende latsintsekile, balawuli noma bantfu batawutjelwa ngekhatsi kwesikhatsi lesisebentako.
 
-Kulindzelwe kutsi basebentisi:
-- Basebentise emaphasiwedi lanamandla, lahlukile;
-- Bavule kufakazela kwemicimbi leminyenti lapho kutholakala khona;
-- Babike tigameko tekuphepha letisoliswa;
-- Balandzele imihlahlandlela yekusetjentiswa lokwemukelekako;
-- Bavikele imininingwane yabo yekungena.
+## 8. Baniketi betinsita bangaphandle
 
-## 7. Kwaziswa Kwekuphuka Kwedatha
+Baniketi betinsita tekugcina imininingwane ku-cloud, tekucinisekisa bunjalo, tekuchumana, tekuhlatiya naletinye bangacubungula imininingwane egameni le-CoopData. Baniketi labafanele kufanele bahlolwe ngekuvikeleka, kugcinwa kwemfihlo, kulawulwa kwekungena kanye netibopho tekucubungula imininingwane, futsi bagcinwe kurejista yangekhatsi yebacubunguli labangetulu/yebaniketi.
 
-Esigamekweni sekuphuka kwedatha, i-CoopData itokwazisa bantfu labatsintsekako netiphathimandla letifanele ngesikhatsi lesidzingwa ngumtsetfo losebentako.
+## 9. Imikhawulo yekuvikeleka
 
-## 8. Lwati Lwekuthintana
+Kute lusito loluxhunywe ku-inthanethi lolungacinisekisa kuvikeleka lokuphelele. Basebentisi kufanele bavikele imininingwane yabo yekungena, basebentise tisetjentiswa letisekelwako futsi babike masinyane nakusolwa kutsi kungenwe ngalokungekho emtsetfweni.
 
-Kubika kukhathala kwekuvikela, thintana:
-- **I-imeyili:** security@coopdata.gov.sz
-- **Likheli:** UMnyango Wetimphakatsi Tekusebentisana, eMbabane, eMbusweni weSwatini
+## 10. Kuchumana
+
+- **Lotsintsana naye ngetekuvikeleka/tebumfihlo:** eswatini@dgrv.coop
+- **Inhlangano:** DGRV, German Cooperative and Raiffeisen Confederation

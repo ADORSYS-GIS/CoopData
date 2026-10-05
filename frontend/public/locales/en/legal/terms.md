@@ -1,96 +1,87 @@
 # Terms of Service
 
-**Effective Date:** 1 January 2026
-**Version:** 1.0
-**Applicable Law:** Cooperative Societies Act (Eswatini), Electronic Transactions Act
+**Proposed effective date:** 1 October 2026
 
-## 1. Introduction
+## 1. Parties and acceptance
 
-Welcome to CoopData, the cooperative financial data management platform operated by the Ministry of Cooperatives of the Kingdom of Eswatini. These Terms of Service ("Terms") govern your access to and use of the CoopData platform, its website, mobile applications, and associated services (collectively, the "Service").
+These Terms of Service (“Terms”) govern access to and use of the CoopData platform (“Platform”) operated by DGRV and the Ministry of Commerce, Trade and Industries, Cooperative Development Department. To __________ (“CoopData”, “we”, “us” or “our”).
 
-By registering an account, accessing, or using the Service, you agree to be bound by these Terms. If you do not agree to these Terms, you must not access or use the Service.
+By creating an account, accessing the Platform, or clicking an acceptance button where presented, the user (“User”) accepts these Terms.
 
-## 2. Definitions
+Where an organization enters into an agreement with CoopData, that organization is the “Customer” and these Terms apply together with the applicable agreement. If there is a conflict, the signed agreement controls to the extent of the conflict.
 
-- **"Cooperative"** means a registered cooperative society under the Cooperative Societies Act of Eswatini.
-- **"User"** means any individual who registers an account or accesses the Service.
-- **"Personal Data"** means any information relating to an identified or identifiable natural person.
-- **"Financial Data"** means data relating to the financial statements, transactions, and records of a cooperative.
-- **"Content"** means all data, text, files, information, and materials submitted to or stored on the Service.
+## 2. Eligibility and authorized use
 
-## 3. Eligibility and Account Registration
+- Users must provide accurate registration information and must be authorized to act for the organization they represent.
+- Users must keep credentials confidential and must not share accounts unless the Platform expressly supports delegated access.
+- Users are responsible for activity performed through their account, except to the extent caused by CoopData’s own breach or unauthorized access attributable to CoopData.
+- Users must comply with applicable laws, regulations, cooperative-sector requirements, contractual duties and internal policies.
 
-3.1 You must be at least 18 years of age to register an account.
-3.2 You must provide accurate, current, and complete information during registration.
-3.3 You are responsible for maintaining the confidentiality of your login credentials.
-3.4 You are responsible for all activities that occur under your account.
-3.5 You must notify CoopData immediately of any unauthorized use of your account.
+## 3. Platform purpose
 
-## 4. Acceptable Use
+CoopData is a data collection, management, analysis and reporting platform intended to support cooperative-sector information management, monitoring, planning, research, benchmarking and related development activities. CoopData does not independently validate every data point submitted by Users and does not provide accounting, audit, legal, tax, investment or regulatory advice merely by presenting data or reports.
 
-4.1 You agree not to misuse the Service, including but not limited to:
-- Attempting to access, tamper with, or use non-public areas of the Service;
-- Uploading malicious code, viruses, or harmful content;
-- Interfering with the operation of the Service or other users' access;
-- Using the Service for any unlawful purpose;
-- Submitting false, misleading, or fraudulent information;
-- Attempting to probe, scan, or test the vulnerability of the Service.
+## 4. Customer Data and ownership
 
-## 5. User Content and Data
+The Customer and/or User retains its rights in data it submits (“Customer Data”), subject to the permissions granted to CoopData in these Terms and the applicable agreement. The User represents that it has the authority and all permissions necessary to submit the Customer Data and to permit CoopData to process it for the stated purposes.
 
-5.1 You retain ownership of the Content you submit to the Service.
-5.2 You grant CoopData a limited license to store, process, and display your Content solely to provide the Service.
-5.3 You represent that you have the right to submit all Content and that it does not violate any law or third-party rights.
-5.4 CoopData may aggregate anonymized data for statistical and benchmarking purposes.
+CoopData may process Customer Data to operate, secure, maintain, improve and support the Platform; produce requested reports; troubleshoot and test functionality; comply with law; and create aggregated or de-identified statistics as described in the Data Use & Aggregation Consent.
 
-## 6. Intellectual Property
+## 5. Accuracy and responsibility for submissions
 
-6.1 The Service, including its software, design, text, graphics, and logos, is owned by CoopData or its licensors.
-6.2 You may not copy, modify, distribute, sell, or lease any part of the Service without prior written consent.
-6.3 You may not reverse engineer or attempt to extract the source code of the Service.
+- Users are responsible for the legality, accuracy, completeness and timeliness of information they submit.
+- Users must not upload information they are not authorized to disclose.
+- Where data is entered on behalf of a cooperative or another organization, the User confirms that the organization has authorized the submission and the stated purposes.
+- Users should review reports before relying on them for operational, financial, regulatory or management decisions.
 
-## 7. Privacy and Data Protection
+## 6. Intellectual property
 
-7.1 Your use of the Service is subject to our Privacy Policy, which is incorporated into these Terms by reference.
-7.2 CoopData processes Personal Data in accordance with applicable data protection laws, including the Data Protection Act of Eswatini.
-7.3 You consent to the collection, processing, and storage of your Personal Data as described in the Privacy Policy.
+The Platform, software, interfaces, documentation, branding, templates, workflows, reports generated by the system as system functionality, and underlying technology are owned by or licensed to DGRV - CoopData and are protected by applicable intellectual-property laws. No ownership of the Platform is transferred to Users by these Terms.
 
-## 8. Service Availability and Modifications
+Users receive a limited, non-exclusive, non-transferable right to use the Platform for the Customer’s authorized purposes during the applicable subscription, project or access period.
 
-8.1 CoopData may modify, suspend, or discontinue any part of the Service at any time.
-8.2 CoopData may update these Terms from time to time. Material changes will be communicated to you, and continued use of the Service constitutes acceptance of the revised Terms.
-8.3 We will provide reasonable notice of scheduled maintenance that may affect the Service.
+## 7. Acceptable Use
 
-## 9. Termination
+Users must comply with the CoopData Acceptable Use Policy. Prohibited conduct includes unauthorized access, credential sharing, security testing without authorization, scraping, malware, attempts to bypass access controls, unlawful processing, fraudulent submissions, reverse engineering except where legally permitted, and use that could disrupt or damage the Platform or another user.
 
-9.1 You may terminate your account at any time by contacting support.
-9.2 CoopData may suspend or terminate your access if you violate these Terms or applicable law.
-9.3 Upon termination, your right to use the Service ceases immediately.
-9.4 Statutory financial records may be retained in accordance with applicable retention requirements.
+## 8. Availability and changes
 
-## 10. Disclaimer of Warranties
+CoopData will use reasonable efforts to maintain availability but does not guarantee uninterrupted or error-free operation. Maintenance, security measures, upgrades, third-party dependencies, telecommunications failures and events beyond reasonable control may affect availability.
 
-10.1 The Service is provided "as is" and "as available" without warranties of any kind, whether express or implied.
-10.2 CoopData does not warrant that the Service will be uninterrupted, error-free, or secure.
-10.3 CoopData does not provide legal, financial, or accounting advice.
+CoopData may modify Platform functionality where reasonably necessary for security, legal compliance, maintenance or improvement. Material changes to these Terms will be communicated through the Platform or other reasonable means.
 
-## 11. Limitation of Liability
+## 9. Confidentiality
 
-11.1 To the maximum extent permitted by law, CoopData shall not be liable for any indirect, incidental, special, consequential, or punitive damages.
-11.2 CoopData's total liability shall not exceed the amount paid by you for the Service in the twelve (12) months preceding the claim.
+Each party must protect confidential information received from the other party and use it only for authorized purposes. This obligation does not apply to information that is public without breach, independently developed, lawfully received from another source, or required to be disclosed by law. Where legally permitted, a party required to disclose confidential information will provide prior notice.
 
-## 12. Indemnification
+## 10. Third-party services
 
-You agree to indemnify and hold harmless CoopData and its officers, employees, and agents from any claims, damages, or expenses arising from your use of the Service or violation of these Terms.
+The Platform may rely on hosting, cloud, communications, analytics, security, authentication or other service providers. Where such providers process personal data on CoopData’s behalf, CoopData will use appropriate contractual and technical measures consistent with applicable data-protection requirements.
 
-## 13. Governing Law and Dispute Resolution
+## 11. Disclaimers
 
-13.1 These Terms are governed by the laws of the Kingdom of Eswatini.
-13.2 Any disputes shall be resolved through negotiation, then mediation, and finally through the courts of Eswatini.
-13.3 You agree to submit to the exclusive jurisdiction of the courts of Eswatini.
+To the extent permitted by law, the Platform is provided on an “as available” basis. CoopData does not warrant that every submitted dataset is accurate, complete or suitable for a particular decision, or that the Platform will meet every specific operational requirement.
 
-## 14. Contact Information
+Nothing in these Terms excludes liability that cannot lawfully be excluded, including liability arising from fraud or other mandatory statutory obligations.
 
-For questions about these Terms, contact:
-- **Email:** legal@coopdata.gov.sz
-- **Address:** Ministry of Cooperatives, Mbabane, Kingdom of Eswatini
+## 12. Limitation of liability
+
+To the maximum extent permitted by applicable law, CoopData will not be liable for indirect, incidental, special or consequential loss arising from use of the Platform, including loss caused by inaccurate Customer Data submitted by Users, except where such limitation is prohibited by law. Any contractual liability cap should be inserted here after legal review and aligned with the Customer agreement.
+
+## 13. Suspension and termination
+
+CoopData may suspend access where reasonably necessary to protect security, comply with law, prevent misuse, address non-payment where applicable, or respond to a material breach.
+
+Users may stop using the Platform and request account/data handling in accordance with the Privacy Policy, Retention & Erasure Schedule and applicable Customer agreement.
+
+Termination does not remove obligations that by their nature survive termination, including confidentiality, intellectual property, accrued payment obligations and legally required retention.
+
+## 14. Governing law and dispute resolution
+
+Governing law and jurisdiction: The Kingdom of Eswatini.
+
+## 15. Contact
+
+- **Legal/contract contact:** DGRV, German Cooperative and Raiffeisen Confederation
+- **Address:** 743 Honey Crescent & Jubela Streets, Kentrock, Mbabane, H100, Eswatini
+- **Email:** eswatini@dgrv.coop

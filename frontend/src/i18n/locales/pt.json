@@ -5425,5 +5425,15 @@
     },
     "lockedFrequency": "{{year}} já está definido para relatório {{frequency}}.",
     "lockedFrequencyDrafts": "{{year}} está definido para relatório {{frequency}}. Elimine os rascunhos desse ano para alterar."
+  },
+  "legal": {
+    "termsOfService": "Termos de Serviço",
+    "privacyPolicy": "Política de Privacidade",
+    "cookiePolicy": "Política de Cookies",
+    "acceptableUse": "Utilização Aceitável",
+    "securityProtection": "Segurança e Proteção de Dados",
+    "dataRetention": "Conservação de Dados",
+    "dataUse": "Utilização e Agregação de Dados",
+    "dataProcessing": "Funções no Tratamento de Dados"
   }
 }

@@ -1,8 +1,8 @@
 // backend/tests/legal_policy_test.rs
-use coop_data_backend::api::dto::legal_policy::{LegalPolicyCreateRequest, LegalPolicyUpdateRequest, LegalPolicyResponse};
+use chrono::Utc;
+use coop_data_backend::api::dto::legal_policy::LegalPolicyResponse;
 use coop_data_backend::entities::legal_policy;
 use uuid::Uuid;
-use chrono::Utc;
 
 #[test]
 fn test_legal_policy_dto_conversion() {
@@ -34,39 +34,4 @@ fn test_legal_policy_dto_conversion() {
     assert_eq!(dto.slug, "privacy-test");
     assert_eq!(dto.title_en, "Privacy Policy Test");
     assert_eq!(dto.version, 1);
-}
-
-#[test]
-fn test_legal_policy_create_request() {
-    let req = LegalPolicyCreateRequest {
-        slug: "terms".to_string(),
-        title_en: "Terms of Service".to_string(),
-        title_fr: "Conditions d'utilisation".to_string(),
-        title_pt: "Termos de Serviço".to_string(),
-        title_ss: "Imigomo Yekusebentisa".to_string(),
-        content_en: "Terms content".to_string(),
-        content_fr: "Contenu des conditions".to_string(),
-        content_pt: "Conteúdo dos termos".to_string(),
-        content_ss: "Lokuqukethwe kwemigomo".to_string(),
-    };
-
-    assert_eq!(req.slug, "terms");
-    assert_eq!(req.title_en, "Terms of Service");
-}
-
-#[test]
-fn test_legal_policy_update_request() {
-    let req = LegalPolicyUpdateRequest {
-        title_en: Some("Updated Terms".to_string()),
-        title_fr: None,
-        title_pt: None,
-        title_ss: None,
-        content_en: Some("Updated Content".to_string()),
-        content_fr: None,
-        content_pt: None,
-        content_ss: None,
-    };
-
-    assert_eq!(req.title_en.as_deref(), Some("Updated Terms"));
-    assert!(req.title_fr.is_none());
 }

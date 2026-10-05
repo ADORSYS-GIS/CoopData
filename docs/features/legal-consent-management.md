@@ -9,7 +9,7 @@
 
 ## 1. Overview & Business Value
 
-CoopData processes personal, organizational, and sensitive financial information. Providing clear legal documentation and auditable consent management improves transparency, user trust, and compliance readiness (GDPR, NDPR, CCPA).
+CoopData processes personal, organizational, and sensitive financial information. Providing clear legal documentation and auditable consent management improves transparency, user trust, and compliance readiness (Eswatini Data Protection Act; GDPR where applicable).
 
 The platform will:
 1. Provide publicly accessible, multi-lingual legal documentation for 6 key policies.
@@ -25,7 +25,7 @@ The platform will:
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
 │ FRONTEND (Static & Fast Content Layer)                                    │
-│ • Static Markdown files (.md) in public/locales/{en|fr}/legal/            │
+│ • Markdown files (.md) in public/locales/{en|fr|pt|ss}/legal/ (source)   │
 │ • Rendered dynamically via LegalCenterPage.tsx                            │
 │ • Works 100% offline via PWA caching                                      │
 └───────────────────────────────────────────────────────────────────────────┘
@@ -60,9 +60,18 @@ The platform will:
 | 4 | `ACCEPTABLE_USE` | `acceptable-use` | `/locales/{lang}/legal/acceptable_use.md` |
 | 5 | `SECURITY_PROTECTION` | `security` | `/locales/{lang}/legal/security.md` |
 | 6 | `DATA_RETENTION` | `data-retention` | `/locales/{lang}/legal/data_retention.md` |
+| 7 | `DATA_USE_CONSENT` | `data-use` | `/locales/{lang}/legal/data_use.md` |
+| 8 | `DATA_PROCESSING_GOVERNANCE` | `data-processing` | `/locales/{lang}/legal/data_processing.md` |
 
-All 6 documents are authored in 4 languages (`en`, `fr`, `pt`, `ss`) both as static
-markdown assets and as seeded rows in the `legal_policies` table (migration 40).
+The English texts come from the approved sources in `sources/policies/` (Word documents
+01–08); French, Portuguese and Siswati are translations of them. Source 09, the
+*Consent & Legal Acceptance Management Standard*, is internal and kept in
+`docs/legal/consent-acceptance-standard.md`.
+
+All 8 documents are authored in 4 languages (`en`, `fr`, `pt`, `ss`). The Markdown
+files are the **only place the texts are edited**; the app shows the published copy in
+the `legal_policies` table (the files are a fallback when the API is unreachable).
+See section 7 for how a change is published.
 
 ---
 
@@ -113,8 +122,9 @@ markdown assets and as seeded rows in the `legal_policies` table (migration 40).
 2. **Immutable Audit Trail**: Previous consent records are never updated or overwritten. New acceptances insert new rows.
 3. **Data Isolation**: Users can only query or view their own consent records (`user_id == claims.sub`).
 4. **Unauthenticated Public Access**: The public legal center (`/legal`) is accessible without authentication.
-5. **Admin-Only Policy Management**: Creating/updating legal policies (`POST`/`PUT /api/v1/legal/policies`) and resolving privacy requests require the `ministry` or `federation` role (role-guarded middleware).
+5. **No in-app policy editing**: policies are published from the repository (section 7), so every change is reviewed in a pull request. The admin page `/app/admin-legal` only shows the published versions. Resolving privacy requests requires the `ministry` or `federation` role (role-guarded middleware).
 6. **Dynamic Versioning**: The current consent version for Terms and Privacy is resolved from the latest `legal_policies` row, so re-acceptance is triggered automatically when a policy is republished.
+7. **Server-chosen consent version**: `POST /api/v1/consents` records the version that is published at that moment. The client only names the document; any version it sends is ignored, and unknown document types are rejected.
 
 ## 6. API Surface
 
@@ -129,5 +139,31 @@ markdown assets and as seeded rows in the `legal_policies` table (migration 40).
 | PUT | `/api/v1/privacy/requests/{id}` | ministry/federation | Update request status |
 | GET | `/api/v1/legal/policies` | Any user | List latest policies |
 | GET | `/api/v1/legal/policies/{slug}` | Any user | Get latest policy by slug |
-| POST | `/api/v1/legal/policies` | ministry/federation | Create policy |
-| PUT | `/api/v1/legal/policies/{policy_id}` | ministry/federation | Publish new policy version |
+
+---
+
+## 7. Publishing a policy change
+
+The Markdown files are the source; the database holds the published versions users
+see and accept. To change a policy:
+
+1. Edit `frontend/public/locales/{en,fr,pt,ss}/legal/<document>.md`. Line 1 must be
+   `# Title`; use `##` / `###` for sections (they build the table of contents). Do not
+   write a version or effective date in the text: the page shows them from the database.
+2. Run `python3 scripts/publish-legal.py`. It writes
+   `backend/migrations/NN_publish_legal_policies.sql`, which adds a new version of each
+   changed document, and records the fingerprint of the published texts in
+   `backend/legal/published.json`.
+3. Commit the Markdown, the migration and `published.json` together and open a PR.
+4. On deploy, `scripts/migrate-db.sh` applies the migration once. A version is only
+   added when its text differs from the latest one, so re-running it is harmless.
+   Users are then asked to accept an updated Terms of Service or Privacy Policy once.
+
+**CI guard:** the `Legal Documents Published` job in `ci-frontend.yml` runs
+`python3 scripts/publish-legal.py --check`. It fails when a Markdown file changed but
+was not published, so the database and the files cannot drift apart.
+
+Migrations: `50_create_legal_policies.sql`, `51_legal_policies_4lang.sql`,
+`52_user_consents_and_privacy_requests.sql`, `53_publish_legal_policies.sql` (first
+publication). They are idempotent, so databases that ran the earlier, mis-numbered
+versions (38–40) accept them again unchanged.

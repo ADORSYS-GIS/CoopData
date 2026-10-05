@@ -67,15 +67,10 @@ export const useMyConsents = () =>
 export const useRecordConsent = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      document_type,
-      document_version,
-    }: {
-      document_type: string;
-      document_version: string;
-    }): Promise<UserConsent> => {
+    // The server records the version currently published; the client never sends one.
+    mutationFn: async ({ document_type }: { document_type: string }): Promise<UserConsent> => {
       const { data, error } = await apiClient.POST("/api/v1/consents", {
-        body: { document_type, document_version },
+        body: { document_type },
       });
       if (error) throw new Error(extractErrorMessage(error));
       return data as UserConsent;

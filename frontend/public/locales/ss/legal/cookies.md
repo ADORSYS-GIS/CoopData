@@ -1,70 +1,54 @@
-# Inqubomgomo Yemakhukhi Nekugcinwa
+# Inchubomgomo Yemakhukhi Netindlela Letifanako
 
-**Lusuku Lwekucala:** 1 Bhimbidvwane 2026
-**Inhlobo:** 1.0
+**Lusuku loluhlongotwako lwekucala kusebenta:** 1 iMphala 2026
 
-## 1. Singeniso
+## 1. Bubanti
 
-LeNqubomgomo Yemakhukhi Nekugcinwa ichaza kutsi i-CoopData isebentisa njani emakhukhi, kugcinwa kwendzawo, neteknoloji letifananako kukubona ngesikhatsi uvakashela ipulatifomu yetfu. Ichaza kutsi tiyini leti teknoloji, kutsi siyisebentiseleni, nemalungelo akho ekulawula kusetjentiswa kwato.
+Le nchubomgomo ichaza kusetjentiswa kwemakhukhi (cookies) kanye netindlela letifanako kuma-interface e-web e-CoopData.
 
-## 2. Ayini Emakhukhi?
+## 2. Tindlela letibalulekile
 
-Emakhukhi ngemafayili lamancane edatha labekwa edivayisini yakho ngesikhatsi uvakashela iwebhusayithi. Asetjentiswa kakhulu kute iwebhusayithi isebente kahle nekuhlinzeka lwati lwekubika.
+I-CoopData ingasebentisa tindlela letidzingeka kakhulu ekucinisekiseni bunjalo, ekulawuleni tikhatsi tekusebentisa, ekuvikelekeni, ekwabelaneni ngemsebenti kanye nasekukhetseni kwalabasebentisi. Leti tindlela tidzingekela kusebenta lokusisekelo futsi atentelwe kukhangisa.
 
-## 3. Tinhlelo Temakhukhi Lesiwasebentisako
+## 3. Tindlela letingasiso sibopho
 
-### 3.1 Emakhukhi Ladingekako Kakhulu
-Lamakhukhi abalulekile ekusebenteni kweNsita futhi angeke acinywe. Afaka phakatsi:
-- Emakhukhi ekufakazela nekusesheni;
-- Emakhukhi ekuphepha;
-- Emakhukhi ekulinganisa umtfwalo.
+Uma kwetfulwa tindlela tekuhlatiya, tekulandzelela kusebenta, lokucuketfwe lokufakwe ngekhatsi noma letinye tindlela letingabalulekile, kufanele tibhalwe futsi, lapho kudzingeka khona, tetfulwe ngendlela yemvume lefanele ngaphambi kwekutsi tisebente.
 
-### 3.2 Emakhukhi Esebentako
-Lamakhukhi avumela kusebenta nekwenziwa kube ngawakho lokutfutfukile, njengekukhumbula tintfo letikhetsiwe telulwimi nesethingi yakho.
+## 4. Imininingwane ngemakhukhi
 
-### 3.3 Emakhukhi Ekuhlaziya
-Lamakhukhi asisita kucondza kutsi bavakashi basebentisana njani neNsita ngekubutsa nekubika lwati ngaphandle kwekukhonjwa. Sisebentisa ledatha kutfutfukisa Insita.
+I-CoopData njenganyalo isebentisa kuphela tindlela letibalulekile letibhalwe ngentasi. Ayisebentisi makhukhi ekuhlatiya, ekukhangisa noma ekulandzelelwa tinkampani tangaphandle.
 
-### 3.4 Emakhukhi Etintfo Letikhetsiwe
-Lamakhukhi akhumbula tikhetselo takho, njengelulwimi nesifundza, kukunika lwati lolwenziwe lube ngelwakho.
+### Emakhukhi
 
-## 4. Kugcinwa Kwendzawo ne-IndexedDB
+| Ligama | Inhloso | Umniketi | Sikhatsi | Luhlobo | Simo semvume |
+|---|---|---|---|---|---|
+| `AUTH_SESSION_ID` | Ilandzelela kungena lokusachubeka | Lokwangekhatsi (lusito lwekungena lwe-CoopData) | Kuze kuvalwe i-browser | Sikhatsi sekusebentisa | Kubalulekile |
+| `KC_AUTH_SESSION_HASH` | Ivikela inchubo yekungena ekuphazanyisweni | Lokwangekhatsi (lusito lwekungena lwe-CoopData) | Imizuzu lembalwa, ngesikhatsi sekungena | Sikhatsi sekusebentisa | Kubalulekile |
+| `KC_RESTART` | Ivumela kutsi kungena lokuphazamisekile kuchubeke | Lokwangekhatsi (lusito lwekungena lwe-CoopData) | Kuze kuphele kungena noma kuphelelwe sikhatsi | Sikhatsi sekusebentisa | Kubalulekile |
+| `KEYCLOAK_IDENTITY` | Igcina umsebentisi angenile ngendlela lephephile | Lokwangekhatsi (lusito lwekungena lwe-CoopData) | Kuze uphume noma sikhatsi sekungena siphele (ngemuva kwemizuzu lengu-30 ungasebenti, kufika emahoreni langu-10); sikhatsi lesidze uma kukhetfwe “Ngikhumbule” | Sikhatsi sekusebentisa, noma lokuhlala nge-“Ngikhumbule” | Kubalulekile |
+| `KEYCLOAK_SESSION` | Ikhomba sikhatsi sekungena lesisebentako | Lokwangekhatsi (lusito lwekungena lwe-CoopData) | Kuze uphume noma sikhatsi sekungena siphele (ngemuva kwemizuzu lengu-30 ungasebenti, kufika emahoreni langu-10); sikhatsi lesidze uma kukhetfwe “Ngikhumbule” | Sikhatsi sekusebentisa, noma lokuhlala nge-“Ngikhumbule” | Kubalulekile |
+| `KEYCLOAK_LOCALE` | Ikhumbula lulwimi lolukhetfwe ekhasini lekungena | Lokwangekhatsi (lusito lwekungena lwe-CoopData) | Kuze kuvalwe i-browser | Sikhatsi sekusebentisa | Kubalulekile (kukhetsa) |
+| `sidebar_state` | Ikhumbula kutsi imenyu yekuhamba ivuliwe noma igocotiwe | Lokwangekhatsi | Emalanga la-7 | Lokuhlalako | Kubalulekile (kukhetsa) |
 
-I-CoopData isebentisa kugcinwa kwendzawo yesiphequluli ne-IndexedDB kute inikete kusebenta kwe-offline kuqala. Loku kukuvumela kute:
-- Ufinyelele Insita ngesikhatsi ungaxhunyiwe;
-- Ugcine datha yekhukhumuzi yendzawo;
-- Ufake emafayela ekufaka elayinini kute avumelaniswe ngesikhatsi kuxhumana kubuyile.
+### Tindlela letifanako (kugcinwa ku-browser)
 
-Datha legcinwe endzaweni isetjentiswa kute nje kunikwe Insita futhi iyavumelaniswa nemaseva etfu ngesikhatsi uxhunyiwe.
+| Ligama | Inhloso | Umniketi | Sikhatsi | Luhlobo | Simo semvume |
+|---|---|---|---|---|---|
+| `i18nextLng` | Ikhumbula lulwimi lolukhetfwe lwe-interface | Lokwangekhatsi | Kuze kucishwe imininingwane ye-browser | Lokuhlalako (kugcinwa kwendzawo) | Kubalulekile (kukhetsa) |
+| `coopdata_theme` | Ikhumbula kukhetsa kwekubukeka lokukhanyako/lokumnyama | Lokwangekhatsi | Kuze kucishwe imininingwane ye-browser | Lokuhlalako (kugcinwa kwendzawo) | Kubalulekile (kukhetsa) |
+| `coopdata_cookie_consent` | Irekhoda kukhetsa lokwentiwe esibhengezweni semakhukhi | Lokwangekhatsi | Kuze kucishwe imininingwane ye-browser | Lokuhlalako (kugcinwa kwendzawo) | Kubalulekile |
+| `coopdata_user_profile` | Igcina ikhophi yephrofayili yemsebentisi longenile kute Inkundla isebente ngaphandle kwe-inthanethi | Lokwangekhatsi | Kuze uphume noma kucishwe imininingwane ye-browser | Lokuhlalako (kugcinwa kwendzawo) | Kubalulekile |
+| `coopdata_draft_financial` | Igcina lisalunyalo lwekufaka kwetimali lolungakatfunyelwa kute umsebenti ungalahleki | Lokwangekhatsi | Kuze lisalunyalo litfunyelwe noma lilahlwe | Lokuhlalako (kugcinwa kwendzawo) | Kubalulekile |
+| `coopdata:period-reminders-dismissed` | Ikhumbula tikhumbuto tekubika umsebentisi latisulile | Lokwangekhatsi | Kuze kucishwe imininingwane ye-browser | Lokuhlalako (kugcinwa kwendzawo) | Kubalulekile (kukhetsa) |
+| `CoopDataOfflineDB` | Igcina imininingwane netintfo letilindzile kutfunyelwa kute Inkundla isebente ngaphandle kwekuxhumana | Lokwangekhatsi | Kuze kuvumelaniswe, uphume noma kucishwe imininingwane ye-browser | Lokuhlalako (IndexedDB) | Kubalulekile |
+| `coopdata_tokens` | Igcina ema-token ekungena ladzingekako kute usebente ngaphandle kwe-inthanethi | Lokwangekhatsi | Kuze uphume | Lokuhlalako (IndexedDB) | Kubalulekile |
+| `coopdata_query_cache` | Igcina imininingwane lesandza kubukwa kute ilayishe ngekushesha, ngisho ngaphandle kwe-inthanethi | Lokwangekhatsi | Kuze kucishwe imininingwane ye-browser | Lokuhlalako (IndexedDB) | Kubalulekile |
+| Ikhashi yeluhlelo yangaphandle kwe-inthanethi | Igcina emafayela eluhlelo kute Inkundla ikhone kucala ngaphandle kwekuxhumana | Lokwangekhatsi | Kuze kube nekubuyeketwa lokulandzelako kweluhlelo | Lokuhlalako (ikhashi ye-service worker) | Kubalulekile |
 
-## 5. Emakhukhi Lawasebentisako
+## 5. Kulawula kukhetsa
 
-| Luhlobo Lwekhukhi | Injongo | Sikhatsi |
-|---|---|---|
-| Ikhukhi lesesheni | Kugcina sesheni yakho lefakazeliwe | Sesheni |
-| Intfalo yelulwimi | Kukhumbula lulwimi olukhetsiwe | Umnyaka |
-| Simo semvume | Kulandzelela tikhetselo takho temvume | Umnyaka |
-| Ekuhlaziya | Kucondza tindlela tekusetjentiswa | Tinyanga lelishumi nantfu |
+Lapho kusebenta khona, Basebentisi bangalawula kukhetsa kwabo ngemakhukhi langabalulekile ngendlela yemvume yeNkundla noma ngetilungiselelo te-browser yabo. Kuvala tindlela letibalulekile kungatsikameta kusebenta kweNkundla.
 
-## 6. Kuphatfwa Kwemakhukhi
+## 6. Kubuyeketwa
 
-Ungalawula nekup hatha emakhukhi ngesethingi yesiphequluli sakho. Ungakwati:
-- Kuvimba noma kucisha emakhukhi;
-- Kumisa siphequluli sakho kukwazise ngaphambi kwekutsi wemukele emakhukhi;
-- Kucisha kugcinwa kwendzawo.
-
-Uyacelwa kutsi ukhumbule kutsi kucisha emakhukhi labalulekile kungaphazamisa kusebenta kweNsita.
-
-## 7. Emakhukhi Emuntfu Wesitsatfu
-
-Lamanye emakhukhi angabekwa yinsita temuntfu wesitsatfu lesitisebentisako, njengabaphakeli bekuhlaziya. Laba bantfu besitsatfu banetinqubomgomo tabo tebumfihlo.
-
-## 8. Tintfo Letishintjako KuleNqubomgomo
-
-Singabuyekeza leNqubomgomo Yemakhukhi ngezikhathi. Noma yiphi tintfo letishintjako titokutfumyelwa kulelikhasi nelusuku lwekucala lolubuyekeziwe.
-
-## 9. Lwati Lwekuthintana
-
-Ngemibuto ngalemiNqubomgomo Yemakhukhi, thintana:
-- **I-imeyili:** privacy@coopdata.gov.sz
-- **Likheli:** UMnyango Wetimphakatsi Tekusebentisana, eMbabane, eMbusweni weSwatini
+Le nchubomgomo kufanele ibuyeketwe njalo nakunelushintjo lolubalulekile kutindlela temakhukhi, kubaniketi betinsita tekuhlatiya noma etindleleni tekulandzelela.

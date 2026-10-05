@@ -1,80 +1,34 @@
-# Data Retention & Processing Policy
+# Data Retention & Erasure Schedule
 
-**Effective Date:** 1 January 2026
-**Version:** 1.0
-**Applicable Law:** Cooperative Societies Act (Eswatini), Data Protection Act
+**Proposed effective date:** 1 October 2026
 
-## 1. Purpose
+## 1. Principle
 
-This Data Retention & Processing Policy ("Policy") establishes the rules and procedures for the retention, processing, archiving, and deletion of data collected and processed by the CoopData platform.
+CoopData will retain information for no longer than reasonably necessary for the purpose for which it is processed, subject to legal, contractual, audit, security and dispute-resolution requirements. Retention periods below are proposed operational defaults and must be validated by legal/accounting advisers against the laws applicable to each Customer and project.
 
-## 2. Scope
+## 2. Proposed schedule
 
-This Policy applies to all data processed by CoopData, including:
-- Personal data of users, members, and administrators;
-- Financial statements and submission records;
-- Operational and audit logs;
-- Consent and compliance records;
-- Backup and archival data.
+- **Account and user profile data:** while the account is active and up to 24 months after closure, unless longer retention is required for legal, security or dispute purposes.
+- **Consent and legal acceptance records:** retained for the period necessary to demonstrate the validity and history of consent/acceptance and for applicable limitation/audit requirements; proposed default: 7 years after the relevant relationship ends.
+- **Audit/security logs:** proposed default 12–24 months, with longer retention where needed for a security investigation or legal obligation.
+- **Financial/transactional or audit records submitted to the Platform:** proposed default up to 7 years after the relevant reporting period or end of relationship, where applicable; longer only where a legal, contractual, audit or dispute requirement requires it.
+- **Support tickets and correspondence:** proposed default 3 years after closure, unless linked to a dispute or legal obligation.
+- **Backups:** retained according to the backup cycle; deletion from active systems may precede natural expiry from encrypted backups. Backup data should not be restored except for legitimate recovery purposes.
+- **Aggregated/de-identified statistical data:** may be retained for longer where it no longer identifies individuals and is not reasonably capable of being re-linked to identifiable records.
+- **Deleted accounts:** active-system deletion or irreversible anonymization should normally occur within 30 days after completion of required verification and subject to legal holds and retention requirements.
 
-## 3. Data Retention Principles
+## 3. Legal hold
 
-3.1 Data is retained only as long as necessary for the purposes for which it was collected.
-3.2 Retention periods are determined by legal, regulatory, and operational requirements.
-3.3 Data is securely stored and protected throughout its lifecycle.
-3.4 Data is deleted or anonymized when no longer required.
+Where data is subject to a dispute, investigation, audit, legal hold or regulatory requirement, normal deletion may be suspended for the relevant records until the hold is released.
 
-## 4. Retention Periods
+## 4. Secure disposal
 
-| Data Category | Retention Period | Basis |
-|---|---|---|
-| Financial statements | 10 years | Statutory requirement |
-| Submission records | 10 years | Regulatory compliance |
-| User account data | Duration of account + 5 years | Operational |
-| Consent records | Duration + 10 years | Audit & compliance |
-| Audit logs | 7 years | Security & compliance |
-| Session data | 30 days | Operational |
-| Backup data | 30 days | Operational |
+Deletion must use appropriate technical and organizational measures. Physical media, exports and temporary files containing personal or confidential information must be securely disposed of or destroyed when no longer required.
 
-## 5. Data Processing
+## 5. User deletion requests
 
-5.1 Data is processed lawfully, fairly, and transparently.
-5.2 Processing is limited to the purposes for which data was collected.
-5.3 Data is accurate, complete, and kept up to date.
-5.4 Data is processed with appropriate security measures.
+A deletion request does not automatically require deletion where retention is legally required, necessary to establish or defend legal claims, required for security, or otherwise permitted by applicable law. Where deletion cannot be completed, CoopData should explain the applicable limitation to the requester where legally permitted.
 
-## 6. Data Archiving
+## 6. Approval
 
-6.1 Data that is no longer actively used but must be retained is moved to secure archival storage.
-6.2 Archived data is protected with the same security measures as active data.
-6.3 Access to archived data is restricted and logged.
-
-## 7. Data Deletion and Anonymization
-
-7.1 Data that has reached the end of its retention period is securely deleted.
-7.2 Where deletion is not possible (e.g., legal holds), data is anonymized.
-7.3 Deletion is performed in a manner that prevents recovery.
-7.4 Deletion and anonymization activities are logged and documented.
-
-## 8. User Rights
-
-Users may request:
-- Access to their personal data;
-- Correction of inaccurate data;
-- Deletion of personal data (subject to legal retention);
-- Restriction of processing;
-- Data portability.
-
-Requests are processed through the Privacy & Data Request feature or by contacting our Data Protection Officer.
-
-## 9. Compliance and Monitoring
-
-9.1 Compliance with this Policy is monitored and reviewed regularly.
-9.2 Retention schedules are reviewed and updated as required.
-9.3 Violations of this Policy are reported and addressed.
-
-## 10. Contact Information
-
-For questions about this Policy, contact:
-- **Email:** privacy@coopdata.gov.sz
-- **Data Protection Officer:** dpo@coopdata.gov.sz
+Before publication, the final retention periods should be confirmed by the responsible legal, tax/accounting and data-protection advisers for the jurisdictions and sectors in scope.

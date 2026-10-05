@@ -1,19 +1,17 @@
 // src/repositories/legal_policy_repository.rs
+use crate::database::Database;
 use crate::entities::legal_policy;
 use crate::error::{AppError, AppResult};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-};
-use uuid::Uuid;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
 #[derive(Clone)]
 pub struct LegalPolicyRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl LegalPolicyRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     /// List latest version of each policy
@@ -42,64 +40,5 @@ impl LegalPolicyRepository {
             .one(&self.db)
             .await
             .map_err(AppError::DatabaseError)
-    }
-
-    pub async fn create(
-        &self,
-        req: crate::api::dto::legal_policy::LegalPolicyCreateRequest,
-    ) -> AppResult<legal_policy::Model> {
-        let new_id = Uuid::new_v4();
-        let policy_id = Uuid::new_v4();
-        let active = legal_policy::ActiveModel {
-            id: Set(new_id),
-            policy_id: Set(policy_id),
-            slug: Set(req.slug),
-            title_en: Set(req.title_en),
-            title_fr: Set(req.title_fr),
-            title_pt: Set(req.title_pt),
-            title_ss: Set(req.title_ss),
-            content_en: Set(req.content_en),
-            content_fr: Set(req.content_fr),
-            content_pt: Set(req.content_pt),
-            content_ss: Set(req.content_ss),
-            version: Set(1),
-            created_at: Set(chrono::Utc::now()),
-            updated_at: Set(chrono::Utc::now()),
-        };
-        active.insert(&self.db).await.map_err(AppError::DatabaseError)
-    }
-
-    pub async fn update(
-        &self,
-        policy_id: Uuid,
-        req: crate::api::dto::legal_policy::LegalPolicyUpdateRequest,
-    ) -> AppResult<legal_policy::Model> {
-        // fetch latest version to copy unchanged fields
-        let latest = legal_policy::Entity::find()
-            .filter(legal_policy::Column::PolicyId.eq(policy_id))
-            .order_by_desc(legal_policy::Column::Version)
-            .one(&self.db)
-            .await
-            .map_err(AppError::DatabaseError)?
-            .ok_or_else(|| AppError::NotFound("Legal policy not found".into()))?;
-
-        let new_version = latest.version + 1;
-        let active = legal_policy::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            policy_id: Set(policy_id),
-            slug: Set(latest.slug),
-            title_en: Set(req.title_en.unwrap_or(latest.title_en)),
-            title_fr: Set(req.title_fr.unwrap_or(latest.title_fr)),
-            title_pt: Set(req.title_pt.unwrap_or(latest.title_pt)),
-            title_ss: Set(req.title_ss.unwrap_or(latest.title_ss)),
-            content_en: Set(req.content_en.unwrap_or(latest.content_en)),
-            content_fr: Set(req.content_fr.unwrap_or(latest.content_fr)),
-            content_pt: Set(req.content_pt.unwrap_or(latest.content_pt)),
-            content_ss: Set(req.content_ss.unwrap_or(latest.content_ss)),
-            version: Set(new_version),
-            created_at: Set(chrono::Utc::now()),
-            updated_at: Set(chrono::Utc::now()),
-        };
-        active.insert(&self.db).await.map_err(AppError::DatabaseError)
     }
 }

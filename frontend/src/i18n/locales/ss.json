@@ -5425,5 +5425,15 @@
     },
     "lockedFrequency": "{{year}} sekuhleliwe kubika nge-{{frequency}}.",
     "lockedFrequencyDrafts": "{{year}} kuhleliwe kubika nge-{{frequency}}. Susa emadrafti akho embiko waloyo nyaka kuze uguqule."
+  },
+  "legal": {
+    "termsOfService": "Imigomo Yekusebentisa",
+    "privacyPolicy": "Inchubomgomo Yebumfihlo",
+    "cookiePolicy": "Inchubomgomo Yemakhukhi",
+    "acceptableUse": "Kusebentisa Lokwemukelekako",
+    "securityProtection": "Kuvikeleka Nekuvikelwa Kwemininingwane",
+    "dataRetention": "Kugcinwa Kwemininingwane",
+    "dataUse": "Kusetjentiswa Nekuhlanganiswa Kwemininingwane",
+    "dataProcessing": "Imisebenti Ekucubungulweni Kwemininingwane"
   }
 }

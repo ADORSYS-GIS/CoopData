@@ -1,4 +1,5 @@
 // src/entities/legal_policy.rs
+use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use sea_orm::DeriveEntityModel;
 use sea_orm::DerivePrimaryKey;
@@ -6,7 +7,6 @@ use sea_orm::DeriveRelation;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize, ToSchema)]
 #[sea_orm(table_name = "legal_policies")]

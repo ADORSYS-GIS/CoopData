@@ -20,7 +20,6 @@ where
 
     result
 }
-pub mod consent_repository;
 pub mod abnormality_flag;
 pub mod account_alias;
 pub mod apex;
@@ -28,6 +27,7 @@ pub mod assessment;
 pub mod audit_log;
 pub mod balance_sheet_line_item;
 pub mod chart_of_accounts;
+pub mod consent_repository;
 pub mod cooperative;
 pub mod custom_kpi_repository;
 pub mod extraction_job;
@@ -36,6 +36,7 @@ pub mod federation;
 pub mod financial_statement;
 pub mod fixed_deposit;
 pub mod kpi_record;
+pub mod legal_policy_repository;
 pub mod loan;
 pub mod member;
 pub mod ministry_report_narratives;
@@ -51,7 +52,6 @@ pub mod submission_review;
 pub mod submission_section;
 pub mod uploaded_file;
 pub mod user;
-pub mod legal_policy_repository;
 
 pub use abnormality_flag::AbnormalityFlagRepository;
 pub use account_alias::AccountAliasRepository;
@@ -59,8 +59,8 @@ pub use apex::ApexRepository;
 pub use assessment::AssessmentRepository;
 pub use audit_log::AuditLogRepository;
 pub use balance_sheet_line_item::BalanceSheetLineItemRepository;
-pub use consent_repository::ConsentRepository;
 pub use chart_of_accounts::ChartOfAccountsRepository;
+pub use consent_repository::ConsentRepository;
 pub use cooperative::CooperativeRepository;
 pub use custom_kpi_repository::CustomKpiRepository;
 pub use extraction_job::ExtractionJobRepository;
@@ -69,6 +69,7 @@ pub use federation::FederationRepository;
 pub use financial_statement::FinancialStatementRepository;
 pub use fixed_deposit::FixedDepositRepository;
 pub use kpi_record::KpiRecordRepository;
+pub use legal_policy_repository::LegalPolicyRepository;
 pub use loan::LoanRepository;
 pub use member::MemberRepository;
 pub use ministry_report_narratives::MinistryReportNarrativesRepository;
@@ -84,4 +85,3 @@ pub use submission_review::SubmissionReviewRepository;
 pub use submission_section::SubmissionSectionRepository;
 pub use uploaded_file::UploadedFileRepository;
 pub use user::UserRepository;
-pub use legal_policy_repository::LegalPolicyRepository;

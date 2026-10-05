@@ -5425,5 +5425,15 @@
     },
     "lockedFrequency": "{{year}} is already set to {{frequency}} reporting.",
     "lockedFrequencyDrafts": "{{year}} is set to {{frequency}} reporting. Delete your draft submissions for that year to change it."
+  },
+  "legal": {
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "cookiePolicy": "Cookie Policy",
+    "acceptableUse": "Acceptable Use",
+    "securityProtection": "Security & Data Protection",
+    "dataRetention": "Data Retention",
+    "dataUse": "Data Use & Aggregation",
+    "dataProcessing": "Data Processing Roles"
   }
 }
