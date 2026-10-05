@@ -109,6 +109,7 @@ const MEMBERS_HEADERS: &[&str] = &[
     "agm_attendance",
     "leadership_role",
     "voting_exercised",
+    "share_balance",
 ];
 
 const SAVINGS_HEADERS: &[&str] = &[
@@ -513,7 +514,42 @@ async fn parse_workbook(
     }
 
     for sheet_name in &sheet_names {
-        if let Some(section) = NfSection::parse(sheet_name) {
+        let section = NfSection::parse(sheet_name);
+        let section = if section.is_some() {
+            section
+        } else if let Some(m) = mapper.as_deref() {
+            // Sheet name not recognized — ask the AI to classify it from its
+            // name + column headers so non-standard wording still works.
+            let headers: Vec<String> = sheets_data
+                .get(sheet_name)
+                .map(|r| {
+                    r.rows()
+                        .next()
+                        .map(|h| {
+                            h.iter()
+                                .filter_map(|c| match c {
+                                    Data::String(s) => Some(s.trim().to_string()),
+                                    _ => None,
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default()
+                })
+                .unwrap_or_default();
+            let classified = m.classify_sheet(sheet_name, &headers).await;
+            match classified.as_deref() {
+                Some("members") => Some(NfSection::Members),
+                Some("savings") => Some(NfSection::Savings),
+                Some("loans") => Some(NfSection::Loans),
+                Some("fixed_deposits") => Some(NfSection::FixedDeposits),
+                Some("farm") => Some(NfSection::FarmCoop),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        if let Some(section) = section {
             match section {
                 NfSection::Members => {
                     result.sheets_found.push(sheet_name.clone());
@@ -784,16 +820,25 @@ async fn build_column_map(
         .filter(|&e| !col_map.contains_key(e))
         .collect();
 
-    if missing_required.is_empty() {
+    // Run the AI mapper whenever ANY expected header (required OR optional) is
+    // still unresolved, so non-standard wording is mapped even for optional
+    // columns (e.g. balance, interest rate, tenure, etc.).
+    let missing_expected: Vec<&str> = expected_headers
+        .iter()
+        .copied()
+        .filter(|&e| !col_map.contains_key(e))
+        .collect();
+
+    if missing_expected.is_empty() {
         return Some(col_map);
     }
 
-    // ── Pass 3: LLM mapping (only for the still-missing required columns) ─────
+    // ── Pass 3: LLM mapping (for any still-unresolved expected columns) ──────
     if let Some(m) = mapper {
         tracing::info!(
             sheet = sheet_name,
-            missing = ?missing_required,
-            "Built-in mapping left required columns missing — calling LLM header mapper"
+            missing = ?missing_expected,
+            "Built-in mapping left columns unresolved — calling LLM header mapper"
         );
 
         let non_empty_actuals: Vec<String> = actual_headers
@@ -808,7 +853,7 @@ async fn build_column_map(
 
         let mut still_missing_after_ai: Vec<&str> = Vec::new();
 
-        for &expected in &missing_required {
+        for &expected in &missing_expected {
             // The LLM returns { actual_header_lowercase → canonical }
             // Find an entry where the value matches the expected canonical field
             if let Some((actual_key, _)) = ai_map
@@ -836,31 +881,42 @@ async fn build_column_map(
             }
         }
 
-        if still_missing_after_ai.is_empty() {
+        // Only required columns still missing after AI cause a hard failure.
+        let required_still_missing: Vec<&str> = missing_required
+            .iter()
+            .copied()
+            .filter(|&e| !col_map.contains_key(e))
+            .collect();
+
+        if required_still_missing.is_empty() {
             return Some(col_map);
         }
 
         // Some required columns truly not found even after AI
         tracing::error!(
             sheet = sheet_name,
-            missing = ?still_missing_after_ai,
+            missing = ?required_still_missing,
             "Missing required columns after all mapping passes (incl. AI)"
         );
         result.errors.push(NfParseError {
             sheet: sheet_name.to_string(),
             row: 0,
             column: "headers".to_string(),
-            value: still_missing_after_ai.join(", "),
+            value: required_still_missing.join(", "),
             rule: "MISSING_HEADERS".to_string(),
             message: format!(
                 "Missing required columns (AI mapping attempted): {}",
-                still_missing_after_ai.join(", ")
+                required_still_missing.join(", ")
             ),
         });
         return None;
     }
 
-    // No mapper available — report missing as before
+    // No mapper available — optional columns unresolved are fine; only
+    // required columns that are missing cause a hard failure.
+    if missing_required.is_empty() {
+        return Some(col_map);
+    }
     tracing::error!(
         sheet = sheet_name,
         missing = ?missing_required,
@@ -1580,15 +1636,54 @@ fn get_date_cell(row: &[Data], col: usize) -> Option<NaiveDate> {
     let cell = row.get(col)?;
     match cell {
         Data::DateTime(dt) => dt.as_datetime().map(|d| d.date()),
-        Data::DurationIso(s) | Data::DateTimeIso(s) => NaiveDate::parse_from_str(s, "%Y-%m-%d")
-            .or_else(|_| NaiveDate::parse_from_str(s, "%Y-%m-%d %H:%M:%S"))
-            .ok(),
-        Data::String(s) => NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d")
-            .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%d/%m/%Y"))
-            .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%m/%d/%Y"))
-            .ok(),
+        Data::DurationIso(s) | Data::DateTimeIso(s) => parse_date_str(s),
+        Data::String(s) => parse_date_str(s.trim()),
+        // Excel serial date (days since 1899-12-30). Calamine may surface a
+        // date-formatted cell as a float/int when the file stores it that way.
+        Data::Float(f) => excel_serial_to_date(*f),
+        Data::Int(i) => excel_serial_to_date(*i as f64),
         _ => None,
     }
+}
+
+/// Parse a date string across the common formats users paste into Excel.
+fn parse_date_str(s: &str) -> Option<NaiveDate> {
+    let s = s.trim();
+    if s.is_empty() {
+        return None;
+    }
+    const FORMATS: &[&str] = &[
+        "%Y-%m-%d",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y/%m/%d",
+        "%d/%m/%Y",
+        "%m/%d/%Y",
+        "%d-%m-%Y",
+        "%d %b %Y",
+        "%d %B %Y",
+        "%b %d, %Y",
+        "%B %d, %Y",
+    ];
+    for f in FORMATS {
+        if let Ok(d) = NaiveDate::parse_from_str(s, f) {
+            return Some(d);
+        }
+    }
+    // Also try parsing a full datetime and taking its date.
+    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
+        return Some(dt.date());
+    }
+    None
+}
+
+/// Convert an Excel serial date (days since 1899-12-30) to a NaiveDate.
+fn excel_serial_to_date(serial: f64) -> Option<NaiveDate> {
+    if !serial.is_finite() || serial < 1.0 {
+        return None;
+    }
+    let days = serial.floor() as i64;
+    let epoch = NaiveDate::from_ymd_opt(1899, 12, 30)?;
+    epoch.checked_add_signed(chrono::Duration::days(days))
 }
 
 fn get_optional_date_cell(row: &[Data], col: usize) -> Option<Option<NaiveDate>> {

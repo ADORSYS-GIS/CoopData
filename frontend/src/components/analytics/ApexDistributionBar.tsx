@@ -1,3 +1,4 @@
+import { PieTooltip } from "@/components/analytics/PieTooltip";
 import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import { useTranslation } from "react-i18next";
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
@@ -67,13 +68,12 @@ export function ApexDistributionBar({ cooperatives }: ApexDistributionBarProps) 
             ))}
           </Pie>
           <Tooltip
-            contentStyle={{
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "8px",
-              fontSize: "12px",
-            }}
-            formatter={(value: number, name: string) => [value, t("analytics.apexCooperatives")]}
+            content={
+              <PieTooltip
+                total={data.reduce((sum, row) => sum + row.Cooperatives, 0)}
+                format={(value) => `${value} ${t("analytics.apexCooperatives")}`}
+              />
+            }
           />
           <Legend wrapperStyle={{ fontSize: 12, paddingTop: "10px" }} />
         </PieChart>

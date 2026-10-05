@@ -140,11 +140,11 @@ export const useApexApprove = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
-      await updateCachedSubmissionStatus(id, "in_review", "federation", comment, "approve");
+      await updateCachedSubmissionStatus(id, "approved", "apex", comment, "approve");
       return runMutation<SubmissionResponse>("/api/v1/apex/submissions/{id}/approve", "POST", {
         pathParams: { id },
         body: { comment },
-        optimisticData: { id, status: "in_review" } as unknown as SubmissionResponse,
+        optimisticData: { id, status: "approved" } as unknown as SubmissionResponse,
         online: async () => {
           const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/approve", {
             params: { path: { id } },

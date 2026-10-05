@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import { useOrganizationLabels } from "@/hooks/settings/useOrganizationLabels";
+import { useAuth } from "@/context/AuthContext";
 
 export interface OrganizationLabelTranslation {
   label?: string;
@@ -56,6 +57,20 @@ export interface OrganizationLabelsContextValue {
 
 const OrganizationLabelsContext = createContext<OrganizationLabelsContextValue | null>(null);
 
+/**
+ * Display-only fallback labels used when the API response is missing a key.
+ *
+ * NOTE: These are intentionally DIFFERENT from `DEFAULT_ORGANIZATION_LABELS`
+ * (which mirrors the backend seed migration). The values here use abbreviated
+ * short labels ("Fed", "Coop", "Min") that are appropriate for tight UI
+ * surfaces like the sidebar / nav, whereas the seed uses full words
+ * ("Federation", "Cooperative", "Ministry") because that's what the
+ * terminology editor expects to show by default.
+ *
+ * This fallback is only hit when the backend returns no data for a key —
+ * which should never happen in practice because the seed migration always
+ * inserts all four rows.
+ */
 const DEFAULT_LABELS: Record<string, { label: string; short_label: string; plural_label: string }> =
   {
     ministry: { label: "Ministry", short_label: "Min", plural_label: "Ministries" },
@@ -65,7 +80,13 @@ const DEFAULT_LABELS: Record<string, { label: string; short_label: string; plura
   };
 
 export function OrganizationLabelsProvider({ children }: { children: ReactNode }) {
-  const { data: labels, isLoading } = useOrganizationLabels();
+  // Only fetch labels once the auth token is ready. Firing the query before
+  // Keycloak init completes sends an unauthenticated request (401), which
+  // falls back to the default labels and only corrects itself on a later
+  // refresh. Gating on auth readiness makes the configured labels load
+  // immediately after login.
+  const { isAuthenticated } = useAuth();
+  const { data: labels, isLoading } = useOrganizationLabels(isAuthenticated);
   const { t: baseT } = useTranslation();
 
   const getLabel = useMemo(() => {

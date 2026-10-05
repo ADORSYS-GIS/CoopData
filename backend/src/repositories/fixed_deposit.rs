@@ -1,20 +1,20 @@
+use crate::database::Database;
 use crate::entities::{fixed_deposit, FixedDepositColumn};
 use crate::error::{AppError, AppResult};
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder,
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
 };
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct FixedDepositRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl FixedDepositRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<fixed_deposit::Model>> {

@@ -1,3 +1,4 @@
+import { PieTooltip } from "@/components/analytics/PieTooltip";
 import React, { useState } from "react";
 import {
   ResponsiveContainer,
@@ -211,11 +212,14 @@ export const NonFinancialConsolidation: React.FC = () => {
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--background))",
-                          borderColor: "hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
+                        content={
+                          <PieTooltip
+                            total={metrics.by_coop_type.reduce(
+                              (sum, row) => sum + row.total_sum,
+                              0,
+                            )}
+                          />
+                        }
                       />
                       <Legend />
                     </PieChart>

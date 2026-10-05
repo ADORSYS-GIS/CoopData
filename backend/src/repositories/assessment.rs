@@ -1,15 +1,16 @@
+use crate::database::Database;
 use crate::entities::assessment;
 use crate::error::AppResult;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 pub struct AssessmentRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl AssessmentRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<assessment::Model>> {

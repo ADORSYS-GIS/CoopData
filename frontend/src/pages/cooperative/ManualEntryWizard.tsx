@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import {
@@ -16,6 +16,8 @@ import {
   Sprout,
   Trash2,
   Calendar,
+  Save,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, Card } from "@/components/app-shell";
@@ -38,6 +40,13 @@ import {
 import { Route } from "@/routes/app.submissions_.$id.manual-entry";
 import { useQuery } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
+import { useNetworkStatus } from "@/hooks/shared/useNetworkStatus";
+import {
+  loadManualEntryDraft,
+  saveManualEntryDraft,
+  clearManualEntryDraft,
+  type ManualEntryMode,
+} from "@/services/shared/manualEntryDraftService";
 import { useSubmission } from "@/hooks/submissions/useSubmissions";
 import { useMembers } from "@/hooks/non-financial/useMembers";
 import { useSavings } from "@/hooks/non-financial/useSavings";
@@ -58,6 +67,7 @@ import type {
   WizardLoan,
   WizardFixedDeposit,
   WizardFarmCoop,
+  ManualEntryDraftState,
 } from "./manual-entry/types";
 import {
   fmt,
@@ -81,6 +91,24 @@ import { SavingsStep } from "./manual-entry/SavingsStep";
 import { LoansStep } from "./manual-entry/LoansStep";
 import { DepositsStep } from "./manual-entry/DepositsStep";
 import { Spinner } from "@/components/ui/spinner";
+
+function hasDraftData(d: ManualEntryDraftState): boolean {
+  if (d.members && d.members.length > 0) return true;
+  if (d.savings && d.savings.length > 0) return true;
+  if (d.loans && d.loans.length > 0) return true;
+  if (d.fixedDeposits && d.fixedDeposits.length > 0) return true;
+  if (d.farmCoop && !!d.farmCoop.cooperativeType) return true;
+  if (d.financialData) {
+    for (const code of Object.keys(d.financialData)) {
+      const months = d.financialData[Number(code)];
+      if (!months) continue;
+      for (const m of Object.keys(months)) {
+        if (months[Number(m)] !== undefined) return true;
+      }
+    }
+  }
+  return false;
+}
 
 export function ManualEntryWizard() {
   const { t } = useTranslation();
@@ -115,7 +143,7 @@ export function ManualEntryWizard() {
   // Determine starting step based on the wizard mode
   const [step, setStep] = useState<WizardStep>(isFinancialWizard ? "financial" : "members");
 
-  const [currency, setCurrency] = useState<"SZL" | "USD">("SZL");
+  const currency = "SZL" as const;
   const [accountingYear, setAccountingYear] = useState<"calendar" | "fiscal">("calendar");
   const [startMonth, setStartMonth] = useState<number>(1);
 
@@ -130,11 +158,21 @@ export function ManualEntryWizard() {
   const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
     "YEARLY",
   );
-  const [periodValue, setPeriodValue] = useState<string>("2026");
+  const [periodValue, setPeriodValue] = useState<string>(String(new Date().getFullYear()));
 
   useEffect(() => {
     if (submission?.period_type) {
-      setPeriodType(submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
+      const normalizedPeriodType =
+        submission.period_type === "Yearly"
+          ? "YEARLY"
+          : submission.period_type === "Quarterly"
+            ? "QUARTERLY"
+            : submission.period_type === "Monthly"
+              ? "MONTHLY"
+              : submission.period_type === "SemiAnnual"
+                ? "SEMI_ANNUAL"
+                : (submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
+      setPeriodType(normalizedPeriodType);
     }
     if (submission?.period_value) {
       setPeriodValue(submission.period_value);
@@ -152,6 +190,94 @@ export function ManualEntryWizard() {
   const [loans, setLoans] = useState<WizardLoan[]>([]);
   const [fixedDeposits, setFixedDeposits] = useState<WizardFixedDeposit[]>([]);
   const [farmCoop, setFarmCoop] = useState<WizardFarmCoop>(() => createEmptyFarmCoop());
+
+  // ── Offline draft persistence ──
+  const draftMode: ManualEntryMode = isFinancialWizard ? "financial" : "non_financial";
+  const { isOnline } = useNetworkStatus();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [hasLocalDraft, setHasLocalDraft] = useState(false);
+  const draftAppliedRef = useRef(false);
+  // Once the user edits anything, server/cache data must never overwrite their work.
+  const userEditedRef = useRef(false);
+  // Each section's server data is applied at most once, before any user edit.
+  const serverDataAppliedRef = useRef({
+    financial: false,
+    members: false,
+    savings: false,
+    loans: false,
+    deposits: false,
+    farm: false,
+  });
+
+  // Restore a previously saved local draft (if any) once on mount.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const draft = await loadManualEntryDraft<ManualEntryDraftState>(submissionId, draftMode);
+      if (!mounted) return;
+      if (draft && hasDraftData(draft)) {
+        draftAppliedRef.current = true;
+        setHasLocalDraft(true);
+        if (draft.accountingYear) setAccountingYear(draft.accountingYear);
+        if (draft.startMonth) setStartMonth(draft.startMonth);
+        if (draft.periodType) setPeriodType(draft.periodType);
+        if (draft.periodValue) setPeriodValue(draft.periodValue);
+        if (draft.financialData) setFinancialData(draft.financialData);
+        if (draft.members) setMembers(draft.members);
+        if (draft.savings) setSavings(draft.savings);
+        if (draft.loans) setLoans(draft.loans);
+        if (draft.fixedDeposits) setFixedDeposits(draft.fixedDeposits);
+        if (draft.farmCoop) setFarmCoop(draft.farmCoop);
+      }
+      setIsHydrated(true);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [submissionId, draftMode]);
+
+  // Debounced save of the wizard state to IndexedDB so work survives offline
+  // navigation/refresh. Only starts saving once hydration has settled.
+  useEffect(() => {
+    if (!isHydrated) return;
+    const draft: ManualEntryDraftState = {
+      currency,
+      accountingYear,
+      startMonth,
+      periodType,
+      periodValue,
+      financialData,
+      members,
+      savings,
+      loans,
+      fixedDeposits,
+      farmCoop,
+    };
+    const timer = setTimeout(() => {
+      if (hasDraftData(draft)) {
+        void saveManualEntryDraft(submissionId, draftMode, draft);
+        setHasLocalDraft(true);
+      } else {
+        void clearManualEntryDraft(submissionId, draftMode);
+        setHasLocalDraft(false);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [
+    isHydrated,
+    submissionId,
+    draftMode,
+    accountingYear,
+    startMonth,
+    periodType,
+    periodValue,
+    financialData,
+    members,
+    savings,
+    loans,
+    fixedDeposits,
+    farmCoop,
+  ]);
 
   const submitFinancialStatement = useSubmitManualFinancialStatement(submissionId);
   const submitMembers = useSubmitManualMembers(submissionId);
@@ -214,6 +340,8 @@ export function ManualEntryWizard() {
 
   // ── Load state logic via useEffects ──
   useEffect(() => {
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.financial)
+      return;
     if (existingLineItems) {
       const grid = createEmptyFinancialGrid();
       for (const item of existingLineItems) {
@@ -222,10 +350,13 @@ export function ManualEntryWizard() {
         }
       }
       setFinancialData(grid);
+      serverDataAppliedRef.current.financial = true;
     }
   }, [existingLineItems]);
 
   useEffect(() => {
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.members)
+      return;
     const list = existingMembers?.data;
     if (list) {
       setMembers(
@@ -247,10 +378,13 @@ export function ManualEntryWizard() {
               : parseFloat(String(m.share_balance || 0)) || 0,
         })),
       );
+      serverDataAppliedRef.current.members = true;
     }
   }, [existingMembers]);
 
   useEffect(() => {
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.savings)
+      return;
     const list = existingSavings?.data;
     if (list) {
       // SavingsAccountResponse.member_id is a UUID (DB FK), but memberBusinessId
@@ -279,10 +413,13 @@ export function ManualEntryWizard() {
           balance: Number(s.balance) || 0,
         })),
       );
+      serverDataAppliedRef.current.savings = true;
     }
   }, [existingSavings, existingMembers]);
 
   useEffect(() => {
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.loans)
+      return;
     const list = existingLoans?.data;
     if (list) {
       const uuidToKey: Record<string, string> = {};
@@ -316,10 +453,13 @@ export function ManualEntryWizard() {
           loanAmount: Number(l.loan_amount) || 0,
         })),
       );
+      serverDataAppliedRef.current.loans = true;
     }
   }, [existingLoans, existingMembers]);
 
   useEffect(() => {
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.deposits)
+      return;
     const list = existingDeposits?.data;
     if (list) {
       const uuidToKey: Record<string, string> = {};
@@ -346,10 +486,13 @@ export function ManualEntryWizard() {
           balance: Number(f.balance) || 0,
         })),
       );
+      serverDataAppliedRef.current.deposits = true;
     }
   }, [existingDeposits, existingMembers]);
 
   useEffect(() => {
+    if (draftAppliedRef.current || userEditedRef.current || serverDataAppliedRef.current.farm)
+      return;
     const list = existingFarm?.data;
     if (list?.[0]) {
       const f = list[0];
@@ -377,11 +520,36 @@ export function ManualEntryWizard() {
         irrigationAccess: f.irrigation_access,
         climateMitigationPractices: f.climate_mitigation_practices,
       });
+      serverDataAppliedRef.current.farm = true;
     }
   }, [existingFarm]);
 
+  // Months (or the single annual period 0) that belong to the selected reporting
+  // period. Mirrors the column logic of FinancialExcelGrid so only in-period
+  // data is submitted instead of all 12 months.
+  const activeMonths = useMemo(() => {
+    if (periodType === "YEARLY") return [0];
+    const seq: number[] = [];
+    const start =
+      typeof startMonth === "number" && startMonth >= 1 && startMonth <= 12 ? startMonth : 1;
+    for (let i = 0; i < 12; i++) seq.push(((start - 1 + i) % 12) + 1);
+    if (periodType === "QUARTERLY") {
+      const qIdx =
+        periodValue === "Q2" ? 1 : periodValue === "Q3" ? 2 : periodValue === "Q4" ? 3 : 0;
+      return seq.slice(qIdx * 3, qIdx * 3 + 3);
+    }
+    if (periodType === "SEMI_ANNUAL") {
+      return periodValue === "H2" ? seq.slice(6, 12) : seq.slice(0, 6);
+    }
+    if (periodType === "MONTHLY" && periodValue && periodValue !== "FULL_YEAR") {
+      const m = Number(periodValue);
+      if (!isNaN(m) && m >= 1 && m <= 12) return [m];
+    }
+    return seq;
+  }, [periodType, periodValue, startMonth]);
+
   // Snapshot computations for the final month or annual total (num: 0) of the period
-  const finalMonth = periodType === "YEARLY" ? 0 : accountingYear === "fiscal" ? 6 : 12;
+  const finalMonth = activeMonths[activeMonths.length - 1];
   const getVal = useCallback(
     (code: number, m?: number) => {
       const targetMonth = m !== undefined ? m : finalMonth;
@@ -449,7 +617,36 @@ export function ManualEntryWizard() {
     [members, savings, loans, fixedDeposits, farmCoop],
   );
 
+  // A step is complete only when its required data has been fully entered.
+  // The financial step requires every active account cell of the period to be filled.
+  const isStepComplete = useCallback(
+    (stepId: WizardStep): boolean => {
+      switch (stepId) {
+        case "financial":
+          return activeMonths.every((m) =>
+            ACTIVE_ACCOUNT_CODES.every((code) => financialData[code]?.[m] !== undefined),
+          );
+        case "members":
+          return members.length > 0;
+        case "savings":
+          return savings.length > 0;
+        case "loans":
+          return loans.length > 0;
+        case "deposits":
+          return fixedDeposits.length > 0;
+        case "farm":
+          return !!farmCoop.cooperativeType;
+        case "review":
+          return true;
+        default:
+          return false;
+      }
+    },
+    [activeMonths, financialData, members, savings, loans, fixedDeposits, farmCoop],
+  );
+
   const handleFinancialCellChange = useCallback((code: number, monthNum: number, value: number) => {
+    userEditedRef.current = true;
     setFinancialData((prev) => ({
       ...prev,
       [code]: {
@@ -461,6 +658,7 @@ export function ManualEntryWizard() {
 
   // ── Members ──
   const addMember = () => {
+    userEditedRef.current = true;
     setMembers((prev) => [
       ...prev,
       {
@@ -480,17 +678,20 @@ export function ManualEntryWizard() {
 
   const updateMember = useCallback(
     (key: string, field: keyof MemberRecord, value: string | boolean | number) => {
+      userEditedRef.current = true;
       setMembers((prev) => prev.map((m) => (m._rowKey === key ? { ...m, [field]: value } : m)));
     },
     [],
   );
 
   const removeMember = useCallback((key: string) => {
+    userEditedRef.current = true;
     setMembers((prev) => prev.filter((m) => m._rowKey !== key));
   }, []);
 
   // ── Savings ──
   const addSavings = () => {
+    userEditedRef.current = true;
     setSavings((prev) => [
       ...prev,
       {
@@ -515,15 +716,18 @@ export function ManualEntryWizard() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateSavings = useCallback((key: string, field: keyof WizardSavings, value: any) => {
+    userEditedRef.current = true;
     setSavings((prev) => prev.map((s) => (s._rowKey === key ? { ...s, [field]: value } : s)));
   }, []);
 
   const removeSavings = useCallback((key: string) => {
+    userEditedRef.current = true;
     setSavings((prev) => prev.filter((s) => s._rowKey !== key));
   }, []);
 
   // ── Loans ──
   const addLoan = () => {
+    userEditedRef.current = true;
     setLoans((prev) => [
       ...prev,
       {
@@ -555,15 +759,18 @@ export function ManualEntryWizard() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateLoan = useCallback((key: string, field: keyof WizardLoan, value: any) => {
+    userEditedRef.current = true;
     setLoans((prev) => prev.map((l) => (l._rowKey === key ? { ...l, [field]: value } : l)));
   }, []);
 
   const removeLoan = useCallback((key: string) => {
+    userEditedRef.current = true;
     setLoans((prev) => prev.filter((l) => l._rowKey !== key));
   }, []);
 
   // ── Fixed Deposits ──
   const addFixedDeposit = () => {
+    userEditedRef.current = true;
     setFixedDeposits((prev) => [
       ...prev,
       {
@@ -578,18 +785,19 @@ export function ManualEntryWizard() {
         originalTenureSelected: "12 Months",
         earlyWithdrawalFlag: false,
         rolloverAtMaturityFlag: false,
-        number_of_renewals: 0,
+        numberOfRenewals: 0,
         changeInTenureAtRenewal: false,
         singleDepositorDependencyFlag: false,
         interestRate: 0.05,
         balance: 0,
-      } as unknown as WizardFixedDeposit,
+      },
     ]);
   };
 
   const updateFixedDeposit = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (key: string, field: keyof WizardFixedDeposit, value: any) => {
+      userEditedRef.current = true;
       setFixedDeposits((prev) =>
         prev.map((f) => (f._rowKey === key ? { ...f, [field]: value } : f)),
       );
@@ -598,12 +806,14 @@ export function ManualEntryWizard() {
   );
 
   const removeFixedDeposit = useCallback((key: string) => {
+    userEditedRef.current = true;
     setFixedDeposits((prev) => prev.filter((f) => f._rowKey !== key));
   }, []);
 
   // ── Farm Coop ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateFarmCoop = useCallback((field: keyof WizardFarmCoop, value: any) => {
+    userEditedRef.current = true;
     setFarmCoop((prev) => ({ ...prev, [field]: value }));
   }, []);
 
@@ -650,13 +860,30 @@ export function ManualEntryWizard() {
 
   // ── Submit handlers ──
   const doSubmitFinancial = async () => {
+    const missingCells = activeMonths.reduce(
+      (acc, m) =>
+        acc + ACTIVE_ACCOUNT_CODES.filter((code) => financialData[code]?.[m] === undefined).length,
+      0,
+    );
+    if (missingCells > 0) {
+      throw new Error(t("manualEntry.financialIncomplete", { count: missingCells }));
+    }
+    const hasAnyValue = activeMonths.some((m) =>
+      Object.keys(financialData).some(
+        (codeStr) => (financialData[Number(codeStr)]?.[m] ?? 0) !== 0,
+      ),
+    );
+    if (!hasAnyValue) {
+      throw new Error(t("manualEntry.toastEmptyError"));
+    }
+
     const lineItems: ManualLineItemRequest[] = [];
     const getValLocal = (code: number, m: number) => financialData[code]?.[m] || 0;
 
     // 1. Map editable base accounts
     for (const code of ACTIVE_ACCOUNT_CODES) {
       const meta = ACCOUNT_METADATA[code];
-      for (let m = 1; m <= 12; m++) {
+      for (const m of activeMonths) {
         const val = getValLocal(code, m);
         lineItems.push({
           account_code: code,
@@ -856,7 +1083,7 @@ export function ManualEntryWizard() {
 
     for (const [codeStr, meta] of Object.entries(rollupMetadata)) {
       const code = Number(codeStr);
-      for (let m = 1; m <= 12; m++) {
+      for (const m of activeMonths) {
         const val = meta.formula(m);
         lineItems.push({
           account_code: code,
@@ -869,10 +1096,21 @@ export function ManualEntryWizard() {
       }
     }
 
+    const mappedPeriodType =
+      periodType === "YEARLY"
+        ? "Yearly"
+        : periodType === "QUARTERLY"
+          ? "Quarterly"
+          : periodType === "MONTHLY"
+            ? "Monthly"
+            : periodType === "SEMI_ANNUAL"
+              ? "SemiAnnual"
+              : periodType;
+
     await submitFinancialStatement.mutateAsync({
       accounting_year: accountingYear,
       currency,
-      period_type: periodType,
+      period_type: mappedPeriodType,
       period_value: periodValue,
       line_items: lineItems,
     });
@@ -1008,6 +1246,8 @@ export function ManualEntryWizard() {
   const handleSubmitFinancialOnly = async () => {
     try {
       await doSubmitFinancial();
+      await clearManualEntryDraft(submissionId, "financial");
+      setHasLocalDraft(false);
       toast.success(t("manualEntry.toastSubmitFinancialSuccess"));
       navigate({ to: "/app/submissions/$id", params: { id: submissionId } });
     } catch (e) {
@@ -1018,6 +1258,8 @@ export function ManualEntryWizard() {
   const handleSubmitNonFinancialOnly = async () => {
     try {
       await doSubmitNonFinancial();
+      await clearManualEntryDraft(submissionId, "non_financial");
+      setHasLocalDraft(false);
       toast.success(t("manualEntry.toastSubmitNonFinancialSuccess"));
       navigate({ to: "/app/submissions/$id", params: { id: submissionId } });
     } catch (e) {
@@ -1078,6 +1320,27 @@ export function ManualEntryWizard() {
           </div>
         </div>
 
+        {/* Local draft indicator */}
+        {hasLocalDraft && (
+          <div
+            role="status"
+            className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-medium ${
+              isOnline
+                ? "border-success/30 bg-success/5 text-success"
+                : "border-warning/40 bg-warning/10 text-warning-foreground"
+            }`}
+          >
+            {isOnline ? (
+              <Save className="size-3.5 shrink-0" />
+            ) : (
+              <WifiOff className="size-3.5 shrink-0" />
+            )}
+            <span>
+              {isOnline ? t("manualEntry.draftSavedLocally") : t("manualEntry.draftSavedOffline")}
+            </span>
+          </div>
+        )}
+
         {/* Step indicator */}
         <Card className="px-4 py-3">
           <div className="flex items-center gap-0 overflow-x-auto">
@@ -1088,7 +1351,17 @@ export function ManualEntryWizard() {
               return (
                 <div key={sItem.id} className="flex items-center flex-shrink-0">
                   <div
-                    onClick={() => setStep(sItem.id)}
+                    onClick={() => {
+                      const targetIdx = steps.findIndex((s) => s.id === sItem.id);
+                      const curIdx = steps.findIndex((s) => s.id === step);
+                      for (let i = curIdx; i < targetIdx; i++) {
+                        if (!isStepComplete(steps[i].id)) {
+                          toast.error(t("manualEntry.stepIncomplete"));
+                          return;
+                        }
+                      }
+                      setStep(sItem.id);
+                    }}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 ${
                       active
                         ? "bg-primary text-primary-foreground shadow-sm cursor-default"
@@ -1118,17 +1391,6 @@ export function ManualEntryWizard() {
         <div className="flex items-center gap-3 flex-wrap">
           {step === "financial" && (
             <>
-              <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-4 py-2 border border-border">
-                <DollarSign className="size-4 text-muted-foreground" />
-                <select
-                  className="bg-transparent text-sm font-semibold text-foreground border-none outline-none cursor-pointer"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as "SZL" | "USD")}
-                >
-                  <option value="SZL">{t("manualEntry.currencySzl")}</option>
-                  <option value="USD">USD</option>
-                </select>
-              </div>
               <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-4 py-2 border border-border">
                 <TrendingUp className="size-4 text-muted-foreground" />
                 <select
@@ -1510,6 +1772,10 @@ export function ManualEntryWizard() {
           {step !== "review" && (
             <button
               onClick={() => {
+                if (!isStepComplete(step)) {
+                  toast.error(t("manualEntry.stepIncomplete"));
+                  return;
+                }
                 if (step === "financial") {
                   if (totalAssets === 0 && totalLiabilities === 0 && totalEquity === 0) {
                     toast.error(t("manualEntry.toastEmptyError"));

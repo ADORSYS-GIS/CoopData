@@ -89,17 +89,18 @@ apiClient.use({
       const retryAfter = Number(response.headers.get("Retry-After")) || 60;
       showRateLimitToast(retryAfter);
     }
-    // Only redirect to login on 401 if we're not already on an app page.
-    // When the backend is misconfigured (wrong JWT issuer, etc.) it returns 401
-    // even for authenticated users — we should NOT kick them out in that case.
-    // Let the individual hooks/pages handle the error instead.
-    if (response.status === 401) {
-      const isAppRoute = window.location.pathname.startsWith("/app");
-      const isPrintRoute = window.location.pathname.startsWith("/print");
-      if (!isAppRoute && !isPrintRoute) {
-        window.location.href = "/login";
-      }
-    }
+    // Do NOT auto-redirect to /login on 401 from public pages.
+    // The OrganizationLabelsProvider fires API calls on ALL pages (including
+    // the public landing page at "/"). A 401 is expected when unauthenticated
+    // and should be handled gracefully by the hooks (offline fallbacks, etc.).
+    //
+    // Only suppress auto-logout on /app and /print routes to let useOfflineQuery
+    // handle errors there. Everywhere else (public pages, /login, etc.) a 401
+    // is normal and should NOT trigger a redirect — doing so creates an
+    // infinite redirect loop:  / → 401 → /login → keycloak → / → 401 → …
+    //
+    // Rate-limit (429) is already handled above.
+    // Auth errors for /app and /print are handled by router.tsx handleAuthError.
     return response;
   },
 });

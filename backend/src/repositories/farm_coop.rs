@@ -1,19 +1,19 @@
+use crate::database::Database;
 use crate::entities::{farm_coop, FarmCoopColumn};
 use crate::error::{AppError, AppResult};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder,
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
 };
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct FarmCoopRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl FarmCoopRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<farm_coop::Model>> {

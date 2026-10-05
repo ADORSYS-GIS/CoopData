@@ -36,73 +36,48 @@ import {
 } from "@/components/ui/form";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-
-const COOP_TYPES = [
-  "sacco",
-  "multipurpose",
-  "farm",
-  "housing",
-  "transport",
-  "finance",
-  "other",
-] as const;
+import {
+  COOP_TYPES,
+  SECTOR_OPTIONS,
+  isConsistent,
+  sectorForType,
+  typeForSector,
+} from "@/lib/coop-classification";
 
 const GEO_CLASSIF = ["Urban", "Rural"] as const;
 const COOP_STATUS = ["Active", "Inactive", "Suspended"] as const;
 const ACCOUNTING_YEAR = ["calendar", "fiscal"] as const;
 const ESWATINI_REGIONS = ["Hhohho", "Lubombo", "Manzini", "Shiselweni"] as const;
-const SECTOR_OPTIONS = [
-  "finance",
-  "agriculture",
-  "housing",
-  "transport",
-  "manufacturing",
-  "other",
-] as const;
-
-export function deriveSectorFromInstitutionType(institutionType: string): string {
-  switch (institutionType.toLowerCase()) {
-    case "sacco":
-    case "finance":
-      return "finance";
-    case "farm":
-    case "agriculture":
-      return "agriculture";
-    case "housing":
-      return "housing";
-    case "transport":
-      return "transport";
-    case "multipurpose":
-    case "other":
-    default:
-      return "other";
-  }
-}
 
 const georeferenceRegex = /^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$/;
 
-const profileSchema = z.object({
-  name: z.string().min(2, "coopProfile.errors.nameMin"),
-  institution_type: z.enum(COOP_TYPES),
-  reg_no: z
-    .string()
-    .min(1, "coopProfile.errors.regNoRequired")
-    .max(30, "coopProfile.errors.regNoMax"),
-  tin: z.string().max(20, "coopProfile.errors.tinMax").optional().or(z.literal("")),
-  address: z.string().max(255).optional().or(z.literal("")),
-  georeference: z
-    .string()
-    .regex(georeferenceRegex, "coopProfile.errors.georeferenceFormat")
-    .optional()
-    .or(z.literal("")),
-  region: z.enum(ESWATINI_REGIONS),
-  geographic_classif: z.enum(GEO_CLASSIF),
-  phone: z.string().max(30).optional().or(z.literal("")),
-  sector: z.string().min(1, "coopProfile.errors.sectorRequired"),
-  status: z.enum(COOP_STATUS),
-  registered_on: z.string().min(1, "coopProfile.errors.registeredOnRequired"),
-  accounting_year: z.enum(ACCOUNTING_YEAR),
-});
+const profileSchema = z
+  .object({
+    name: z.string().min(2, "coopProfile.errors.nameMin"),
+    institution_type: z.enum(COOP_TYPES),
+    reg_no: z
+      .string()
+      .min(1, "coopProfile.errors.regNoRequired")
+      .max(30, "coopProfile.errors.regNoMax"),
+    tin: z.string().max(20, "coopProfile.errors.tinMax").optional().or(z.literal("")),
+    address: z.string().max(255).optional().or(z.literal("")),
+    georeference: z
+      .string()
+      .regex(georeferenceRegex, "coopProfile.errors.georeferenceFormat")
+      .optional()
+      .or(z.literal("")),
+    region: z.enum(ESWATINI_REGIONS),
+    geographic_classif: z.enum(GEO_CLASSIF),
+    phone: z.string().max(30).optional().or(z.literal("")),
+    sector: z.string().min(1, "coopProfile.errors.sectorRequired"),
+    status: z.enum(COOP_STATUS),
+    registered_on: z.string().min(1, "coopProfile.errors.registeredOnRequired"),
+    accounting_year: z.enum(ACCOUNTING_YEAR),
+  })
+  .refine((v) => isConsistent(v.institution_type, v.sector), {
+    path: ["sector"],
+    message: "coopProfile.errors.typeSectorMismatch",
+  });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
@@ -134,8 +109,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
       region: (existing?.region as (typeof ESWATINI_REGIONS)[number]) ?? "Hhohho",
       geographic_classif: (existing?.geographic_classif as (typeof GEO_CLASSIF)[number]) ?? "Urban",
       phone: existing?.phone ?? "",
-      sector:
-        existing?.sector || deriveSectorFromInstitutionType(existing?.institution_type ?? "sacco"),
+      sector: existing?.sector || sectorForType(existing?.institution_type ?? "sacco"),
       status: (existing?.status as (typeof COOP_STATUS)[number]) ?? "Active",
       registered_on: existing?.registered_on ?? "",
       accounting_year:
@@ -240,8 +214,8 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
                   <Select
                     onValueChange={(val) => {
                       field.onChange(val);
-                      const derived = deriveSectorFromInstitutionType(val);
-                      form.setValue("sector", derived);
+                      const derived = sectorForType(val);
+                      form.setValue("sector", derived, { shouldValidate: true });
                     }}
                     defaultValue={field.value}
                   >
@@ -358,10 +332,15 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
                 <FormItem>
                   <FormLabel>{t("coopProfile.sector")}</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={
-                      field.value || deriveSectorFromInstitutionType(form.watch("institution_type"))
-                    }
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      form.setValue(
+                        "institution_type",
+                        typeForSector(val, form.getValues("institution_type")),
+                        { shouldValidate: true },
+                      );
+                    }}
+                    value={field.value || sectorForType(form.watch("institution_type"))}
                   >
                     <FormControl>
                       <SelectTrigger>

@@ -207,6 +207,7 @@ export interface ChartOfAccountResponse {
   is_section_header: boolean;
   formula: string | null;
   display_order: number;
+  description: string | null;
 }
 
 export const useChartOfAccounts = () =>

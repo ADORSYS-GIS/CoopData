@@ -45,8 +45,8 @@ export const roleBadge: Record<Role, { label: string; color: string }> = {
 };
 
 export const defaultFilterValues: AnalyticsFilterValues = {
-  year: String(new Date().getFullYear()),
-  periodType: "YEARLY",
+  year: "all",
+  periodType: "all",
   periodValue: "all",
   region: "all",
   sector: "all",

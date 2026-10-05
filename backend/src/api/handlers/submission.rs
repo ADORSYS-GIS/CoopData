@@ -19,6 +19,7 @@ use crate::api::dto::submission::{
 };
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
+use crate::services::export_generator::EXPORT_PREFIX;
 
 use crate::entities::enums::SubmissionStatus;
 use crate::entities::submission::ActiveModel;
@@ -26,6 +27,21 @@ use crate::error::{AppError, AppResult};
 use crate::repositories::submission_section::VALID_STATUSES;
 use crate::services::verification_token::VerificationTokenService;
 use crate::AppState;
+
+/// Maximum attempts to generate a unique submission reference before giving up.
+const MAX_REFERENCE_RETRIES: u32 = 5;
+
+/// Returns true when the error is a unique-constraint violation on the
+/// `submissions_reference_key` column, i.e. the generated reference collided
+/// with an existing one (e.g. under concurrent creation).
+fn is_reference_conflict(err: &AppError) -> bool {
+    if let AppError::DatabaseError(db_err) = err {
+        if let Some(sea_orm::SqlErr::UniqueConstraintViolation(msg)) = db_err.sql_err() {
+            return msg.contains("submissions_reference_key");
+        }
+    }
+    false
+}
 
 /// Resolve a federation's PostgreSQL tracking record by its Keycloak org ID,
 /// auto-backfilling a row if one is missing so Keycloak and PG never diverge.
@@ -114,19 +130,20 @@ pub async fn create_submission(
         });
     }
 
-    let seq = state
+    let year_submissions = state
         .submission_repo
-        .count_by_reporting_year(body.reporting_year)
-        .await? as u32
-        + 1;
-    let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
+        .find_all_by_cooperative_and_year(coop.id, body.reporting_year)
+        .await?;
+    crate::services::period_rules::check_frequency(&year_submissions, period_type, None)
+        .map_err(AppError::Conflict)?;
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
     let submission_method_val = if coop.tier == "basic" {
         "questionnaire".to_string()
     } else {
-        body.submission_method.clone()
+        crate::services::period_rules::locked_method(&year_submissions)
+            .unwrap_or_else(|| body.submission_method.clone())
     };
 
     let creator_name = claims
@@ -134,9 +151,9 @@ pub async fn create_submission(
         .clone()
         .or_else(|| claims.preferred_username.clone());
 
-    let model = ActiveModel {
+    let mut model = ActiveModel {
         id: Set(body.id.unwrap_or_else(Uuid::new_v4)),
-        reference: Set(Some(reference)),
+        reference: Set(None),
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),
         period_type: Set(period_type),
@@ -161,7 +178,29 @@ pub async fn create_submission(
         edited_by_name: Set(creator_name),
     };
 
-    let submission = state.submission_repo.create(model).await?;
+    let submission = {
+        let mut retries = 0u32;
+        loop {
+            let seq = state
+                .submission_repo
+                .next_reference_seq(body.reporting_year)
+                .await?;
+            let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
+            model.reference = Set(Some(reference.clone()));
+            match state.submission_repo.create(model.clone()).await {
+                Ok(s) => break s,
+                Err(e) if is_reference_conflict(&e) && retries < MAX_REFERENCE_RETRIES => {
+                    retries += 1;
+                    tracing::warn!(
+                        reporting_year = body.reporting_year,
+                        attempt = retries,
+                        "Submission reference collision, retrying with next sequence"
+                    );
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    };
 
     let section_models =
         crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
@@ -372,8 +411,9 @@ pub async fn validate_extraction(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
-    let coop =
-        crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
+    let coop_id =
+        crate::api::handlers::cooperative::resolve_cooperative_id_for_nf(&state, &claims, Some(id))
+            .await?;
 
     let submission = state
         .submission_repo
@@ -381,17 +421,47 @@ pub async fn validate_extraction(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    if submission.cooperative_id != coop.id {
+    if submission.cooperative_id != coop_id {
         return Err(AppError::Forbidden("Access denied".into()));
     }
+
+    // Re-running extraction rebuilds every line item from the original
+    // uploaded file and unconditionally reverts status/tier to
+    // Draft/Cooperative (see run_pipeline_inner). Doing that to an already
+    // Approved submission would silently discard any manual corrections
+    // made since extraction and revert an approval decision with no
+    // confirmation. Block it — corrections belong in the line-item editor,
+    // and reopening an approved submission is an explicit admin action.
+    if submission.status == crate::entities::enums::SubmissionStatus::Approved {
+        return Err(AppError::Conflict(
+            "This submission is already approved. Re-running automatic extraction would discard any manual corrections and revert its approval status. Use the line-item editor to correct values instead, or have an administrator reopen this submission first.".into(),
+        ));
+    }
+
+    let coop = state
+        .cooperative_repo
+        .find_by_id(coop_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
 
     let files = state.uploaded_file_repo.find_by_submission(id).await?;
     let file = files
         .first()
         .ok_or_else(|| AppError::NotFound("No uploaded file found for this submission".into()))?;
 
-    // Download the original file from S3/MinIO
-    let file_bytes = state.storage.get_object(&file.storage_key).await?;
+    // Download every original file from S3/MinIO: a statement is often split
+    // across several documents (e.g. financial position + income statement),
+    // and re-extracting only the first would silently drop the rest.
+    let mut pipeline_files = Vec::with_capacity(files.len());
+    for f in &files {
+        let bytes = state.storage.get_object(&f.storage_key).await?;
+        pipeline_files.push(
+            crate::services::extraction_pipeline::ExtractionFileInput::new(
+                bytes,
+                f.mime_type.clone().unwrap_or_default(),
+            ),
+        );
+    }
 
     // Create a new extraction job record to track this re-validation run
     let job_id = Uuid::new_v4();
@@ -420,12 +490,6 @@ pub async fn validate_extraction(
     let extractor = Arc::clone(&state.extractor);
 
     // Call the extraction pipeline synchronously to completely rebuild the line items
-    let pipeline_files = vec![
-        crate::services::extraction_pipeline::ExtractionFileInput::new(
-            file_bytes,
-            file.mime_type.clone().unwrap_or_default(),
-        ),
-    ];
     if let Err(e) = crate::services::extraction_pipeline::run_pipeline_inner(
         job_id,
         id,
@@ -576,12 +640,22 @@ pub async fn submit_submission(
 
 // ── Submit (apex-created → federation) ───────────────────────────────────────
 
+/// The apex may finalize submissions it created itself, and cooperative
+/// submissions it has reclaimed (parked at the apex tier as a draft).
+fn apex_may_submit(
+    created_by: &crate::entities::enums::SubmissionCreatedByRole,
+    tier: &crate::entities::enums::ReviewTier,
+) -> bool {
+    *created_by == crate::entities::enums::SubmissionCreatedByRole::Apex
+        || *tier == crate::entities::enums::ReviewTier::Apex
+}
+
 #[utoipa::path(
     post,
     path = "/api/v1/apex/submissions/{id}/submit",
     params(("id" = Uuid, Path, description = "Submission ID")),
     responses(
-        (status = 200, description = "Submission submitted to federation", body = SubmissionResponse),
+        (status = 200, description = "Submitted — fully approved (apex is the final approval level)", body = SubmissionResponse),
         (status = 400, description = "Error flags must be resolved first"),
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Not found")
@@ -614,10 +688,10 @@ pub async fn apex_submit_submission(
         ));
     }
 
-    // Verify this is an apex-created submission
-    if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
+    if !apex_may_submit(&submission.created_by_role, &submission.current_tier) {
         return Err(AppError::BadRequest(
-            "This submission was not created by an apex user".into(),
+            "This submission is with the cooperative; reclaim it before submitting on its behalf"
+                .into(),
         ));
     }
 
@@ -639,9 +713,9 @@ pub async fn apex_submit_submission(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    tracing::info!(submission_id = %id, apex_id = %apex_db_id, "Apex-initiated submission submitted to federation");
+    tracing::info!(submission_id = %id, apex_id = %apex_db_id, status = %updated.status.as_str(), "Apex-initiated submission submitted (apex is the final approval level)");
 
-    // Audit: apex-initiated submission submitted to federation
+    // Audit: apex-initiated submission submitted and finalized
     if let Err(e) = state
         .audit
         .log_with_context(
@@ -930,7 +1004,7 @@ pub async fn get_submission_as_ministry(
     params(("id" = Uuid, Path, description = "Submission ID")),
     request_body = ReviewActionRequest,
     responses(
-        (status = 200, description = "Approved, forwarded to federation", body = SubmissionResponse),
+        (status = 200, description = "Approved — submission fully approved (Apex is final level)", body = SubmissionResponse),
         (status = 400, description = "Invalid state"),
         (status = 403, description = "Forbidden — submission does not belong to your apex"),
         (status = 404, description = "Not found")
@@ -967,7 +1041,116 @@ pub async fn apex_approve_submission(
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
 
-    // Audit: submission approved by apex
+    // Compute and persist KPIs on approval (Apex is the final approval level)
+    if let Err(e) = workflow
+        .compute_and_save_kpis(id, updated.cooperative_id, updated.reporting_year)
+        .await
+    {
+        tracing::error!(
+            submission_id = %id,
+            error = %e,
+            "Failed to compute and save KPIs during apex approval"
+        );
+    }
+
+    let cooperative_id = updated.cooperative_id;
+    let reporting_year = updated.reporting_year;
+
+    let coop = state.cooperative_repo.find_by_id(cooperative_id).await?;
+    let apex = match &coop {
+        Some(c) => state.apex_repo.find_by_id(c.apex_id).await?,
+        None => None,
+    };
+
+    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+        state.clone(),
+        id,
+    );
+    if let Some(c) = &coop {
+        crate::services::export_generator::ExportGenerator::trigger_apex_export(
+            state.clone(),
+            c.apex_id,
+            reporting_year,
+        );
+    }
+    if let Some(a) = &apex {
+        crate::services::export_generator::ExportGenerator::trigger_federation_export(
+            state.clone(),
+            a.federation_id,
+            reporting_year,
+        );
+    }
+    crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+        state.clone(),
+        reporting_year,
+    );
+
+    // Phase F: Invalidate stale exports for future-year submissions of the
+    // same cooperative and queue their regeneration.
+    if let Ok(subs) = state
+        .submission_repo
+        .find_by_cooperative(cooperative_id)
+        .await
+    {
+        let future_subs: Vec<_> = subs
+            .into_iter()
+            .filter(|s| {
+                s.reporting_year > reporting_year
+                    && s.id != id
+                    && s.status == crate::entities::enums::SubmissionStatus::Approved
+            })
+            .collect();
+
+        if !future_subs.is_empty() {
+            tracing::info!(
+                cooperative_id = %cooperative_id,
+                current_year = reporting_year,
+                stale_count = future_subs.len(),
+                "Invalidating stale exports for future-year submissions"
+            );
+
+            for sub in future_subs {
+                // Delete stale cached PDF from object storage (best-effort)
+                let pdf_key = format!(
+                    "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
+                    sub.id, sub.id
+                );
+                let _ = state.storage.delete_object(&pdf_key).await;
+
+                // Queue background regeneration so the next download gets fresh data
+                crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+                    state.clone(),
+                    sub.id,
+                );
+                if let Some(c) = &coop {
+                    crate::services::export_generator::ExportGenerator::trigger_apex_export(
+                        state.clone(),
+                        c.apex_id,
+                        sub.reporting_year,
+                    );
+                }
+                if let Some(a) = &apex {
+                    crate::services::export_generator::ExportGenerator::trigger_federation_export(
+                        state.clone(),
+                        a.federation_id,
+                        sub.reporting_year,
+                    );
+                }
+                crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+                    state.clone(),
+                    sub.reporting_year,
+                );
+
+                tracing::info!(
+                    stale_submission_id = %sub.id,
+                    stale_year = sub.reporting_year,
+                    "Queued re-generation of stale export"
+                );
+            }
+        }
+    }
+
+    // Audit: submission approved by apex (final approval)
     if let Err(e) = state
         .audit
         .log_with_context(
@@ -1122,13 +1305,16 @@ pub async fn list_federation_submissions(
             .filter(|s| s.status != crate::entities::enums::SubmissionStatus::Draft)
             .collect::<Vec<_>>()
     } else {
+        // The Apex is the final approval level, so submissions are never held at
+        // the Federation tier. The federation therefore sees every non-draft
+        // submission under its apexes (including those already approved by the apex).
         state
             .submission_repo
-            .find_by_cooperative_ids_and_tier(
-                coop_ids,
-                crate::entities::enums::ReviewTier::Federation,
-            )
+            .find_by_cooperative_ids(coop_ids)
             .await?
+            .into_iter()
+            .filter(|s| s.status != crate::entities::enums::SubmissionStatus::Draft)
+            .collect::<Vec<_>>()
     };
 
     let subs_mapped = subs
@@ -1191,6 +1377,21 @@ pub async fn federation_approve_submission(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Not found".into()))?;
+
+    // Keep kpi_records in sync at every approval tier, matching
+    // apex_approve_submission/ministry_approve_submission — previously
+    // federation was the one tier that skipped this, leaving analytics
+    // stale for submissions reviewed here before ministry finalizes them.
+    if let Err(e) = workflow
+        .compute_and_save_kpis(id, updated.cooperative_id, updated.reporting_year)
+        .await
+    {
+        tracing::error!(
+            submission_id = %id,
+            error = %e,
+            "Failed to compute and save KPIs during federation approval"
+        );
+    }
 
     // Audit: submission approved by federation
     if let Err(e) = state
@@ -1301,14 +1502,12 @@ pub async fn list_ministry_submissions(
     State(state): State<AppState>,
     Query(query): Query<SubmissionsQuery>,
 ) -> AppResult<impl IntoResponse> {
-    let subs = if query.all.unwrap_or(false) {
-        state.submission_repo.find_all_non_draft().await?
-    } else {
-        state
-            .submission_repo
-            .find_by_tier(crate::entities::enums::ReviewTier::Ministry)
-            .await?
-    };
+    // The Apex is the final approval level, so nothing is ever held at the
+    // Ministry tier. The ministry must see every non-draft submission
+    // (including those already approved by the apex); the legacy tier filter
+    // returned an empty list for it.
+    let _ = query;
+    let subs = state.submission_repo.find_all_non_draft().await?;
 
     let coop_ids: Vec<Uuid> = subs.iter().map(|s| s.cooperative_id).collect();
     let coops = state
@@ -1456,139 +1655,102 @@ pub async fn ministry_approve_submission(
         );
     }
 
-    // Phase A: Trigger background export generation for the cooperative, Apex, Federation, and Ministry.
-    // Stagger tier launches by 65s in the background to avoid Gemini free-tier rate limits (5 req/min)
-    let state_clone = state.clone();
     let cooperative_id = updated.cooperative_id;
     let reporting_year = updated.reporting_year;
-    tokio::spawn(async move {
-        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-            state_clone.clone(),
-            id,
-        );
 
-        // Fetch parent Coop
-        let coop = match state_clone
-            .cooperative_repo
-            .find_by_id(cooperative_id)
-            .await
-        {
-            Ok(Some(c)) => c,
-            Ok(None) => {
-                tracing::error!("Cooperative not found in background export thread");
-                return;
-            }
-            Err(e) => {
-                tracing::error!(
-                    "Failed to fetch cooperative in background export thread: {:?}",
-                    e
-                );
-                return;
-            }
-        };
+    let coop = state.cooperative_repo.find_by_id(cooperative_id).await?;
+    let apex = match &coop {
+        Some(c) => state.apex_repo.find_by_id(c.apex_id).await?,
+        None => None,
+    };
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+    crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+        state.clone(),
+        id,
+    );
+    if let Some(c) = &coop {
         crate::services::export_generator::ExportGenerator::trigger_apex_export(
-            state_clone.clone(),
-            coop.apex_id,
+            state.clone(),
+            c.apex_id,
             reporting_year,
         );
-
-        // Fetch parent Apex
-        let apex = match state_clone.apex_repo.find_by_id(coop.apex_id).await {
-            Ok(Some(a)) => a,
-            Ok(None) => {
-                tracing::error!("Apex not found in background export thread");
-                return;
-            }
-            Err(e) => {
-                tracing::error!("Failed to fetch apex in background export thread: {:?}", e);
-                return;
-            }
-        };
-
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
+    }
+    if let Some(a) = &apex {
         crate::services::export_generator::ExportGenerator::trigger_federation_export(
-            state_clone.clone(),
-            apex.federation_id,
+            state.clone(),
+            a.federation_id,
             reporting_year,
         );
+    }
+    crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+        state.clone(),
+        reporting_year,
+    );
 
-        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-            state_clone.clone(),
-            reporting_year,
-        );
+    // Phase F: Invalidate stale exports for future-year submissions of the
+    // same cooperative and queue their regeneration.
+    if let Ok(subs) = state
+        .submission_repo
+        .find_by_cooperative(cooperative_id)
+        .await
+    {
+        let future_subs: Vec<_> = subs
+            .into_iter()
+            .filter(|s| {
+                s.reporting_year > reporting_year
+                    && s.id != id
+                    && s.status == crate::entities::enums::SubmissionStatus::Approved
+            })
+            .collect();
 
-        // Phase F: Invalidate stale exports for future-year submissions of the same cooperative.
-        match state_clone
-            .submission_repo
-            .find_by_cooperative(cooperative_id)
-            .await
-        {
-            Ok(subs) => {
-                let future_subs: Vec<_> = subs
-                    .into_iter()
-                    .filter(|s| {
-                        s.reporting_year > reporting_year
-                            && s.id != id
-                            && s.status == crate::entities::enums::SubmissionStatus::Approved
-                    })
-                    .collect();
+        if !future_subs.is_empty() {
+            tracing::info!(
+                cooperative_id = %cooperative_id,
+                current_year = reporting_year,
+                stale_count = future_subs.len(),
+                "Invalidating stale exports for future-year submissions"
+            );
 
-                if !future_subs.is_empty() {
-                    tracing::info!(
-                        cooperative_id = %cooperative_id,
-                        current_year = reporting_year,
-                        stale_count = future_subs.len(),
-                        "Invalidating stale exports for future-year submissions"
+            for sub in future_subs {
+                // Delete stale cached PDF from object storage (best-effort)
+                let pdf_key = format!(
+                    "{EXPORT_PREFIX}/individual/{}/submission_{}.pdf",
+                    sub.id, sub.id
+                );
+                let _ = state.storage.delete_object(&pdf_key).await;
+
+                // Queue background regeneration so the next download gets fresh data
+                crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
+                    state.clone(),
+                    sub.id,
+                );
+                if let Some(c) = &coop {
+                    crate::services::export_generator::ExportGenerator::trigger_apex_export(
+                        state.clone(),
+                        c.apex_id,
+                        sub.reporting_year,
                     );
-
-                    for sub in future_subs {
-                        // Delete stale cached PDF from object storage (best-effort)
-                        let pdf_key =
-                            format!("exports/individual/{}/submission_{}.pdf", sub.id, sub.id);
-                        let _ = state_clone.storage.delete_object(&pdf_key).await;
-
-                        // Trigger background regeneration so the next download gets fresh data
-                        crate::services::export_generator::ExportGenerator::trigger_cooperative_export(
-                            state_clone.clone(),
-                            sub.id,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_apex_export(
-                            state_clone.clone(),
-                            coop.apex_id,
-                            sub.reporting_year,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_federation_export(
-                            state_clone.clone(),
-                            apex.federation_id,
-                            sub.reporting_year,
-                        );
-                        tokio::time::sleep(std::time::Duration::from_secs(65)).await;
-                        crate::services::export_generator::ExportGenerator::trigger_ministry_export(
-                            state_clone.clone(),
-                            sub.reporting_year,
-                        );
-
-                        tracing::info!(
-                            stale_submission_id = %sub.id,
-                            stale_year = sub.reporting_year,
-                            "Queued re-generation of stale export"
-                        );
-                    }
                 }
-            }
-            Err(e) => {
-                tracing::error!(
-                    "Failed to fetch future submissions in background export thread: {:?}",
-                    e
+                if let Some(a) = &apex {
+                    crate::services::export_generator::ExportGenerator::trigger_federation_export(
+                        state.clone(),
+                        a.federation_id,
+                        sub.reporting_year,
+                    );
+                }
+                crate::services::export_generator::ExportGenerator::trigger_ministry_export(
+                    state.clone(),
+                    sub.reporting_year,
+                );
+
+                tracing::info!(
+                    stale_submission_id = %sub.id,
+                    stale_year = sub.reporting_year,
+                    "Queued re-generation of stale export"
                 );
             }
         }
-    });
+    }
 
     // Audit: submission approved by ministry (final approval)
     if let Err(e) = state
@@ -2336,6 +2498,13 @@ pub async fn update_submission_method(
         }
     }
 
+    let year_submissions = state
+        .submission_repo
+        .find_all_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year)
+        .await?;
+    crate::services::period_rules::check_method(&year_submissions, &method, Some(submission.id))
+        .map_err(AppError::Conflict)?;
+
     if submission.status != SubmissionStatus::Draft {
         return Err(AppError::BadRequest(format!(
             "Cannot change submission method when submission is in '{}' status",
@@ -2455,12 +2624,12 @@ pub async fn create_apex_submission(
         });
     }
 
-    let seq = state
+    let year_submissions = state
         .submission_repo
-        .count_by_reporting_year(body.reporting_year)
-        .await? as u32
-        + 1;
-    let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
+        .find_all_by_cooperative_and_year(coop.id, body.reporting_year)
+        .await?;
+    crate::services::period_rules::check_frequency(&year_submissions, period_type, None)
+        .map_err(AppError::Conflict)?;
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
     let creator_name = claims
@@ -2471,12 +2640,13 @@ pub async fn create_apex_submission(
     let submission_method_val = if coop.tier == "basic" {
         "questionnaire".to_string()
     } else {
-        body.submission_method.clone()
+        crate::services::period_rules::locked_method(&year_submissions)
+            .unwrap_or_else(|| body.submission_method.clone())
     };
 
-    let model = ActiveModel {
+    let mut model = ActiveModel {
         id: Set(Uuid::new_v4()),
-        reference: Set(Some(reference)),
+        reference: Set(None),
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),
         period_type: Set(period_type),
@@ -2501,7 +2671,29 @@ pub async fn create_apex_submission(
         edited_by_name: Set(creator_name),
     };
 
-    let submission = state.submission_repo.create(model).await?;
+    let submission = {
+        let mut retries = 0u32;
+        loop {
+            let seq = state
+                .submission_repo
+                .next_reference_seq(body.reporting_year)
+                .await?;
+            let reference = format!("SUB-{}-{:05}", body.reporting_year, seq);
+            model.reference = Set(Some(reference.clone()));
+            match state.submission_repo.create(model.clone()).await {
+                Ok(s) => break s,
+                Err(e) if is_reference_conflict(&e) && retries < MAX_REFERENCE_RETRIES => {
+                    retries += 1;
+                    tracing::warn!(
+                        reporting_year = body.reporting_year,
+                        attempt = retries,
+                        "Submission reference collision, retrying with next sequence"
+                    );
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    };
 
     let section_models =
         crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
@@ -2598,33 +2790,29 @@ pub async fn delegate_submission(
     }
 
     // Verify submission is delegatable:
-    // - "returned" status at apex tier (federation returned to apex)
-    // - "submitted" status at apex tier (returned by federation, set to submitted)
-    // - "submitted" status at federation tier (apex-created, not yet reviewed by fed)
-    // - "draft" status at apex tier (reclaimed by apex or apex returned to self)
-    let delegatable = match submission.status {
-        crate::entities::enums::SubmissionStatus::Returned
-            if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
-        {
-            true
-        }
-        crate::entities::enums::SubmissionStatus::Draft
-            if submission.current_tier == crate::entities::enums::ReviewTier::Apex =>
-        {
-            true
-        }
-        crate::entities::enums::SubmissionStatus::Submitted => {
-            submission.current_tier == crate::entities::enums::ReviewTier::Apex
-                || submission.current_tier == crate::entities::enums::ReviewTier::Federation
-        }
-        _ => false,
-    };
+    // Any unapproved submission that is currently at the Apex tier can be delegated,
+    // BUT only if it was originally created by the Apex.
+    if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
+        return Err(AppError::BadRequest(
+            "Only submissions created by the Apex on behalf of a cooperative can be delegated."
+                .into(),
+        ));
+    }
+
+    let delegatable = submission.status != crate::entities::enums::SubmissionStatus::Approved
+        && submission.status != crate::entities::enums::SubmissionStatus::Rejected;
+
     if !delegatable {
         return Err(AppError::BadRequest(format!(
-            "Cannot delegate a submission in '{}' status at {:?} tier. Only returned or submitted submissions can be delegated.",
+            "Cannot delegate a submission in '{}' status. Only unapproved submissions can be delegated.",
             submission.status.as_str(),
-            submission.current_tier
         )));
+    }
+
+    if submission.current_tier != crate::entities::enums::ReviewTier::Apex {
+        return Err(AppError::BadRequest(
+            "Only submissions currently at the Apex tier can be delegated. If it is with the cooperative, reclaim it first.".into(),
+        ));
     }
 
     // Find the cooperative's primary user to set as edited_by
@@ -2733,6 +2921,15 @@ pub async fn claim_cooperative_edit(
         )));
     }
 
+    // CRITICAL: cooperative can only claim edit when the submission is at the cooperative tier.
+    // This prevents stale-cache race conditions where the cooperative auto-claims after an Apex reclaim.
+    if submission.current_tier != crate::entities::enums::ReviewTier::Cooperative {
+        return Err(AppError::BadRequest(format!(
+            "Cannot claim edit: submission is currently at the {:?} tier, not the cooperative tier.",
+            submission.current_tier
+        )));
+    }
+
     let user_id = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".into()))?;
     let user_name = claims
@@ -2797,25 +2994,26 @@ pub async fn reclaim_submission(
         ));
     }
 
-    // Verify submission is a draft (returned + delegated state)
-    if submission.status != crate::entities::enums::SubmissionStatus::Draft {
-        return Err(AppError::BadRequest(format!(
-            "Cannot reclaim a submission in '{}' status. Only draft submissions can be reclaimed.",
-            submission.status.as_str()
-        )));
+    // Verify submission is reclaimable:
+    // Any unapproved submission that is currently at the Cooperative tier can be reclaimed,
+    // BUT only if it was originally created by the Apex.
+    if submission.created_by_role != crate::entities::enums::SubmissionCreatedByRole::Apex {
+        return Err(AppError::BadRequest(
+            "Cannot reclaim: only submissions originally created by the Apex can be reclaimed."
+                .into(),
+        ));
     }
 
-    // Verify the submission was originally delegated (not an apex-created draft)
-    // The submission must have been returned from federation before delegation
-    let reviews = state.review_repo.find_by_submission(id).await?;
-    let was_delegated = reviews.iter().any(|r| {
-        r.action == crate::entities::enums::ReviewAction::Return
-            && r.target_tier == Some(crate::entities::enums::ReviewTier::Cooperative)
-    });
-    if !was_delegated {
-        return Err(AppError::BadRequest(
-            "Cannot reclaim: this submission was not delegated to a cooperative".into(),
-        ));
+    let reclaimable = submission.status != crate::entities::enums::SubmissionStatus::Approved
+        && submission.status != crate::entities::enums::SubmissionStatus::Rejected
+        && submission.current_tier == crate::entities::enums::ReviewTier::Cooperative;
+
+    if !reclaimable {
+        return Err(AppError::BadRequest(format!(
+            "Cannot reclaim a submission in '{}' status at {:?} tier. The submission must be unapproved and currently at the Cooperative tier.",
+            submission.status.as_str(),
+            submission.current_tier
+        )));
     }
 
     let apex_user_id = Uuid::parse_str(&claims.sub).ok();
@@ -2945,4 +3143,34 @@ pub async fn claim_apex_edit(
     );
 
     Ok((StatusCode::OK, Json(SubmissionResponse::from(updated))))
+}
+
+#[cfg(test)]
+mod apex_submit_rule_tests {
+    use super::apex_may_submit;
+    use crate::entities::enums::{ReviewTier, SubmissionCreatedByRole};
+
+    #[test]
+    fn apex_can_submit_what_it_created() {
+        assert!(apex_may_submit(
+            &SubmissionCreatedByRole::Apex,
+            &ReviewTier::Cooperative
+        ));
+    }
+
+    #[test]
+    fn apex_can_submit_a_cooperative_draft_it_reclaimed() {
+        assert!(apex_may_submit(
+            &SubmissionCreatedByRole::Cooperative,
+            &ReviewTier::Apex
+        ));
+    }
+
+    #[test]
+    fn apex_cannot_submit_a_draft_still_with_the_cooperative() {
+        assert!(!apex_may_submit(
+            &SubmissionCreatedByRole::Cooperative,
+            &ReviewTier::Cooperative
+        ));
+    }
 }

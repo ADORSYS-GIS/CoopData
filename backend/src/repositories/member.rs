@@ -1,20 +1,20 @@
+use crate::database::Database;
 use crate::entities::{member, MemberColumn};
 use crate::error::{AppError, AppResult};
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder,
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
 };
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct MemberRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl MemberRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<member::Model>> {
@@ -84,6 +84,43 @@ impl MemberRepository {
             .count(&self.db)
             .await
             .map_err(AppError::DatabaseError)
+    }
+
+    /// Accurate, unpaginated total — used by the reconciliation endpoint,
+    /// which previously (in the frontend) summed a REST list capped at 200
+    /// rows and silently under-counted any cooperative with more members.
+    pub async fn sum_share_balance_by_submission(
+        &self,
+        cooperative_id: Uuid,
+        submission_id: Uuid,
+    ) -> AppResult<(rust_decimal::Decimal, u64)> {
+        use sea_orm::sea_query::Expr;
+        use sea_orm::{FromQueryResult, QuerySelect};
+
+        #[derive(FromQueryResult)]
+        struct SumRow {
+            total: Option<rust_decimal::Decimal>,
+            count: i64,
+        }
+
+        let row = member::Entity::find()
+            .filter(MemberColumn::CooperativeId.eq(cooperative_id))
+            .filter(MemberColumn::SubmissionId.eq(submission_id))
+            .select_only()
+            .column_as(Expr::col(MemberColumn::ShareBalance).sum(), "total")
+            .column_as(Expr::col(MemberColumn::Id).count(), "count")
+            .into_model::<SumRow>()
+            .one(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        match row {
+            Some(r) => Ok((
+                r.total.unwrap_or(rust_decimal::Decimal::ZERO),
+                r.count as u64,
+            )),
+            None => Ok((rust_decimal::Decimal::ZERO, 0)),
+        }
     }
 
     pub async fn bulk_upsert(&self, models: Vec<member::ActiveModel>) -> AppResult<u64> {

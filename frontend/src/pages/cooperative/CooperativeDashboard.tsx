@@ -19,6 +19,7 @@ import {
 import { useCooperativeStats } from "@/hooks/submissions/useSubmissions";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
+import { PanelSkeleton, StatCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 
 type CoopProfile = { id: string; name?: string; description?: string };
 type MemberItem = { id: string; first_name?: string; last_name?: string; email?: string };
@@ -49,8 +50,13 @@ export const CooperativeDashboard: React.FC = () => {
         title={t("cooperativeDashboard.title")}
         subtitle={t("cooperativeDashboard.subtitle")}
       >
-        <div className="flex items-center justify-center py-20">
-          <Spinner size="lg" className="text-muted-foreground" />
+        <div className="space-y-6">
+          <StatCardsSkeleton count={4} />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PanelSkeleton />
+            <PanelSkeleton />
+          </div>
+          <TableSkeleton rows={5} columns={4} />
         </div>
       </AppShell>
     );

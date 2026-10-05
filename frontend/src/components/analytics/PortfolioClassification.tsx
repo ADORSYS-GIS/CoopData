@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
+import { accountValuesAt } from "@/lib/statement-grid";
 import {
   useNationalOverview,
   type NationalOverviewParams,
 } from "@/hooks/analytics/useNationalOverview";
-import { Card } from "@/components/app-shell";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,8 @@ import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { formatSzl } from "@/lib/currency";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface PortfolioClassificationProps {
   reportingYear: number;
@@ -28,6 +31,12 @@ interface ClassificationRow {
   codes: number[];
   multiplier?: number;
   computeFormula?: (coopData: Record<number, number>) => number;
+}
+
+function describeRow(row: { codes: number[]; computeFormula?: unknown }, t: TFunction): string {
+  if (row.computeFormula) return t("analytics.gridTip.calculated");
+  if (row.codes.length === 0) return t("analytics.gridTip.notReportedLoans");
+  return t("analytics.gridTip.source", { codes: row.codes.join(", ") });
 }
 
 function buildClassificationRows(t: TFunction): ClassificationRow[] {
@@ -93,12 +102,14 @@ function buildClassificationRows(t: TFunction): ClassificationRow[] {
   rows.push({ label: t("analytics.pcEducationalPerforming"), isHeader: true, codes: [] });
   educational.forEach((l) => rows.push({ label: l, codes: [] }));
 
-  // 2. Non-Accrual
+  // 2. Non-Accrual — loans that have stopped accruing interest, i.e. the
+  // same >90-days-past-due population reported later as "Total
+  // Non-Performing" (account 1205). This was previously a hardcoded stub
+  // that always showed 0 regardless of actual data.
   rows.push({
     label: t("analytics.pcTotalNonAccrual"),
     isHeader: true,
-    codes: [],
-    computeFormula: () => 0,
+    codes: [1205],
   });
   rows.push({ label: t("analytics.pcProductiveNonAccrual"), isHeader: true, codes: [] });
   mapBuckets(["j", "j", "j", "j", "j"], productive).forEach((l) =>
@@ -173,8 +184,8 @@ function buildClassificationRows(t: TFunction): ClassificationRow[] {
   rows.push({
     label: t("analytics.pcLoanLossProvisionsHeader"),
     isHeader: true,
-    codes: [1250, 1251, 1252],
-    multiplier: -1,
+    codes: [],
+    computeFormula: (coop) => Math.abs(coop[1250] || 0),
   });
 
   // 7. Total Net
@@ -189,7 +200,7 @@ function buildClassificationRows(t: TFunction): ClassificationRow[] {
         (coop[1203] || 0) +
         (coop[1204] || 0) +
         (coop[1205] || 0);
-      const provs = (coop[1250] || 0) + (coop[1251] || 0) + (coop[1252] || 0);
+      const provs = Math.abs(coop[1250] || 0);
       return gross - provs;
     },
   });
@@ -239,7 +250,12 @@ export function PortfolioClassification({
 
   // Fetch raw comparative statement line items (scoped to filtered coops)
   const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
-    { reportingYear, cooperativeIds },
+    {
+      reportingYear,
+      cooperativeIds,
+      periodType: filterParams?.periodType,
+      periodValue: filterParams?.periodValue,
+    },
     !!cooperativeIds,
   );
 
@@ -247,7 +263,7 @@ export function PortfolioClassification({
 
   const formatCurrency = (val: number) => {
     if (val === 0) return "-";
-    return `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return formatSzl(val);
   };
 
   // Group line items by cooperative and sum values per account code
@@ -255,21 +271,14 @@ export function PortfolioClassification({
     if (!comparative?.grids) return [];
 
     return comparative.grids.map((grid) => {
-      const lineItems = grid.line_items || [];
-      const filtered = lineItems.filter((item) => String(item.month) === selectedMonth);
-
-      // Sum values per account code
-      const map: Record<number, number> = {};
-      filtered.forEach((item) => {
-        if (item.account_code) {
-          map[item.account_code] = (map[item.account_code] || 0) + item.value;
-        }
-      });
+      const values = accountValuesAt(grid.line_items || [], Number(selectedMonth));
+      const map: Record<number, number> = values ?? {};
 
       return {
         id: grid.cooperative_id,
         name: grid.cooperative_name,
         codeValues: map,
+        reported: values !== null,
       };
     });
   }, [comparative, selectedMonth]);
@@ -401,7 +410,11 @@ export function PortfolioClassification({
       </div>
 
       {/* Grid Comparative Table */}
-      <Card title={t("analytics.pcGridTitle")} subtitle={t("analytics.sideBySideComparison")}>
+      <Card
+        title={t("analytics.pcGridTitle")}
+        info={t("analytics.pcGridInfo")}
+        subtitle={t("analytics.sideBySideComparison")}
+      >
         {filteredMatrices.length > 0 ? (
           <div className="overflow-x-auto border border-border rounded-xl">
             <table className="w-full text-left text-xs border-collapse">
@@ -426,9 +439,14 @@ export function PortfolioClassification({
                     return (
                       <tr key={`h-${rIdx}`} className="bg-muted/10 font-bold">
                         <td className="py-2.5 px-4 sticky left-0 bg-background border-r border-border font-sans font-bold text-primary uppercase text-[10px] tracking-wide">
-                          {row.label}
+                          <span className="inline-flex items-center gap-1.5">
+                            {row.label}
+                            <InfoTooltip text={describeRow(row, t)} />
+                          </span>
                         </td>
                         {filteredMatrices.map((coop) => {
+                          const notReported =
+                            !coop.reported || (!row.computeFormula && row.codes.length === 0);
                           const val = row.computeFormula
                             ? row.computeFormula(coop.codeValues)
                             : row.codes.reduce(
@@ -440,7 +458,16 @@ export function PortfolioClassification({
                               key={coop.id}
                               className="py-2.5 px-4 text-right font-bold text-foreground"
                             >
-                              {formatCurrency(val)}
+                              {notReported ? (
+                                <span
+                                  className="text-muted-foreground/60 font-sans"
+                                  title={t("analytics.gridTip.notReportedLoans")}
+                                >
+                                  n/r
+                                </span>
+                              ) : (
+                                formatCurrency(val)
+                              )}
                             </td>
                           );
                         })}
@@ -451,7 +478,10 @@ export function PortfolioClassification({
                   return (
                     <tr key={`r-${rIdx}`} className="hover:bg-muted/10 transition-colors">
                       <td className="py-2 px-4 sticky left-0 bg-background border-r border-border font-sans text-muted-foreground font-medium pl-6">
-                        {row.label}
+                        <span className="inline-flex items-center gap-1.5">
+                          {row.label}
+                          <InfoTooltip text={describeRow(row, t)} />
+                        </span>
                       </td>
                       {filteredMatrices.map((coop) => {
                         const rawSum = row.codes.reduce(
@@ -461,7 +491,16 @@ export function PortfolioClassification({
                         const val = rawSum * (row.multiplier || 1);
                         return (
                           <td key={coop.id} className="py-2 px-4 text-right text-slate-700">
-                            {formatCurrency(val)}
+                            {!coop.reported || row.codes.length === 0 ? (
+                              <span
+                                className="text-muted-foreground/60 font-sans"
+                                title={t("analytics.gridTip.notReportedLoans")}
+                              >
+                                n/r
+                              </span>
+                            ) : (
+                              formatCurrency(val)
+                            )}
                           </td>
                         );
                       })}

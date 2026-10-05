@@ -17,12 +17,13 @@ import { useSavings, useDeleteSavings } from "@/hooks/non-financial/useSavings";
 import { useLoans, useDeleteLoan } from "@/hooks/non-financial/useLoans";
 import { useFixedDeposits, useDeleteFixedDeposit } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops, useDeleteFarmCoop } from "@/hooks/non-financial/useFarmCoop";
+import { useSubmissionRate } from "@/hooks/shared/useSubmissionRate";
 import type { NfUploadResponse } from "@/types/non-financial";
 
 function formatCurrency(n: number): string {
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-  return `$${n.toFixed(0)}`;
+  if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
+  return `SZL ${n.toFixed(0)}`;
 }
 
 export const NonFinancialDataPage: React.FC = () => {
@@ -42,6 +43,13 @@ export const NonFinancialDataPage: React.FC = () => {
   const deleteLoan = useDeleteLoan();
   const deleteFd = useDeleteFixedDeposit();
   const deleteFarmCoop = useDeleteFarmCoop();
+
+  const ledgerSubmissionId =
+    savingsQuery.data?.data?.[0]?.submission_id ??
+    loansQuery.data?.data?.[0]?.submission_id ??
+    fdQuery.data?.data?.[0]?.submission_id ??
+    null;
+  const { rateToZar } = useSubmissionRate(ledgerSubmissionId);
 
   if (!role) return null;
 
@@ -196,6 +204,7 @@ export const NonFinancialDataPage: React.FC = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <SavingsGrid
+                  rateToZar={rateToZar}
                   savings={savings}
                   isLoading={savingsQuery.isLoading}
                   isReadOnly={isReadOnly}
@@ -239,6 +248,7 @@ export const NonFinancialDataPage: React.FC = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <LoanGrid
+                  rateToZar={rateToZar}
                   loans={loans}
                   isLoading={loansQuery.isLoading}
                   isReadOnly={isReadOnly}
@@ -282,6 +292,7 @@ export const NonFinancialDataPage: React.FC = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <FixedDepositGrid
+                  rateToZar={rateToZar}
                   fixedDeposits={fds}
                   isLoading={fdQuery.isLoading}
                   isReadOnly={isReadOnly}

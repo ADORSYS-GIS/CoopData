@@ -1,6 +1,10 @@
 import { offlineDb, type SyncQueueItem } from "./offlineDb";
 import { getAccessToken, isOfflineModeActive, getUserProfile } from "./authService";
 
+interface SyncManagerLike {
+  register(tag: string): Promise<void>;
+}
+
 export async function enqueue(
   item: Omit<SyncQueueItem, "id" | "correlationId" | "createdAt" | "retryCount" | "status">,
 ): Promise<string> {
@@ -14,14 +18,9 @@ export async function enqueue(
   });
 
   if ("serviceWorker" in navigator && "SyncManager" in window) {
-    try {
-      const sw = await navigator.serviceWorker.ready;
-      await (sw as unknown as { sync: { register: (tag: string) => Promise<void> } }).sync.register(
-        "coopdata-sync",
-      );
-    } catch (e) {
-      console.warn("[syncQueue] Could not register background sync:", e);
-    }
+    navigator.serviceWorker.ready
+      .then((sw) => (sw as unknown as { sync: SyncManagerLike }).sync.register("coopdata-sync"))
+      .catch((e) => console.warn("[syncQueue] Could not register background sync:", e));
   }
 
   return correlationId;
@@ -46,14 +45,9 @@ export async function retryFailed(): Promise<void> {
     .modify({ status: "pending", retryCount: 0, lastError: undefined });
 
   if ("serviceWorker" in navigator && "SyncManager" in window) {
-    try {
-      const sw = await navigator.serviceWorker.ready;
-      await (sw as unknown as { sync: { register: (tag: string) => Promise<void> } }).sync.register(
-        "coopdata-sync",
-      );
-    } catch {
-      // ignore
-    }
+    navigator.serviceWorker.ready
+      .then((sw) => (sw as unknown as { sync: SyncManagerLike }).sync.register("coopdata-sync"))
+      .catch(() => {});
   }
 }
 

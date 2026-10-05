@@ -1,16 +1,17 @@
-use sea_orm::{DatabaseConnection, EntityTrait};
+use crate::database::Database;
+use sea_orm::EntityTrait;
 
 use crate::entities::account_alias::{Entity, Model};
 use crate::error::AppResult;
 
 #[derive(Clone)]
 pub struct AccountAliasRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl AccountAliasRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_all(&self) -> AppResult<Vec<Model>> {

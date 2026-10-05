@@ -22,7 +22,7 @@ function extractErrorMessage(err: unknown): string {
   return String(err);
 }
 
-async function fetchSavings(
+export async function fetchSavings(
   params?: NfListParams,
 ): Promise<PaginatedResponse<SavingsAccountResponse>> {
   const token = await getAccessToken();

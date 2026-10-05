@@ -37,6 +37,7 @@ import {
   logout,
   getAccessToken,
   initKeycloak,
+  isOfflineModeActive,
   waitForKeycloakReady,
 } from "@/services/shared/authService";
 
@@ -367,12 +368,20 @@ describe("authService", () => {
 
       const result = await initKeycloak();
       expect(result).toBe(true);
+      expect(isOfflineModeActive()).toBe(false);
       expect(mockKeycloakInstance.init).toHaveBeenCalledWith(
         expect.objectContaining({
           onLoad: "check-sso",
           pkceMethod: "S256",
         }),
       );
+    });
+
+    it("should return false when check-sso returns false while online and not activate offline mode", async () => {
+      mockKeycloakInstance.init.mockResolvedValue(false);
+      const result = await initKeycloak();
+      expect(result).toBe(false);
+      expect(isOfflineModeActive()).toBe(false);
     });
 
     it("should return false when init throws and no cached token", async () => {

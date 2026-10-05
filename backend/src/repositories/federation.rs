@@ -1,18 +1,17 @@
+use crate::database::Database;
 use crate::entities::{federation, FederationColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct FederationRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl FederationRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_keycloak_id(&self, kc_id: &str) -> AppResult<Option<federation::Model>> {
@@ -58,6 +57,24 @@ impl FederationRepository {
             .await
             .map_err(AppError::DatabaseError)?;
         Ok(())
+    }
+
+    pub async fn update_display_name(
+        &self,
+        keycloak_id: &str,
+        display_name: &str,
+    ) -> AppResult<Option<federation::Model>> {
+        let Some(existing) = self.find_by_keycloak_id(keycloak_id).await? else {
+            return Ok(None);
+        };
+        let mut active: federation::ActiveModel = existing.into();
+        active.display_name = Set(display_name.to_string());
+        active.updated_at = Set(chrono::Utc::now());
+        active
+            .update(&self.db)
+            .await
+            .map(Some)
+            .map_err(AppError::DatabaseError)
     }
 
     pub async fn update_metadata(

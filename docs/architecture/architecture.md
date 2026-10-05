@@ -430,7 +430,7 @@ review_action:     validated_extraction, submitted, approved, returned, rejected
 
 account_category:  assets, liabilities, equity, income, expenses, surplus
 
-currency:          SZL, USD
+currency:          SZL, ZAR
 
 accounting_year:   calendar, fiscal      -- calendar = Jan→Dec; fiscal = Jun→Jul (per STARTING POINT rows 12-15)
 

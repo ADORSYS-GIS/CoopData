@@ -1861,6 +1861,7 @@
     "ssl": "false"
   },
   "loginTheme": "coopdata",
+  "emailTheme": "coopdata",
   "eventsEnabled": false,
   "eventsListeners": [
     "jboss-logging"
@@ -2413,7 +2414,7 @@
         },
         {
           "authenticatorFlow": true,
-          "requirement": "ALTERNATIVE",
+          "requirement": "REQUIRED",
           "priority": 30,
           "autheticatorFlow": true,
           "flowAlias": "forms",

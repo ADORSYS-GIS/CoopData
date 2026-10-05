@@ -274,6 +274,7 @@ export const useNfStatistics = (
   isCooperative: boolean,
   params: NfStatisticsParams = {},
   enabled = true,
+  tokenOverride?: string,
 ) =>
   useOfflineQuery<NfStatisticsResponse>({
     queryKey: ["nf-statistics", isCooperative, params],
@@ -282,9 +283,11 @@ export const useNfStatistics = (
     enabled,
     fallbackData: defaultNfStatsFallback,
     queryFn: async () => {
+      const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       if (isCooperative) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data, error } = await (apiClient as any).GET("/api/v1/cooperative/nf-statistics", {
+          headers,
           params: {
             query: {
               reporting_year: params.reportingYear,
@@ -298,6 +301,7 @@ export const useNfStatistics = (
         const { data, error } = await (apiClient as any).GET(
           "/api/v1/analytics/consolidated-nf-statistics",
           {
+            headers,
             params: {
               query: {
                 reporting_year: params.reportingYear,

@@ -18,6 +18,11 @@ pub trait NfHeaderMapper: Send + Sync {
         actual_headers: &[String],
         canonical_fields: &[&str],
     ) -> std::collections::HashMap<String, String>;
+
+    /// Classify a sheet into a canonical NF section (members/savings/loans/
+    /// fixed_deposits/farm) based on its name and column headers. Returns the
+    /// canonical section name, or None if the sheet is not an NF sheet.
+    async fn classify_sheet(&self, sheet_name: &str, headers: &[String]) -> Option<String>;
 }
 
 // ── Domain types ──────────────────────────────────────────────────────────────
@@ -451,6 +456,7 @@ SPECIFIC LABEL → CODE MAPPINGS (memorize):
 "Fixed assets (cost)" / "Property plant equipment" / "PPE" / "Property, plant, and equipment" / "Property, plant and equipment" → 1303
 "Accumulated depreciation" / "Accum. depreciation" → 1304 (NEGATIVE)
 "Intangible assets" → 1305
+"Inventories" / "Inventory" / "Stock" / "Trading stock" / "Inventory on hand" / "Goods for resale" → 1306
 "Total Current Assets" / "CURRENT ASSETS" (subtotal) → 1100
 "Total Non-Current Assets" / "NON-CURRENT ASSETS" / "OTHER ASSETS" (subtotal) → 1300
 "Total Assets" → 1999
@@ -487,6 +493,8 @@ SPECIFIC LABEL → CODE MAPPINGS (memorize):
 "Loan loss provision expense" / "Provision expense" → 5301
 "Total Expenses" → 5999
 "Net surplus" / "Net deficit" / "Net income" / "Profit or loss" → 6999
+"Gross surplus" / "Gross operating surplus" / "Gross profit" → 6999
+"Net operating result" / "Operating result" / "Net operating surplus" / "Operating surplus" → 6999
 
 Return ONLY a MINIFIED, SINGLE-LINE JSON object (no pretty-printing, no newlines, no indentation, no spaces in formatting, no markdown fences) with this exact structure. Minifying is absolutely critical to avoid token truncation:
 {{"line_items":[{{"account_code":1101,"account_name":"CASH ON HAND","confidence":1.0,"raw_label":"Cash on Hand","values":{{"0":213165.0,"1":277410.0,"2":362919.0}}}}],"totals_reconciliation":{{"assets_total":null,"liabilities_total":null,"equity_total":null,"net_surplus":null}},"detected_period_type":"YEARLY","detected_period_value":"2026","detected_reporting_year":2026,"detected_fiscal_start_month":10}}
@@ -1182,6 +1190,52 @@ No markdown, no explanation."#
             }
         }
     }
+
+    async fn classify_sheet(&self, sheet_name: &str, headers: &[String]) -> Option<String> {
+        let header_list = headers.join(", ");
+        let prompt = format!(
+            r#"You are classifying an Excel sheet in a cooperative financial data system.
+
+Sheet name: "{sheet_name}"
+Column headers: [{header_list}]
+
+Classify this sheet into exactly one of these categories:
+- "members" (membership register: member code/id, join date, gender, age group, region, share balance, etc.)
+- "savings" (savings accounts: member code, account code/type, open date, balance, etc.)
+- "loans" (loan accounts: member code, loan id, loan amount, interest rate, balance, etc.)
+- "fixed_deposits" (fixed deposit accounts: member code, deposit id, start/maturity date, balance, etc.)
+- "farm" (farm cooperative data: cooperative type, production, climate, etc.)
+
+Return ONLY the category name (e.g. "savings"). If the sheet is not any of these, return "none".
+No markdown, no explanation."#
+        );
+
+        let raw = match self.chat(&self.model, &prompt).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!(error = %e, sheet = sheet_name, "LLM sheet classification failed");
+                return None;
+            }
+        };
+
+        let cleaned = raw
+            .trim()
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim()
+            .to_lowercase();
+
+        match cleaned.as_str() {
+            "members" | "membership" | "member" => Some("members".to_string()),
+            "savings" | "saving" => Some("savings".to_string()),
+            "loans" | "loan" => Some("loans".to_string()),
+            "fixed_deposits" | "fixed_deposit" | "fixed" | "fd" => {
+                Some("fixed_deposits".to_string())
+            }
+            "farm" | "farm_coop" | "farmcoop" => Some("farm".to_string()),
+            _ => None,
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -1398,6 +1452,10 @@ impl NfHeaderMapper for MockExtractor {
         _canonical_fields: &[&str],
     ) -> std::collections::HashMap<String, String> {
         std::collections::HashMap::new()
+    }
+
+    async fn classify_sheet(&self, _sheet_name: &str, _headers: &[String]) -> Option<String> {
+        None
     }
 }
 

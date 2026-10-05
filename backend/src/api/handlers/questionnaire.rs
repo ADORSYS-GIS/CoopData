@@ -184,6 +184,10 @@ pub async fn save_questionnaire_response(
             sub.cooperative_id,
             body.questionnaire_type.clone(),
             sub.reporting_year,
+            (
+                sub.period_type.as_str().to_string(),
+                sub.period_value.clone(),
+            ),
             body.answers,
         )
         .await?;
@@ -318,6 +322,53 @@ pub(crate) fn get_f64_from_json(json: &serde_json::Value, keys: &[&str]) -> f64 
     0.0
 }
 
+/// Sum of every key present in `json` (male + female columns are separate keys).
+pub(crate) fn sum_f64_from_json(json: &serde_json::Value, keys: &[&str]) -> f64 {
+    keys.iter()
+        .filter_map(|k| {
+            let v = json.get(*k)?;
+            v.as_f64()
+                .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+        })
+        .sum()
+}
+
+/// Sum of the split fields (all keys but the last) when any is present, else
+/// the last key, the aggregate. The two forms describe the same members, so
+/// they must never be added together.
+pub(crate) fn sum_split_or_aggregate(json: &serde_json::Value, keys: &[&str]) -> f64 {
+    let Some((aggregate, split)) = keys.split_last() else {
+        return 0.0;
+    };
+    if has_any_json_key(json, split) {
+        sum_f64_from_json(json, split)
+    } else {
+        sum_f64_from_json(json, &[*aggregate])
+    }
+}
+
+pub(crate) fn has_any_json_key(json: &serde_json::Value, keys: &[&str]) -> bool {
+    keys.iter().any(|k| json.get(*k).is_some())
+}
+
+/// Loans outstanding: the financial form's male + female balances. The
+/// non-financial "amount owed by members" is only a fallback so the same
+/// receivable is never counted twice.
+pub(crate) fn outstanding_loans(json: &serde_json::Value) -> f64 {
+    let fq_keys = [
+        "outstanding_value_male",
+        "loans_male",
+        "outstanding_value_female",
+        "loans_female",
+    ];
+    if has_any_json_key(json, &fq_keys) {
+        get_f64_from_json(json, &["outstanding_value_male", "loans_male"])
+            + get_f64_from_json(json, &["outstanding_value_female", "loans_female"])
+    } else {
+        get_f64_from_json(json, &["amount_owed_by_members"])
+    }
+}
+
 pub(crate) fn get_i32_from_json(json: &serde_json::Value, keys: &[&str]) -> i32 {
     get_f64_from_json(json, keys) as i32
 }
@@ -424,14 +475,11 @@ pub async fn get_questionnaire_analytics(
 
         let savings_m = get_f64_from_json(answers, &["savings_value_male", "savings_male"]);
         let savings_f = get_f64_from_json(answers, &["savings_value_female", "savings_female"]);
-        let loans_m = get_f64_from_json(answers, &["outstanding_value_male", "loans_male"]);
-        let loans_f = get_f64_from_json(answers, &["outstanding_value_female", "loans_female"]);
-        let nf_loans_owed = get_f64_from_json(answers, &["amount_owed_by_members"]);
 
         total_share_capital += share_capital;
         total_borrowed_funds += borrowed;
         total_savings_value += savings_m + savings_f;
-        total_loans_outstanding += loans_m + loans_f + nf_loans_owed;
+        total_loans_outstanding += outstanding_loans(answers);
 
         let inc = get_f64_from_json(answers, &["current_total_income", "total_income"]);
         let exp = get_f64_from_json(answers, &["current_total_expenditure", "total_expenditure"]);
@@ -441,38 +489,38 @@ pub async fn get_questionnaire_analytics(
         total_expenditure += exp;
         total_net_income += net;
 
-        age_18_25 += get_i32_from_json(
+        age_18_25 += sum_split_or_aggregate(
             answers,
             &[
                 "age_18_25_male",
                 "age_18_25_female",
                 "registered_members_18_25",
             ],
-        );
-        age_26_35 += get_i32_from_json(
+        ) as i32;
+        age_26_35 += sum_split_or_aggregate(
             answers,
             &[
                 "age_26_35_male",
                 "age_26_35_female",
                 "registered_members_26_35",
             ],
-        );
-        age_36_60 += get_i32_from_json(
+        ) as i32;
+        age_36_60 += sum_split_or_aggregate(
             answers,
             &[
                 "age_36_60_male",
                 "age_36_60_female",
                 "registered_members_36_60",
             ],
-        );
-        age_61plus += get_i32_from_json(
+        ) as i32;
+        age_61plus += sum_split_or_aggregate(
             answers,
             &[
                 "age_61plus_male",
                 "age_61plus_female",
                 "registered_members_61plus",
             ],
-        );
+        ) as i32;
 
         let reg_str = coop
             .region

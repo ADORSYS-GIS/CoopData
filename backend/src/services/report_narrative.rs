@@ -224,6 +224,11 @@ pub trait ReportNarrativeGenerator: Send + Sync {
         &self,
         ctx: &MinistryNarrativeContext,
     ) -> AppResult<MinistryNarratives>;
+
+    async fn generate_questionnaire_narratives(
+        &self,
+        ctx: &crate::services::questionnaire_report::QuestionnaireNarrativeContext,
+    ) -> AppResult<crate::services::questionnaire_report::QuestionnaireNarratives>;
 }
 
 // ── LLM implementation ─────────────────────────────────────────────────────
@@ -843,6 +848,50 @@ impl ReportNarrativeGenerator for LlmNarrativeGenerator {
         tracing::info!("[narrative] ✅ All 5 narratives parsed successfully");
         result
     }
+
+    async fn generate_questionnaire_narratives(
+        &self,
+        ctx: &crate::services::questionnaire_report::QuestionnaireNarrativeContext,
+    ) -> AppResult<crate::services::questionnaire_report::QuestionnaireNarratives> {
+        use crate::services::questionnaire_report as qr;
+
+        tracing::info!(
+            "[narrative] 🚀 Starting 6 concurrent LLM calls for questionnaire narratives"
+        );
+        let prompts = [
+            qr::executive_summary_prompt(ctx),
+            qr::membership_governance_prompt(ctx),
+            qr::portfolio_quality_prompt(ctx),
+            qr::liquidity_capital_prompt(ctx),
+            qr::financial_structure_profitability_prompt(ctx),
+            qr::outlook_recommendations_prompt(ctx),
+        ];
+        let (exec, membership, portfolio, liquidity, structure, outlook) = tokio::try_join!(
+            self.chat(&prompts[0]),
+            self.chat(&prompts[1]),
+            self.chat(&prompts[2]),
+            self.chat(&prompts[3]),
+            self.chat(&prompts[4]),
+            self.chat(&prompts[5]),
+        )?;
+
+        Ok(qr::QuestionnaireNarratives {
+            executive_summary: Self::parse_json::<qr::ExecutiveSummaryOut>(&exec)?
+                .executive_summary,
+            membership_governance: Self::parse_json::<qr::MembershipGovernanceOut>(&membership)?
+                .membership_governance,
+            portfolio_quality: Self::parse_json::<qr::PortfolioQualityOut>(&portfolio)?
+                .portfolio_quality,
+            liquidity_capital: Self::parse_json::<qr::LiquidityCapitalOut>(&liquidity)?
+                .liquidity_capital,
+            financial_structure_profitability: Self::parse_json::<qr::StructureProfitabilityOut>(
+                &structure,
+            )?
+            .financial_structure_profitability,
+            outlook_recommendations: Self::parse_json::<qr::OutlookOut>(&outlook)?
+                .outlook_recommendations,
+        })
+    }
 }
 
 // ── Per-prompt JSON output types ────────────────────────────────────────────
@@ -968,6 +1017,26 @@ impl ReportNarrativeGenerator for MockNarrativeGenerator {
             apex_comparison: "[MOCK] Apex comparison placeholder.".into(),
             pearls_analysis: "[MOCK] PEARLS analysis placeholder.".into(),
         })
+    }
+
+    async fn generate_questionnaire_narratives(
+        &self,
+        ctx: &crate::services::questionnaire_report::QuestionnaireNarrativeContext,
+    ) -> AppResult<crate::services::questionnaire_report::QuestionnaireNarratives> {
+        Ok(
+            crate::services::questionnaire_report::QuestionnaireNarratives {
+                executive_summary: format!(
+                    "[MOCK] {} performance review for {}.",
+                    ctx.coop_name, ctx.period_label
+                ),
+                membership_governance: "[MOCK] Membership and governance placeholder.".into(),
+                portfolio_quality: "[MOCK] Portfolio quality placeholder.".into(),
+                liquidity_capital: "[MOCK] Liquidity and capital placeholder.".into(),
+                financial_structure_profitability:
+                    "[MOCK] Structure and profitability placeholder.".into(),
+                outlook_recommendations: "[MOCK] Outlook and recommendations placeholder.".into(),
+            },
+        )
     }
 }
 

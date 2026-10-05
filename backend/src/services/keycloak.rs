@@ -112,8 +112,19 @@ macro_rules! check_response {
 
 impl KeycloakService {
     pub fn new(config: &AppConfig) -> Self {
+        // Builder failure is effectively impossible with fixed valid timeouts,
+        // but avoid a hard panic per repo error-handling rules. Fall back to a
+        // default client (no timeout) and log a warning if it ever happens.
+        let client = Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .timeout(std::time::Duration::from_secs(15))
+            .build()
+            .unwrap_or_else(|e| {
+                warn!(error = %e, "Failed to build Keycloak HTTP client with timeouts; using default client");
+                Client::new()
+            });
         Self {
-            client: Client::new(),
+            client,
             base_url: config.keycloak_url.clone(),
             realm: config.keycloak_realm.clone(),
             client_id: config.keycloak_client_id.clone(),
@@ -130,6 +141,16 @@ impl KeycloakService {
 
     fn openid_url(&self) -> String {
         format!("{}/realms/{}", self.base_url, self.realm)
+    }
+
+    /// Liveness probe for the Keycloak realm. Returns `true` when the realm's
+    /// OpenID configuration endpoint is reachable (used by the health check).
+    pub async fn is_healthy(&self) -> bool {
+        let url = format!("{}/.well-known/openid-configuration", self.openid_url());
+        match self.client.get(&url).send().await {
+            Ok(resp) => resp.status().is_success(),
+            Err(_) => false,
+        }
     }
 
     pub async fn get_admin_token(&self) -> Result<String, AppError> {

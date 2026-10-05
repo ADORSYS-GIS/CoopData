@@ -27,6 +27,19 @@ function handleAuthError(error: unknown) {
   // NOT be force-redirected to login (e.g. browsing the public legal center).
   if (!isAuthenticated()) return;
   if (isLoggingOut) return;
+  // If the user is on an authenticated /app or /print route, do NOT trigger full logout on background query failure.
+  // Instead, allow useOfflineQuery / cached fallbacks to handle it gracefully without refreshing the app.
+  if (typeof window !== "undefined") {
+    const isAppRoute = window.location.pathname.startsWith("/app");
+    const isPrintRoute = window.location.pathname.startsWith("/print");
+    if (isAppRoute || isPrintRoute) {
+      console.warn(
+        "[router] Background query auth error on app route — suppressing auto-logout:",
+        error,
+      );
+      return;
+    }
+  }
   isLoggingOut = true;
   // Fire-and-forget — redirect to Keycloak login
   logout().catch(() => {

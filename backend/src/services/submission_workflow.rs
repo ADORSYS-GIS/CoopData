@@ -2,6 +2,7 @@ use metrics::counter;
 use uuid::Uuid;
 
 use crate::auth::claims::Claims;
+use crate::database::Database;
 use crate::entities::enums::{ReviewAction, ReviewTier, SubmissionCreatedByRole, SubmissionStatus};
 use crate::entities::submission_review::ActiveModel as ReviewModel;
 use crate::error::{AppError, AppResult};
@@ -20,7 +21,7 @@ pub struct SubmissionWorkflow {
     pub fs_repo: FinancialStatementRepository,
     pub line_item_repo: BalanceSheetLineItemRepository,
     pub kpi_record_repo: KpiRecordRepository,
-    pub db: sea_orm::DatabaseConnection,
+    pub db: Database,
 }
 
 impl SubmissionWorkflow {
@@ -33,7 +34,7 @@ impl SubmissionWorkflow {
         fs_repo: FinancialStatementRepository,
         line_item_repo: BalanceSheetLineItemRepository,
         kpi_record_repo: KpiRecordRepository,
-        db: sea_orm::DatabaseConnection,
+        db: impl Into<Database>,
     ) -> Self {
         Self {
             submission_repo,
@@ -43,7 +44,7 @@ impl SubmissionWorkflow {
             fs_repo,
             line_item_repo,
             kpi_record_repo,
-            db,
+            db: db.into(),
         }
     }
 
@@ -122,41 +123,78 @@ impl SubmissionWorkflow {
             )));
         }
 
-        // Verify financial statement exists or financial questionnaire is filled
+        // Verify financial statement exists with actual data, or financial questionnaire is filled
         if sub.submission_method != "questionnaire" {
             let fs = self.fs_repo.find_by_submission(submission_id).await?;
-            if fs.is_none() && !has_financial_q {
+            if let Some(fs) = fs {
+                let items = self
+                    .line_item_repo
+                    .find_by_financial_statement(fs.id)
+                    .await?;
+                let has_financial_data = items.iter().any(|i| {
+                    i.value
+                        .map(|v| v != rust_decimal::Decimal::ZERO)
+                        .unwrap_or(false)
+                });
+                if !has_financial_data {
+                    return Err(AppError::BadRequest(
+                        "Financial statement has no data. Enter financial data before submitting."
+                            .into(),
+                    ));
+                }
+            } else if !has_financial_q {
                 return Err(AppError::BadRequest(
                     "A financial statement must be uploaded or financial questionnaire completed before submitting".into(),
                 ));
             }
         }
 
-        // Route based on current tier and creator role:
-        // - Apex-created submissions skip apex review, go directly to Federation
-        // - Cooperative tier → Apex (coop submits after delegation, apex reviews)
-        // - Apex tier → Federation (apex is done reviewing, sends to federation)
-        // - Federation tier → stays at federation (federation reviews)
-        // - Ministry tier → stays at ministry (ministry reviews)
-        let next_tier = if claims.is_apex() {
-            ReviewTier::Federation
-        } else {
-            match sub.current_tier {
-                ReviewTier::Cooperative => ReviewTier::Apex,
-                ReviewTier::Apex => ReviewTier::Federation,
-                ReviewTier::Federation => ReviewTier::Federation,
-                ReviewTier::Ministry => ReviewTier::Ministry,
+        // Verify non-financial data exists (unless questionnaire method covers it)
+        if sub.submission_method != "questionnaire" && !has_non_financial_q {
+            let has_nf_data = self.has_non_financial_data(submission_id).await?;
+            if !has_nf_data {
+                return Err(AppError::BadRequest(
+                    "Non-financial data is empty. Enter at least one record before submitting."
+                        .into(),
+                ));
             }
-        };
+        }
 
-        self.submission_repo
-            .update_status(submission_id, SubmissionStatus::Submitted, next_tier)
+        // Route on submit:
+        // - Apex submitter: the apex is the final approval level, so submitting
+        //   finalizes the submission immediately (no federation/ministry step).
+        // - Any other submitter (the cooperative, including after delegation):
+        //   the submission goes to the apex for review, regardless of the tier
+        //   it was previously parked at.
+        if claims.is_apex() {
+            self.submission_repo
+                .update_status(submission_id, SubmissionStatus::Approved, ReviewTier::Apex)
+                .await?;
+
+            counter!("coopdata_submissions_processed_total", "status" => "approved").increment(1);
+
+            self.append_review(
+                submission_id,
+                ReviewTier::Apex,
+                claims,
+                ReviewAction::Approve,
+                Some("Auto-approved on submit — apex is the final approval level".to_string()),
+            )
             .await?;
+        } else {
+            let next_tier = ReviewTier::Apex;
+
+            self.submission_repo
+                .update_status(submission_id, SubmissionStatus::Submitted, next_tier)
+                .await?;
+        }
 
         // Clear edited_by — submission is now in review, no one editing
         self.submission_repo.clear_edited_by(submission_id).await?;
 
-        counter!("coopdata_submissions_processed_total", "status" => "submitted").increment(1);
+        if !claims.is_apex() {
+            counter!("coopdata_submissions_processed_total", "status" => "submitted").increment(1);
+        }
 
         // Immediately compute and save KPIs to database for cooperative analytics
         if sub.submission_method != "questionnaire" {
@@ -183,7 +221,11 @@ impl SubmissionWorkflow {
         Ok(())
     }
 
-    /// Apex approves → federation_review (Submitted → InReview, tier=Federation)
+    /// Apex approves → approved (terminal).
+    ///
+    /// The Apex is the final level of approval: once it approves, the
+    /// submission is immediately marked fully approved. Federation and
+    /// Ministry no longer take any action to finalize it.
     pub async fn apex_approve(
         &self,
         submission_id: Uuid,
@@ -194,8 +236,8 @@ impl SubmissionWorkflow {
             submission_id,
             SubmissionStatus::Submitted,
             ReviewAction::Approve,
-            SubmissionStatus::InReview,
-            ReviewTier::Federation,
+            SubmissionStatus::Approved,
+            ReviewTier::Apex,
             claims,
             comment,
         )
@@ -387,6 +429,50 @@ impl SubmissionWorkflow {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    /// True when at least one non-financial record exists for the submission.
+    async fn has_non_financial_data(&self, submission_id: Uuid) -> AppResult<bool> {
+        use crate::entities::{farm_coop, fixed_deposit, loan, member, savings_account};
+
+        let member_exists = member::Entity::find()
+            .filter(member::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        if member_exists {
+            return Ok(true);
+        }
+        let savings_exists = savings_account::Entity::find()
+            .filter(savings_account::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        if savings_exists {
+            return Ok(true);
+        }
+        let loan_exists = loan::Entity::find()
+            .filter(loan::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        if loan_exists {
+            return Ok(true);
+        }
+        let fd_exists = fixed_deposit::Entity::find()
+            .filter(fixed_deposit::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        if fd_exists {
+            return Ok(true);
+        }
+        let farm_exists = farm_coop::Entity::find()
+            .filter(farm_coop::Column::SubmissionId.eq(submission_id))
+            .one(&self.db)
+            .await?
+            .is_some();
+        Ok(farm_exists)
+    }
+
     #[allow(clippy::too_many_arguments)]
     async fn transition(
         &self,
@@ -420,7 +506,7 @@ impl SubmissionWorkflow {
         counter!("coopdata_submission_transitions_total", "status" => new_status.as_str().to_string())
             .increment(1);
 
-        if new_tier == ReviewTier::Ministry
+        if (new_tier == ReviewTier::Ministry || new_tier == ReviewTier::Apex)
             && matches!(action, ReviewAction::Approve | ReviewAction::Reject)
         {
             counter!("coopdata_submissions_processed_total", "status" => new_status.as_str().to_string())
@@ -813,14 +899,14 @@ impl SubmissionWorkflow {
             (
                 "savings_total_balance",
                 s.total_balance,
-                format!("${:.0}", s.total_balance),
+                format!("SZL {:.0}", s.total_balance),
                 "currency",
                 "Total savings balance",
             ),
             (
                 "savings_average_balance",
                 s.average_balance,
-                format!("${:.0}", s.average_balance),
+                format!("SZL {:.0}", s.average_balance),
                 "currency",
                 "Average savings account balance",
             ),
@@ -953,21 +1039,21 @@ impl SubmissionWorkflow {
             (
                 "loans_total_balance",
                 l.total_balance,
-                format!("${:.0}", l.total_balance),
+                format!("SZL {:.0}", l.total_balance),
                 "currency",
                 "Total outstanding loan balance",
             ),
             (
                 "loans_total_loan_amount",
                 l.total_loan_amount,
-                format!("${:.0}", l.total_loan_amount),
+                format!("SZL {:.0}", l.total_loan_amount),
                 "currency",
                 "Total disbursed loan amount",
             ),
             (
                 "loans_average_loan_size",
                 l.average_loan_size,
-                format!("${:.0}", l.average_loan_size),
+                format!("SZL {:.0}", l.average_loan_size),
                 "currency",
                 "Average loan size",
             ),
@@ -1079,14 +1165,14 @@ impl SubmissionWorkflow {
             (
                 "fds_total_balance",
                 fd.total_balance,
-                format!("${:.0}", fd.total_balance),
+                format!("SZL {:.0}", fd.total_balance),
                 "currency",
                 "Total fixed deposits balance",
             ),
             (
                 "fds_average_balance",
                 fd.average_balance,
-                format!("${:.0}", fd.average_balance),
+                format!("SZL {:.0}", fd.average_balance),
                 "currency",
                 "Average fixed deposit balance",
             ),
@@ -1262,5 +1348,57 @@ impl SubmissionWorkflow {
             .await?;
         self.kpi_record_repo.create_many(active_models).await?;
         Ok(())
+    }
+}
+
+/// KPI rows computed before this instant used earlier formulas (PAR > 30 counted
+/// the 1-30 day bucket, provisions had the wrong sign, income used one month).
+/// Raise it whenever a KPI formula changes so startup recomputes stored rows.
+pub const KPI_FORMULAS_EFFECTIVE_AT: &str = "2026-09-25T17:00:00Z";
+
+pub fn kpi_rows_are_stale(rows: &[crate::entities::kpi_record::Model]) -> bool {
+    let Ok(cutoff) = chrono::DateTime::parse_from_rfc3339(KPI_FORMULAS_EFFECTIVE_AT) else {
+        return false;
+    };
+    rows.iter().any(|row| row.created_at < cutoff)
+}
+
+#[cfg(test)]
+mod kpi_staleness_tests {
+    use super::*;
+    use crate::entities::kpi_record;
+
+    fn row(created: &str) -> kpi_record::Model {
+        let at = chrono::DateTime::parse_from_rfc3339(created).unwrap();
+        kpi_record::Model {
+            id: Uuid::new_v4(),
+            cooperative_id: Uuid::nil(),
+            submission_id: Uuid::nil(),
+            reporting_year: 2026,
+            kpi_name: "par30".into(),
+            kpi_type: "financial".into(),
+            value: 1.0,
+            formatted: "1.0%".into(),
+            unit: "percent".into(),
+            status: None,
+            description: String::new(),
+            created_at: at,
+            updated_at: at,
+        }
+    }
+
+    #[test]
+    fn rows_computed_before_the_cutoff_are_stale() {
+        assert!(kpi_rows_are_stale(&[row("2026-09-24T10:00:00Z")]));
+    }
+
+    #[test]
+    fn rows_computed_after_the_cutoff_are_current() {
+        assert!(!kpi_rows_are_stale(&[row("2026-09-26T10:00:00Z")]));
+    }
+
+    #[test]
+    fn no_rows_are_not_stale() {
+        assert!(!kpi_rows_are_stale(&[]));
     }
 }

@@ -1,3 +1,4 @@
+import { isReportedKpi } from "@/lib/kpi-reported";
 import {
   ScatterChart,
   Scatter,
@@ -19,7 +20,9 @@ interface CoopScatterPlotProps {
 
 export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
   const { t } = useTranslation();
-  const withData = data.filter((c) => c.has_data && c.kpis["roa"] && c.kpis["npl_ratio"]);
+  const withData = data.filter(
+    (c) => c.has_data && isReportedKpi(c.kpis["roa"]) && isReportedKpi(c.kpis["npl_ratio"]),
+  );
 
   if (withData.length === 0) {
     return (
@@ -31,11 +34,11 @@ export function CoopScatterPlot({ data }: CoopScatterPlotProps) {
 
   const chartData = withData.map((c) => ({
     name: c.name,
-    npl: Math.min(c.kpis["npl_ratio"]?.value || 0, 30),
-    roa: Math.max(Math.min(c.kpis["roa"]?.value || 0, 20), -20),
-    size: c.kpis["total_assets"]?.value || 1000000,
-    rawNpl: c.kpis["npl_ratio"]?.formatted || "0%",
-    rawRoa: c.kpis["roa"]?.formatted || "0%",
+    npl: Math.min(c.kpis["npl_ratio"].value, 30),
+    roa: Math.max(Math.min(c.kpis["roa"].value, 20), -20),
+    size: c.kpis["total_assets"]?.value ?? 0,
+    rawNpl: c.kpis["npl_ratio"].formatted,
+    rawRoa: c.kpis["roa"].formatted,
     status: c.kpis["npl_ratio"]?.value > 5 ? "red" : "green",
   }));
 

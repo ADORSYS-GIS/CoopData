@@ -11,12 +11,13 @@ import {
   Legend,
 } from "recharts";
 import { useTranslation } from "react-i18next";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface TrendDataPoint {
-  month: string;
-  liquidity: number; // mapped to Savings (1100)
-  loans: number; // mapped to Loans (1200)
-  savings: number; // mapped to Deposits (2100)
+  period: string;
+  liquidity: number; // Liquid assets (COA 1100) — cash/near-cash
+  loans: number; // Gross loan portfolio (COA 1200)
+  savings: number; // Member deposits (COA 2100)
 }
 
 interface SavingsLoansDepositsChartProps {
@@ -28,7 +29,8 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
   // Compute Net Variation for each data point
   const formattedData = React.useMemo(() => {
     return data.map((item) => {
-      // Calculate Net Variation: (Savings + Loans) - Deposits
+      // Net variation: liquid assets + loans funded, net of member deposits
+      // taken in for the period (Liquid Assets + Loans − Deposits).
       const netVariation = item.liquidity + item.loans - item.savings;
       return {
         ...item,
@@ -38,20 +40,23 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
   }, [data]);
 
   const formatYAxis = (value: number) => {
-    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
-    return `$${value}`;
+    if (value >= 1_000_000) return `SZL ${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `SZL ${(value / 1_000).toFixed(0)}K`;
+    return `SZL ${value}`;
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
-      <div>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-          {t("analytics.savingsLoansDepositsTitle")}
-        </span>
-        <span className="text-xs text-slate-500 font-medium block mt-0.5">
-          {t("analytics.monthlyFinancialBreakdown")}
-        </span>
+    <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+      <div className="flex items-start gap-1.5">
+        <div>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">
+            {t("analytics.savingsLoansDepositsTitle")}
+          </span>
+          <span className="text-xs text-muted-foreground font-medium block mt-0.5">
+            {t("analytics.periodFinancialBreakdown")}
+          </span>
+        </div>
+        <InfoTooltip text={t("analytics.savingsLoansDepositsTooltip")} />
       </div>
 
       {/* Grouped Bar & Line Chart Canvas */}
@@ -60,7 +65,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
           <ComposedChart data={formattedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="period"
               stroke="var(--muted-foreground)"
               fontSize={11}
               tickLine={false}
@@ -94,13 +99,13 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               }}
               formatter={(value: number, name: string) => [
-                `$${value.toLocaleString()}`,
+                `SZL ${Math.round(value).toLocaleString()}`,
                 name === "liquidity"
-                  ? t("analytics.savingsShort")
+                  ? t("analytics.seriesLiquidAssets")
                   : name === "loans"
-                    ? t("analytics.loansLabel")
+                    ? t("analytics.seriesGrossLoans")
                     : name === "savings"
-                      ? t("analytics.depositsLabel")
+                      ? t("analytics.seriesMemberDeposits")
                       : name,
               ]}
             />
@@ -114,7 +119,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="liquidity"
-              name={t("analytics.savingsShort")}
+              name={t("analytics.seriesLiquidAssets")}
               fill="var(--chart-1)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
@@ -124,7 +129,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="loans"
-              name={t("analytics.loansLabel")}
+              name={t("analytics.seriesGrossLoans")}
               fill="var(--chart-2)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}
@@ -134,7 +139,7 @@ export function SavingsLoansDepositsChart({ data }: SavingsLoansDepositsChartPro
             <Bar
               yAxisId="left"
               dataKey="savings"
-              name={t("analytics.depositsLabel")}
+              name={t("analytics.seriesMemberDeposits")}
               fill="var(--chart-3)"
               radius={[4, 4, 0, 0]}
               maxBarSize={16}

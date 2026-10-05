@@ -16,6 +16,8 @@ import { useApexStats } from "@/hooks/submissions/useSubmissions";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatCardsSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 
 export const ApexDashboard: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
@@ -30,9 +32,20 @@ export const ApexDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <AppShell title={t("apexDashboard.title")} subtitle={t("apexDashboard.subtitle")}>
-        <div className="flex items-center justify-center py-20">
-          <Spinner size="lg" className="text-muted-foreground" />
+      <AppShell title={t("apexDashboard.title")} subtitle={t("apexDashboard.overview")}>
+        <div className="space-y-6">
+          <StatCardsSkeleton count={4} />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-xl border border-border bg-card p-5">
+              <Skeleton className="mb-4 h-5 w-40" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+            <div className="rounded-xl border border-border bg-card p-5">
+              <Skeleton className="mb-4 h-5 w-40" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          </div>
+          <TableSkeleton rows={5} columns={4} />
         </div>
       </AppShell>
     );

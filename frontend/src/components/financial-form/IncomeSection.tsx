@@ -81,7 +81,7 @@ export function IncomeSection({
           <Calculator className="size-4 text-muted-foreground" />
           <span className="text-muted-foreground">{t("financial.totalFinancialIncome")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalFinancialIncome)}
+            SZL {formatNumber(totals.totalFinancialIncome)}
           </span>
         </div>
       </div>
@@ -116,7 +116,7 @@ export function IncomeSection({
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalOtherIncome")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalOtherIncome)}
+            SZL {formatNumber(totals.totalOtherIncome)}
           </span>
         </div>
       </div>
@@ -129,7 +129,9 @@ export function IncomeSection({
           </span>
           <span className="font-semibold text-foreground">{t("financial.totalIncome")}</span>
         </div>
-        <span className="text-xl font-bold text-success">${formatNumber(totals.totalIncome)}</span>
+        <span className="text-xl font-bold text-success">
+          SZL {formatNumber(totals.totalIncome)}
+        </span>
       </div>
     </div>
   );

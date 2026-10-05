@@ -68,9 +68,11 @@ test-utils = []
 
 [dev-dependencies]
 tokio-test = "0.4"
+rust_decimal_macros = "1"
 serde_test = "1"
 tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
+sea-orm = { version = "1.1", features = ["mock"] }
 coop-data-backend = { path = ".", features = ["test-utils"] }
 
 [profile.release]

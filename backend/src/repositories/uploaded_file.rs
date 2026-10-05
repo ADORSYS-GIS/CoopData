@@ -1,4 +1,5 @@
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use crate::database::Database;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::entities::uploaded_file::{self, ActiveModel, Column, Entity};
@@ -6,12 +7,12 @@ use crate::error::AppResult;
 
 #[derive(Clone)]
 pub struct UploadedFileRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl UploadedFileRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<uploaded_file::Model>> {

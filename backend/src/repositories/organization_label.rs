@@ -1,15 +1,16 @@
+use crate::database::Database;
 use crate::entities::organization_label;
 use crate::error::{AppError, AppResult};
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
 #[derive(Clone)]
 pub struct OrganizationLabelRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl OrganizationLabelRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_key(&self, key: &str) -> AppResult<Option<organization_label::Model>> {

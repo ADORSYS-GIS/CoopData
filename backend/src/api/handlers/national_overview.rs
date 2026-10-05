@@ -251,6 +251,17 @@ async fn compute_coop_rows(
         .into_iter()
         .map(|statement| (statement.submission_id, statement))
         .collect();
+    let mut approved_submissions = approved_submissions;
+    approved_submissions.sort_by_key(|s| {
+        std::cmp::Reverse(
+            crate::services::period_series::period_key(
+                s.period_type,
+                s.reporting_year,
+                &s.period_value,
+            )
+            .unwrap_or((s.reporting_year, 0)),
+        )
+    });
     for submission in approved_submissions {
         if let Some(statement) = statements_by_submission.get(&submission.id) {
             fs_map
@@ -613,6 +624,31 @@ async fn compute_coop_rows(
     Ok(coop_rows)
 }
 
+/// The statement of the cooperative's newest period, so a cooperative that
+/// filed several periods in the year is never shown from an arbitrary one.
+fn latest_statement_of<'a>(
+    cooperative_id: Uuid,
+    statements: &'a [crate::entities::financial_statement::Model],
+    submissions: &[crate::entities::submission::Model],
+) -> Option<&'a crate::entities::financial_statement::Model> {
+    statements
+        .iter()
+        .filter_map(|fs| {
+            let sub = submissions
+                .iter()
+                .find(|s| s.id == fs.submission_id && s.cooperative_id == cooperative_id)?;
+            let key = crate::services::period_series::period_key(
+                sub.period_type,
+                sub.reporting_year,
+                &sub.period_value,
+            )
+            .unwrap_or((sub.reporting_year, 0));
+            Some((key, fs))
+        })
+        .max_by_key(|(key, _)| *key)
+        .map(|(_, fs)| fs)
+}
+
 fn pct(part: u64, total: u64) -> f64 {
     if total == 0 {
         return 0.0;
@@ -834,7 +870,9 @@ fn get_kpi_value(row: &CoopKpiRow, key: &str) -> Option<f64> {
     path = "/api/v1/analytics/comparative-statements",
     params(
         ("reporting_year" = Option<i32>, Query, description = "Reporting year"),
-        ("cooperative_ids" = Option<String>, Query, description = "Comma-separated cooperative UUIDs to filter")
+        ("cooperative_ids" = Option<String>, Query, description = "Comma-separated cooperative UUIDs to filter"),
+        ("period_type" = Option<String>, Query, description = "Period type (YEARLY, QUARTERLY, MONTHLY, SEMI_ANNUAL)"),
+        ("period_value" = Option<String>, Query, description = "Period value (for example Q1, 08, H1)")
     ),
     responses(
         (status = 200, description = "Comparative statements grid", body = ComparativeStatementsResponse),
@@ -896,6 +934,13 @@ pub async fn get_comparative_statements(
         .filter(|s| {
             s.reporting_year == year
                 && s.status == crate::entities::enums::SubmissionStatus::Approved
+                && params.period_type.as_deref().map_or(true, |pt| {
+                    pt.eq_ignore_ascii_case("all")
+                        || s.period_type.as_str().eq_ignore_ascii_case(pt)
+                })
+                && params.period_value.as_deref().map_or(true, |pv| {
+                    pv.eq_ignore_ascii_case("all") || s.period_value.eq_ignore_ascii_case(pv)
+                })
         })
         .collect();
 
@@ -929,33 +974,78 @@ pub async fn get_comparative_statements(
             .push(item);
     }
 
-    // Map financial statement ID to cooperative ID
-    let mut fs_to_coop: HashMap<Uuid, Uuid> = HashMap::new();
-    for fs in &financial_statements {
-        if let Some(sub) = year_submissions.iter().find(|s| s.id == fs.submission_id) {
-            fs_to_coop.insert(fs.id, sub.cooperative_id);
-        }
-    }
+    // Chart-of-accounts rollup rules (e.g. 1200 "Gross Loans" = sum of
+    // 1201-1205), in the currency reported — loaded once, applied per
+    // cooperative below, so every grid (Rankings/Portfolio
+    // Classification/Income Statement/Financial Indicators) sees
+    // consistently-resolved parent totals in a single display currency
+    // instead of blank cells whenever a source document only populated
+    // child account codes.
+    let coa = state.coa_repo.find_all().await?;
 
     // Build the grids response
     let mut grids = vec![];
 
     for coop in cooperatives {
         // Find if they have a financial statement for this year
-        let fs_opt = financial_statements
-            .iter()
-            .find(|fs| fs_to_coop.get(&fs.id) == Some(&coop.id));
+        let fs_opt = latest_statement_of(coop.id, &financial_statements, &year_submissions);
 
         let mut grid_items = vec![];
+        let mut currency = crate::entities::enums::Currency::Szl;
+        let mut is_validated = false;
+        let mut has_unmapped_items = false;
+
         if let Some(fs) = fs_opt {
+            currency = fs.currency.clone();
+            is_validated = fs.is_validated;
+
             if let Some(items) = items_by_fs.get(&fs.id) {
+                has_unmapped_items = items.iter().any(|i| i.account_code.is_none());
+
+                // Group raw values by month so the rollup only ever sums
+                // figures reported for the same period.
+                let mut by_month: HashMap<i32, HashMap<i32, f64>> = HashMap::new();
                 for item in items {
+                    if let Some(code) = item.account_code {
+                        by_month
+                            .entry(item.month as i32)
+                            .or_default()
+                            .insert(code, item.value.and_then(|v| v.to_f64()).unwrap_or(0.0));
+                    }
                     grid_items.push(CooperativeLineItem {
                         account_code: item.account_code,
                         account_name: item.account_name.clone(),
                         value: item.value.and_then(|v| v.to_f64()).unwrap_or(0.0),
                         month: item.month as i32,
+                        is_derived: false,
                     });
+                }
+
+                // Synthesize the aggregate codes a source document didn't
+                // report directly (e.g. only 1201-1205 present, not the
+                // 1200 parent) so exact-account-code lookups downstream
+                // never see a gap that a real value could resolve.
+                for (month, raw) in &by_month {
+                    let resolved = crate::services::coa_rollup::resolve(raw, &coa);
+                    for account in &coa {
+                        if account.formula.is_none() {
+                            continue;
+                        }
+                        if raw.contains_key(&account.account_code) {
+                            continue;
+                        }
+                        let value = resolved.get(&account.account_code).copied().unwrap_or(0.0);
+                        if value.abs() <= 0.001 {
+                            continue;
+                        }
+                        grid_items.push(CooperativeLineItem {
+                            account_code: Some(account.account_code),
+                            account_name: account.account_name.clone(),
+                            value,
+                            month: *month,
+                            is_derived: true,
+                        });
+                    }
                 }
             }
         }
@@ -964,6 +1054,9 @@ pub async fn get_comparative_statements(
             cooperative_id: coop.id,
             cooperative_name: coop.name,
             line_items: grid_items,
+            currency: currency.as_str().to_string(),
+            is_validated,
+            has_unmapped_items,
         });
     }
 

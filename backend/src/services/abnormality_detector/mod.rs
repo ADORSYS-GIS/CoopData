@@ -50,6 +50,27 @@ impl AbnormalityDetector {
 
         let mut all_flags = Vec::new();
 
+        // CRIT-011: extraction produced line items the LLM mapper could not
+        // confidently assign an account code to. These are excluded from
+        // every downstream sum-check/ratio (build_values_map_for_month and
+        // build_presence_values_map both skip null account_code rows), so
+        // without this check they'd silently vanish from analytics instead
+        // of blocking submission until a human reassigns them.
+        let unmapped_count = line_items
+            .iter()
+            .filter(|li| li.account_code.is_none())
+            .count();
+        if unmapped_count > 0 {
+            all_flags.push(calculations::flag(
+                "CRIT-011",
+                "critical",
+                format!(
+                    "{unmapped_count} extracted line item(s) could not be mapped to an account code and require manual review (reassign the account code in the financial statement editor) before this statement can be submitted."
+                ),
+                None,
+            ));
+        }
+
         let coop_type = CooperativeType::parse(cooperative_type).unwrap_or(CooperativeType::Other);
         let required_codes = self.coa_repo.find_required_by_coop_type(&coop_type).await?;
         all_flags.extend(flags::check_missing_required(

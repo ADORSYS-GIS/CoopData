@@ -1,20 +1,20 @@
+use crate::database::Database;
 use crate::entities::{savings_account, SavingsAccountColumn};
 use crate::error::{AppError, AppResult};
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder,
+    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
 };
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct SavingsAccountRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl SavingsAccountRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<savings_account::Model>> {
@@ -111,7 +111,9 @@ impl SavingsAccountRepository {
         if models.is_empty() {
             return Ok(0);
         }
-        // Dedup by (cooperative_id, savings_account_id) using actual inner values
+        // Dedup by (cooperative_id, member_id, savings_account_id) using actual inner values.
+        // savings_account_id is often the account TYPE (e.g. "Ordinary Savings"), shared by
+        // every member, so it must be combined with the member to keep each member's account.
         let mut deduped: std::collections::HashMap<String, savings_account::ActiveModel> =
             std::collections::HashMap::new();
         for model in models {
@@ -120,11 +122,15 @@ impl SavingsAccountRepository {
                 ActiveValue::Set(v) | ActiveValue::Unchanged(v) => v.to_string(),
                 _ => continue,
             };
+            let member_key = match &model.member_id {
+                ActiveValue::Set(v) | ActiveValue::Unchanged(v) => v.to_string(),
+                _ => continue,
+            };
             let acc_key = match &model.savings_account_id {
                 ActiveValue::Set(v) | ActiveValue::Unchanged(v) => v.clone(),
                 _ => continue,
             };
-            let key = format!("{}-{}", coop_key, acc_key);
+            let key = format!("{}-{}-{}", coop_key, member_key, acc_key);
             deduped.insert(key, model);
         }
         let models: Vec<_> = deduped.into_values().collect();
@@ -133,6 +139,7 @@ impl SavingsAccountRepository {
             .on_conflict(
                 OnConflict::columns([
                     SavingsAccountColumn::SubmissionId,
+                    SavingsAccountColumn::MemberId,
                     SavingsAccountColumn::SavingsAccountId,
                 ])
                 .update_columns([

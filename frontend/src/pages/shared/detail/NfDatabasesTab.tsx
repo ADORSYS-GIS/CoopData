@@ -3,11 +3,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Trash2, CheckCircle2, Users, Database, PenLine } from "lucide-react";
 import { Card, StatusPill } from "@/components/app-shell";
-import { useMembers } from "@/hooks/non-financial/useMembers";
-import { useSavings } from "@/hooks/non-financial/useSavings";
-import { useLoans } from "@/hooks/non-financial/useLoans";
-import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
-import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
+import { fetchMembers } from "@/hooks/non-financial/useMembers";
+import { fetchSavings } from "@/hooks/non-financial/useSavings";
+import { fetchLoans } from "@/hooks/non-financial/useLoans";
+import { fetchFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
+import { fetchFarmCoop } from "@/hooks/non-financial/useFarmCoop";
+import { useAllNfRecords } from "@/hooks/non-financial/useAllNfRecords";
 import {
   useUpdateSubmissionSection,
   type SubmissionSectionResponse,
@@ -242,12 +243,12 @@ export function NfDatabasesTab({
   onOpenMethodModal,
 }: NfDatabasesTabProps) {
   const { t } = useTranslation();
-  const params = { submission_id: submissionId, page: 1, page_size: 200 };
-  const { data: membersData, isLoading: lm } = useMembers(params);
-  const { data: savingsData, isLoading: ls } = useSavings(params);
-  const { data: loansData, isLoading: ll } = useLoans(params);
-  const { data: fdsData, isLoading: lf } = useFixedDeposits(params);
-  const { data: farmCoopsData, isLoading: lfc } = useFarmCoops(params);
+  const params = { submission_id: submissionId };
+  const { data: membersData, isLoading: lm } = useAllNfRecords("nf-members", fetchMembers, params);
+  const { data: savingsData, isLoading: ls } = useAllNfRecords("nf-savings", fetchSavings, params);
+  const { data: loansData, isLoading: ll } = useAllNfRecords("nf-loans", fetchLoans, params);
+  const { data: fdsData, isLoading: lf } = useAllNfRecords("nf-fds", fetchFixedDeposits, params);
+  const { data: farmCoopsData, isLoading: lfc } = useAllNfRecords("nf-farm", fetchFarmCoop, params);
   const updateSection = useUpdateSubmissionSection(submissionId);
 
   const members = membersData?.data ?? [];

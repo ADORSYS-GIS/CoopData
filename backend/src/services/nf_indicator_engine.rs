@@ -446,10 +446,16 @@ impl NfIndicatorEngine {
             .filter(|l| l.loan_status == LoanStatus::WrittenOff)
             .count() as u64;
 
-        let on_time = all
+        let regularity_reported = all
             .iter()
-            .filter(|l| l.repayment_regularity == "Regular")
-            .count() as u64;
+            .any(|l| !l.repayment_regularity.trim().is_empty());
+        let on_time = if regularity_reported {
+            all.iter()
+                .filter(|l| l.repayment_regularity == "Regular")
+                .count() as u64
+        } else {
+            performing
+        };
 
         let youth_borrowers = all.iter().filter(|l| l.youth_borrower_flag).count() as u64;
         let women_borrowers = all.iter().filter(|l| l.women_borrower_flag).count() as u64;
@@ -457,7 +463,11 @@ impl NfIndicatorEngine {
         let multiple_loan_count = all.iter().filter(|l| l.multiple_loans_flag).count() as u64;
         let large_borrower_count = all.iter().filter(|l| l.large_borrower_flag).count() as u64;
 
-        let total_balance: f64 = all.iter().filter_map(|l| l.balance.to_f64()).sum();
+        let total_balance: f64 = all
+            .iter()
+            .filter(|l| l.loan_status != LoanStatus::WrittenOff)
+            .filter_map(|l| l.balance.to_f64())
+            .sum();
         let total_loan_amount: f64 = all.iter().filter_map(|l| l.loan_amount.to_f64()).sum();
         let average_loan_size = if active_loans > 0 {
             total_balance / active_loans as f64

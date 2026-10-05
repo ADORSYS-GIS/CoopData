@@ -33,7 +33,7 @@ impl From<FsModel> for FinancialStatementResponse {
             accounting_year: m.accounting_year.as_str().to_string(),
             currency: match m.currency {
                 crate::entities::enums::Currency::Szl => "SZL".to_string(),
-                crate::entities::enums::Currency::Usd => "USD".to_string(),
+                crate::entities::enums::Currency::Zar => "ZAR".to_string(),
             },
             is_validated: m.is_validated,
             validation_errors: m.validation_errors,
@@ -206,12 +206,25 @@ pub struct MonthlyTrendResponse {
 pub struct MonthlyTrendPoint {
     pub month: i16,
     pub month_label: String,
-    /// Member savings and deposits (COA 2101–2103).
+    /// Member savings and deposits (COA 2100/2101–2103), resolved via the
+    /// chart-of-accounts rollup, in the currency reported.
     pub savings: f64,
-    /// Gross loan portfolio (COA 1201–1205).
+    /// Gross loan portfolio (COA 1200/1201–1205), resolved, in the currency reported.
     pub loans: f64,
-    /// Total assets (COA 1999).
+    /// Liquid assets (COA 1100/1101–1104) — cash and near-cash holdings,
+    /// distinct from and much smaller than total assets. This is what the
+    /// "Portfolio Overview" chart's liquidity/savings series should plot;
+    /// do not sum this with `assets` below.
+    pub liquid_assets: f64,
+    /// Total assets (COA 1999) — already includes `loans` and
+    /// `liquid_assets` as components. Never add this to `loans`/`savings`
+    /// when computing a headline figure; that was the exact bug that
+    /// inflated the old Portfolio Overview total to ~150x the real value.
     pub assets: f64,
+    /// Total liabilities (COA 2999), in the currency reported.
+    pub liabilities: f64,
+    /// Total equity (COA 3999), in the currency reported. May be negative.
+    pub equity: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -358,6 +371,8 @@ pub struct ChartOfAccountResponse {
     /// e.g. "1101+1102+1103+1104" — present only on total/parent codes
     pub formula: Option<String>,
     pub display_order: i32,
+    /// Human-readable explanation of what this account represents (from the COA seed)
+    pub description: Option<String>,
 }
 
 impl From<CoaModel> for ChartOfAccountResponse {
@@ -371,6 +386,7 @@ impl From<CoaModel> for ChartOfAccountResponse {
             is_section_header: m.is_section_header,
             formula: m.formula,
             display_order: m.display_order,
+            description: m.description,
         }
     }
 }

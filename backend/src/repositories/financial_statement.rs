@@ -1,6 +1,5 @@
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-};
+use crate::database::Database;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use uuid::Uuid;
 
 use crate::entities::financial_statement::{self, ActiveModel, Column, Entity};
@@ -9,12 +8,12 @@ use crate::repositories::db_query;
 
 #[derive(Clone)]
 pub struct FinancialStatementRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl FinancialStatementRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<financial_statement::Model>> {
@@ -123,10 +122,15 @@ impl FinancialStatementRepository {
         .await
     }
 
+    /// `is_validated` should be `errors.is_empty()` from the same
+    /// AbnormalityDetector run whose (errors, warnings) built `errors` json —
+    /// i.e. zero outstanding critical/high flags (which now also covers
+    /// unmapped/CRIT-011 line items, see abnormality_detector::mod::run).
     pub async fn set_validation_errors(
         &self,
         id: Uuid,
         errors: serde_json::Value,
+        is_validated: bool,
     ) -> AppResult<financial_statement::Model> {
         db_query("financial_statement", "set_validation_errors", async {
             let existing = Entity::find_by_id(id)
@@ -137,8 +141,31 @@ impl FinancialStatementRepository {
 
             let mut active: ActiveModel = existing.into();
             active.validation_errors = Set(Some(errors));
+            active.is_validated = Set(is_validated);
             active.updated_at = Set(chrono::Utc::now());
             active.update(&self.db).await.map_err(Into::into)
+        })
+        .await
+    }
+
+    /// Explicit setter used when data changes without a full re-validation
+    /// run (e.g. a human edits a line item) — the statement must be
+    /// re-confirmed before it's trusted again.
+    pub async fn set_validated(&self, id: Uuid, is_validated: bool) -> AppResult<()> {
+        db_query("financial_statement", "set_validated", async {
+            let existing = Entity::find_by_id(id)
+                .one(&self.db)
+                .await
+                .map_err(crate::error::AppError::from)?
+                .ok_or_else(|| AppError::NotFound("Financial statement not found".into()))?;
+            let mut active: ActiveModel = existing.into();
+            active.is_validated = Set(is_validated);
+            active.updated_at = Set(chrono::Utc::now());
+            active
+                .update(&self.db)
+                .await
+                .map_err(crate::error::AppError::from)?;
+            Ok(())
         })
         .await
     }

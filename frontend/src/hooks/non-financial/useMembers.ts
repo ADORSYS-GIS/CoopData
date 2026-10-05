@@ -22,7 +22,9 @@ function extractErrorMessage(err: unknown): string {
   return String(err);
 }
 
-async function fetchMembers(params?: NfListParams): Promise<PaginatedResponse<NfMemberResponse>> {
+export async function fetchMembers(
+  params?: NfListParams,
+): Promise<PaginatedResponse<NfMemberResponse>> {
   const token = await getAccessToken();
   const query = new URLSearchParams();
   if (params?.submission_id) query.set("submission_id", params.submission_id);

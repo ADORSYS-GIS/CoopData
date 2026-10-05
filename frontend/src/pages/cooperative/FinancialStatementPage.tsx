@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { AppShell, Card } from "@/components/app-shell";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PanelSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import { useUserRole } from "@/lib/auth";
 import {
   createEmptyBalanceSheet,
@@ -55,12 +57,29 @@ export const FinancialStatementPage: React.FC = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [dataPopulated, setDataPopulated] = useState(false);
 
-  const { data: submissions = [] } = useCooperativeSubmissions(role === "cooperative");
+  const { data: submissions = [], isLoading: submissionsLoading } = useCooperativeSubmissions(
+    role === "cooperative",
+  );
   const currentSubmission = [...submissions]
     .sort((a, b) => b.reporting_year - a.reporting_year)
     .find((s) => s.status === "draft");
 
   if (!role) return null;
+
+  if (submissionsLoading) {
+    return (
+      <AppShell title={t("financialStatement.title")} subtitle={t("financialStatement.subtitle")}>
+        <div className="space-y-6">
+          <Skeleton className="h-7 w-56" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PanelSkeleton />
+            <PanelSkeleton />
+          </div>
+          <TableSkeleton rows={6} columns={4} />
+        </div>
+      </AppShell>
+    );
+  }
 
   const isReadOnly = role === "apex";
 
@@ -181,9 +200,9 @@ export const FinancialStatementPage: React.FC = () => {
   };
 
   const formatCurrency = (n: number) => {
-    if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-    if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-    return `$${n.toFixed(0)}`;
+    if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(2)}M`;
+    if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
+    return `SZL ${n.toFixed(0)}`;
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [

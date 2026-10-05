@@ -7,13 +7,15 @@ import {
 } from "@/hooks/submissions/useCooperativeKpis";
 import type { components } from "@/openapi-client/api";
 import { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
-import type { NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
+import type { CoopKpiRow, NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
+import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
+import type { PeriodSeriesPoint } from "@/hooks/analytics/usePeriodSeries";
 import { CooperativeNarratives } from "@/hooks/submissions/useSubmissionNarratives";
 
 type CooperativeResponse = components["schemas"]["CooperativeResponse"];
 
 export type { NationalOverviewResponse };
-export type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+export type { CoopKpiRow };
 
 export interface ReportDataProps {
   submission: SubmissionResponse;
@@ -26,4 +28,10 @@ export interface ReportDataProps {
   coopName: string;
   kpiMap: Map<string, KpiItemResponse>;
   narratives?: CooperativeNarratives | null;
+  /** Statement totals per period, oldest first, ending at the reporting period. */
+  trend?: readonly PeriodSeriesPoint[];
+  /** Member-ledger statistics for the reporting period. */
+  nfStats?: NfStatisticsResponse | null;
+  /** Every cooperative with its indicators for the year, for the peer comparison. */
+  peers?: readonly CoopKpiRow[];
 }

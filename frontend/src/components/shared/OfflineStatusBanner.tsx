@@ -18,7 +18,7 @@ export function OfflineStatusBanner() {
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      className="fixed bottom-4 right-4 z-[100] flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur-md select-none transition-all duration-300"
+      className="fixed bottom-4 right-4 z-[100] flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur-md select-none transition-all duration-300 print:hidden"
       style={{
         backgroundColor: isOnline ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.14)",
         borderColor: isOnline ? "rgba(16,185,129,0.35)" : "rgba(245,158,11,0.4)",

@@ -63,7 +63,7 @@ pub async fn get_nf_statistics(
         .one(&state.db)
         .await?;
 
-    let stats = if let Some(sub) = latest_approved {
+    let stats = if let Some(ref sub) = latest_approved {
         let db_records = state.kpi_record_repo.find_by_submission(sub.id).await?;
         if !db_records.is_empty() {
             NfStatisticsResponse::from(reconstruct_nf_stats(&db_records))
@@ -78,6 +78,8 @@ pub async fn get_nf_statistics(
                 .await?;
         NfStatisticsResponse::from(s)
     };
+
+    // No conversion: every figure is shown in the currency reported.
 
     Ok((StatusCode::OK, Json(stats)))
 }
@@ -346,16 +348,15 @@ pub async fn get_consolidated_nf_statistics(
             .push(rec);
     }
 
+    let mut regular_savers_total = 0.0_f64;
     let mut consolidated_stats =
         crate::services::nf_indicator_engine::NfStatisticsResponse::default();
 
-    let mut coop_count = 0;
-    let mut total_savings_pen_pct = 0.0;
-    let mut total_credit_pen_pct = 0.0;
-    let mut total_on_time_pct = 0.0;
-    let mut total_arrears_pct = 0.0;
-    let mut total_fd_pen_pct = 0.0;
-    let mut total_early_wd_pct = 0.0;
+    let mut savings_penetration_members = 0.0_f64;
+    let mut credit_penetration_members = 0.0_f64;
+    let mut fd_penetration_members = 0.0_f64;
+    let mut on_time_loans = 0.0_f64;
+    let mut early_withdrawals = 0.0_f64;
 
     for submission in year_filtered {
         let stats_res = if let Some(records) = records_by_sub.get(&submission.id) {
@@ -370,8 +371,6 @@ pub async fn get_consolidated_nf_statistics(
         };
 
         if let Ok(stats) = stats_res {
-            coop_count += 1;
-
             // Sum up totals
             consolidated_stats.membership.total += stats.membership.total;
             consolidated_stats.membership.active += stats.membership.active;
@@ -395,6 +394,8 @@ pub async fn get_consolidated_nf_statistics(
             consolidated_stats.savings.dormant_accounts += stats.savings.dormant_accounts;
             consolidated_stats.savings.zero_balance_count += stats.savings.zero_balance_count;
             consolidated_stats.savings.increasing_trend += stats.savings.increasing_trend;
+            regular_savers_total +=
+                stats.savings.regular_savers_pct / 100.0 * stats.savings.total_accounts as f64;
             consolidated_stats.savings.stable_trend += stats.savings.stable_trend;
             consolidated_stats.savings.declining_trend += stats.savings.declining_trend;
             consolidated_stats.savings.high_withdrawal_count += stats.savings.high_withdrawal_count;
@@ -501,28 +502,35 @@ pub async fn get_consolidated_nf_statistics(
                 0.0
             };
 
-            // Sum up other percentages to average later
-            total_savings_pen_pct += stats.savings.savings_penetration_pct;
-            total_credit_pen_pct += stats.loans.credit_penetration_pct;
-            total_on_time_pct += stats.loans.on_time_repayment_pct;
-            total_arrears_pct += stats.loans.arrears_rate_pct;
-
-            total_fd_pen_pct += stats.fixed_deposits.fd_penetration_pct;
-            total_early_wd_pct += stats.fixed_deposits.early_withdrawal_pct;
+            let members = stats.membership.total as f64;
+            savings_penetration_members += stats.savings.savings_penetration_pct / 100.0 * members;
+            credit_penetration_members += stats.loans.credit_penetration_pct / 100.0 * members;
+            fd_penetration_members += stats.fixed_deposits.fd_penetration_pct / 100.0 * members;
+            on_time_loans +=
+                stats.loans.on_time_repayment_pct / 100.0 * stats.loans.active_loans as f64;
+            early_withdrawals += stats.fixed_deposits.early_withdrawal_pct / 100.0
+                * stats.fixed_deposits.total_fds as f64;
         }
     }
 
-    if coop_count > 0 {
-        let f_count = coop_count as f64;
-
-        consolidated_stats.savings.savings_penetration_pct = total_savings_pen_pct / f_count;
-
-        consolidated_stats.loans.credit_penetration_pct = total_credit_pen_pct / f_count;
-        consolidated_stats.loans.on_time_repayment_pct = total_on_time_pct / f_count;
-        consolidated_stats.loans.arrears_rate_pct = total_arrears_pct / f_count;
-
-        consolidated_stats.fixed_deposits.fd_penetration_pct = total_fd_pen_pct / f_count;
-        consolidated_stats.fixed_deposits.early_withdrawal_pct = total_early_wd_pct / f_count;
+    let network_members = consolidated_stats.membership.total as f64;
+    if network_members > 0.0 {
+        consolidated_stats.savings.savings_penetration_pct =
+            savings_penetration_members / network_members * 100.0;
+        consolidated_stats.loans.credit_penetration_pct =
+            credit_penetration_members / network_members * 100.0;
+        consolidated_stats.fixed_deposits.fd_penetration_pct =
+            fd_penetration_members / network_members * 100.0;
+    }
+    let network_loans = consolidated_stats.loans.active_loans as f64;
+    if network_loans > 0.0 {
+        consolidated_stats.loans.on_time_repayment_pct = on_time_loans / network_loans * 100.0;
+        consolidated_stats.loans.arrears_rate_pct =
+            consolidated_stats.loans.arrears as f64 / network_loans * 100.0;
+    }
+    if consolidated_stats.fixed_deposits.total_fds > 0 {
+        consolidated_stats.fixed_deposits.early_withdrawal_pct =
+            early_withdrawals / consolidated_stats.fixed_deposits.total_fds as f64 * 100.0;
     }
 
     // Recompute savings rates
@@ -533,7 +541,7 @@ pub async fn get_consolidated_nf_statistics(
         consolidated_stats.savings.zero_balance_pct =
             (consolidated_stats.savings.zero_balance_count as f64 / total_accounts) * 100.0;
         consolidated_stats.savings.regular_savers_pct =
-            (consolidated_stats.savings.increasing_trend as f64 / total_accounts) * 100.0;
+            (regular_savers_total / total_accounts) * 100.0;
     }
 
     // Recompute loans borrower percentages
@@ -548,16 +556,17 @@ pub async fn get_consolidated_nf_statistics(
     }
 
     // Recompute fixed deposits ratios
-    if consolidated_stats.fixed_deposits.matured_fds > 0 {
+    let matured_or_rolled = consolidated_stats.fixed_deposits.matured_fds
+        + consolidated_stats.fixed_deposits.rolled_over_fds;
+    if matured_or_rolled > 0 {
         consolidated_stats.fixed_deposits.rollover_rate_pct =
-            (consolidated_stats.fixed_deposits.rolled_over_fds as f64
-                / consolidated_stats.fixed_deposits.matured_fds as f64)
+            (consolidated_stats.fixed_deposits.rolled_over_fds as f64 / matured_or_rolled as f64)
                 * 100.0;
     }
-    if consolidated_stats.fixed_deposits.active_fds > 0 {
+    if consolidated_stats.fixed_deposits.total_fds > 0 {
         consolidated_stats.fixed_deposits.concentration_risk_pct =
             (consolidated_stats.fixed_deposits.single_depositor_count as f64
-                / consolidated_stats.fixed_deposits.active_fds as f64)
+                / consolidated_stats.fixed_deposits.total_fds as f64)
                 * 100.0;
     }
 
@@ -711,4 +720,196 @@ fn reconstruct_nf_stats(
         },
         computed_at: chrono::Utc::now(),
     }
+}
+
+// ── Reconciliation audit — backend-computed, unpaginated ────────────────────
+//
+// Replaces the frontend's ReconciliationAuditCard, which requested up to
+// 5000 rows per sub-ledger from a REST endpoint that silently caps at 200
+// (backend/src/api/handlers/non_financial.rs), producing wrong sub-ledger
+// totals and a variance that disagreed with the Dashboard's own (correctly,
+// fully-summed) figures. This endpoint uses the same accurate SQL SUM()
+// queries the Dashboard's KPI computation uses, and reports native-currency
+// figures (never converted) since its purpose is verification against the
+// exact numbers printed in the uploaded source document.
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ReconciliationRow {
+    pub key: String,
+    pub label: String,
+    pub sub_ledger_name: String,
+    pub coa_code: i32,
+    pub sub_ledger_total: f64,
+    pub sub_ledger_count: u64,
+    pub financial_total: Option<f64>,
+    pub currency: String,
+    pub variance: Option<f64>,
+    /// "match" | "variance" | "pending_subledger" | "pending_financial"
+    pub status: String,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ReconciliationAuditResponse {
+    pub submission_id: uuid::Uuid,
+    pub rows: Vec<ReconciliationRow>,
+}
+
+fn reconciliation_row(
+    key: &str,
+    label: &str,
+    sub_ledger_name: &str,
+    coa_code: i32,
+    (sub_total, sub_count): (f64, u64),
+    fin_total: Option<f64>,
+    currency: &str,
+) -> ReconciliationRow {
+    let has_sub = sub_count > 0 || sub_total.abs() > 0.001;
+    let has_fin = fin_total.is_some();
+    let (status, variance) = if !has_sub {
+        ("pending_subledger".to_string(), None)
+    } else if !has_fin {
+        ("pending_financial".to_string(), None)
+    } else {
+        let v = sub_total - fin_total.unwrap();
+        (
+            if v.abs() < 0.01 { "match" } else { "variance" }.to_string(),
+            Some(v),
+        )
+    };
+    ReconciliationRow {
+        key: key.to_string(),
+        label: label.to_string(),
+        sub_ledger_name: sub_ledger_name.to_string(),
+        coa_code,
+        sub_ledger_total: sub_total,
+        sub_ledger_count: sub_count,
+        financial_total: fin_total,
+        currency: currency.to_string(),
+        variance,
+        status,
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/analytics/reconciliation",
+    params(("submission_id" = uuid::Uuid, Query, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Reconciliation audit for a submission", body = ReconciliationAuditResponse),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Submission not found")
+    ),
+    tag = "Analytics"
+)]
+pub async fn get_reconciliation_audit(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> AppResult<impl IntoResponse> {
+    let submission_id = params
+        .get("submission_id")
+        .and_then(|s| uuid::Uuid::parse_str(s).ok())
+        .ok_or_else(|| crate::error::AppError::BadRequest("submission_id is required".into()))?;
+
+    let cooperative_id = crate::api::handlers::cooperative::resolve_cooperative_id_for_nf(
+        &state,
+        &claims,
+        Some(submission_id),
+    )
+    .await?;
+
+    use rust_decimal::prelude::ToPrimitive;
+
+    let fs = state
+        .financial_statement_repo
+        .find_by_submission(submission_id)
+        .await?;
+
+    let currency_code = fs
+        .as_ref()
+        .map(|f| f.currency.as_str().to_string())
+        .unwrap_or_else(|| "SZL".to_string());
+
+    let resolved: std::collections::HashMap<i32, f64> = if let Some(fs) = &fs {
+        let items = state
+            .line_item_repo
+            .find_by_financial_statement(fs.id)
+            .await?;
+        let max_month = items.iter().map(|i| i.month).max().unwrap_or(0);
+        let mut raw = std::collections::HashMap::new();
+        for item in items.iter().filter(|i| i.month == max_month) {
+            if let (Some(code), Some(val)) =
+                (item.account_code, item.value.and_then(|v| v.to_f64()))
+            {
+                raw.insert(code, val);
+            }
+        }
+        let coa = state.coa_repo.find_all().await?;
+        crate::services::coa_rollup::resolve(&raw, &coa)
+    } else {
+        std::collections::HashMap::new()
+    };
+    let fin = |code: i32| resolved.get(&code).copied().filter(|_| fs.is_some());
+
+    let (share_total, share_count) = state
+        .member_repo
+        .sum_share_balance_by_submission(cooperative_id, submission_id)
+        .await?;
+
+    let nf_stats =
+        NfIndicatorEngine::compute_for_submission(&state.db, cooperative_id, Some(submission_id))
+            .await?;
+
+    let rows = vec![
+        reconciliation_row(
+            "shares",
+            "Member Share Capital",
+            "Shares Register",
+            3101,
+            (share_total.to_f64().unwrap_or(0.0), share_count),
+            fin(3101),
+            &currency_code,
+        ),
+        reconciliation_row(
+            "savings",
+            "Member Short-Term Savings",
+            "Savings Ledger",
+            2101,
+            (
+                nf_stats.savings.total_balance,
+                nf_stats.savings.total_accounts,
+            ),
+            fin(2101),
+            &currency_code,
+        ),
+        reconciliation_row(
+            "loans",
+            "Performing Loan Portfolio",
+            "Loan Book",
+            1200,
+            (nf_stats.loans.total_balance, nf_stats.loans.total_loans),
+            fin(1200),
+            &currency_code,
+        ),
+        reconciliation_row(
+            "fixed_deposits",
+            "Fixed Term Deposits",
+            "Fixed Deposits",
+            2103,
+            (
+                nf_stats.fixed_deposits.total_balance,
+                nf_stats.fixed_deposits.total_fds,
+            ),
+            fin(2103),
+            &currency_code,
+        ),
+    ];
+
+    Ok((
+        StatusCode::OK,
+        Json(ReconciliationAuditResponse {
+            submission_id,
+            rows,
+        }),
+    ))
 }

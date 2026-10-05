@@ -1,6 +1,5 @@
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-};
+use crate::database::Database;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use uuid::Uuid;
 
 use crate::entities::submission_section::{self, ActiveModel, Column, Entity};
@@ -18,12 +17,12 @@ pub const VALID_STATUSES: &[&str] = &["pending", "in_progress", "ready"];
 
 #[derive(Clone)]
 pub struct SubmissionSectionRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl SubmissionSectionRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_submission(

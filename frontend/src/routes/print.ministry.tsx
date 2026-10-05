@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FederationReportPrint } from "@/pages/shared/print/FederationReportPrint";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
+import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
 import { useMinistryNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
@@ -32,7 +33,13 @@ function PrintComponent() {
 
   const { data: narratives } = useMinistryNarratives(currentYear, token);
 
-  const isLoading = isLoadingCurrent || isLoadingPrior;
+  const { data: series, isLoading: isLoadingSeries } = usePeriodSeries(
+    { reportingYear: currentYear, periodType: "yearly" },
+    true,
+    token,
+  );
+
+  const isLoading = isLoadingCurrent || isLoadingPrior || isLoadingSeries;
 
   if (isLoading || !overviewData) {
     return (
@@ -52,6 +59,7 @@ function PrintComponent() {
       year={currentYear}
       data={overviewData}
       priorData={priorData}
+      trend={series?.points}
       narratives={narratives}
     />
   );

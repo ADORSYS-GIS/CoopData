@@ -131,9 +131,6 @@ export function createEmptyFinancialGrid(): Record<number, Record<number, number
   const grid: Record<number, Record<number, number>> = {};
   for (const code of ACTIVE_ACCOUNT_CODES) {
     grid[code] = {};
-    for (let m = 1; m <= 12; m++) {
-      grid[code][m] = 0;
-    }
   }
   return grid;
 }

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { QuestionnaireAnalyticsPage } from "@/pages/shared/QuestionnaireAnalyticsPage";
+import { BasicAnalyticsDashboard } from "@/pages/shared/BasicAnalyticsDashboard";
 
 function BasicAnalyticsRoute() {
   return (
     <ProtectedRoute>
-      <QuestionnaireAnalyticsPage />
+      <BasicAnalyticsDashboard />
     </ProtectedRoute>
   );
 }

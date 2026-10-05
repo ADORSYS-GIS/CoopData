@@ -1,6 +1,7 @@
+use crate::database::Database;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection,
-    EntityTrait, QueryFilter, QueryOrder, Set, Statement,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, EntityTrait, QueryFilter,
+    QueryOrder, Set, Statement,
 };
 use uuid::Uuid;
 
@@ -11,12 +12,12 @@ use crate::repositories::db_query;
 
 #[derive(Clone)]
 pub struct SubmissionRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl SubmissionRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<submission::Model>> {
@@ -118,6 +119,22 @@ impl SubmissionRepository {
         .await
     }
 
+    pub async fn find_all_by_cooperative_and_year(
+        &self,
+        cooperative_id: Uuid,
+        reporting_year: i32,
+    ) -> AppResult<Vec<submission::Model>> {
+        db_query("submission", "find_all_by_cooperative_and_year", async {
+            Entity::find()
+                .filter(Column::CooperativeId.eq(cooperative_id))
+                .filter(Column::ReportingYear.eq(reporting_year))
+                .all(&self.db)
+                .await
+                .map_err(Into::into)
+        })
+        .await
+    }
+
     pub async fn find_by_cooperative_and_period(
         &self,
         cooperative_id: Uuid,
@@ -147,6 +164,35 @@ impl SubmissionRepository {
                 .await
                 .map_err(crate::error::AppError::from)?;
             Ok(count as i64)
+        })
+        .await
+    }
+
+    /// Returns the next available reference sequence number for a reporting year,
+    /// derived from the highest existing `SUB-{year}-{seq}` reference (not the row
+    /// count). Rows with a NULL reference (e.g. seeded submissions) are ignored, so
+    /// the sequence never collides with them. Returns 1 when no references exist yet.
+    pub async fn next_reference_seq(&self, reporting_year: i32) -> AppResult<u32> {
+        db_query("submission", "next_reference_seq", async {
+            let stmt = Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "SELECT COALESCE(MAX(CAST(SUBSTRING(reference FROM 'SUB-[0-9]+-([0-9]+)') AS INTEGER)), 0) + 1 AS next_seq FROM submissions WHERE reporting_year = $1 AND reference LIKE 'SUB-%'",
+                vec![sea_orm::Value::Int(Some(reporting_year))],
+            );
+            let row = self
+                .db
+                .query_one(stmt)
+                .await
+                .map_err(crate::error::AppError::from)?;
+            let next_seq: i32 = row
+                .ok_or_else(|| {
+                    crate::error::AppError::InternalServerError(
+                        "next_reference_seq returned no row".into(),
+                    )
+                })?
+                .try_get_by_index(0)
+                .map_err(crate::error::AppError::from)?;
+            Ok(next_seq as u32)
         })
         .await
     }
@@ -274,7 +320,12 @@ impl SubmissionRepository {
         active.status = Set(status);
         active.current_tier = Set(current_tier);
         active.updated_at = Set(chrono::Utc::now());
-        active.update(db).await.map_err(Into::into)
+        let updated = active
+            .update(db)
+            .await
+            .map_err(crate::error::AppError::from)?;
+
+        Ok(updated)
     }
 
     pub async fn update_submission_method(
@@ -428,11 +479,78 @@ mod tests {
     /// isolation invariant (prevents `is_in([])` from matching anything).
     #[tokio::test]
     async fn find_by_id_for_cooperatives_empty_scope_returns_none() {
-        let repo = SubmissionRepository::new(DatabaseConnection::default());
+        let repo = SubmissionRepository::new(Database::default());
         let result = repo
             .find_by_id_for_cooperatives(Uuid::new_v4(), &[])
             .await
             .expect("empty scope must not error");
         assert!(result.is_none());
+    }
+
+    /// Verifies the aggregate behaviour of `next_reference_seq`: it must return the
+    /// highest existing `SUB-{year}-{seq}` + 1, not a hardcoded 1. This guards the
+    /// MAX+1 aggregation, not the int4→i32 column decode (which cannot be exercised
+    /// without a live Postgres returning an int4 column).
+    ///
+    /// Requires a live Postgres with the schema applied. Skipped by default (CI has
+    /// no database). Run with:
+    ///   DATABASE_URL=postgres://coopdata:...@localhost:5432/coopdata \
+    ///     cargo test --bin coop-data-backend next_reference_seq -- --ignored
+    #[tokio::test]
+    #[ignore]
+    async fn next_reference_seq_returns_highest_existing_plus_one() {
+        use sea_orm::ConnectionTrait;
+
+        let url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://coopdata:coopdata@localhost:5432/coopdata".to_string());
+        let db = crate::database::connect(&url)
+            .await
+            .expect("failed to connect to test database");
+
+        let fed_id = Uuid::new_v4();
+        let apex_id = Uuid::new_v4();
+        let coop_id = Uuid::new_v4();
+        let sub_id = Uuid::new_v4();
+
+        let exec = |sql: String| async {
+            db.execute(Statement::from_string(DatabaseBackend::Postgres, sql))
+                .await
+                .expect("test setup SQL failed");
+        };
+
+        exec(format!(
+            "INSERT INTO federations (id, keycloak_id, display_name) VALUES ('{fed_id}', 'k-{fed_id}', 'Test Fed')"
+        ))
+        .await;
+        exec(format!(
+            "INSERT INTO apexes (id, keycloak_id, federation_id, organization_keycloak_id, display_name) VALUES ('{apex_id}', 'k-{apex_id}', '{fed_id}', 'org-{apex_id}', 'Test Apex')"
+        ))
+        .await;
+        exec(format!(
+            "INSERT INTO cooperatives (id, keycloak_id, apex_id, display_name) VALUES ('{coop_id}', 'k-{coop_id}', '{apex_id}', 'Test Coop')"
+        ))
+        .await;
+        exec(format!(
+            "INSERT INTO submissions (id, reference, cooperative_id, reporting_year, period_type, period_value, fiscal_start_month, status, current_tier, priority, metadata, submission_method, created_at, updated_at, created_by_role) VALUES ('{sub_id}', 'SUB-2025-00001', '{coop_id}', 2025, 'yearly', '2025', 1, 'draft', 'cooperative', 'normal', '{{}}', 'upload', NOW(), NOW(), 'cooperative')"
+        ))
+        .await;
+
+        let repo = SubmissionRepository::new(db.clone());
+        let seq = repo
+            .next_reference_seq(2025)
+            .await
+            .expect("next_reference_seq should not error");
+
+        let cleanup = format!(
+            "DELETE FROM submissions WHERE id = '{sub_id}'; \
+             DELETE FROM cooperatives WHERE id = '{coop_id}'; \
+             DELETE FROM apexes WHERE id = '{apex_id}'; \
+             DELETE FROM federations WHERE id = '{fed_id}';"
+        );
+        let _ = db
+            .execute(Statement::from_string(DatabaseBackend::Postgres, cleanup))
+            .await;
+
+        assert_eq!(seq, 2, "expected next sequence 2, got {seq}");
     }
 }

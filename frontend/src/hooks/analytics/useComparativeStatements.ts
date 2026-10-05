@@ -4,14 +4,19 @@ import { apiClient } from "@/openapi-client";
 export interface CooperativeLineItem {
   account_code?: number | null;
   account_name: string;
+  /** Amount in the statement's native currency, as printed in the source document. */
   value: number;
   month: number;
+  is_derived?: boolean;
 }
 
 export interface CooperativeStatementGrid {
   cooperative_id: string;
   cooperative_name: string;
   line_items: CooperativeLineItem[];
+  currency?: string;
+  is_validated?: boolean;
+  has_unmapped_items?: boolean;
 }
 
 export interface ComparativeStatementsResponse {
@@ -22,6 +27,8 @@ export interface ComparativeStatementsResponse {
 export interface ComparativeStatementsParams {
   reportingYear?: number;
   cooperativeIds?: string; // Comma-separated cooperative IDs
+  periodType?: string;
+  periodValue?: string;
 }
 
 const extractErrorMessage = (error: unknown): string => {
@@ -37,9 +44,9 @@ export const useComparativeStatements = (
   enabled = true,
 ) =>
   useOfflineQuery<ComparativeStatementsResponse>({
-    queryKey: ["comparative-statements", params],
+    queryKey: ["comparative-statements", "v3", params],
     cacheTable: "analytics",
-    cacheKey: `comparative-statements-${JSON.stringify(params)}`,
+    cacheKey: `comparative-statements-v3-${JSON.stringify(params)}`,
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,6 +57,8 @@ export const useComparativeStatements = (
             query: {
               reporting_year: params.reportingYear,
               cooperative_ids: params.cooperativeIds,
+              period_type: params.periodType,
+              period_value: params.periodValue,
             } as Record<string, unknown>,
           },
         },

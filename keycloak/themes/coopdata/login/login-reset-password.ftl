@@ -21,26 +21,26 @@
                         </svg>
                     </div>
                     <div>
-                        <h2>Don't worry — it happens to the best of us.</h2>
-                        <p>Enter the email address associated with your account and we'll send you a link to reset your password.</p>
+                        <h2>${msg("resetPasswordBrandTitle")}</h2>
+                        <p>${msg("resetPasswordBrandBody")}</p>
                     </div>
                     <ul class="brand-features">
                         <li>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Password resets expire after 15 minutes
+                            ${msg("resetPasswordFeature1")}
                         </li>
                         <li>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Your existing sessions remain active
+                            ${msg("resetPasswordFeature2")}
                         </li>
                     </ul>
                 </div>
 
-                <p class="brand-footer">&copy; ${.now?string('yyyy')} Ministry of Commerce &amp; Cooperative Development</p>
+                <p class="brand-footer">&copy; ${.now?string('yyyy')} ${msg("ministryName")}</p>
             </aside>
 
             <#-- Right Form Panel -->
@@ -50,7 +50,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 19l-7-7 7-7"/>
                         </svg>
-                        Back to sign in
+                        ${msg("backToSignIn")}
                     </a>
                 </div>
 
@@ -60,10 +60,10 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                             </svg>
-                            Password reset
+                            ${msg("resetPasswordBadge")}
                         </div>
-                        <h1>Reset your password</h1>
-                        <p>Enter your email and we'll send you a reset link.</p>
+                        <h1>${msg("resetPasswordTitle")}</h1>
+                        <p>${msg("resetPasswordSubtitle")}</p>
                     </div>
 
                     <#if message?has_content && message.type?contains("success")>
@@ -93,7 +93,7 @@
                         <div class="form-actions">
                             <input type="hidden" id="id-hidden-input" name="credentialId" <#if auth.selectedCredential?has_content>value="${auth.selectedCredential}"</#if>/>
                             <button tabindex="2" class="btn-primary" name="submit" id="kc-submit" type="submit">
-                                Send reset link
+                                ${msg("sendResetLinkButton")}
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
                                 </svg>
@@ -102,8 +102,8 @@
                     </form>
 
                     <p class="form-disclaimer">
-                        Remember your password?
-                        <a href="${url.loginUrl}" class="forgot-link">Sign in instead</a>
+                        ${msg("rememberPasswordPrompt")}
+                        <a href="${url.loginUrl}" class="forgot-link">${msg("signInInsteadLink")}</a>
                     </p>
                 </div>
             </main>

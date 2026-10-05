@@ -1,5 +1,22 @@
 import type { Page, Route } from "@playwright/test";
 
+/**
+ * Dismisses the Vite error overlay if it appears (e.g., due to runtime errors during dev mode).
+ * Call this after page.goto() to ensure clicks aren't blocked.
+ */
+export async function dismissErrorOverlay(page: Page) {
+  try {
+    const overlay = page.locator("vite-error-overlay");
+    if (await overlay.isVisible({ timeout: 500 }).catch(() => false)) {
+      const errorText = await overlay.textContent().catch(() => "");
+      console.warn("[E2E] Vite error overlay detected:", errorText);
+      await overlay.press("Escape");
+    }
+  } catch {
+    // No overlay present - that's fine
+  }
+}
+
 export type TestRole = "ministry" | "federation" | "apex" | "cooperative";
 
 interface TestUser {

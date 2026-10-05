@@ -1,6 +1,6 @@
+use crate::database::Database;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DatabaseConnection, EntityTrait,
-    QueryFilter, QueryOrder,
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder,
 };
 use uuid::Uuid;
 
@@ -10,12 +10,12 @@ use crate::error::AppResult;
 
 #[derive(Clone)]
 pub struct SubmissionReviewRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl SubmissionReviewRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_by_submission(

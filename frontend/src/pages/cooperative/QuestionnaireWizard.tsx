@@ -18,6 +18,9 @@ import {
 import {
   useQuestionnaire,
   useSaveQuestionnaire,
+  useSaveLocalDraft,
+  loadLocalQuestionnaireDraft,
+  clearLocalQuestionnaireDraft,
   useActiveTemplate,
 } from "@/hooks/submissions/useQuestionnaire";
 import { toast } from "sonner";
@@ -161,18 +164,37 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     questionnaireType,
   );
   const saveMutation = useSaveQuestionnaire(submissionId);
+  const draftMutation = useSaveLocalDraft(submissionId, questionnaireType);
 
-  // Load existing answers when fetched
+  // True once the user edits anything — later refetches must never clobber
+  // in-progress typing with a (possibly older) server/draft snapshot.
+  const dirtyRef = React.useRef(false);
+
+  // Hydrate answers on load: a locally saved draft always wins over server
+  // data (drafts are newer — "Complete" is the only server write and it
+  // clears the draft). Without a draft, fall back to the server response.
   React.useEffect(() => {
-    if (existing?.answers && Object.keys(existing.answers).length > 0) {
-      setAnswers(existing.answers as Record<string, unknown>);
-    }
-  }, [existing]);
+    let cancelled = false;
+    const hydrate = async () => {
+      const draft = await loadLocalQuestionnaireDraft(submissionId, questionnaireType);
+      if (cancelled || dirtyRef.current) return;
+      if (draft && Object.keys(draft.answers).length > 0) {
+        setAnswers(draft.answers as Record<string, unknown>);
+      } else if (existing?.answers && Object.keys(existing.answers).length > 0) {
+        setAnswers(existing.answers as Record<string, unknown>);
+      }
+    };
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [existing, submissionId, questionnaireType]);
 
   const sections = (template?.sections || []) as unknown as TemplateSection[];
   const section = sections[currentSection];
 
   const handleFieldChange = (key: string, value: unknown) => {
+    dirtyRef.current = true;
     setAnswers((prev) => ({ ...prev, [key]: value }));
     // Clear the error ring as soon as the user starts editing the field.
     setMissingKeys((prev) => {
@@ -217,14 +239,16 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
       });
     });
     setAnswers(mockAnswers);
+    // Populated answers are user-visible work too — mark dirty so a background
+    // refetch cannot overwrite them via the hydration fallback branch.
+    dirtyRef.current = true;
     toast.success(t("questionnaire.testDataPopulated"));
   };
 
+  // Save Draft: local-only (IndexedDB). Never touches the backend — a draft
+  // is intermediate work the user can reload/navigate away from at will.
   const handleSave = async () => {
-    await saveMutation.mutateAsync({
-      questionnaire_type: questionnaireType,
-      answers,
-    });
+    await draftMutation.mutateAsync(answers);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
   };
@@ -283,7 +307,9 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   const handleSaveAndNext = async () => {
     if (!validateCurrentSection()) return;
 
-    await handleSave();
+    // Section progression saves locally only — the backend is written once,
+    // on final completion.
+    await draftMutation.mutateAsync(answers);
     if (currentSection < sections.length - 1) {
       setCurrentSection((s) => s + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -323,10 +349,17 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     }
 
     setMissingKeys({});
-    await saveMutation.mutateAsync({
-      questionnaire_type: questionnaireType,
-      answers,
-    });
+    try {
+      await saveMutation.mutateAsync({
+        questionnaire_type: questionnaireType,
+        answers,
+      });
+    } catch {
+      toast.error(t("questionnaire.failedSave"));
+      return;
+    }
+    // Server now holds the answers — the local draft is obsolete.
+    await clearLocalQuestionnaireDraft(submissionId, questionnaireType);
     onComplete?.();
     navigate({ to: "/app/submissions/$id", params: { id: submissionId } });
   };
@@ -408,15 +441,15 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
             <div className="flex items-center gap-3">
               {saveSuccess && (
                 <span className="flex items-center gap-1.5 text-xs text-success font-medium animate-in fade-in duration-300">
-                  <CheckCircle2 className="size-4" /> {t("questionnaire.saved")}
+                  <CheckCircle2 className="size-4" /> {t("questionnaire.draftSavedLocally")}
                 </span>
               )}
-              {saveMutation.isPending && (
+              {draftMutation.isPending && (
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Spinner size="sm" /> {t("questionnaire.saving")}
                 </span>
               )}
-              {saveMutation.isError && (
+              {draftMutation.isError && (
                 <span className="flex items-center gap-1.5 text-xs text-destructive">
                   <AlertCircle className="size-4" /> {t("questionnaire.failedSave")}
                 </span>
@@ -431,7 +464,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
               )}
               <button
                 onClick={handleSave}
-                disabled={saveMutation.isPending}
+                disabled={draftMutation.isPending}
                 className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-muted/50 transition-colors disabled:opacity-50"
               >
                 <Save className="size-4 text-muted-foreground" />
@@ -552,7 +585,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
           {currentSection < sections.length - 1 ? (
             <button
               onClick={handleSaveAndNext}
-              disabled={saveMutation.isPending}
+              disabled={draftMutation.isPending}
               className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/95 transition-colors disabled:opacity-50 shadow-sm"
             >
               {t("questionnaire.saveNext")}

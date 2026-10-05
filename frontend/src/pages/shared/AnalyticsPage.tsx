@@ -14,9 +14,13 @@
  */
 import React, { useState, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PanelSkeleton, TableSkeleton } from "@/components/ui/skeletons";
 import { useUserRole } from "@/lib/auth";
-import type { DateRange } from "@/components/analytics/date-range-picker";
+import { resolveSelection } from "@/lib/analytics-filters";
+import { usePeriodOptions } from "@/hooks/analytics/usePeriodOptions";
 import { AnalyticsFilterBar } from "../analytics/AnalyticsFilterBar";
+import { AnalyticsTabs, type AnalyticsTab } from "../analytics/AnalyticsTabs";
 import { CooperativeAnalyticsView } from "../analytics/CooperativeAnalyticsView";
 import type { components } from "@/openapi-client/api";
 import { ApexAnalyticsView } from "../analytics/ApexAnalyticsView";
@@ -164,19 +168,23 @@ export const AnalyticsPage: React.FC = () => {
     cooperative: [],
   };
 
-  const [filterValues, setFilterValues] = useState<AnalyticsFilterValues>({
-    ...defaultFilterValues,
-    year: String(new Date().getFullYear()),
-  });
+  const [filterValues, setFilterValues] = useState<AnalyticsFilterValues>(defaultFilterValues);
+  const periods = usePeriodOptions(role);
+  const selection = React.useMemo(
+    () => resolveSelection(filterValues, periods),
+    [filterValues, periods],
+  );
+  const effectiveFilters = React.useMemo<AnalyticsFilterValues>(
+    () => ({
+      ...filterValues,
+      year: String(selection.year),
+      periodType: selection.periodType,
+      periodValue: selection.periodValue,
+    }),
+    [filterValues, selection],
+  );
 
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(new Date().getFullYear(), 0, 1),
-    to: new Date(),
-  });
-
-  const [activeTab, setActiveTab] = useState<
-    "dashboard" | "ranking" | "portfolio" | "income" | "indicators"
-  >("dashboard");
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>("dashboard");
 
   const handleFilterChange = useCallback((id: string, value: string) => {
     setFilterValues((prev) => {
@@ -193,43 +201,34 @@ export const AnalyticsPage: React.FC = () => {
   }, []);
 
   const handleClear = useCallback(() => {
-    setFilterValues({
-      year: String(new Date().getFullYear()),
-      periodType: "YEARLY",
-      periodValue: "all",
-      region: "all",
-      sector: "all",
-      federationId: "all",
-      apexId: "all",
-      cooperativeId: "all",
-    });
+    setFilterValues(defaultFilterValues);
   }, []);
 
   // Build API params from current filter state
   const filterParams = React.useMemo(
     () => ({
-      reportingYear: Number(filterValues.year),
-      periodType: filterValues.periodType,
-      periodValue: filterValues.periodValue,
+      reportingYear: selection.year,
+      periodType: selection.periodType,
+      periodValue: selection.periodValue,
       cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
       apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
       federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,
       region: filterValues.region !== "all" ? filterValues.region : undefined,
       sector: filterValues.sector !== "all" ? filterValues.sector : undefined,
     }),
-    [filterValues],
+    [filterValues, selection],
   );
 
   // Fetch cooperatives list scoped to current filters (for cooperative dropdown + tabs)
-  const { data: overview } = useNationalOverview(
+  const { data: overview, isLoading: overviewLoading } = useNationalOverview(
     filterParams,
     role !== "cooperative" && role !== undefined,
   );
 
-  const { data: federations } = useFederations(role === "ministry");
+  const { data: federations, isLoading: federationsLoading } = useFederations(role === "ministry");
   // federation role: use federation endpoint; ministry/superadmin: use ministry endpoint
-  const { data: apexes } = useApexes(role === "federation");
-  const { data: ministryApexes } = useMinistryApexes(
+  const { data: apexes, isLoading: apexesLoading } = useApexes(role === "federation");
+  const { data: ministryApexes, isLoading: ministryApexesLoading } = useMinistryApexes(
     filterValues.federationId !== "all" ? filterValues.federationId : undefined,
     role === "ministry",
   );
@@ -296,6 +295,34 @@ export const AnalyticsPage: React.FC = () => {
 
   if (!role) return null;
 
+  const pageLoading =
+    role !== "cooperative" &&
+    (overviewLoading || federationsLoading || apexesLoading || ministryApexesLoading);
+
+  if (pageLoading) {
+    return (
+      <AppShell
+        title={replaceOrgTerms(titleByRole[role])}
+        subtitle={replaceOrgTerms(subtitleByRole[role])}
+      >
+        <div className="space-y-6">
+          <Skeleton className="h-6 w-24" />
+          <div className="flex flex-wrap gap-3">
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PanelSkeleton />
+            <PanelSkeleton />
+          </div>
+          <TableSkeleton rows={5} columns={4} />
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       title={replaceOrgTerms(titleByRole[role])}
@@ -311,134 +338,46 @@ export const AnalyticsPage: React.FC = () => {
           </span>
         </div>
 
-        {/* Filter bar (hidden for cooperative — no hierarchy filters needed) */}
-        {role !== "cooperative" && (
-          <AnalyticsFilterBar
-            filters={filters}
-            filterValues={filterValues}
-            dateRange={dateRange}
-            onFilterChange={handleFilterChange}
-            onDateRangeChange={setDateRange}
-            onClear={handleClear}
-          />
-        )}
-
-        {/* Year selector for cooperative (no other filters) */}
-        {role === "cooperative" && (
-          <AnalyticsFilterBar
-            filters={[]}
-            filterValues={filterValues}
-            dateRange={dateRange}
-            onFilterChange={handleFilterChange}
-            onDateRangeChange={setDateRange}
-            onClear={handleClear}
-          />
-        )}
+        <AnalyticsFilterBar
+          filters={role === "cooperative" ? [] : filters}
+          filterValues={filterValues}
+          periods={periods}
+          onFilterChange={handleFilterChange}
+          onClear={handleClear}
+        />
 
         {/* Tab Selection (only for supervisor roles when no individual cooperative is selected) */}
         {role !== "cooperative" && filterValues.cooperativeId === "all" && (
-          <div className="flex border-b border-border space-x-6">
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
-                activeTab === "dashboard"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("analytics.tab.consolidatedDashboard")}
-            </button>
-            <button
-              onClick={() => setActiveTab("ranking")}
-              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
-                activeTab === "ranking"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("analytics.tab.cooperativeRankings")}
-            </button>
-            <button
-              onClick={() => setActiveTab("portfolio")}
-              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
-                activeTab === "portfolio"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("analytics.tab.portfolioClassification")}
-            </button>
-            <button
-              onClick={() => setActiveTab("income")}
-              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
-                activeTab === "income"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("analytics.tab.incomeStatement")}
-            </button>
-            <button
-              onClick={() => setActiveTab("indicators")}
-              className={`pb-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
-                activeTab === "indicators"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t("analytics.tab.financialIndicators")}
-            </button>
-          </div>
+          <AnalyticsTabs active={activeTab} onChange={setActiveTab} />
         )}
 
         {/* Role-specific dashboard OR Cooperative deep-dive OR Tab content */}
         {filterValues.cooperativeId !== "all" ? (
-          <CooperativeAnalyticsView filterValues={filterValues} />
+          <CooperativeAnalyticsView filterValues={effectiveFilters} />
         ) : role !== "cooperative" && activeTab !== "dashboard" ? (
           <>
             {activeTab === "ranking" && (
-              <CooperativeRanking
-                reportingYear={Number(filterValues.year)}
-                filterParams={filterParams}
-              />
+              <CooperativeRanking reportingYear={selection.year} filterParams={filterParams} />
             )}
             {activeTab === "portfolio" && (
-              <PortfolioClassification
-                reportingYear={Number(filterValues.year)}
-                filterParams={filterParams}
-              />
+              <PortfolioClassification reportingYear={selection.year} filterParams={filterParams} />
             )}
             {activeTab === "income" && (
               <ComparativeIncomeStatement
-                reportingYear={Number(filterValues.year)}
+                reportingYear={selection.year}
                 filterParams={filterParams}
               />
             )}
             {activeTab === "indicators" && (
-              <FinancialIndicators
-                reportingYear={Number(filterValues.year)}
-                filterParams={filterParams}
-              />
+              <FinancialIndicators reportingYear={selection.year} filterParams={filterParams} />
             )}
           </>
         ) : (
           <>
-            {role === "ministry" && (
-              <MinistryAnalyticsView
-                filterValues={filterValues}
-                onFilterChange={handleFilterChange}
-              />
-            )}
-            {role === "federation" && (
-              <FederationAnalyticsView
-                filterValues={filterValues}
-                onFilterChange={handleFilterChange}
-              />
-            )}
-            {role === "apex" && (
-              <ApexAnalyticsView filterValues={filterValues} onFilterChange={handleFilterChange} />
-            )}
-            {role === "cooperative" && <CooperativeAnalyticsView filterValues={filterValues} />}
+            {role === "ministry" && <MinistryAnalyticsView filterValues={effectiveFilters} />}
+            {role === "federation" && <FederationAnalyticsView filterValues={effectiveFilters} />}
+            {role === "apex" && <ApexAnalyticsView filterValues={effectiveFilters} />}
+            {role === "cooperative" && <CooperativeAnalyticsView filterValues={effectiveFilters} />}
           </>
         )}
       </div>

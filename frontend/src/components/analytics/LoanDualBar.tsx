@@ -34,9 +34,6 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
       name: t("analytics.loanValueK"),
       Total: Math.round(data.total_loan_amount / 1000),
       Outstanding: Math.round(data.total_balance / 1000),
-      Arrears: Math.round(
-        (data.total_balance * (data.arrears / Math.max(data.total_loans, 1))) / 1000,
-      ),
     },
   ];
 
@@ -123,7 +120,7 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `$${v}K`}
+              tickFormatter={(v) => `SZL ${v}K`}
             />
             <Tooltip
               contentStyle={{
@@ -132,7 +129,7 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
-              formatter={(val: number) => [`$${val}K`]}
+              formatter={(val: number) => [`SZL ${val}K`]}
               cursor={{ fill: "var(--muted)", opacity: 0.3 }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -147,13 +144,6 @@ export function LoanDualBar({ data }: LoanDualBarProps) {
               dataKey="Outstanding"
               name={t("analytics.outstanding")}
               fill="var(--chart-2)"
-              radius={[4, 4, 0, 0]}
-              barSize={30}
-            />
-            <Bar
-              dataKey="Arrears"
-              name={t("analytics.arrears")}
-              fill="var(--destructive)"
               radius={[4, 4, 0, 0]}
               barSize={30}
             />

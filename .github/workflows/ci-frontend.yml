@@ -128,9 +128,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
-      - name: Unit tests
+      - name: Unit tests with coverage
         working-directory: ./frontend
-        run: npm run test:unit -- --passWithNoTests --coverage.enabled=false
+        run: npm run coverage -- --reporter=verbose
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+          retention-days: 30
 
   frontend_build:
     name: Frontend Build

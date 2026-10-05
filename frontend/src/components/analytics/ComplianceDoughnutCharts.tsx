@@ -1,3 +1,4 @@
+import { PieTooltip } from "@/components/analytics/PieTooltip";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useTranslation } from "react-i18next";
 import type { TrafficLightDistribution } from "@/hooks/analytics/useNationalOverview";
@@ -18,9 +19,11 @@ export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutCh
   const dataList = Object.entries(distributions)
     .filter(([key]) => labels[key] !== undefined)
     .map(([key, dist]) => {
-      const total = dist.green_count + dist.amber_count + dist.red_count;
+      const withData = dist.green_count + dist.amber_count + dist.red_count;
+      const total = withData + dist.no_data_count;
       return {
         name: labels[key],
+        withData,
         total,
         data: [
           { name: t("analytics.legendHealthy"), value: dist.green_count, fill: "var(--success)" },
@@ -29,6 +32,11 @@ export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutCh
             name: t("analytics.complianceRisk"),
             value: dist.red_count,
             fill: "var(--destructive)",
+          },
+          {
+            name: t("analytics.legendNoStatus"),
+            value: dist.no_data_count,
+            fill: "var(--muted-foreground)",
           },
         ].filter((d) => d.value > 0),
       };
@@ -47,6 +55,10 @@ export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutCh
         </span>
         <span className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-full bg-destructive" /> {t("analytics.complianceRisk")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="size-2.5 rounded-full bg-muted-foreground" />{" "}
+          {t("analytics.legendNoStatus")}
         </span>
       </div>
 
@@ -71,26 +83,18 @@ export function ComplianceDoughnutCharts({ distributions }: ComplianceDoughnutCh
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    itemStyle={{ color: "var(--foreground)" }}
-                    formatter={(value: number, name: string) => [
-                      t("analytics.complianceCoopsWithPct", {
-                        value,
-                        pct: Math.round((value / Math.max(item.total, 1)) * 100),
-                      }),
-                      name,
-                    ]}
+                    content={
+                      <PieTooltip
+                        total={item.total}
+                        format={(value) => t("analytics.complianceCoops", { value })}
+                      />
+                    }
                   />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="font-heading text-lg font-bold text-foreground num leading-none">
-                  {item.total}
+                  {item.withData}/{item.total}
                 </span>
               </div>
             </div>

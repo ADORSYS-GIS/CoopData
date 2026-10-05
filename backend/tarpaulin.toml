@@ -1,0 +1,11 @@
+[tarpaulin]
+out = ["Html", "Xml", "Stdout"]
+output-dir = "coverage"
+exclude-files = [
+    "src/entities/*",
+    "src/bin/*",
+    "src/main.rs",
+    "src/api/openapi.rs",
+    "src/api/dto/*",
+    "migration/*",
+]

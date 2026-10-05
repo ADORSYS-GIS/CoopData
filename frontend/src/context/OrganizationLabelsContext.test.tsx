@@ -8,6 +8,10 @@ import * as useOrganizationLabelsModule from "@/hooks/settings/useOrganizationLa
 
 vi.mock("@/hooks/settings/useOrganizationLabels");
 
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({ isAuthenticated: true }),
+}));
+
 const mockLabels = [
   {
     key: "federation",

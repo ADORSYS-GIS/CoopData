@@ -127,7 +127,7 @@ export function AssetsSection({
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalLiquidAssets")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalLiquidAssets)}
+            SZL {formatNumber(totals.totalLiquidAssets)}
           </span>
         </div>
       </div>
@@ -231,7 +231,7 @@ export function AssetsSection({
           <Calculator className="size-4 text-muted-foreground" />
           <span className="text-muted-foreground">{t("financial.grossLoanPortfolio")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.grossLoanPortfolio)}
+            SZL {formatNumber(totals.grossLoanPortfolio)}
           </span>
         </div>
       </div>
@@ -291,7 +291,7 @@ export function AssetsSection({
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalLoanLossProvisions")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalLoanLossProvisions)}
+            SZL {formatNumber(totals.totalLoanLossProvisions)}
           </span>
         </div>
       </div>
@@ -396,7 +396,7 @@ export function AssetsSection({
         <div className="flex items-center justify-end gap-2 p-2 rounded-lg bg-muted/50 text-sm">
           <span className="text-muted-foreground">{t("financial.totalOtherAssets")}:</span>
           <span className="font-bold text-foreground">
-            ${formatNumber(totals.totalOtherAssets)}
+            SZL {formatNumber(totals.totalOtherAssets)}
           </span>
         </div>
       </div>
@@ -410,7 +410,7 @@ export function AssetsSection({
           <span className="font-semibold text-foreground">{t("financial.totalAssets")}</span>
         </div>
         <span className="text-xl font-bold text-foreground">
-          ${formatNumber(totals.totalAssets)}
+          SZL {formatNumber(totals.totalAssets)}
         </span>
       </div>
     </div>

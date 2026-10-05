@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
+import { accountValuesAt } from "@/lib/statement-grid";
 import {
   useNationalOverview,
   type NationalOverviewParams,
 } from "@/hooks/analytics/useNationalOverview";
-import { Card } from "@/components/app-shell";
+import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,8 @@ import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { formatSzl } from "@/lib/currency";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface ComparativeIncomeStatementProps {
   reportingYear: number;
@@ -29,6 +32,12 @@ interface IncomeStatementRow {
   codes: number[];
   multiplier?: number;
   computeFormula?: (coopData: Record<number, number>) => number;
+}
+
+function describeRow(row: { codes: number[]; computeFormula?: unknown }, t: TFunction): string {
+  if (row.computeFormula) return t("analytics.gridTip.calculated");
+  if (row.codes.length === 0) return t("analytics.gridTip.notReportedSection");
+  return t("analytics.gridTip.source", { codes: row.codes.join(", ") });
 }
 
 function buildIncomeStatementRows(t: TFunction): IncomeStatementRow[] {
@@ -166,7 +175,12 @@ export function ComparativeIncomeStatement({
   }, [overview?.cooperatives]);
 
   const { data: comparative, isLoading: isCompLoading } = useComparativeStatements(
-    { reportingYear, cooperativeIds },
+    {
+      reportingYear,
+      cooperativeIds,
+      periodType: filterParams?.periodType,
+      periodValue: filterParams?.periodValue,
+    },
     !!cooperativeIds,
   );
 
@@ -174,27 +188,21 @@ export function ComparativeIncomeStatement({
 
   const formatCurrency = (val: number) => {
     if (val === 0) return "-";
-    return `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return formatSzl(val);
   };
 
   const coopMatrices = useMemo(() => {
     if (!comparative?.grids) return [];
 
     return comparative.grids.map((grid) => {
-      const lineItems = grid.line_items || [];
-      const filtered = lineItems.filter((item) => String(item.month) === selectedMonth);
-
-      const map: Record<number, number> = {};
-      filtered.forEach((item) => {
-        if (item.account_code) {
-          map[item.account_code] = (map[item.account_code] || 0) + item.value;
-        }
-      });
+      const values = accountValuesAt(grid.line_items || [], Number(selectedMonth));
+      const map: Record<number, number> = values ?? {};
 
       return {
         id: grid.cooperative_id,
         name: grid.cooperative_name,
         codeValues: map,
+        reported: values !== null,
       };
     });
   }, [comparative, selectedMonth]);
@@ -324,6 +332,7 @@ export function ComparativeIncomeStatement({
 
       <Card
         title={t("analytics.incomeStatementGrid")}
+        info={t("analytics.incomeGridInfo")}
         subtitle={t("analytics.sideBySideComparison")}
       >
         {filteredMatrices.length > 0 ? (
@@ -350,7 +359,10 @@ export function ComparativeIncomeStatement({
                     return (
                       <tr key={`h-${rIdx}`} className="bg-muted/10 font-bold">
                         <td className="py-2.5 px-4 sticky left-0 bg-background border-r border-border font-sans font-bold text-primary uppercase text-[10px] tracking-wide">
-                          {row.label}
+                          <span className="inline-flex items-center gap-1.5">
+                            {row.label}
+                            <InfoTooltip text={describeRow(row, t)} />
+                          </span>
                         </td>
                         {filteredMatrices.map((coop) => {
                           const val = row.computeFormula
@@ -364,7 +376,11 @@ export function ComparativeIncomeStatement({
                               key={coop.id}
                               className="py-2.5 px-4 text-right font-bold text-foreground"
                             >
-                              {formatCurrency(val)}
+                              {coop.reported ? (
+                                formatCurrency(val)
+                              ) : (
+                                <span className="text-muted-foreground/60 font-sans">n/r</span>
+                              )}
                             </td>
                           );
                         })}
@@ -375,7 +391,10 @@ export function ComparativeIncomeStatement({
                   return (
                     <tr key={`r-${rIdx}`} className="hover:bg-muted/10 transition-colors">
                       <td className="py-2 px-4 sticky left-0 bg-background border-r border-border font-sans text-muted-foreground font-medium pl-6">
-                        {row.label}
+                        <span className="inline-flex items-center gap-1.5">
+                          {row.label}
+                          <InfoTooltip text={describeRow(row, t)} />
+                        </span>
                         {row.subLabel && (
                           <span className="block text-[10px] text-muted-foreground/60">
                             {row.subLabel}
@@ -390,7 +409,11 @@ export function ComparativeIncomeStatement({
                         const val = rawSum * (row.multiplier || 1);
                         return (
                           <td key={coop.id} className="py-2 px-4 text-right text-slate-700">
-                            {formatCurrency(val)}
+                            {coop.reported ? (
+                              formatCurrency(val)
+                            ) : (
+                              <span className="text-muted-foreground/60 font-sans">n/r</span>
+                            )}
                           </td>
                         );
                       })}

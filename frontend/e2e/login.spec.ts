@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { mockKeycloak, mockKeycloakAuthenticated, mockBackendApi } from "./fixtures/auth";
+import {
+  mockKeycloak,
+  mockKeycloakAuthenticated,
+  mockBackendApi,
+  dismissErrorOverlay,
+} from "./fixtures/auth";
 
 test.describe("Login flow via Keycloak", () => {
   test("should redirect to Keycloak login when unauthenticated", async ({ page }) => {
@@ -7,6 +12,7 @@ test.describe("Login flow via Keycloak", () => {
     await mockBackendApi(page);
 
     await page.goto("/login");
+    await dismissErrorOverlay(page);
 
     await expect(page.getByText("Redirecting to login")).toBeVisible({ timeout: 10000 });
   });
@@ -16,6 +22,7 @@ test.describe("Login flow via Keycloak", () => {
     await mockBackendApi(page);
 
     await page.goto("/");
+    await dismissErrorOverlay(page);
 
     await expect(page.getByRole("button", { name: /^Sign in$/ }).first()).toBeVisible({
       timeout: 10000,
@@ -27,6 +34,7 @@ test.describe("Login flow via Keycloak", () => {
     await mockBackendApi(page);
 
     await page.goto("/");
+    await dismissErrorOverlay(page);
 
     await page
       .getByRole("button", { name: /^Sign in$/ })

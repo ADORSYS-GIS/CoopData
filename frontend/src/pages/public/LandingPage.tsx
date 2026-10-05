@@ -158,7 +158,7 @@ function Hero() {
             {[
               ["12,842", t("landing.hero.statRegCoops")],
               ["2.4M", t("landing.hero.statActiveMembers")],
-              ["$1.2B", t("landing.hero.statCombinedAssets")],
+              ["SZL 1.2B", t("landing.hero.statCombinedAssets")],
             ].map(([v, l]) => (
               <div key={l}>
                 <dt className="font-heading text-2xl font-bold tracking-tight text-foreground num">
@@ -206,7 +206,7 @@ function HeroPanel() {
         />
         <MiniKpi
           label={t("landing.heroPanel.loanPortfolio")}
-          value="$842M"
+          value="SZL 842M"
           delta="1.2% NPL"
           tone="warning"
         />
@@ -278,14 +278,9 @@ function MiniKpi({
 function TrustStrip() {
   const { t } = useTranslation();
   const partners = [
-    { src: "/partner-1.webp", alt: "Partner 1" },
-    { src: "/partner-2.webp", alt: "Partner 2" },
-    { src: "/partner-3.webp", alt: "Partner 3" },
-    { src: "/partner-4.png", alt: "Partner 4" },
-    { src: "/partner-5.png", alt: "Partner 5" },
-    { src: "/partner-7.png", alt: "Partner 7" },
-    { src: "/partner-8.png", alt: "Partner 8" },
-    { src: "/partner-9.png", alt: "Partner 9" },
+    { src: "/partner-1.png", alt: "Partner 1" },
+    { src: "/partner-2.png", alt: "Partner 2" },
+    { src: "/partner-11.png", alt: "Partner 5" },
   ];
 
   return (
@@ -301,51 +296,18 @@ function TrustStrip() {
 }
 
 function PartnerCarousel({ partners }: { partners: { src: string; alt: string }[] }) {
-  // Duplicate the list to create a seamless infinite loop
-  const doubled = [...partners, ...partners];
-
   return (
-    <div
-      className="relative overflow-hidden"
-      style={{
-        // Fade edges
-        maskImage:
-          "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-        WebkitMaskImage:
-          "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-      }}
-    >
-      <div
-        className="flex items-center gap-12 lg:gap-16 w-max"
-        style={{
-          animation: "partner-scroll 28s linear infinite",
-        }}
-        onMouseEnter={(e) =>
-          ((e.currentTarget as HTMLDivElement).style.animationPlayState = "paused")
-        }
-        onMouseLeave={(e) =>
-          ((e.currentTarget as HTMLDivElement).style.animationPlayState = "running")
-        }
-      >
-        {doubled.map((partner, i) => (
-          <div key={i} className="shrink-0 flex items-center justify-center px-2">
-            <img
-              src={partner.src}
-              alt={partner.alt}
-              className="h-14 w-auto max-w-[140px] object-contain opacity-80 hover:opacity-100 transition-opacity duration-300"
-              draggable={false}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Inject keyframes via a style tag */}
-      <style>{`
-        @keyframes partner-scroll {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
+    <div className="flex flex-wrap items-center justify-center gap-12 lg:gap-16">
+      {partners.map((partner, i) => (
+        <div key={i} className="flex items-center justify-center">
+          <img
+            src={partner.src}
+            alt={partner.alt}
+            className="h-28 w-auto max-w-[280px] object-contain opacity-90 hover:opacity-100 transition-opacity duration-300"
+            draggable={false}
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -417,7 +379,7 @@ function Stats() {
   const stats = [
     { v: "12,842", l: t("landing.hero.statRegCoops"), s: t("landing.stats.regionsSub") },
     { v: "2.4M", l: t("landing.hero.statActiveMembers"), s: t("landing.stats.membersSub") },
-    { v: "$1.2B", l: t("landing.stats.combinedSavings"), s: t("landing.stats.savingsSub") },
+    { v: "SZL 1.2B", l: t("landing.stats.combinedSavings"), s: t("landing.stats.savingsSub") },
     { v: "92.4", l: t("landing.stats.nationalCompliance"), s: t("landing.stats.complianceSub") },
   ];
   return (

@@ -60,10 +60,16 @@ export function useOfflineQuery<T>({
     // Must come AFTER ...rest so callers cannot accidentally override it
     throwOnError: false,
     queryFn: async () => {
-      const isOffline = !navigator.onLine || isOfflineModeActive();
+      // Only bypass the network when the browser is TRULY disconnected.
+      // The auth-service "offline mode" flag can flip on while the browser is
+      // still online (Keycloak hiccup / failed token refresh). In that case we
+      // must still try to fetch — otherwise users get stuck on stale cached
+      // snapshots (e.g. organization labels one terminology-change behind)
+      // for as long as the flag stays on.
+      const isDisconnected = !navigator.onLine;
 
-      // 1. When offline, return from cache immediately without trying network
-      if (isOffline) {
+      // 1. When disconnected, return from cache immediately without trying network
+      if (isDisconnected) {
         toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
         const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
         if (cached !== null) return cached;
@@ -83,7 +89,9 @@ export function useOfflineQuery<T>({
           `[useOfflineQuery] Fetch failed for ${cacheKey}, falling back to IndexedDB:`,
           err,
         );
-        toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
+        if (!navigator.onLine || isOfflineModeActive()) {
+          toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
+        }
         // 3. On fetch failure (offline / network error), serve cached data ignoring TTL
         const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
         if (cached !== null) return cached;

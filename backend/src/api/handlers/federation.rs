@@ -286,6 +286,16 @@ pub async fn update_federation(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
+    if let Some(ref new_name) = body.name {
+        if let Err(e) = state
+            .federation_repo
+            .update_display_name(&id, new_name.trim())
+            .await
+        {
+            tracing::error!(org_id = %id, error = %e, "Failed to sync federation name to PG");
+        }
+    }
+
     if let Err(e) = state
         .audit
         .log(

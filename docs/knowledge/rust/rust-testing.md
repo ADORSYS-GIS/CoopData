@@ -274,3 +274,38 @@ Examples:
 - [ ] Error paths tested
 - [ ] Tests pass in CI
 - [ ] Coverage > 80%
+
+---
+
+## Advanced Testing Patterns
+
+### 1. Testing External Services (AI Extraction, Report Generation, Keycloak)
+
+We do not make real network calls to external providers (like OpenAI or Keycloak) during unit tests. Doing so would make tests slow, brittle, and expensive. Instead, we use **Dependency Injection with Mocks**.
+
+#### How it works:
+1. **Define a Trait**: The service is defined as a trait (e.g., `ExtractionService`).
+2. **Real Implementation**: `OpenAiExtractionService` contains the actual HTTP calls to the LLM. This is used in production.
+3. **Mock Implementation**: `MockExtractionService` instantly returns hardcoded success or failure responses. This is used in tests.
+4. **Injection**: `TestApp::new()` injects the mock into `AppState`. 
+
+When testing an endpoint like `/extract`, the handler unknowingly calls the mock. We test that the handler correctly parses the mock's output, updates the database (e.g., setting the `ExtractionJob` status to `succeeded`), and returns the correct HTTP status. We are testing *our application's reaction to the AI*, not the AI itself.
+
+### 2. Testing Database Repositories (`RecordingMock`)
+
+We test SeaORM repository methods without a live PostgreSQL database using the `RecordingMock` pattern from `tests/common/mock_db.rs`.
+
+#### How it works:
+1. **Setup the Mock**: We initialize a mock connection and preload the exact rows we want the database to return:
+   ```rust
+   let rm = RecordingMock::postgres().query_rows(vec![mock_row]).build();
+   ```
+2. **Execute**: We call the repository method (e.g., `find_by_submission`).
+3. **Verify SQL & Bindings**: We intercept the exact SQL query and bound parameters that SeaORM generated, and assert that they are correct:
+   ```rust
+   let sql = &rm.sql()[0];
+   assert!(sql.contains("WHERE submission_id = $1"));
+   assert!(rm.binds(0).contains(&expected_uuid.to_string()));
+   ```
+
+This ensures our repository queries are scoped correctly and prevents regressions (like someone accidentally removing a `WHERE` clause) without the overhead of a real database.

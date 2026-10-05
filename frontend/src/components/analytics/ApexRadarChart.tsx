@@ -8,14 +8,22 @@ import {
   Tooltip,
 } from "recharts";
 import { type CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import { buildNetworkRadar, type RadarAxis } from "@/lib/network-radar";
 import { useTranslation } from "react-i18next";
 
 interface ApexRadarChartProps {
   data: CoopKpiRow[];
-  compareWithSectorAverage?: boolean;
 }
 
-export function ApexRadarChart({ data, compareWithSectorAverage = true }: ApexRadarChartProps) {
+const RADAR_LABELS: Record<RadarAxis, string> = {
+  liquidity: "analytics.liquidity",
+  assetQuality: "analytics.assetQuality",
+  earnings: "analytics.earningsRoa",
+  capital: "analytics.capitalAdequacy",
+  efficiency: "analytics.mgmtEfficiency",
+};
+
+export function ApexRadarChart({ data }: ApexRadarChartProps) {
   const { t } = useTranslation();
   if (data.length === 0) {
     return (
@@ -25,68 +33,22 @@ export function ApexRadarChart({ data, compareWithSectorAverage = true }: ApexRa
     );
   }
 
-  const averages = {
-    liquidity: 0,
-    assetQuality: 0,
-    earnings: 0,
-    capital: 0,
-    count: 0,
-  };
+  const chartData = buildNetworkRadar(data)
+    .filter((spoke) => spoke.score !== null && spoke.ratio !== null)
+    .map((spoke) => ({
+      subject: t(RADAR_LABELS[spoke.axis]),
+      A: spoke.score,
+      fullMark: 100,
+      rawValue: `${(spoke.ratio ?? 0).toFixed(1)}%`,
+    }));
 
-  data.forEach((c) => {
-    if (c.has_data) {
-      averages.liquidity += c.kpis["liquid_funds_ratio"]?.value || 0;
-      averages.assetQuality += 100 - (c.kpis["npl_ratio"]?.value || 0);
-      averages.earnings += c.kpis["roa"]?.value || 0;
-      averages.capital += c.kpis["capital_adequacy_ratio"]?.value || 0;
-      averages.count += 1;
-    }
-  });
-
-  if (averages.count > 0) {
-    averages.liquidity /= averages.count;
-    averages.assetQuality /= averages.count;
-    averages.earnings /= averages.count;
-    averages.capital /= averages.count;
+  if (chartData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[300px] text-center text-muted-foreground">
+        <p className="text-sm font-semibold">{t("analytics.noPerformanceData")}</p>
+      </div>
+    );
   }
-
-  const chartData = [
-    {
-      subject: t("analytics.liquidity"),
-      A: Math.min(Math.max((averages.liquidity / 30) * 100, 0), 100),
-      B: 80,
-      fullMark: 100,
-      rawValue: averages.liquidity.toFixed(1) + "%",
-    },
-    {
-      subject: t("analytics.assetQuality"),
-      A: Math.min(Math.max((averages.assetQuality / 100) * 100, 0), 100),
-      B: 95,
-      fullMark: 100,
-      rawValue: (100 - averages.assetQuality).toFixed(1) + "% (NPL)",
-    },
-    {
-      subject: t("analytics.earningsRoa"),
-      A: Math.min(Math.max((averages.earnings / 5) * 100, 0), 100),
-      B: 60,
-      fullMark: 100,
-      rawValue: averages.earnings.toFixed(1) + "%",
-    },
-    {
-      subject: t("analytics.capitalAdequacy"),
-      A: Math.min(Math.max((averages.capital / 15) * 100, 0), 100),
-      B: 90,
-      fullMark: 100,
-      rawValue: averages.capital.toFixed(1) + "%",
-    },
-    {
-      subject: t("analytics.mgmtEfficiency"),
-      A: 75,
-      B: 85,
-      fullMark: 100,
-      rawValue: "75.0%",
-    },
-  ];
 
   return (
     <div className="h-[300px] w-full">
@@ -106,16 +68,6 @@ export function ApexRadarChart({ data, compareWithSectorAverage = true }: ApexRa
             fill="var(--primary)"
             fillOpacity={0.6}
           />
-          {compareWithSectorAverage && (
-            <Radar
-              name={t("analytics.sectorAverage")}
-              dataKey="B"
-              stroke="var(--chart-2)"
-              fill="var(--chart-2)"
-              fillOpacity={0.3}
-            />
-          )}
-
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {

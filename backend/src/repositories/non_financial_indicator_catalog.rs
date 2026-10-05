@@ -1,18 +1,17 @@
+use crate::database::Database;
 use crate::entities::{non_financial_indicator_catalog, NonFinancialIndicatorCatalogColumn};
 use crate::error::{AppError, AppResult};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct NonFinancialIndicatorCatalogRepository {
-    db: DatabaseConnection,
+    db: Database,
 }
 
 impl NonFinancialIndicatorCatalogRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(db: impl Into<Database>) -> Self {
+        Self { db: db.into() }
     }
 
     pub async fn find_all(&self) -> AppResult<Vec<non_financial_indicator_catalog::Model>> {

@@ -134,14 +134,24 @@ pub struct BenchmarkInsufficientData {
 pub struct ComparativeStatementsParams {
     pub reporting_year: Option<i32>,
     pub cooperative_ids: Option<String>,
+    /// Restrict to one period type (YEARLY, QUARTERLY, MONTHLY, SEMI_ANNUAL).
+    pub period_type: Option<String>,
+    /// Restrict to one period value (for example Q1, 08, H1).
+    pub period_value: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 pub struct CooperativeLineItem {
     pub account_code: Option<i32>,
     pub account_name: String,
+    /// Native-currency value as reported in the source financial statement.
     pub value: f64,
     pub month: i32,
+    /// True when this row was derived from a formula (e.g. account 1200
+    /// "Gross Loans" summed from 1201-1205) because the source document
+    /// only reported the child accounts, not this aggregate directly.
+    #[serde(default)]
+    pub is_derived: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
@@ -149,6 +159,14 @@ pub struct CooperativeStatementGrid {
     pub cooperative_id: Uuid,
     pub cooperative_name: String,
     pub line_items: Vec<CooperativeLineItem>,
+    /// Native currency of the source financial statement (e.g. "SZL").
+    pub currency: String,
+    /// False when the statement has never passed validation (unresolved
+    /// unmapped line items and/or open critical/high abnormality flags) —
+    /// grids should surface this instead of silently showing numbers that
+    /// haven't been confirmed accurate.
+    pub is_validated: bool,
+    pub has_unmapped_items: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
