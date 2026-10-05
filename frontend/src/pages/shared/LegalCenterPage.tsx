@@ -4,8 +4,9 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useLegalDocuments } from "@/hooks/shared/useLegalDocuments";
 import { LegalDocumentViewer } from "@/components/shared/LegalDocumentViewer";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
-import type { LegalLang } from "@/types/legalPolicy";
-import { Shield, FileText, ArrowLeft, Scale, PenTool } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { normalizeAppLang } from "@/lib/contentLocalization";
+import { Mail, FileText, ArrowLeft, Scale, PenTool } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 
@@ -13,7 +14,9 @@ export const LegalCenterPage: React.FC = () => {
   const { policies, isLoading } = useLegalDocuments();
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { doc?: string };
-  const [lang, setLang] = useState<LegalLang>("en");
+  const { t, i18n } = useTranslation();
+  // The documents follow the app language; the selector changes both together.
+  const lang = normalizeAppLang(i18n.resolvedLanguage ?? i18n.language);
   const { user } = useAuth();
 
   // Ministry admins can see which policy versions are published
@@ -70,24 +73,27 @@ export const LegalCenterPage: React.FC = () => {
                   <Scale className="size-4 text-accent" />
                 </div>
                 <h1 className="font-heading text-xl font-bold tracking-tight text-foreground">
-                  CoopData Legal Center
+                  {t("legal.center.title", "CoopData Legal Centre")}
                 </h1>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Official governance policies, terms, privacy, and compliance documentation.
+                {t(
+                  "legal.center.subtitle",
+                  "The terms, policies and notices that govern the use of CoopData.",
+                )}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <LanguageToggle currentLang={lang} onLanguageChange={(l) => setLang(l)} />
+            <LanguageToggle />
             {isAdmin && (
               <Link
                 to="/app/admin-legal"
                 className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-semibold text-muted-foreground shadow-[var(--shadow-elev-1)] transition-all hover:bg-muted hover:text-foreground"
               >
                 <PenTool className="size-3.5 text-accent" />
-                <span>Published versions</span>
+                <span>{t("legal.center.publishedVersions", "Published versions")}</span>
               </Link>
             )}
           </div>
@@ -98,7 +104,7 @@ export const LegalCenterPage: React.FC = () => {
           {/* Left Navigation Sidebar */}
           <div className="lg:sticky lg:top-8 lg:self-start">
             <h2 className="mb-3 px-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-              Legal Documents
+              {t("legal.center.documents", "Legal documents")}
             </h2>
 
             <div className="space-y-1.5">
@@ -142,13 +148,13 @@ export const LegalCenterPage: React.FC = () => {
                       >
                         <FileText className="size-4" />
                       </div>
-                      <span className="flex-1 truncate">{displayTitle}</span>
+                      <span className="line-clamp-2 flex-1 leading-snug">{displayTitle}</span>
                       <span
                         className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
                           isSelected ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        v{p.version || 1}
+                        v{p.version || 1}.0
                       </span>
                     </button>
                   );
@@ -156,16 +162,24 @@ export const LegalCenterPage: React.FC = () => {
               )}
             </div>
 
-            {/* Compliance notice */}
-            <div className="mt-8 space-y-2.5 rounded-xl border border-accent/20 bg-accent/5 p-4">
+            {/* Contact for questions about the policies */}
+            <div className="mt-8 space-y-2 rounded-xl border border-accent/20 bg-accent/5 p-4">
               <div className="flex items-center gap-2 text-xs font-bold text-accent">
-                <Shield className="size-4" />
-                <span>Compliance Notice</span>
+                <Mail className="size-4" aria-hidden />
+                <span>{t("legal.center.questionsTitle", "Questions?")}</span>
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                These policies are binding under the Eswatini Cooperative Societies Act and CoopData
-                digital governance standards.
+                {t(
+                  "legal.center.questionsBody",
+                  "For questions about these documents or requests about your data, contact us:",
+                )}
               </p>
+              <a
+                href="mailto:eswatini@dgrv.coop"
+                className="inline-block text-xs font-semibold text-accent hover:underline"
+              >
+                eswatini@dgrv.coop
+              </a>
             </div>
           </div>
 

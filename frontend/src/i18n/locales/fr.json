@@ -5472,7 +5472,20 @@
     "privacyAcceptPrompt": "Je reconnais avoir lu la Politique de confidentialité de CoopData.",
     "dataUseConsent": "Facultatif : j’accepte que les données éligibles de mon organisation soient utilisées pour des rapports sectoriels agrégés et désidentifiés.",
     "readDataUse": "Lire l’avis",
-    "acceptAndProceed": "Accepter et continuer"
+    "acceptAndProceed": "Accepter et continuer",
+    "center": {
+      "title": "Centre juridique CoopData",
+      "subtitle": "Les conditions, politiques et avis qui encadrent l’utilisation de CoopData.",
+      "documents": "Documents juridiques",
+      "language": "Langue du document",
+      "publishedVersions": "Versions publiées",
+      "questionsTitle": "Des questions ?",
+      "questionsBody": "Pour toute question sur ces documents ou toute demande concernant vos données, contactez-nous :",
+      "officialPolicy": "Politique officielle de CoopData",
+      "published": "Publié le",
+      "contents": "Sommaire",
+      "loading": "Chargement du document…"
+    }
   },
   "cookie": {
     "title": "Nous respectons votre vie privée",

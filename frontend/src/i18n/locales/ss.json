@@ -5472,7 +5472,20 @@
     "privacyAcceptPrompt": "Ngiyavuma kutsi ngiyifundzile Inchubomgomo Yebumfihlo ye-CoopData.",
     "dataUseConsent": "Lokungasiso sibopho: ngiyavuma kutsi imininingwane lefanelekile yenhlangano yami ingasetjentiselwa kubika ngemkhakha lokuhlanganisiwe nalokususiwe bunjalo bemuntu.",
     "readDataUse": "Fundza satiso",
-    "acceptAndProceed": "Vuma futsi uchubeke"
+    "acceptAndProceed": "Vuma futsi uchubeke",
+    "center": {
+      "title": "Sikhungo Setemtsetfo se-CoopData",
+      "subtitle": "Imigomo, tinchubomgomo netatiso letilawula kusetjentiswa kwe-CoopData.",
+      "documents": "Imibhalo yemtsetfo",
+      "language": "Lulwimi lwembhalo",
+      "publishedVersions": "Tinguculo letishicilelwe",
+      "questionsTitle": "Unemibuto?",
+      "questionsBody": "Ngemibuto mayelana nalemibhalo noma ticelo mayelana nemininingwane yakho, tsintsana natsi:",
+      "officialPolicy": "Inchubomgomo lesemtsetfweni ye-CoopData",
+      "published": "Kushicilelwe",
+      "contents": "Lokucuketfwe",
+      "loading": "Kulayishwa umbhalo…"
+    }
   },
   "cookie": {
     "title": "Siyabuhlonipha bumfihlo bakho",

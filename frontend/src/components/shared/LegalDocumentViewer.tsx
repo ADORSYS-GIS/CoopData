@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslation } from "react-i18next";
 import type { LegalPolicy, LegalLang } from "@/types/legalPolicy";
 import { FileText, Calendar, GitCommit, ShieldCheck, Loader2, BookOpen } from "lucide-react";
 
@@ -34,6 +35,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
   lang,
   className = "",
 }) => {
+  const { t } = useTranslation();
   const [content, setContent] = useState<string>("");
   const [isLoadingContent, setIsLoadingContent] = useState<boolean>(false);
 
@@ -136,7 +138,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
           <div>
             <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-accent">
               <ShieldCheck className="size-4" />
-              <span>CoopData Official Policy</span>
+              <span>{t("legal.center.officialPolicy", "CoopData official policy")}</span>
             </div>
             <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl">
               {title}
@@ -146,12 +148,16 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-[var(--shadow-elev-1)]">
               <GitCommit className="size-3.5 text-accent" />
-              <span>Version {policy.version || 1}.0</span>
+              <span>
+                {t("legal.versionLabel", "Version {{version}}", {
+                  version: `${policy.version || 1}.0`,
+                })}
+              </span>
             </div>
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-[var(--shadow-elev-1)]">
               <Calendar className="size-3.5" />
               <span>
-                Updated:{" "}
+                {t("legal.center.published", "Published")}{" "}
                 {new Date(policy.updated_at).toLocaleDateString(LOCALE[lang], {
                   year: "numeric",
                   month: "short",
@@ -170,7 +176,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
           <aside className="hidden w-56 shrink-0 border-r border-border bg-muted/20 px-4 py-6 xl:block">
             <div className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
               <BookOpen className="size-3" />
-              <span>Contents</span>
+              <span>{t("legal.center.contents", "Contents")}</span>
             </div>
             <nav className="space-y-0.5">
               {tocItems.map((item) => (
@@ -195,7 +201,7 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
           {isLoadingContent ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
               <Loader2 className="size-8 animate-spin text-accent" />
-              <p className="text-sm">Loading legal document...</p>
+              <p className="text-sm">{t("legal.center.loading", "Loading the document…")}</p>
             </div>
           ) : (
             <article className="legal-prose max-w-none">

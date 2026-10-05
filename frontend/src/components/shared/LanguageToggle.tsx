@@ -1,64 +1,60 @@
-// frontend/src/components/shared/LanguageToggle.tsx
 import React from "react";
+import { Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Globe } from "lucide-react";
+
+import { normalizeAppLang } from "@/lib/contentLocalization";
 import type { LegalLang } from "@/types/legalPolicy";
 
+/** Each language is named in itself, so every reader can find theirs. */
+const LANGS: { code: LegalLang; name: string }[] = [
+  { code: "en", name: "English" },
+  { code: "fr", name: "Français" },
+  { code: "pt", name: "Português" },
+  { code: "ss", name: "SiSwati" },
+];
+
 interface LanguageToggleProps {
-  currentLang?: LegalLang;
-  onLanguageChange?: (lang: LegalLang) => void;
   className?: string;
 }
 
-const LANGS: { code: LegalLang; label: string }[] = [
-  { code: "en", label: "EN" },
-  { code: "fr", label: "FR" },
-  { code: "pt", label: "PT" },
-  { code: "ss", label: "SS" },
-];
-
-export const LanguageToggle: React.FC<LanguageToggleProps> = ({
-  currentLang,
-  onLanguageChange,
-  className = "",
-}) => {
-  const { i18n } = useTranslation();
-  const activeLang: LegalLang =
-    currentLang ||
-    (i18n.language?.startsWith("fr")
-      ? "fr"
-      : i18n.language?.startsWith("pt")
-        ? "pt"
-        : i18n.language?.startsWith("ss")
-          ? "ss"
-          : "en");
-
-  const setLang = (lang: LegalLang) => {
-    i18n.changeLanguage(lang);
-    if (onLanguageChange) {
-      onLanguageChange(lang);
-    }
-  };
+/**
+ * Switches the language of the legal centre and of the app with it, so the
+ * documents and the surrounding screens always read in the same language.
+ * Shows native names on wide screens and language codes on small ones.
+ */
+export const LanguageToggle: React.FC<LanguageToggleProps> = ({ className = "" }) => {
+  const { t, i18n } = useTranslation();
+  const active = normalizeAppLang(i18n.resolvedLanguage ?? i18n.language);
 
   return (
     <div
-      className={`inline-flex items-center gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700/60 shadow-sm ${className}`}
+      role="radiogroup"
+      aria-label={t("legal.center.language", "Document language")}
+      className={`inline-flex items-center gap-1 rounded-xl border border-border bg-surface p-1 shadow-[var(--shadow-elev-1)] ${className}`}
     >
-      <Globe className="w-4 h-4 text-slate-400 ml-1.5 mr-0.5" />
-      {LANGS.map((l) => (
-        <button
-          key={l.code}
-          type="button"
-          onClick={() => setLang(l.code)}
-          className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-            activeLang === l.code
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
-          }`}
-        >
-          {l.label}
-        </button>
-      ))}
+      <Languages className="ml-1.5 mr-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+      {LANGS.map((l) => {
+        const selected = active === l.code;
+        return (
+          <button
+            key={l.code}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            lang={l.code}
+            title={l.name}
+            onClick={() => void i18n.changeLanguage(l.code)}
+            className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
+              selected
+                ? "bg-accent text-accent-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <span className="sm:hidden">{l.code.toUpperCase()}</span>
+            <span className="hidden sm:inline">{l.name}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };
