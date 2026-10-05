@@ -12,7 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { openCookieSettings } from "@/components/shared/CookieConsentBanner";
+import { openCookieSettings } from "@/lib/cookieConsent";
 
 export const Footer: React.FC<{ className?: string }> = ({ className = "" }) => {
   const { t } = useTranslation();

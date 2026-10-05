@@ -3,57 +3,33 @@ import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Cookie, X } from "lucide-react";
 
-const COOKIE_CONSENT_KEY = "coopdata_cookie_consent";
-
-export type CookieConsentChoice = "accepted" | "rejected";
-
-export function getCookieConsentChoice(): CookieConsentChoice | null {
-  try {
-    const v = localStorage.getItem(COOKIE_CONSENT_KEY);
-    return v === "accepted" || v === "rejected" ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-export function setCookieConsentChoice(choice: CookieConsentChoice) {
-  try {
-    localStorage.setItem(COOKIE_CONSENT_KEY, choice);
-  } catch {
-    // ignore storage failures (private mode)
-  }
-}
-
-/** Dispatch this event to reopen the banner (e.g. from a "Cookie Settings" link). */
-export function openCookieSettings() {
-  window.dispatchEvent(new CustomEvent("coopdata:open-cookie-settings"));
-}
+import {
+  getCookieConsentChoice,
+  OPEN_COOKIE_SETTINGS_EVENT,
+  setCookieConsentChoice,
+} from "@/lib/cookieConsent";
 
 export const CookieConsentBanner: React.FC = () => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
-  const [choice, setChoice] = useState<CookieConsentChoice | null>(null);
 
   useEffect(() => {
-    setChoice(getCookieConsentChoice());
     if (!getCookieConsentChoice()) {
       setVisible(true);
     }
 
     const onOpen = () => setVisible(true);
-    window.addEventListener("coopdata:open-cookie-settings", onOpen);
-    return () => window.removeEventListener("coopdata:open-cookie-settings", onOpen);
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, onOpen);
   }, []);
 
   const handleAccept = () => {
     setCookieConsentChoice("accepted");
-    setChoice("accepted");
     setVisible(false);
   };
 
   const handleReject = () => {
     setCookieConsentChoice("rejected");
-    setChoice("rejected");
     setVisible(false);
   };
 
@@ -74,7 +50,7 @@ export const CookieConsentBanner: React.FC = () => {
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                 {t(
                   "cookie.body",
-                  "We use essential cookies to keep CoopData secure and functional, and optional cookies to improve your experience. You can accept all or reject non-essential cookies.",
+                  "CoopData only uses essential cookies and browser storage to keep you signed in, secure and able to work offline. We do not use analytics or advertising cookies. You can choose now whether to allow optional technologies, should any be added later.",
                 )}{" "}
                 <Link
                   to="/legal"
@@ -92,13 +68,13 @@ export const CookieConsentBanner: React.FC = () => {
               onClick={handleReject}
               className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
             >
-              {t("cookie.reject", "Reject")}
+              {t("cookie.reject", "Essential only")}
             </button>
             <button
               onClick={handleAccept}
               className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              {t("cookie.accept", "Accept All")}
+              {t("cookie.accept", "Accept all")}
             </button>
             <button
               onClick={() => setVisible(false)}

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/openapi-client";
+import type { LegalDocumentType } from "@/constants/legalDocuments";
 
 const CONSENT_STATUS_KEY = "consent-status";
 const MY_CONSENTS_KEY = "my-consents";
@@ -68,7 +69,11 @@ export const useRecordConsent = () => {
   const queryClient = useQueryClient();
   return useMutation({
     // The server records the version currently published; the client never sends one.
-    mutationFn: async ({ document_type }: { document_type: string }): Promise<UserConsent> => {
+    mutationFn: async ({
+      document_type,
+    }: {
+      document_type: LegalDocumentType;
+    }): Promise<UserConsent> => {
       const { data, error } = await apiClient.POST("/api/v1/consents", {
         body: { document_type },
       });

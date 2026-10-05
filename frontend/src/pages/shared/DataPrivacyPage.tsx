@@ -11,10 +11,10 @@ export const DataPrivacyPage: React.FC = () => {
 
   return (
     <AppShell
-      title={t("nav.dataPrivacy", "Data Privacy & Legal Consents")}
+      title={t("nav.dataPrivacy", "Data privacy & consents")}
       subtitle={t(
         "privacy.pageSubtitle",
-        "Manage active legal agreements, GDPR / NDPR data subject rights, and consent audit trails",
+        "Your legal agreements, data protection rights and consent history",
       )}
     >
       <div className="space-y-6 max-w-5xl mx-auto">
@@ -27,12 +27,12 @@ export const DataPrivacyPage: React.FC = () => {
               </div>
               <div>
                 <h2 className="font-heading text-lg font-bold text-foreground">
-                  {t("privacy.bannerTitle", "Privacy & Data Subject Rights")}
+                  {t("privacy.bannerTitle", "Your privacy and data rights")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
                   {t(
                     "privacy.bannerDesc",
-                    "CoopData enforces strict data protection standards under the Eswatini Data Protection Act, GDPR, and NDPR. Review your recorded consents or exercise data subject rights below.",
+                    "CoopData protects personal data in line with the Eswatini Data Protection Act, 2022. Review what you have accepted and make requests about your data below.",
                   )}
                 </p>
               </div>
@@ -43,7 +43,7 @@ export const DataPrivacyPage: React.FC = () => {
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-accent shadow-sm hover:bg-muted hover:text-accent/80 transition-all shrink-0"
             >
               <Scale className="size-4" />
-              <span>{t("privacy.openLegalCenter", "Open Legal Center")}</span>
+              <span>{t("privacy.openLegalCenter", "Open the legal centre")}</span>
               <ExternalLink className="size-3.5 opacity-70" />
             </Link>
           </div>

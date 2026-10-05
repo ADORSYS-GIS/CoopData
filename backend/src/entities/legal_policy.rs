@@ -42,12 +42,4 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
-impl Related<super::user::Entity> for Entity {
-    fn to() -> sea_orm::RelationDef {
-        // Example relation if you need to track who created it
-        // Relation::User.def()
-        panic!("No relation defined");
-    }
-}
-
 impl ActiveModelBehavior for ActiveModel {}

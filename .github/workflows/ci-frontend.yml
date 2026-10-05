@@ -24,6 +24,9 @@ jobs:
       - name: Check legal documents are published
         run: python3 scripts/publish-legal.py --check
 
+      - name: Test the legal publishing script
+        run: python3 -m unittest scripts/test_publish_legal.py
+
   frontend_install:
     name: Frontend Install
     runs-on: ubuntu-latest

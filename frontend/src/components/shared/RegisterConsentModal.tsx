@@ -24,7 +24,7 @@ export const RegisterConsentModal: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [termsChecked, setTermsChecked] = useState(false);
   const [privacyChecked, setPrivacyChecked] = useState(false);
-  const [marketingChecked, setMarketingChecked] = useState(false);
+  const [dataUseChecked, setDataUseChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -62,11 +62,17 @@ export const RegisterConsentModal: React.FC = () => {
           document_type: "PRIVACY_POLICY",
         });
       }
+      // Optional, recorded separately from the required acceptances.
+      if (dataUseChecked) {
+        await recordConsent.mutateAsync({ document_type: "DATA_USE_CONSENT" });
+      }
 
-      toast.success(t("legal.consentRecordedSuccess", "Legal policies accepted successfully!"));
+      toast.success(
+        t("legal.consentRecordedSuccess", "Thank you, your acceptance has been recorded."),
+      );
       setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to record legal consent");
+    } catch {
+      toast.error(t("legal.consentFailed", "Your choice could not be recorded. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +86,7 @@ export const RegisterConsentModal: React.FC = () => {
             <ShieldAlert className="size-5" />
           </div>
           <DialogTitle className="text-lg font-bold text-foreground">
-            {t("legal.mandatoryConsentTitle", "Action Required: Accept Updated Legal Terms")}
+            {t("legal.mandatoryConsentTitle", "Please accept our legal terms")}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
             {t(
@@ -108,7 +114,7 @@ export const RegisterConsentModal: React.FC = () => {
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {t(
                   "legal.termsAcceptPrompt",
-                  "I agree to the platform usage rules, responsibilities, and operational conditions.",
+                  "I have read and agree to the CoopData Terms of Service.",
                 )}
               </p>
               <Link
@@ -138,7 +144,7 @@ export const RegisterConsentModal: React.FC = () => {
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {t(
                   "legal.privacyAcceptPrompt",
-                  "I consent to the collection, processing, and protection of personal & co-op data.",
+                  "I acknowledge that I have read the CoopData Privacy Policy.",
                 )}
               </p>
               <Link
@@ -152,21 +158,29 @@ export const RegisterConsentModal: React.FC = () => {
             </div>
           </label>
 
-          {/* Optional Marketing Consent */}
+          {/* Optional consent to aggregated data use (Data Use, Aggregation & Consent Notice) */}
           <label className="flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-background/50 transition-colors cursor-pointer">
             <input
               type="checkbox"
-              checked={marketingChecked}
-              onChange={(e) => setMarketingChecked(e.target.checked)}
+              checked={dataUseChecked}
+              onChange={(e) => setDataUseChecked(e.target.checked)}
               className="mt-0.5 size-4 rounded border-border text-accent focus:ring-accent"
             />
             <div className="text-xs flex-1">
               <span className="font-medium text-foreground">
                 {t(
-                  "legal.marketingConsent",
-                  "Optional: Receive platform product updates & sector newsletters",
+                  "legal.dataUseConsent",
+                  "Optional: I agree that eligible data from my organization may be used for aggregated, de-identified sector reporting.",
                 )}
-              </span>
+              </span>{" "}
+              <Link
+                to="/legal"
+                search={{ doc: "data-use" }}
+                target="_blank"
+                className="font-medium text-accent hover:underline"
+              >
+                {t("legal.readDataUse", "Read the notice")}
+              </Link>
             </div>
           </label>
         </div>

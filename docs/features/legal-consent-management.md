@@ -142,6 +142,20 @@ See section 7 for how a change is published.
 
 ---
 
+## 6b. Consent model
+
+| Kind | Documents | Effect |
+|---|---|---|
+| Required | Terms of Service, Privacy Policy | Must be accepted (current version) to use the Platform; this is `has_accepted_all_required`. |
+| Optional consent | Data Use, Aggregation & Consent Notice | May be given or not, in the first-login dialog or the Data Privacy page. |
+| Acknowledgement | Acceptable Use, Security, Data Retention, Data Processing Governance | Optional record that the user has read the document. |
+| Cookie choice | Cookie Policy | A browser preference set in the cookie banner (`src/lib/cookieConsent.ts`), shown on the Data Privacy page. Not a server consent: CoopData only uses essential cookies. |
+
+Each acceptance counts only for the document's current published version, so a new
+version asks the user again. The document list and kinds live in
+`frontend/src/constants/legalDocuments.ts`. All legal and consent screen text is
+translated in `en`, `fr`, `pt` and `ss`.
+
 ## 7. Publishing a policy change
 
 The Markdown files are the source; the database holds the published versions users
