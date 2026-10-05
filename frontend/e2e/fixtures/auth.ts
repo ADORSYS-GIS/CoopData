@@ -245,6 +245,24 @@ export async function mockBackendApi(page: Page) {
       return;
     }
 
+    // Test users have already accepted the current Terms and Privacy Policy, so the
+    // consent dialog does not cover the pages under test.
+    if (url.includes("/api/v1/consents/status") && method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          terms_accepted: true,
+          terms_version: "1.0",
+          privacy_accepted: true,
+          privacy_version: "1.0",
+          has_accepted_all_required: true,
+          accepted_consents: [],
+        }),
+      });
+      return;
+    }
+
     if (url.includes("/api/v1/me") && method === "GET") {
       await route.fulfill({
         status: 200,

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::extract::{Extension, Path, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use uuid::Uuid;
@@ -11,6 +11,7 @@ use crate::api::dto::{
     ConsentStatusResponse, PrivacyRequestInput, PrivacyRequestResponse, RecordConsentRequest,
     UserConsentResponse,
 };
+use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
@@ -68,7 +69,7 @@ async fn current_policy_version(state: &AppState, document_type: &str, default: 
 pub async fn record_consent(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
-    headers: HeaderMap,
+    Extension(audit_ctx): Extension<AuditContext>,
     Json(payload): Json<RecordConsentRequest>,
 ) -> AppResult<impl IntoResponse> {
     payload
@@ -81,15 +82,10 @@ pub async fn record_consent(
     let document_version =
         current_policy_version(&state, &payload.document_type, DEFAULT_TERMS_VERSION).await;
 
-    let ip_address = headers
-        .get("x-forwarded-for")
-        .and_then(|h| h.to_str().ok())
-        .map(|s| s.split(',').next().unwrap_or(s).trim().to_string());
-
-    let user_agent = headers
-        .get("user-agent")
-        .and_then(|h| h.to_str().ok())
-        .map(|s| s.to_string());
+    // Same client address as the audit log: the entry appended by the trusted
+    // proxy, not a value the client can write into X-Forwarded-For.
+    let ip_address = audit_ctx.ip_address;
+    let user_agent = audit_ctx.user_agent;
 
     let model = state
         .consent_repo

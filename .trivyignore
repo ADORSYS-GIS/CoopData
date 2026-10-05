@@ -114,3 +114,10 @@ CVE-2026-63072
 CVE-2026-63074
 CVE-2026-63076
 CVE-2026-75803
+
+# Frontend nginx:alpine base image (Alpine 3.24.2) findings with no fixed package
+# reachable by `apk upgrade` yet - ignored at maintainers request (PR #216).
+# Remove once the base image ships the fix.
+CVE-2026-103111
+CVE-2026-46675
+CVE-2026-58055

@@ -85,7 +85,7 @@ export const RegisterConsentModal: React.FC = () => {
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
             {t(
               "legal.mandatoryConsentDesc",
-              "To continue using CoopData, please review and accept our mandatory Terms of Service and Privacy Policy (v1.0).",
+              "To continue using CoopData, please review and accept our mandatory Terms of Service and Privacy Policy.",
             )}
           </DialogDescription>
         </DialogHeader>
@@ -102,7 +102,8 @@ export const RegisterConsentModal: React.FC = () => {
             <div className="text-xs flex-1">
               <span className="font-bold text-foreground flex items-center gap-1.5">
                 <FileText className="size-3.5 text-accent" />
-                {t("legal.termsOfService", "Terms of Service")} (v1.0) *
+                {t("legal.termsOfService", "Terms of Service")} (v{status?.terms_version ?? "1.0"})
+                *
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {t(
@@ -132,7 +133,7 @@ export const RegisterConsentModal: React.FC = () => {
             <div className="text-xs flex-1">
               <span className="font-bold text-foreground flex items-center gap-1.5">
                 <Lock className="size-3.5 text-accent" />
-                {t("legal.privacyPolicy", "Privacy Policy")} (v1.0) *
+                {t("legal.privacyPolicy", "Privacy Policy")} (v{status?.privacy_version ?? "1.0"}) *
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
                 {t(

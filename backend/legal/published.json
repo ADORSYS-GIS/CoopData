@@ -6,7 +6,7 @@
     },
     "cookies": {
       "migration": "53_publish_legal_policies.sql",
-      "sha256": "15bda03b80221cbdf405d7e82c54daf3e810a31fe3870b86a6c08ce9de91564e"
+      "sha256": "e53262ec2aaf6d6893cb287a3780ba31e8d2f6278399c8924246213fbfb19659"
     },
     "data-processing": {
       "migration": "53_publish_legal_policies.sql",

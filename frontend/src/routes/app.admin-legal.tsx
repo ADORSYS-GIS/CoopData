@@ -4,7 +4,7 @@ import { AdminLegalPolicyEditPage } from "@/pages/admin/AdminLegalPolicyEditPage
 
 function AdminLegalRoute() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["ministry", "federation"]}>
       <AdminLegalPolicyEditPage />
     </ProtectedRoute>
   );
