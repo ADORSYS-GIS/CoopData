@@ -95,6 +95,10 @@ impl TestApp {
             coop_data_backend::services::report_narrative::create_narrative_generator(&config);
         let ministry_narratives_repo =
             coop_data_backend::repositories::MinistryReportNarrativesRepository::new(db.clone());
+        let report_export_repo =
+            coop_data_backend::repositories::ReportExportRepository::new(db.clone());
+        let narrative_store =
+            coop_data_backend::repositories::ReportNarrativeStore::new(db.clone());
         let questionnaire_repo = QuestionnaireRepository::new(db.clone());
         let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
         let consent_repo = ConsentRepository::new(db.clone());
@@ -143,6 +147,8 @@ impl TestApp {
             ministry_narratives_repo,
             consent_repo,
             legal_policy_repo,
+            report_export_repo,
+            narrative_store,
         };
 
         TestApp { state }
@@ -192,6 +198,7 @@ pub fn test_config() -> AppConfig {
         s3_region: "us-east-1".to_string(),
         rate_limit_auth_max: 5,
         rate_limit_auth_window_secs: 60,
+        report_job_timeout_secs: 600,
     }
 }
 

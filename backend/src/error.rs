@@ -44,6 +44,10 @@ pub enum AppError {
     #[error("Conflict: {0}")]
     Conflict(String),
 
+    /// The caller does not hold the draft (another user or tier is editing it).
+    #[error("Not the editor: {0}")]
+    NotEditor(String),
+
     #[error("Conflict: {message}")]
     ConflictWithSubmission {
         message: String,
@@ -143,6 +147,15 @@ impl IntoResponse for AppError {
                 StatusCode::CONFLICT,
                 ErrorResponse {
                     error: "conflict".to_string(),
+                    message: Some(msg.clone()),
+                    required_roles: None,
+                    submission_id: None,
+                },
+            ),
+            AppError::NotEditor(msg) => (
+                StatusCode::CONFLICT,
+                ErrorResponse {
+                    error: "not_editor".to_string(),
                     message: Some(msg.clone()),
                     required_roles: None,
                     submission_id: None,

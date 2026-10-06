@@ -128,6 +128,14 @@ pub fn cooperative_routes() -> Router<AppState> {
             get(crate::api::handlers::export::export_single_submission),
         )
         .route(
+            "/submissions/{id}/report",
+            get(crate::api::handlers::export::get_submission_report_status),
+        )
+        .route(
+            "/submissions/{id}/report/prepare",
+            post(crate::api::handlers::export::prepare_submission_report),
+        )
+        .route(
             "/submissions/{id}/questionnaire-report",
             get(crate::api::handlers::questionnaire_report::get_questionnaire_report),
         )

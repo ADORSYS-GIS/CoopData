@@ -89,6 +89,9 @@ async fn main() -> anyhow::Result<()> {
     let ministry_narratives_repo = MinistryReportNarrativesRepository::new(db.clone());
     let consent_repo = ConsentRepository::new(db.clone());
     let legal_policy_repo = LegalPolicyRepository::new(db.clone());
+    let report_export_repo =
+        coop_data_backend::repositories::ReportExportRepository::new(db.clone());
+    let narrative_store = coop_data_backend::repositories::ReportNarrativeStore::new(db.clone());
     let questionnaire_repo = QuestionnaireRepository::new(db.clone());
     let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
@@ -150,6 +153,8 @@ async fn main() -> anyhow::Result<()> {
         ministry_narratives_repo,
         consent_repo,
         legal_policy_repo,
+        report_export_repo,
+        narrative_store,
     };
 
     // Backfill computed KPIs for existing submissions

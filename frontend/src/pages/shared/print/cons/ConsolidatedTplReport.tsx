@@ -10,27 +10,9 @@ import type { Tier } from "@/pages/shared/print/consolidated/stats";
 import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { trendPage } from "@/pages/shared/print/tpl/TrendPage";
 import { trendOf } from "@/pages/shared/print/tpl/trend";
+import { longDate, tr } from "@/pages/shared/print/tpl/i18n";
 
-const ISSUER: Record<Tier, string> = {
-  Apex: "Apex organisation",
-  Federation: "Federation",
-  Ministry: "Ministry of Commerce, Industry and Trade",
-};
-
-const TITLE: Record<Tier, string[]> = {
-  Apex: ["Apex Consolidated", "Report"],
-  Federation: ["Federation Consolidated", "Report"],
-  Ministry: ["Ministry Consolidated", "Report"],
-};
-
-const HEAD: Record<Tier, string> = {
-  Apex: "COOP DATA · APEX CONSOLIDATED REPORT",
-  Federation: "COOP DATA · FEDERATION CONSOLIDATED REPORT",
-  Ministry: "COOP DATA · MINISTRY CONSOLIDATED REPORT",
-};
-
-const dateOfIssue = () =>
-  new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const issuerOf = (tier: Tier): string => tr(`cons.issuer.${tier}`);
 
 const buildSections = (input: ConsInput): PageSpec[] => {
   const a = analyse(input);
@@ -41,7 +23,7 @@ const buildSections = (input: ConsInput): PageSpec[] => {
   pages.push(executivePage(a, next()));
   pages.push(financialPage(a, next()));
   const trend = trendOf(input.trend);
-  const scopeText = input.tier === "Apex" ? "the apex portfolio" : "the supervised sector";
+  const scopeText = input.tier === "Apex" ? input.entityName : tr("trend.scope_sector");
   const series = trendPage({ rows: trend, no: String(n + 1), scope: scopeText });
   if (series) {
     n += 1;
@@ -70,63 +52,70 @@ export const ConsolidatedTplReport: FC<ConsInput> = (input) => {
   const { tier, entityName, year, data } = input;
   const total = data.total_cooperatives || data.cooperatives.length;
   const filed = data.cooperatives.filter((c) => c.has_data).length;
-  const subject = tier === "Ministry" ? "National Cooperative Overview" : entityName;
+  const subject = tier === "Ministry" ? tr("cons.report.national_overview") : entityName;
   const apexCount = new Set(data.cooperatives.map((c) => c.apex_id).filter(Boolean)).size;
+  const issuer = issuerOf(tier);
   const scope =
     tier === "Apex"
-      ? `${ISSUER[tier]} · ${total} cooperatives under supervision`
-      : `${ISSUER[tier]} · ${total} cooperatives under supervision · ${apexCount} apex organisation${apexCount === 1 ? "" : "s"}`;
-  const issued = dateOfIssue();
+      ? tr("cons.report.scope_apex", { issuer, total })
+      : tr("cons.report.scope_apexes", { issuer, total, count: apexCount });
+  const issued = longDate(new Date());
+  const ofTotal = tr("cons.report.of", { filed, total });
 
   return (
     <TplDocument
       frame={{
-        headLeft: HEAD[tier],
-        headRight: `${subject.toUpperCase()} · REPORTING YEAR ${year}`,
-        footLeft: "OFFICIAL — Confidential",
-        footMid: ISSUER[tier],
+        headLeft: tr(`cons.head.${tier}`).toUpperCase(),
+        headRight: tr("cons.report.head_right", { subject: subject.toUpperCase(), year }),
+        footLeft: tr("cons.report.official_foot"),
+        footMid: issuer,
       }}
       cover={{
-        kicker: "Consolidated sector performance",
-        title: TITLE[tier],
+        kicker: tr("cons.report.kicker"),
+        title: [tr(`cons.title_1.${tier}`), tr(`cons.title_2.${tier}`)],
         entity: `${subject}`,
         entityNote: scope,
-        badge: "OFFICIAL · CONFIDENTIAL",
+        badge: tr("cons.report.badge"),
         meta: [
-          { label: "Reporting year", value: String(year) },
-          { label: "Supervised cooperatives", value: String(total) },
-          { label: "Submission rate", value: `${filed} of ${total}` },
-          { label: "Date of issue", value: issued },
+          { label: tr("common.reporting_year"), value: String(year) },
+          { label: tr("cons.report.supervised"), value: String(total) },
+          { label: tr("cons.report.submission_rate"), value: ofTotal },
+          { label: tr("common.date_of_issue"), value: issued },
         ],
-        footLeft: "Prepared by Coop Data · Unified Cooperative Financial Intelligence & Compliance",
-        footRight: "Figures as reported by the filing cooperatives",
+        footLeft: tr("common.prepared_by"),
+        footRight: tr("cons.report.foot_right"),
       }}
       front={{
         particulars: [
-          ["Issuing authority", ISSUER[tier], "Scope", subject],
+          [tr("cons.report.issuing_authority"), issuer, tr("cons.report.scope"), subject],
           [
-            "Report type",
-            "Consolidated supervisory report",
-            "Reporting year",
-            `${year} (comparative: prior year)`,
+            tr("cons.report.report_type"),
+            tr("cons.report.report_type_value"),
+            tr("common.reporting_year"),
+            tr("cons.report.year_comparative", { year }),
           ],
           [
-            "Cooperatives covered",
+            tr("cons.report.covered"),
             `${total}`,
-            tier === "Apex" ? "Entity" : "Apex organisations",
+            tier === "Apex" ? tr("cons.report.entity") : tr("cons.report.apex_organisations"),
             tier === "Apex" ? entityName : String(apexCount),
           ],
-          ["Returns submitted", `${filed} of ${total}`, "Date of issue", issued],
+          [tr("cons.report.returns_submitted"), ofTotal, tr("common.date_of_issue"), issued],
           [
-            "Reporting currency",
-            "As reported by the cooperatives",
-            "Classification",
-            "Official — confidential",
+            tr("common.reporting_currency"),
+            tr("cons.report.currency_value"),
+            tr("common.classification"),
+            tr("cons.report.classification_value"),
           ],
-          ["Benchmark framework", "PEARLS (adapted)", "Version", "1.0"],
+          [
+            tr("common.benchmark_framework"),
+            tr("common.pearls_adapted"),
+            tr("common.version"),
+            "1.0",
+          ],
         ],
-        basisTitle: "Purpose and basis of preparation",
-        basis: `This report shows ${tier === "Ministry" ? "Ministry leadership" : tier === "Federation" ? "federation leadership" : "the apex organisation"} the condition of the supervised cooperative sector. It is compiled from annual returns submitted through the Coop Data platform. "Average" indicators are simple averages of the cooperatives' ratios; where an aggregate ratio (the ratio of sector totals) can be derived, it is shown beside the average. Figures that could not be reconciled are flagged and explained in Annex A. Figures have not been independently audited.`,
+        basisTitle: tr("cons.report.basis_title"),
+        basis: tr("cons.report.basis", { audience: tr(`cons.report.audience.${tier}`) }),
       }}
       pages={buildSections(input)}
     />

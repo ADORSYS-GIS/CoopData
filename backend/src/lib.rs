@@ -80,6 +80,8 @@ pub struct AppState {
     pub ministry_narratives_repo: crate::repositories::MinistryReportNarrativesRepository,
     pub consent_repo: ConsentRepository,
     pub legal_policy_repo: LegalPolicyRepository,
+    pub report_export_repo: crate::repositories::ReportExportRepository,
+    pub narrative_store: crate::repositories::ReportNarrativeStore,
 }
 
 impl AppState {

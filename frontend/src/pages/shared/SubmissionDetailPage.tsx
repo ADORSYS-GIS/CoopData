@@ -63,7 +63,7 @@ import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { useLineItems } from "@/hooks/submissions/useFinancialStatement";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import type { NfUploadResponse } from "@/types/non-financial";
 import { useMembers } from "@/hooks/non-financial/useMembers";
 import { useSavings } from "@/hooks/non-financial/useSavings";
@@ -72,6 +72,10 @@ import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { EditAccessLostDialog } from "@/components/submissions/EditAccessLostDialog";
+import { SubmissionAccessBadge } from "@/components/submissions/SubmissionAccessBadge";
+import { SubmissionAccessBanner } from "@/components/submissions/SubmissionAccessBanner";
+import { useSubmissionAccess } from "@/hooks/submissions/useSubmissionAccess";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -186,6 +190,7 @@ export const SubmissionDetailPage: React.FC = () => {
     isLoading,
     isError,
     error,
+    refetch: refetchSubmission,
   } = useSubmission(id ?? "", role ?? undefined);
   const { data: extractionJob } = useExtractionJob(submission?.extraction_job_id ?? null);
   const { data: sections, refetch: refetchSections } = useSubmissionSections(id);
@@ -211,7 +216,17 @@ export const SubmissionDetailPage: React.FC = () => {
   const [updatingSectionKey, setUpdatingSectionKey] = useState<string | null>(null);
   const [methodModalOpen, setMethodModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const { data: reviews } = useSubmissionReviews(id);
+  const { data: reviews, refetch: refetchReviews } = useSubmissionReviews(id);
+  const refreshSubmission = useCallback(() => void refetchSubmission(), [refetchSubmission]);
+  const refreshReviews = useCallback(() => void refetchReviews(), [refetchReviews]);
+  const { access, lost, dismissLost } = useSubmissionAccess(
+    submission,
+    role,
+    currentUserId,
+    reviews,
+    refreshSubmission,
+    refreshReviews,
+  );
   const { data: financialQ } = useQuestionnaire(id ?? "", "financial");
   const { data: nonFinancialQ } = useQuestionnaire(id ?? "", "non_financial");
   const { data: financialTemplate } = useActiveTemplate("financial");
@@ -611,12 +626,7 @@ export const SubmissionDetailPage: React.FC = () => {
                         {replaceOrgTerms(`Created by ${submission.created_by_name} (Apex)`)}
                       </span>
                     )}
-                    {submission.edited_by_name && submission.status === "draft" && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 border border-border/60 rounded-lg px-2 py-1">
-                        <span className="size-1.5 rounded-full bg-warning animate-pulse" />
-                        Editing: {submission.edited_by_name}
-                      </span>
-                    )}
+                    <SubmissionAccessBadge access={access} />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {t("submissions.reportingYear")}{" "}
@@ -696,6 +706,9 @@ export const SubmissionDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* ── Who holds the draft, when it is read-only for this user ── */}
+          <SubmissionAccessBanner access={access} />
 
           {/* ── AI Extraction Banner — prominent and dismissable ── */}
           {isExtracting && (
@@ -1100,6 +1113,14 @@ export const SubmissionDetailPage: React.FC = () => {
             )}
 
           {/* Delegate Modal */}
+          {lost && (
+            <EditAccessLostDialog
+              access={access}
+              serverMessage={lost.serverMessage}
+              onClose={dismissLost}
+            />
+          )}
+
           {showDelegateModal && (
             <div
               className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"

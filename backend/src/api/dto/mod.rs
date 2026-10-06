@@ -18,6 +18,7 @@ pub mod non_financial_indicator;
 pub mod organization;
 pub mod organization_label;
 pub mod period_series;
+pub mod report_export;
 pub mod submission;
 pub mod upload;
 pub mod user;

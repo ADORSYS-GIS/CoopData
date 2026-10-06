@@ -34,17 +34,19 @@ export const useApexNarratives = (
   apexId: string | undefined,
   year: number,
   tokenOverride?: string,
+  lng?: string,
 ) =>
   useOfflineQuery({
-    queryKey: ["apex-narratives", apexId, year, tokenOverride],
+    queryKey: ["apex-narratives", apexId, year, tokenOverride, lng],
     cacheTable: "analytics",
-    cacheKey: `apex-narratives-${apexId}-${year}`,
+    cacheKey: `apex-narratives-${apexId}-${year}-${lng ?? "en"}`,
     enabled: !!apexId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
+      const lngParam = lng ? `&lng=${encodeURIComponent(lng)}` : "";
       return fetchJson<ApexNarratives>(
-        `${BASE_URL}/api/v1/apex/${apexId}/narratives?year=${year}`,
+        `${BASE_URL}/api/v1/apex/${apexId}/narratives?year=${year}${lngParam}`,
         token,
       );
     },
@@ -54,32 +56,35 @@ export const useFederationNarratives = (
   federationId: string | undefined,
   year: number,
   tokenOverride?: string,
+  lng?: string,
 ) =>
   useOfflineQuery({
-    queryKey: ["federation-narratives", federationId, year, tokenOverride],
+    queryKey: ["federation-narratives", federationId, year, tokenOverride, lng],
     cacheTable: "analytics",
-    cacheKey: `federation-narratives-${federationId}-${year}`,
+    cacheKey: `federation-narratives-${federationId}-${year}-${lng ?? "en"}`,
     enabled: !!federationId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
+      const lngParam = lng ? `&lng=${encodeURIComponent(lng)}` : "";
       return fetchJson<FederationNarratives>(
-        `${BASE_URL}/api/v1/federation/${federationId}/narratives?year=${year}`,
+        `${BASE_URL}/api/v1/federation/${federationId}/narratives?year=${year}${lngParam}`,
         token,
       );
     },
   });
 
-export const useMinistryNarratives = (year: number, tokenOverride?: string) =>
+export const useMinistryNarratives = (year: number, tokenOverride?: string, lng?: string) =>
   useOfflineQuery({
-    queryKey: ["ministry-narratives", year, tokenOverride],
+    queryKey: ["ministry-narratives", year, tokenOverride, lng],
     cacheTable: "analytics",
-    cacheKey: `ministry-narratives-${year}`,
+    cacheKey: `ministry-narratives-${year}-${lng ?? "en"}`,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
+      const lngParam = lng ? `&lng=${encodeURIComponent(lng)}` : "";
       return fetchJson<MinistryNarratives>(
-        `${BASE_URL}/api/v1/ministry/narratives?year=${year}`,
+        `${BASE_URL}/api/v1/ministry/narratives?year=${year}${lngParam}`,
         token,
       );
     },

@@ -1214,6 +1214,53 @@
       "currentBadge": "Indlela yekufaka: {{method}}",
       "changeHint": "Ungashintja indlela yekufaka ngenkathi lommbiko usengumtselelo (draft).",
       "changeBtn": "Shintja indlela"
+    },
+    "access": {
+      "readOnly": "Kufundza kuphela",
+      "reclaimedAt": "Kubuyiswe nga-{{time}}",
+      "noteFrom": "Simonyoro ({{apex}})",
+      "badge": {
+        "editing": "Uyahlela",
+        "waiting": "Kulungele kutsi uhlele",
+        "colleague": "Kuyahlelwa",
+        "colleagueNamed": "{{name}} uyahlela",
+        "reclaimed": "Kubuyiswe · {{apex}}",
+        "reclaimedNamed": "Kubuyiswe ngu-{{name}}",
+        "withApex": "Ku-{{apex}}",
+        "withApexNamed": "Ku-{{apex}} · {{name}}",
+        "withCooperative": "Ku-{{coop}}",
+        "withCooperativeNamed": "Ku-{{coop}} · {{name}}"
+      },
+      "banner": {
+        "reclaimed": {
+          "title": "Lombiko ubuyiselwe emuva ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) ubuyisele lombiko emuva",
+          "body": "Usengakubona konkhe lokugcwalisiwe, kodvwa angeke usakwati kuhlela. Uma kusenalokufanele kushintjwe, tsintsana na-{{apex}}.",
+          "bodyNamed": "Usengakubona konkhe lokugcwalisiwe, kodvwa angeke usakwati kuhlela. Uma kusenalokufanele kushintjwe, tsintsana na-{{name}}."
+        },
+        "withApex": {
+          "title": "Lombiko usalungiswa ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) usalungisa lombiko",
+          "body": "Wenteka egameni lakho ({{apex}}). Ungawubuka nyalo, futsi utawukhona kuwuhlela uma usunikwe wena.",
+          "bodyNamed": "Wenteka egameni lakho ({{apex}}). Ungawubuka nyalo, futsi utawukhona kuwuhlela uma {{name}} asakunikile."
+        },
+        "colleague": {
+          "title": "Lomunye umuntfu uhlela lombiko",
+          "titleNamed": "{{name}} uhlela lombiko",
+          "body": "Ngumuntfu munye kuphela longahlela umbiko ngesikhatsi sinye, ngako-ke ungawufundza kuphela ngalesikhatsi.",
+          "bodyNamed": "Ngumuntfu munye kuphela longahlela umbiko ngesikhatsi sinye, ngako-ke ungawufundza kuphela ngalesikhatsi {{name}} asebenta kuwo."
+        }
+      },
+      "lost": {
+        "title": "Imvume yakho yekuhlela iphelile",
+        "reclaimed": "Lombiko ubuyiselwe emuva ({{apex}}). Lokushintjile lobekungakalondvolozwa akugcinwanga.",
+        "reclaimedNamed": "{{name}} ({{apex}}) ubuyisele lombiko emuva. Lokushintjile lobekungakalondvolozwa akugcinwanga.",
+        "colleague": "Lomunye umuntfu sewuyahlela lombiko. Lokushintjile lobekungakalondvolozwa akugcinwanga.",
+        "colleagueNamed": "{{name}} sewuyahlela lombiko. Lokushintjile lobekungakalondvolozwa akugcinwanga.",
+        "generic": "Lombiko sewuphetfwe ngulomunye umuntfu, ngako-ke lushintjo lwakho lwekugcina alulondvolozwanga.",
+        "readOnlyNow": "Likhasi selingelekufundza kuphela. Konkhe lowakulondvoloza ngaphambilini kuphephile.",
+        "ok": "Ngiyevisisa"
+      }
     }
   },
   "reports": {
@@ -1237,10 +1284,6 @@
       "draft": "Idrafti"
     },
     "exporting": "Kukhipha…",
-    "exportPdf": "Khipha PDF",
-    "rowActions": "Tento temsebenti",
-    "exportSuccess": "Umbiko ukhishiwe njenge {{format}}!",
-    "exportFailed": "Kwehlulekile kukhipha umbiko.",
     "recentDataSubmissions": "Imibiko Yedata Yakamuva",
     "recentDataSubmissionsDesc": "Titatimende tetimali takamuva kakhulu — chofoza Khipha ukuze ulayishe phansi",
     "entriesCount": "{{count}} okungenile",
@@ -1255,7 +1298,8 @@
     "actionsHeader": "Tento",
     "financialReportLabel": "Umbiko Wetimali we-{{year}}",
     "showingMostRecent": "Kubonisa {{count}} imibiko yakamuva kakhulu. Sebentisa iPhaneli Yekukhipha ngenhla yemibiko ehlanganisiwe.",
-    "myCooperative": "Ikhopharethi Yami"
+    "myCooperative": "Ikhopharethi Yami",
+    "downloadReport": "Layisha phansi umbiko"
   },
   "benchmarking": {
     "title": "Ukufananisa Ukusebenta",
@@ -4271,11 +4315,6 @@
     "title": "Khipha Imibiko",
     "subtitle": "Khiqiza futsi ulayishe phansi imibiko ngokusekelwe ezingeni lakho lokufinyelela",
     "exportReport": "Khipha Umbiko",
-    "exportPdf": "Khipha PDF",
-    "exporting": "Kukhipha...",
-    "cancel": "Khansela",
-    "exportedAs": "{{label}} ikhishiwe njenge-PDF!",
-    "exportFailed": "Ukukhipha kwehlulekile: {{error}}",
     "scopeFederation": "Lombiko uhlanganisa data ehlanganisiwe yefederesheni: {{name}}.",
     "scopeApex": "Lombiko uhlanganisa data ehlanganisiwe yepheksi: {{name}}.",
     "scopeNational": "Lombiko uhlanganisa data kusuka kuwo wonke emafederesheni, emapheksi, nemakhopharethi esiveni lonke.",
@@ -4283,10 +4322,6 @@
     "scopeApexAll": "Lombiko uhlanganisa data kusuka kuwo wonke emakhopharethi angaphansi kwenhlangano yepheksi yakho.",
     "selectedFederation": "ifederesheni ekhethiwe",
     "selectedApex": "ipheksi ekhethiwe",
-    "regenerateAndExport": "Yenta Kabusha & Khipha",
-    "regenerating": "Kuyenta Kabusha...",
-    "regeneratedAndDownloaded": "Umbiko wentelwe kabusha futsi ulayishwe phansi!",
-    "regenerateTooltip": "Cosha ukukhiqizwa kwe-PDF lokutsha, ukususa inguqulo ebe igciniwe",
     "method": {
       "title": "Inhlobo yembiko",
       "choose": "Tonkhe tinhlobo tinedatha yalokukhetsiwe. Khetsa kutsi ngumuphi umbiko lokufanele ukhishwe.",
@@ -4297,6 +4332,20 @@
       "questionnaire": "Umbiko wemibuzo",
       "questionnaireDesc": "Wakhiwe kusuka etimphenduleni tembiko wemibuzo (imibiko lengu-{{count}} lephasisiwe)",
       "summary": "Inhlobo yembiko"
+    },
+    "close": "Vala",
+    "status": {
+      "loading": "Kuhlolwa umbiko…",
+      "unavailable": "Umbiko awukhonanga kulayishwa. Sicela uphindze kungekudzala.",
+      "language": "Lulwimi",
+      "download": "Layisha phansi",
+      "preparing": "Kulungiswa umbiko wakho…",
+      "preparingHint": "Loku kungatsatsa kufika emzuzwini munye kwekucala. Kulayisha kutawucala kwako; ungavala nalelifasitelo, sitakwatisa nasewulungile.",
+      "failed": "Asikhonanga kulungisa umbiko wakho. Sicela uphindze.",
+      "update": "Buyeketa umbiko",
+      "updateHint": "Kwakha kabusha umbiko ngelwatiso lolusha",
+      "readyToast": "Umbiko wakho nge-{{language}} sewulungile.",
+      "failedToast": "Asikhonanga kulungisa umbiko wakho. Sicela uphindze."
     }
   },
   "analyticsFilter": {
@@ -5520,5 +5569,971 @@
     "bannerTitle": "Bumfihlo bakho nemalungelo akho emininingwane",
     "bannerDesc": "I-CoopData ivikela imininingwane yemuntu ngekuvumelana neMtsetfo Wekuvikelwa Kwemininingwane weSwatini wa-2022. Buka ngentasi loko lokwemukele futsi wente ticelo mayelana nemininingwane yakho.",
     "openLegalCenter": "Vula sikhungo setemtsetfo"
+  "pdf": {
+    "common": {
+      "and": "na",
+      "fy": "Unyaka wetimali {{year}}",
+      "page_of": "Likhasi {{page}} kulawa langu-{{pages}}",
+      "part_of": "Incenye {{part}} kuleti langu-{{parts}}",
+      "annex": "Sengetelo",
+      "annex_part_of": "Sengetelo · incenye {{part}} kuleti langu-{{parts}}",
+      "as_at_31_december": "Nga-31 iNgongoni",
+      "year_ended_31_december": "Unyaka lophele nga-31 iNgongoni",
+      "action_plan": "Luhlelo lwemisebenti",
+      "executive_summary": "Sifinyeto Sebaphatsi",
+      "overall_view": "Umbono wekuhlolwa jikelele",
+      "strengths": "Emandla",
+      "areas_of_concern": "Tindzawo letikhatsatako",
+      "no_strength": "Kute inkhombandlela lefinyelela lizinga layo lelibekiwe njengamanje.",
+      "no_concern": "Kute indzawo lekhatsatako lebonakele.",
+      "scorecard_glance": "Sifinyeto setinkhombandlela",
+      "area": "Indzawo",
+      "key_indicator": "Inkhombandlela lebalulekile",
+      "indicator": "Inkhombandlela",
+      "formula": "Ifomula",
+      "benchmark": "Lizinga lelibekiwe",
+      "status": "Simo",
+      "meaning": "Inchazelo",
+      "limit": "Umkhawulo",
+      "metric": "Sikalo",
+      "change": "Lushintjo",
+      "change_pct": "Lushintjo %",
+      "prior": "Langaphambili",
+      "prior_year": "Umnyaka lowendlulile",
+      "total": "Inani",
+      "share": "Sabelo",
+      "number": "Inombolo",
+      "definition": "Inchazelo",
+      "recommendation": "Seluleko",
+      "priority": "Lokubalulekile",
+      "timeline": "Sikhatsi",
+      "owner": "Lophetse",
+      "ref": "Ref.",
+      "item": "Lintfo",
+      "system_value": "Linani lesistimu",
+      "observation": "Lokubonakele",
+      "info": "Lwati",
+      "million": "tigidzi",
+      "million_short": "m",
+      "thousand_short": "k",
+      "other": "Lokunye",
+      "cooperative": "{{coop}}",
+      "cooperatives": "{{coops}}",
+      "apex_organisation": "{{apex}}",
+      "members": "Emalunga",
+      "women": "Besifazane",
+      "men": "Besilisa",
+      "male": "Besilisa",
+      "female": "Besifazane",
+      "active": "Lasebentako",
+      "inactive": "Langasebenti",
+      "others": "Labanye",
+      "gender": "Bulili",
+      "age": "Iminyaka",
+      "filed": "Kufakiwe",
+      "not_filed": "Akukafakwa",
+      "sector": "Lisekta",
+      "max_limit": "Lokuphakeme {{value}}",
+      "min_limit": "Lokuncane {{value}}",
+      "pct_of_gross_loans": "% yemalimboleko yonkhe",
+      "pct_of_total_assets": "% yemphahla yonkhe",
+      "on_prior": "{{arrow}} {{change}} uma kucatsaniswa na-{{prior}}",
+      "on_prior_year": "{{arrow}} {{change}} uma kucatsaniswa nemnyaka lowendlulile",
+      "bench_meets": "Lizinga lelibekiwe ≥ {{value}}",
+      "date_of_issue": "Lusuku lwekukhishwa",
+      "reporting_period": "Sikhatsi sekubika",
+      "reporting_year": "Umnyaka wekubika",
+      "reporting_year_value": "Umnyaka wekubika {{year}}",
+      "reporting_currency": "Imali yekubika",
+      "submission_ref": "Ref. yembiko",
+      "submission_status": "Simo sembiko",
+      "classification": "Kuhlelwa",
+      "benchmark_framework": "Luhlaka lwemazinga",
+      "pearls_adapted": "PEARLS (lolungisiwe)",
+      "version": "Inguculo",
+      "prepared_by": "Kulungiswe ngu-Coop Data · Inkhundla yinye yelwati lwetimali nekulandzela imitsetfo yemakhopharethi",
+      "submission_status_values": {
+        "draft": "Idrafti",
+        "submitted": "Kufakiwe",
+        "in_review": "Kusahlolwa",
+        "approved": "Kuvunyiwe",
+        "rejected": "Kwaliwe",
+        "returned": "Kubuyiselwe",
+        "escalated": "Kudluliselwe embili"
+      },
+      "priorities": {
+        "High": "Kuphakeme",
+        "Medium": "Emkhatsini",
+        "Standard": "Kwejwayelekile"
+      },
+      "timelines": {
+        "within_30_days": "Ngekhatsi kwemalanga langu-30",
+        "next_quarter": "Ingcenye yemnyaka lelandzelako",
+        "next_financial_year": "Unyaka wetimali lolandzelako"
+      },
+      "pearls_source": "Emazinga lamukelekile alandzela luhlelo lwekucapha i-PEARLS njengoba lulungiswe enkhundleni ye-Coop Data. Tiphatsimandla tekuhlola tingasebentisa imikhawulo yavelonkhe lecinile kakhulu.",
+      "pp": "pp"
+    },
+    "status": {
+      "ok": "Kuyafinyelela",
+      "warn": "Kubhekwe",
+      "bad": "Kwephulwe",
+      "na": "Akukacinisekiswa",
+      "not_reported": "Akubikiwe"
+    },
+    "legend": {
+      "ok": "Inkhombandlela ingekhatsi kwelizinga lelibekiwe lekuvikela.",
+      "warn": "Inkhombandlela iseduze nelizinga lelibekiwe noma ingaphandle kancane; ilandzelelwe ekuhlolweni lokulandzelako.",
+      "bad": "Inkhombandlela ingaphandle kwelizinga lelibekiwe futsi idzinga kulungiswa.",
+      "na": "Imininingwane lefakiwe ayihambisani noma ayiphelele; inkhombandlela ayetsembeki."
+    },
+    "front": {
+      "document_control": "Kulawulwa kwelidokhumende",
+      "report_particulars": "Imininingwane yembiko",
+      "contents": "Lokuculile",
+      "basis_of_preparation": "Sisekelo sekulungiswa",
+      "status_legend": "Inchazelo yetimo"
+    },
+    "signoff": {
+      "approval": "Kuvunywa",
+      "prepared_by": "Kulungiswe ngu",
+      "reviewed_by": "Kubuyeketwe ngu",
+      "approved_by": "Kuvunywe ngu",
+      "name_designation_date": "Ligama, sikhundla nelusuku"
+    },
+    "end_of_report": "SIPHETSO SEMBIKO",
+    "trend": {
+      "title": "Kushintja kwetikhatsi letinyenti",
+      "periods_oldest_first": "Tikhatsi letingu-{{count}}, kucala ngalesidzala",
+      "rose": "{{noun}}: kukhuphuke nga-{{change}}, kusuka ku-SZL {{from}} nga-{{fromLabel}} kuya ku-SZL {{to}} nga-{{toLabel}}.",
+      "fell": "{{noun}}: kwehle nga-{{change}}, kusuka ku-SZL {{from}} nga-{{fromLabel}} kuya ku-SZL {{to}} nga-{{toLabel}}.",
+      "total_assets": "Imphahla yonkhe",
+      "member_savings": "Imali yekonga yemalunga",
+      "gross_loans": "Emalimboleko onkhe",
+      "fig_t1": "Sitfombe T1.",
+      "fig_t1_caption": "Imphahla yonkhe, imali yekonga yemalunga nemalimboleko onkhe a-{{scope}}, nga-{{unit}}. Kusetjentiswe titatimende letivunyiwe kuphela, letigucululwe ngelizinga lelibekwe embikweni ngamunye.",
+      "fig_t2": "Sitfombe T2. Inzuzo lesele ({{unit}})",
+      "fig_t3": "Sitfombe T3. Iphothifoliyo lesengotini ledlula emalanga langu-30 (%)",
+      "fig_t4": "Sitfombe T4. Imphahla lenyakatako (% yemphahla yonkhe)",
+      "fig_t5": "Sitfombe T5. Kwanela kwemali yesisekelo (imali yemalunga njenge-% yemphahla yonkhe)",
+      "source": "Umthombo: titatimende tetimali letivunyiwe. Emabhalansi atsatfwa enyangeni yekugcina yesikhatsi ngasinye. Emanani akhonjiswa nga-SZL kuze kucatsaniswe tikhatsi na-{{coopsLc}} lafaka imibiko ngetimali letehlukene; emathebula etitatimende kulomunye umbiko asebentisa imali lebikwe ngu-{{coopLc}} ngamunye.",
+      "szl_million": "tigidzi te-SZL",
+      "szl_thousand": "tinkhulungwane te-SZL",
+      "scope_sector": "lisekta lelihlolwako"
+    },
+    "accounts": {
+      "1101": "Imali lesesandleni",
+      "1102": "Imali esibhange (i-akhawunti yamanje)",
+      "1103": "Imali esibhange (i-akhawunti yekonga)",
+      "1104": "Kutfutfukisa kwesikhatsi lesifushane",
+      "1201": "Emalimboleko lakhokhwako kahle",
+      "1202": "Emalimboleko lasemuva (emalanga 1-30)",
+      "1203": "Emalimboleko lasemuva (emalanga 31-60)",
+      "1204": "Emalimboleko lasemuva (emalanga 61-90)",
+      "1205": "Emalimboleko langakhokhwa",
+      "1251": "Imali lebekelwe kulahlekelwa kwemalimboleko (jikelele)",
+      "1252": "Imali lebekelwe kulahlekelwa kwemalimboleko (lecondzile)",
+      "1301": "Timali letisetfwa",
+      "1302": "Tindleko letikhokhwe kusengakefiki sikhatsi",
+      "1303": "Imphahla lengagucuki (lintsengo)",
+      "1304": "Kwehla kwelinani lokuhlanganisiwe",
+      "1305": "Imphahla lengabambeki",
+      "1306": "Timphahla letigciniwe",
+      "2101": "Kwonga kwekutitsandzela",
+      "2102": "Kwonga lokuphocelelwe",
+      "2103": "Emadiphozithi esikhatsi lesibekiwe",
+      "2201": "Timali letibolekiwe tesikhatsi lesifushane",
+      "2202": "Timali letibolekiwe tesikhatsi lesidze",
+      "2301": "Timali letikweletwako",
+      "2302": "Tindleko letisengakakhokhwa",
+      "2303": "Imali lengenako lebambetsekile",
+      "3101": "Imali yemasheya lengapheli",
+      "3102": "Emasheya lakhishekako",
+      "3201": "Sikhwama lesibekwe ngumtsetfo",
+      "3202": "Sikhwama sasonkhe",
+      "3203": "Sikhwama sengoti / sekwanela kwemali yesisekelo",
+      "3301": "Inzuzo leyengetiwe",
+      "3302": "Inzuzo yalomnyaka",
+      "4101": "Inzalo lengenako evela emalimbolekweni",
+      "4102": "Imali lengenako yetimali temsebenti nemakhomishini",
+      "4201": "Lenye imali lengenako yekusebenta",
+      "5101": "Inzalo lekhokhwa emadiphozithi",
+      "5102": "Inzalo lekhokhwa etimalini letibolekiwe",
+      "5201": "Tindleko tebasebenti",
+      "5202": "Tindleko tekuphatsa",
+      "5203": "Tindleko tekubusa",
+      "5204": "Kwehla kwelinani nekuncishiswa",
+      "5301": "Tindleko temali lebekelwe kulahlekelwa kwemalimboleko"
+    },
+    "coop": {
+      "report": {
+        "head": "COOP DATA · KUHLOLWA KWETIMALI NEKULANDZELA IMITSETFO KWAMINYAKA YONKHE",
+        "restricted_foot": "KUVINJELWE — Kusebentiswa ngulabahlolako kuphela",
+        "ref": "Ref. {{ref}}",
+        "kicker": "Kuhlolwa kwetimali nekulandzela imitsetfo kwaminyaka yonkhe",
+        "title_1": "Umbiko Wekuhlolwa",
+        "title_2": "{{coop}} — Unyaka Wetimali {{year}}",
+        "affiliated_to": "{{apex}}: {{apexName}}",
+        "badge": "KUVINJELWE",
+        "period_value": "1 Bhimbidvwane – 31 iNgongoni {{year}}",
+        "foot_right": "Emanani njengoba abikiwe",
+        "period_comparative": "Unyaka wetimali {{year}} (kucatsaniswa nawo-{{prior}})",
+        "currency_value": "Njengoba ibikiwe",
+        "classification_value": "Kuvinjelwe — kusebentiswa ngulabahlolako",
+        "basis": "Lokuhlolwa kulungiswe kusuka embikweni waminyaka yonkhe lofakwe ngenkhundla ye-Coop Data. Emazinga abalwe kabusha kusuka etitatimendeni letifakiwe tesimo setimali nekusebenta. Lapho linani lelikhishwe sistimu lekhompyutha lingakhonanga kuhambisana netitatimende, kusetjentiswa linani lelibikiwe kulombiko futsi umehluko uchazwa eSengetelweni A. Emanani akakahlolwa ngumcwaningimabhuku longatsembeli muntfu."
+      },
+      "groups": {
+        "protection": "Kuvikela nekhwalithi yemphahla",
+        "capital": "Sakhiwo semali yesisekelo",
+        "returns": "Imbuyiselo netindleko",
+        "liquidity": "Imali lenyakatako"
+      },
+      "ratios": {
+        "par30": {
+          "label": "PAR >emalanga langu-30",
+          "formula": "Emalimboleko lasemuva ngetulu kwemalanga langu-30 / emalimboleko onkhe"
+        },
+        "par90": {
+          "label": "PAR >emalanga langu-90",
+          "formula": "Emalimboleko lasemuva ngetulu kwemalanga langu-90 / emalimboleko onkhe"
+        },
+        "npl_ratio": {
+          "label": "Emalimboleko langakhokhwa",
+          "formula": "Emalimboleko >emalanga langu-90 / emalimboleko onkhe"
+        },
+        "loan_loss_coverage": {
+          "label": "Kumbozwa kwekulahlekelwa kwemalimboleko",
+          "formula": "Imali lebekelwe kulahlekelwa / emalimboleko lasemuva ngetulu kwemalanga langu-30"
+        },
+        "capital_adequacy_ratio": {
+          "label": "Kwanela kwemali yesisekelo",
+          "formula": "Imali yemalunga yonkhe / imphahla yonkhe"
+        },
+        "deposits_to_loans": {
+          "label": "Kwonga uma kucatsaniswa nemalimboleko",
+          "formula": "Imali yekonga yemalunga / emalimboleko onkhe"
+        },
+        "roa": {
+          "label": "Imbuyiselo yemphahla",
+          "formula": "Inzuzo lesele / imphahla yonkhe"
+        },
+        "roe": {
+          "label": "Imbuyiselo yemali yemalunga",
+          "formula": "Inzuzo lesele / imali yemalunga yonkhe"
+        },
+        "operating_expense_ratio": {
+          "label": "Lizinga letindleko tekusebenta",
+          "formula": "Tindleko tekusebenta / imphahla yonkhe"
+        },
+        "operational_self_sufficiency": {
+          "label": "Kutimela ekusebenteni",
+          "formula": "Imali lengenako yonkhe / tindleko tonkhe"
+        },
+        "net_interest_margin": {
+          "label": "Umehluko wenzalo lesele",
+          "formula": "(Inzalo lengenako − inzalo lekhokhwako) / imphahla yonkhe"
+        },
+        "liquid_funds_ratio": {
+          "label": "Imphahla lenyakatako / imphahla yonkhe",
+          "formula": "Imphahla lenyakatako / imphahla yonkhe"
+        }
+      },
+      "growth": {
+        "assets": "Kukhula kwemphahla",
+        "loans": "Kukhula kwemalimboleko",
+        "savings": "Kukhula kwekonga"
+      },
+      "validation": {
+        "total_assets": "Imphahla yonkhe",
+        "assets_note": "Imigca yemphahla lebhaliwe ihlangana ibe ngu-{{sum}} (umehluko ngu-{{diff}}). Kusetjentiswa inani lelibikiwe.",
+        "total_equity": "Imali yemalunga yonkhe",
+        "equity_note": "Imigca yemali yemalunga lebhaliwe ihlangana ibe ngu-{{sum}} (umehluko ngu-{{diff}}). Kusetjentiswa inani lelibikiwe.",
+        "balance_sheet": "Ibhalansi shidi",
+        "balance_system": "{{assets}} uma kucatsaniswa na-{{funding}}",
+        "not_adjusted": "Akulungiswanga",
+        "balance_note": "Imphahla yonkhe ayilingani netikweletu tonkhe kanye nemali yemalunga. Sitatimende asilingani futsi kufanele silungiswe.",
+        "net_surplus": "Inzuzo lesele",
+        "surplus_note": "Imali lengenako kususwa tindleko kuniketa {{value}}. Kusetjentiswa inzuzo lesele lebikiwe.",
+        "par30": "PAR >emalanga langu-30",
+        "unverified": "Akukacinisekiswa",
+        "par30_note": "Emalimboleko langu-{{count}} abhalwe njengalasemuva kurejista yemalimboleko, kodvwa ileja lenkhulu ayibiki libhalansi lelisemuva. Leti tindzawo letimbili atihambisani.",
+        "member_counts": "Linani lemalunga",
+        "members_system": "{{gender}} ngebulili / {{status}} ngesimo",
+        "members_note": "Linani lemalunga liyehluka emkhatsini wekwehlukaniswa ngebulili nangesimo. Kusetjentiswa linani lesimo."
+      },
+      "areas": {
+        "par30": "ikhwalithi yephothifoliyo",
+        "par90": "ikhwalithi yephothifoliyo",
+        "npl_ratio": "ikhwalithi yephothifoliyo",
+        "loan_loss_coverage": "imali lebekelwe kulahlekelwa",
+        "capital_adequacy_ratio": "imali yesisekelo",
+        "roa": "inzuzo",
+        "roe": "inzuzo",
+        "operating_expense_ratio": "kulawula tindleko",
+        "operational_self_sufficiency": "kucinisa",
+        "liquid_funds_ratio": "imali lenyakatako"
+      },
+      "scorecard_areas": {
+        "capital_adequacy_ratio": "Kwanela kwemali yesisekelo",
+        "par30": "Ikhwalithi yemphahla",
+        "loan_loss_coverage": "Imali lebekelwe kulahlekelwa",
+        "roa": "Inzuzo",
+        "operational_self_sufficiency": "Kucinisa",
+        "liquid_funds_ratio": "Imali lenyakatako"
+      },
+      "text": {
+        "assets_grew": "Imphahla yonkhe ikhule nga-{{change}} uma kucatsaniswa nemnyaka lowendlulile.",
+        "assets_fell": "Imphahla yonkhe yehle nga-{{change}} uma kucatsaniswa nemnyaka lowendlulile.",
+        "no_assets_verdict": "Umbiko awunayo imphahla yonkhe, ngako-ke angeke kuhlolwe.",
+        "no_assets_body": "{{name}} alibikanga imphahla yonkhe yanga-{{year}}. Emazinga ekuvikela angeke abalwe kuze kube umbiko ulungisiwe futsi wafakwa kabusha.",
+        "lead_under_capitalised": "Imali yesisekelo ayanele",
+        "lead_sound": "Liciniswe etimalini",
+        "lead_mixed": "Imiphumela yetimali lehlanganisiwe",
+        "growing": " futsi liyakhula",
+        "shrinking": " kodvwa liyancipha",
+        "with_weaknesses": ", linebutsakatsaka ku-{{areas}}",
+        "all_met": ", futsi onkhe emazinga lebikiwe ayafinyelelwa",
+        "facts": "{{name}} libika imphahla yonkhe leyi-{{assets}}, imali yemalunga leyi-{{equity}} kanye nenzuzo lesele leyi-{{surplus}}.",
+        "problems": " Tinkhombandlela tekuvikela letingu-{{count}} kuleti letingu-{{total}} tephulwe noma atetsembeki.",
+        "no_problems": " Tonkhe tinkhombandlela tekuvikela tingekhatsi kwemazinga ato.",
+        "inconsistencies_one": " Kutfolwe kungahambisani kwemininingwane lokungu-{{count}}; buka Sengetelo A.",
+        "inconsistencies_other": " Kutfolwe kungahambisani kwemininingwane lokungu-{{count}}; buka Sengetelo A.",
+        "within_benchmark": "{{label}} ngu-{{value}}, ngekhatsi kwelizinga lelibekiwe ({{bench}}).",
+        "savings_grew": "Imali yekonga yemalunga ikhule nga-{{change}}.",
+        "not_reported": "{{label}} angeke kuhlolwe ngoba kute linani lelibikiwe.",
+        "against_benchmark": "{{label}} ngu-{{value}} uma kucatsaniswa nelizinga lelibekiwe le-{{bench}}.",
+        "not_reconciled_one": "Emanani lakhishwe yisistimu akakhonanga kuhambisana endzaweni yinye; buka Sengetelo A.",
+        "not_reconciled_other": "Emanani lakhishwe yisistimu akakhonanga kuhambisana etindzaweni letingu-{{count}}; buka Sengetelo A."
+      },
+      "actions": {
+        "par30": {
+          "lead": "Ikhwalithi yephothifoliyo.",
+          "text": "Faka luhlu lwemalimboleko ngeminyaka yawo futsi uhambisanise i-PAR lebikiwe nerejista yemalimboleko."
+        },
+        "par90": {
+          "lead": "Emalimboleko langakhokhwa.",
+          "text": "Lungisa luhlelo lwekubuyisa emalimboleko lasemuva ngetulu kwemalanga langu-90."
+        },
+        "loan_loss_coverage": {
+          "lead": "Imali lebekelwe kulahlekelwa.",
+          "text": "Beka imali lebekelwe kulahlekelwa kwemalimboleko ngekwemazinga ekuvikela (jikelele 1–2%; lecondzile 100% yemalimboleko >emalanga langu-90) futsi ubhale tindleko tayo."
+        },
+        "capital_adequacy_ratio": {
+          "lead": "Kubuyiselwa kwemali yesisekelo.",
+          "text": "Letsa luhlelo lwekwakha imali yesisekelo kuze imali yemalunga yonkhe ibe ngu-10% wemphahla yonkhe noma ngetulu."
+        },
+        "roa": {
+          "lead": "Inzuzo.",
+          "text": "Buyeketa emazinga enzalo yemalimboleko nesakhiwo setindleko kuze imbuyiselo yemphahla isondzele ku-3%."
+        },
+        "roe": {
+          "lead": "Imbuyiselo kuya emalungeni.",
+          "text": "Buyeketa kwabiwa kwenzuzo nesakhiwo setindleko kuze imbuyiselo yemali yemalunga isondzele ku-8%."
+        },
+        "operating_expense_ratio": {
+          "lead": "Kusebenta kahle.",
+          "text": "Beka luhlelo lwekunciphisa tindleko kuze tindleko tekusebenta tingedluli ku-5% wemphahla."
+        },
+        "operational_self_sufficiency": {
+          "lead": "Kucinisa.",
+          "text": "Lungisa emanani netindleko kuze imali lengenako imboze tindleko okungenani nga-110%."
+        },
+        "liquid_funds_ratio": {
+          "lead": "Imali lenyakatako.",
+          "text": "Yakha imphahla lenyakatako ibe ngu-15% wemphahla yonkhe noma ngetulu."
+        },
+        "reconciliation_lead": "Kuhambisanisa imininingwane.",
+        "reconciliation_one": "Lungisa umbiko futsi uwufake kabusha kuze lintfo leseSengetelweni A ihambisane netitatimende.",
+        "reconciliation_other": "Lungisa umbiko futsi uwufake kabusha kuze tintfo letingu-{{count}} leseSengetelweni A tihambisane netitatimende.",
+        "inclusion_lead": "Bulunga nekufakwa kwabonkhe.",
+        "inclusion": "Bika imininingwane yemalunga nalababoleka (besifazane, intsha, labasemakhaya) futsi ubeke tinhloso tekufaka bonkhe."
+      },
+      "exec": {
+        "total_assets": "Imphahla yonkhe",
+        "net_loan_portfolio": "Emalimboleko lasele",
+        "net_surplus": "Inzuzo lesele",
+        "capital_assets": "Imali yesisekelo / imphahla"
+      },
+      "scorecard": {
+        "title": "Ithebula Lemazinga Ekuvikela",
+        "sub": "Lesekelwe ku-PEARLS",
+        "intro": "Ithebula likhombisa inkhombandlela ngayinye yekuvikela yanga-{{year}} uma icatsaniswa nemnyaka lowendlulile kanye nelizinga lelibekiwe. Onkhe emazinga atsatfwe etitatimendeni tetimali letifakiwe.",
+        "signs_of_growth": "Tibonakaliso tekukhula",
+        "change_prior": "Lushintjo uma kucatsaniswa nemnyaka lowendlulile",
+        "footnote_hint": "Tinkhomba letincane (sibonelo A1) tikhomba lintfo lehambisana nayo eSengetelweni A — Kucinisekiswa Nekulungiswa Kwemininingwane."
+      },
+      "statement": {
+        "code": "Ikhodi",
+        "account": "I-akhawunti",
+        "assets": "Imphahla",
+        "total_assets": "Imphahla yonkhe",
+        "liabilities": "Tikweletu",
+        "total_liabilities": "Tikweletu tonkhe",
+        "equity": "Imali yemalunga",
+        "total_equity": "Imali yemalunga yonkhe",
+        "total_liabilities_equity": "Tikweletu tonkhe nemali yemalunga",
+        "income": "Imali lengenako",
+        "total_income": "Imali lengenako yonkhe",
+        "expenditure": "Tindleko",
+        "total_expenditure": "Tindleko tonkhe",
+        "net_surplus_year": "Inzuzo lesele yemnyaka",
+        "net_surplus": "Inzuzo lesele",
+        "net_loan_portfolio": "Emalimboleko lasele",
+        "member_savings": "Imali yekonga yemalunga",
+        "position_title": "Sitatimende Sesimo Setimali",
+        "performance_title": "Sitatimende Sekusebenta Kwetimali",
+        "structure": "Sakhiwo",
+        "income_surplus": "Imali lengenako nenzuzo",
+        "pct_assets": "% yemphahla",
+        "pct_income": "% yemali lengenako",
+        "fig_1": "Sitfombe 1.",
+        "fig_1_caption": "Sakhiwo sebhalansi shidi, unyaka wetimali {{prior}} uma ucatsaniswa na-{{year}} (tigidzi).",
+        "fig_2": "Sitfombe 2.",
+        "fig_2_caption": "Imali lengenako, tindleko nenzuzo, unyaka wetimali {{prior}} uma ucatsaniswa na-{{year}} (tigidzi).",
+        "series_income": "{{year}} imali lengenako / inzuzo",
+        "series_expenditure": "{{year}} tindleko",
+        "position_as_reported": "Sitatimende lesingentasi sikhombisa ema-akhawunti njengoba abikiwe.",
+        "assets_increased": "Imphahla yonkhe ikhuphuke nga-{{change}} yaya ku-{{value}}.",
+        "assets_decreased": "Imphahla yonkhe yehle nga-{{change}} yaya ku-{{value}}.",
+        "equity_share": "Imali yemalunga ingu-{{share}} wemphahla yonkhe.",
+        "performance_as_reported": "Sitatimende lesingentasi sikhombisa imali lengenako netindleko njengoba kubikiwe.",
+        "income_rose": "Imali lengenako yonkhe ikhuphuke nga-{{change}} yaya ku-{{value}}.",
+        "income_fell": "Imali lengenako yonkhe yehle nga-{{change}} yaya ku-{{value}}.",
+        "surplus": "Inzuzo lesele ingu-{{value}}.",
+        "surplus_with_prior": "Inzuzo lesele ingu-{{value}}, uma icatsaniswa na-{{prior}} emnyakeni lowendlulile."
+      },
+      "structure": {
+        "liquid_assets": "Imphahla lenyakatako",
+        "net_loans": "Emalimboleko lasele",
+        "other_assets": "Lenye imphahla",
+        "member_savings_deposits": "Kwonga nemadiphozithi emalunga",
+        "borrowings": "Timali letibolekiwe",
+        "other_liabilities": "Letinye tikweletu",
+        "member_equity": "Imali yemalunga",
+        "performing": "Lakhokhwako kahle",
+        "days_1_30": "Emalanga 1–30",
+        "days_31_60": "Emalanga 31–60",
+        "days_61_90": "Emalanga 61–90",
+        "over_90": "Ngetulu kwemalanga langu-90",
+        "fig_s1": "Sitfombe S1.",
+        "fig_s1_caption": "Kwakheka kwemphahla (emalimboleko lasele ngemalimboleko onkhe kususwa imali lebekelwe kulahlekelwa).",
+        "fig_s2": "Sitfombe S2.",
+        "fig_s2_caption": "Kuchaswa kwemphahla."
+      },
+      "loans": {
+        "title": "Ikhwalithi Yephothifoliyo Yemalimboleko Nengoti Yesikweletu",
+        "register": "Irejista yemalimboleko ibhalise emalimboleko langu-{{loans}} lanebhalansi leyi-{{balance}}, lapho langu-{{arrears}} ({{share}}) asemuva. ",
+        "no_register": "Kute irejista yemalimboleko lefakiwe yalesikhatsi. ",
+        "ledger": "Ileja lenkhulu ibika emalimboleko onkhe langu-{{value}}.",
+        "portfolio_quality": "Ikhwalithi yephothifoliyo",
+        "par_gl": "Iphothifoliyo lesengotini (ileja lenkhulu)",
+        "gross_loan_portfolio": "Emalimboleko onkhe",
+        "par30": "PAR >emalanga langu-30",
+        "par90": "PAR >emalanga langu-90",
+        "provisions": "Imali lebekelwe kulahlekelwa kwemalimboleko",
+        "coverage": "Kumbozwa kwekulahlekelwa kwemalimboleko",
+        "register_title": "Irejista yemalimboleko (ngelilunga)",
+        "outstanding": "Emalimboleko lasakhokhwa",
+        "performing_arrears": "Lakhokhwako kahle / lasemuva",
+        "arrears_rate": "Lizinga lalasemuva (ngelinani)",
+        "register_balance": "Ibhalansi yerejista lesele",
+        "average_size": "Bukhulu lobujwayelekile belimboleko",
+        "fig_l1": "Sitfombe L1.",
+        "fig_l1_caption": "Emalimboleko ngemalanga asemuva, kusuka eLejeni lenkhulu (imigca yemalimboleko 1201 kuya ku-1205).",
+        "by_category": "Irejista yemalimboleko ngeluhlobo",
+        "category": "Luhlobo",
+        "loans": "Emalimboleko",
+        "balance": "Ibhalansi",
+        "share_balance": "Sabelo sebhalansi",
+        "concern_title": "Lokukhatsatako ekuhlolweni.",
+        "concern": "Ileja lenkhulu ayibiki malimboleko lasemuva ngetulu kwemalanga langu-30, kodvwa emalimboleko langu-{{loans}} abhalwe njengalasemuva kurejista yemalimboleko. Kuze kufakwe luhlolo lwalasemuva, simo sekhwalithi yemphahla ngu:",
+        "unverified": "Akukacinisekiswa",
+        "required_actions": "Tento letidzingekako",
+        "categories": {
+          "Performing": "Lakhokhwako kahle",
+          "Watch": "Labhekwako",
+          "Substandard": "Langakafiki ezingeni",
+          "Doubtful": "Lasolekako",
+          "Loss": "Lokulahlekile"
+        }
+      },
+      "membership": {
+        "title": "Bulunga, Kubusa Nekufakwa Kwabonkhe",
+        "summary": "{{name}}: emalunga langu-{{total}}, lapho langu-{{active}} asebentako. Besifazane bangu-{{women}} wemalunga kantsi intsha ingu-{{youth}}.",
+        "none": "Kute emanani emalunga lafakiwe alesikhatsi.",
+        "insights": "Kubuka bulunga",
+        "under_18": "Ngaphansi kwa-18",
+        "over_50": "Ngetulu kwa-50",
+        "youth_18_35": "Intsha 18–35",
+        "fig_m1": "Sitfombe M1.",
+        "fig_m1_caption": "Emalunga ngebulili.",
+        "fig_m2": "Sitfombe M2.",
+        "fig_m2_caption": "Emalunga ngemaceba eminyaka, kusuka kuleja yemalunga.",
+        "members_unit": "emalunga",
+        "fig_3": "Sitfombe 3.",
+        "fig_3_caption": "Simo semalunga ngebulili, iminyaka nesimo (sabelo semalunga).",
+        "membership": "Bulunga",
+        "total_members": "Emalunga onkhe",
+        "active_inactive": "Lasebentako / langasebenti",
+        "youth": "Intsha (18–35)",
+        "agm": "Kuhambela umhlangano waminyaka yonkhe",
+        "savings_products": "Imikhicito yekonga nemadiphozithi",
+        "product": "Umkhicito",
+        "total_deposits": "Emadiphozithi emalunga onkhe",
+        "average_per_member": "Lokujwayelekile ngelilunga",
+        "governance_note": "Tinyatselo tekubusa (besifazane nentsha ebuholini, kwakheka kwemakomidi) betingesiyo incenye yalombiko."
+      },
+      "peers": {
+        "title": "Kucatsaniswa Nalabanye",
+        "intro_apex": "{{name}} licatsaniswa nalabanye ku-{{apexLc}} (bangu-{{apexCount}}) kanye nabo bonkhe labafake umbiko wanga-{{year}} (bangu-{{nationalCount}}). Sikhundla 1 ngumphumela lomuhle kakhulu. Emanani lajwayelekile ngemanani lalula emazinga a-{{coopLc}} ngamunye futsi afaka {{name}}.",
+        "intro": "{{name}} licatsaniswa nabo bonkhe labafake umbiko wanga-{{year}} (bangu-{{nationalCount}}). Sikhundla 1 ngumphumela lomuhle kakhulu. Emanani lajwayelekile ngemanani lalula emazinga a-{{coopLc}} ngamunye futsi afaka {{name}}.",
+        "apex_average": "Lokujwayelekile ({{apexLc}})",
+        "national_average": "Lokujwayelekile kwavelonkhe",
+        "rank_apex": "Sikhundla ({{apexLc}})",
+        "rank_national": "Sikhundla savelonkhe",
+        "rank": "{{position}} kulawa langu-{{of}}",
+        "source": "Umthombo: tinkhombandlela letibalwe yi-Coop Data ku-{{coopLc}} ngamunye lonembiko wemnyaka. Labangafakanga umbiko ababalwa.",
+        "indicators": {
+          "par30": "PAR >emalanga langu-30 (%)",
+          "capital_adequacy_ratio": "Kwanela kwemali yesisekelo (%)",
+          "roa": "Imbuyiselo yemphahla (%)",
+          "roe": "Imbuyiselo yemali yemalunga (%)",
+          "operating_expense_ratio": "Lizinga letindleko tekusebenta (%)",
+          "liquid_funds_ratio": "Imphahla lenyakatako / imphahla yonkhe (%)"
+        }
+      },
+      "findings": {
+        "title": "Lokutfoliwe Ekuhlolweni Neteluleko",
+        "intro": "Leti tento letilandzelako tinconywa eBhodini nakubaphatsi ba-{{name}}. Inchubekela phambili kufanele ibikwe nembiko lolandzelako wencenye yemnyaka."
+      },
+      "annex": {
+        "a_toc": "Sengetelo A — Kucinisekiswa Nekulungiswa Kwemininingwane",
+        "a_title": "Kucinisekiswa Nekulungiswa Kwemininingwane",
+        "a_intro": "Leti tintfo letilandzelako tibonakele ngesikhatsi kuhambisaniswa emanani lakhishwe yisistimu netitatimende letifakiwe. Tintfo letiphawulwe ngenkhomba kulombiko ticazwe lapha.",
+        "a_none": "Emanani lakhishwe yisistimu ahlolwe uma acatsaniswa netitatimende letifakiwe futsi akubonakalanga kungahambisani.",
+        "used_in_report": "Kusetjentiswe embikweni",
+        "b_toc": "Sengetelo B — Tinchazelo Tetinkhombandlela Nemazinga",
+        "b_title": "Tinchazelo Tetinkhombandlela Nemazinga",
+        "penetration": "Kufinyelela kwekonga / kwesikweletu",
+        "penetration_def": "Emalunga lanema-akhawunti ekonga (noma limboleko lelisebentako) njengesabelo semalunga onkhe."
+      }
+    },
+    "cons": {
+      "issuer": {
+        "Apex": "{{apex}}",
+        "Federation": "{{federation}}",
+        "Ministry": "{{ministry}}"
+      },
+      "head": {
+        "Apex": "COOP DATA · UMBIKO LOHLANGANISIWE · {{apex}}",
+        "Federation": "COOP DATA · UMBIKO LOHLANGANISIWE · {{federation}}",
+        "Ministry": "COOP DATA · UMBIKO LOHLANGANISIWE · {{ministry}}"
+      },
+      "report": {
+        "national_overview": "Umbukiso Wavelonkhe · {{coops}}",
+        "scope_apex": "{{issuer}} · {{coops}} lahlolwako: {{total}}",
+        "scope_apexes_one": "{{issuer}} · {{coops}} lahlolwako: {{total}} · {{apex}}: {{count}}",
+        "scope_apexes_other": "{{issuer}} · {{coops}} lahlolwako: {{total}} · {{apexes}}: {{count}}",
+        "head_right": "{{subject}} · UMNYAKA WEKUBIKA {{year}}",
+        "official_foot": "LOKUSEMTSETFWENI — Kuyimfihlo",
+        "kicker": "Kusebenta lokuhlanganisiwe kwelisekta",
+        "badge": "LOKUSEMTSETFWENI · KUYIMFIHLO",
+        "supervised": "{{coops}} lahlolwako",
+        "submission_rate": "Lizinga lekufaka imibiko",
+        "of": "{{filed}} kulawa langu-{{total}}",
+        "foot_right": "Emanani njengoba abikiwe",
+        "issuing_authority": "Siphatsimandla lesikhiphako",
+        "scope": "Bubanti",
+        "report_type": "Luhlobo lwembiko",
+        "report_type_value": "Umbiko lohlanganisiwe wekuhlola",
+        "year_comparative": "{{year}} (kucatsaniswa: umnyaka lowendlulile)",
+        "covered": "{{coops}} lafakiwe",
+        "entity": "Inhlangano",
+        "apex_organisations": "{{apexes}}",
+        "returns_submitted": "Imibiko lefakiwe",
+        "currency_value": "Njengoba ibikiwe",
+        "classification_value": "Lokusemtsetfweni — kuyimfihlo",
+        "basis_title": "Inhloso nesisekelo sekulungiswa",
+        "audience": {
+          "Ministry": "{{ministry}} (buholi)",
+          "Federation": "{{federation}} (buholi)",
+          "Apex": "{{apex}}"
+        },
+        "basis": "Lobhekiswe kuye: {{audience}}. Lombiko ukhombisa simo selisekta lelihlolwako. Ulungiswe kusuka emibikweni yaminyaka yonkhe lefakwe ngenkhundla ye-Coop Data. Tinkhombandlela \"letijwayelekile\" ngemanani lalula emazinga a-{{coopsLc}}; lapho lizinga lelihlanganisiwe (lizinga lemanani onkhe elisekta) likhona kubalwa, likhonjiswa eceleni kwalelijwayelekile. Emanani langakhonanga kuhambisaniswa ayaphawulwa futsi acazwe eSengetelweni A. Emanani akakahlolwa ngumcwaningimabhuku longatsembeli muntfu."
+      },
+      "ratios": {
+        "par30": {
+          "area": "Ikhwalithi yemphahla",
+          "label": "Iphothifoliyo lesengotini >emalanga langu-30",
+          "formula": "Emalimboleko lasemuva ngetulu kwemalanga langu-30 / emalimboleko onkhe"
+        },
+        "capital_adequacy_ratio": {
+          "area": "Imali yesisekelo",
+          "label": "Kwanela kwemali yesisekelo",
+          "formula": "Imali yemalunga yonkhe / imphahla yonkhe"
+        },
+        "roa": {
+          "area": "Inzuzo",
+          "label": "Imbuyiselo yemphahla",
+          "formula": "Inzuzo lesele / imphahla yonkhe"
+        },
+        "roe": {
+          "area": "Inzuzo",
+          "label": "Imbuyiselo yemali yemalunga",
+          "formula": "Inzuzo lesele / imali yemalunga yonkhe"
+        },
+        "operating_expense_ratio": {
+          "area": "Kusebenta kahle",
+          "label": "Lizinga letindleko tekusebenta",
+          "formula": "Tindleko tekusebenta / imphahla yonkhe"
+        },
+        "loan_loss_coverage": {
+          "area": "Imali lebekelwe kulahlekelwa",
+          "label": "Kumbozwa kwekulahlekelwa kwemalimboleko",
+          "formula": "Imali lebekelwe kulahlekelwa / emalimboleko lasemuva"
+        }
+      },
+      "unaffiliated": "Langekho ngaphansi kwa-{{apexLc}}",
+      "uncategorised": "Langahlelwanga",
+      "areas": {
+        "par30": "ikhwalithi yemphahla",
+        "capital_adequacy_ratio": "imali yesisekelo",
+        "roa": "inzuzo",
+        "roe": "inzuzo",
+        "operating_expense_ratio": "kusebenta kahle",
+        "loan_loss_coverage": "imali lebekelwe kulahlekelwa"
+      },
+      "owners": {
+        "Apex": "{{coops}}",
+        "Federation": "{{apexes}}",
+        "Ministry": "Bahloli ({{ministry}})"
+      },
+      "text": {
+        "none_filed_verdict": "Kute imibiko lefakiwe yalesikhatsi.",
+        "none_filed_body": "Kute umbiko lovunyiwe ku-{{coopsLc}} langu-{{total}}, ngako-ke kute linani lelihlanganisiwe lelingabikwa.",
+        "filing_full": "Kufaka imibiko ngalokuphelele",
+        "filing_good": "Kufaka imibiko lokuhle",
+        "filing_low": "Kufaka imibiko lokuphansi",
+        "growth_up": "kukhula kwebhalansi shidi",
+        "growth_down": "ibhalansi shidi leyancipha",
+        "growth_none": "kute kucatsaniswa nemnyaka lowendlulile",
+        "breaches": ", kodvwa lisekta lephula emazinga ku-{{areas}}",
+        "all_met": ", futsi emazinga ekuvikela ayafinyelelwa",
+        "verdict": "{{filing}} na-{{growth}}{{tail}}.",
+        "filed": "{{coops}}: {{filed}} kulawa langu-{{total}} ({{rate}}) afake imibiko. ",
+        "assets": "Imphahla yonkhe ingu-{{value}} ",
+        "assets_change": "Imphahla yonkhe ingu-{{value}} ({{change}} uma kucatsaniswa nemnyaka lowendlulile) ",
+        "members": "kantsi emalunga angu-{{value}}. ",
+        "ratios_out": "Emazinga lajwayelekile labikiwe langu-{{count}} kulawa langu-{{total}} angaphandle kwelizinga lekuvikela. ",
+        "ratios_in": "Onkhe emazinga lajwayelekile labikiwe angekhatsi kwelizinga lekuvikela. ",
+        "averages_note": "Emazinga ngemanani lalula emazinga a-{{coopsLc}}; emazinga lahlanganisiwe akhonjiswa eceleni kwawo eSigabeni 2.",
+        "strength_filed": "{{coops}}: {{filed}} kulawa langu-{{total}} afake imibiko ({{rate}}).",
+        "strength_assets": "Imphahla yonkhe ikhule nga-{{change}} yaya ku-{{value}}.",
+        "strength_loans": "Emalimboleko onkhe akhule nga-{{change}} aya ku-{{value}}.",
+        "strength_deposits": "Emadiphozithi emalunga akhuphuke nga-{{change}} aya ku-{{value}}.",
+        "strength_members": "Bulunga bukhule nga-{{change}} baya emalungeni langu-{{value}}.",
+        "strength_ratio": "{{label}}: lokujwayelekile ngu-{{value}}, ngekhatsi kwelizinga lelibekiwe ({{bench}}).",
+        "concern_ratio": "{{label}}: lokujwayelekile ngu-{{value}} uma kucatsaniswa nelizinga lelibekiwe le-{{bench}}.",
+        "concern_not_filed_one": "{{coop}} lelingakafaki umbiko: {{count}}; akufakwa kuwo onkhe emanani.",
+        "concern_not_filed_other": "{{coops}} langakafaki imibiko: {{count}}; akufakwa kuwo onkhe emanani.",
+        "concern_equity": "Imali yemalunga yonkhe yehle nga-{{change}} yaya ku-{{value}}.",
+        "concern_surplus": "Inzuzo lesele yehle nga-{{change}} yaya ku-{{value}}.",
+        "concern_loss": "Umphumela lohlanganisiwe kulahlekelwa kwa-{{value}}.",
+        "concern_unreported_one": "Inkhombandlela yinye ayinalo linani lelibikiwe futsi angeke ihlolwe.",
+        "concern_unreported_other": "Tinkhombandlela letingu-{{count}} atinalo linani lelibikiwe futsi angeke tihlolwe."
+      },
+      "actions": {
+        "par30": {
+          "lead": "Ikhwalithi yephothifoliyo.",
+          "text": "Funa tinhlelo tekulungisa ku-{{coopsLc}} lanelizinga le-PAR >emalanga langu-30 lelingetulu kwa-5% futsi ubike inchubekela phambili ekuhlolweni lokulandzelako."
+        },
+        "capital_adequacy_ratio": {
+          "lead": "Kubuyiselwa kwemali yesisekelo.",
+          "text": "Funa tinhlelo tekwakha imali yesisekelo ku-{{coopsLc}} langaphansi kwelizinga lelincane le-10% lemali yesisekelo uma icatsaniswa nemphahla, kubikwe njalo ngencenye yemnyaka."
+        },
+        "roa": {
+          "lead": "Inzuzo.",
+          "text": "Buyeketa emazinga enzalo yemalimboleko netakhiwo tetindleko kuze imbuyiselo yemphahla isondzele ku-3%."
+        },
+        "roe": {
+          "lead": "Imbuyiselo kuya emalungeni.",
+          "text": "Buyeketa kwabiwa kwenzuzo netakhiwo tetindleko kuze imbuyiselo yemali yemalunga isondzele ku-8%."
+        },
+        "operating_expense_ratio": {
+          "lead": "Kusebenta kahle.",
+          "text": "Cela tinhlelo tekunciphisa tindleko ku-{{coopsLc}} ladlula lizinga le-5% letindleko tekusebenta."
+        },
+        "loan_loss_coverage": {
+          "lead": "Imali lebekelwe kulahlekelwa.",
+          "text": "Beka imali lebekelwe kulahlekelwa kwemalimboleko ngekwemazinga ekuvikela (jikelele 1–2%; lecondzile 100% yemalimboleko >emalanga langu-90)."
+        },
+        "generic": "Buyisela {{label}} ngekhatsi kwa-{{bench}}.",
+        "reporting_lead": "Kufaka imibiko lephelele.",
+        "reporting_one": "Funa umbiko lovunyiwe ku-{{coopsLc}} langakafaki ({{count}}).",
+        "reporting_other": "Funa umbiko lovunyiwe ku-{{coopsLc}} langakafaki ({{count}}).",
+        "inclusion_lead": "Kufakwa kwabonkhe.",
+        "inclusion_apex": "Beka tinhloso tetikweletu kubesifazane, entsheni nakumalunga asemakhaya futsi ubike inchubekela phambili nga-{{coopLc}} ngamunye.",
+        "inclusion": "Beka tinhloso tetikweletu kubesifazane, entsheni nakumalunga asemakhaya futsi ubike inchubekela phambili nga-{{apexLc}} ngamunye."
+      },
+      "validation": {
+        "test_entities": "Tinhlangano tekuhlola",
+        "included": "Kufakiwe",
+        "not_filed": "Akukafakwa",
+        "test_note": "Emagama akhombisa kutsi lawa ngemarekhodi ekuhlola. Uma akusiwo {{coopsLc}} langempela, emanani awo andzisa emanani onkhe nalajwayelekile futsi kufanele asuswe ngaphambi kwekutsi kwetsenjwe lombiko.",
+        "par_npl": "PAR >30 nelizinga lemalimboleko langakhokhwa",
+        "identical": "Kuyafana ku-{{coopLc}} ngamunye",
+        "as_submitted": "Kubikwe njengoba kufakiwe",
+        "par_npl_note": "Lamazinga lamabili alinganisa tikhatsi letehlukene tekuba semuva futsi ngalokujwayelekile akalingani. Kuhlelwa kwemaceba alasemuva kufanele kuhlolwe.",
+        "no_assets": "Kufakwe ngaphandle kwemphahla yonkhe",
+        "no_assets_count_one": "{{coop}}: {{count}}",
+        "no_assets_count_other": "{{coops}}: {{count}}",
+        "ratios_not_reported": "Emazinga awabikwanga",
+        "no_assets_note": "Umbiko uphawulwe njengalofakiwe kodvwa awunayo imphahla yonkhe, ngako-ke emazinga angeke abalwe ku-{{coopsLc}} lawa.",
+        "membership": "Bulunga",
+        "zero_members": "Emalunga langu-0",
+        "not_reported": "Akubikiwe",
+        "membership_note": "Kute emanani emalunga lafakiwe, ngako-ke tikalo telilunga ngalinye atikhonjiswa."
+      },
+      "exec": {
+        "gross_loan_portfolio": "Emalimboleko onkhe",
+        "total_equity": "Imali yemalunga yonkhe",
+        "average": "Lokujwayelekile: {{label}}",
+        "earnings": "Inzuzo"
+      },
+      "financial": {
+        "title": "Simo Setimali Lesihlanganisiwe Netinkhombandlela Letibalulekile",
+        "sub": "{{coops}} lafake imibiko",
+        "intro": "Ithebula lihlanganisa imibiko levunyiwe ya-{{coopsLc}} langu-{{count}} lafake imibiko futsi liyicatsanisa nemnyaka lowendlulile.",
+        "no_prior": " Kute umbiko wemnyaka lowendlulile, ngako-ke kute kucatsaniswa lokukhonjiswako.",
+        "metrics": {
+          "assets": "Imphahla yonkhe",
+          "loans": "Emalimboleko onkhe",
+          "deposits": "Emadiphozithi emalunga",
+          "equity": "Imali yemalunga yonkhe",
+          "surplus": "Inzuzo lesele / (kulahlekelwa)",
+          "members": "Emalunga onkhe"
+        },
+        "fig_1": "Sitfombe 1.",
+        "fig_1_caption": "Simo setimali lesihlanganisiwe, umnyaka lowendlulile uma ucatsaniswa na-{{year}} (tigidzi).",
+        "prudential": "Tinkhombandlela tekuvikela letihlanganisiwe",
+        "average_year": "Lokujwayelekile {{year}}",
+        "average_prior": "Lokujwayelekile kwangaphambili",
+        "aggregate_year": "Lokuhlanganisiwe {{year}}",
+        "note": "Lokujwayelekile = linani lelilula lemazinga a-{{coopsLc}}. Lokuhlanganisiwe = lizinga lemanani lahlanganisiwe; umugca lomfishane usho kutsi angeke libalwe kusuka emananini lahlanganisiwe."
+      },
+      "tiles": {
+        "membership_inclusion": "Bulunga nekufakwa kwabonkhe",
+        "members": "Emalunga",
+        "active_members": "Emalunga lasebentako",
+        "inactive_members": "Emalunga langasebenti",
+        "of_members": "{{share}} wemalunga",
+        "active_borrowers": "Lababoleka labasebentako",
+        "women_borrowers": "Besifazane lababoleka",
+        "youth_borrowers": "Intsha leboleka",
+        "rural_borrowers": "Lababoleka basemakhaya",
+        "of_borrowers": "{{share}} walababoleka",
+        "deposits_lending": "Emadiphozithi nekuboleka",
+        "member_deposits": "Emadiphozithi emalunga",
+        "gross_loans": "Emalimboleko onkhe",
+        "average_loan": "Ibhalansi lejwayelekile yelimboleko",
+        "par_title": "Iphothifoliyo lesengotini, {{label}} (SZL)",
+        "overdue_31_60": "Lasemuva emalanga 31–60",
+        "overdue_61_90": "Lasemuva emalanga 61–90",
+        "over_90": "Ngetulu kwemalanga langu-90",
+        "value_at_risk": "Linani lelisengotini (>emalanga langu-30)",
+        "par30_share": "PAR >emalanga langu-30 {{share}}"
+      },
+      "indicators": {
+        "title": "Tinkhombandlela Letibalulekile",
+        "intro": "Emanani lamcoka a-{{coopsLc}} langu-{{count}} lafake imibiko, acatsaniswa nemnyaka lowendlulile lapho kucatsaniswa kukhona.",
+        "source": "Emalunga, lababoleka kanye nekwehlukaniswa kwabo kuvela kumaleja emalunga nemalimboleko a-{{coopsLc}} lawafakile. Emanani eliphothifoliyo lesengotini avela etitatimendeni tetimali letivunyiwe, letigucululwe taba yi-SZL."
+      },
+      "structure": {
+        "title": "Sakhiwo Seliphothifoliyo Nesimo Sekufaka Imibiko",
+        "intro_cooperative": "Emashadi akhombisa sabelo sa-{{coopLc}} ngamunye semphahla nemalimboleko onkhe labikwe ngu-{{coopsLc}} langu-{{count}} lafake imibiko. Letisitfupha letinkhulu kakhulu tiyabizwa ngemagama; letisele tihlanganiswa njenga-\"Lokunye\".",
+        "intro_apex": "Emashadi akhombisa sabelo sa-{{apexLc}} ngamunye semphahla nemalimboleko onkhe labikwe ngu-{{coopsLc}} langu-{{count}} lafake imibiko. Letisitfupha letinkhulu kakhulu tiyabizwa ngemagama; letisele tihlanganiswa njenga-\"Lokunye\".",
+        "fig_p1": "Sitfombe P1.",
+        "fig_p1_cooperative": "Sabelo semphahla yonkhe nga-{{coopLc}}.",
+        "fig_p1_apex": "Sabelo semphahla yonkhe nga-{{apexLc}}.",
+        "fig_p2": "Sitfombe P2.",
+        "fig_p2_cooperative": "Sabelo semalimboleko onkhe nga-{{coopLc}}.",
+        "fig_p2_apex": "Sabelo semalimboleko onkhe nga-{{apexLc}}.",
+        "fig_p3": "Sitfombe P3.",
+        "fig_p3_caption": "Simo sekufaka imibiko sa-{{year}}.",
+        "filing_status": "Simo sekufaka imibiko",
+        "under_supervision": "{{coops}} lahlolwako",
+        "returns_filed": "Imibiko lefakiwe",
+        "returns_not_filed": "Imibiko lengakafakwa",
+        "filing_rate": "Lizinga lekufaka imibiko",
+        "source": "Kufakwe kuphela {{coopsLc}} lafake titatimende tetimali. Emanani njengoba abikwe ngu-{{coopLc}} ngamunye."
+      },
+      "sector": {
+        "title": "Umbukiso Wemasekta · {{apexes}}",
+        "sub": "Kusabalala nekulandzela imitsetfo",
+        "breakdown": "Kwehlukaniswa ngemasekta",
+        "filing_rate": "Lizinga lekufaka imibiko",
+        "avg_par30": "PAR30 lejwayelekile",
+        "avg_car": "CAR lejwayelekile",
+        "avg_roa": "ROA lejwayelekile",
+        "apex_comparison": "Kucatsaniswa · {{apexes}}",
+        "coops": "{{coops}}",
+        "assets": "Imphahla",
+        "risk": "Ingoti",
+        "filing_by_apex": "Kufaka imibiko nga-{{apexLc}}",
+        "fig_2": "Sitfombe 2.",
+        "fig_2_caption": "Emazinga lamcoka nga-{{apexLc}} nakulo lonkhe lisekta (%).",
+        "par30": "PAR >emalanga langu-30",
+        "capital_adequacy": "Kwanela kwemali yesisekelo",
+        "roa": "Imbuyiselo yemphahla",
+        "operating_expense": "Tindleko tekusebenta",
+        "intro": "{{coops}} langu-{{coopCount}} asebenta ku-{{sectors}} futsi angaphansi kwa-{{apexGroups}}. Emazinga ngemanani lalula a-{{coopsLc}} lafake imibiko.",
+        "sectors_one": "lisekta linye",
+        "sectors_other": "emasekta langu-{{count}}",
+        "apexes_one": "{{apexesLc}} ({{count}})",
+        "apexes_other": "{{apexesLc}} ({{count}})",
+        "comparison_part": "Kucatsaniswa · {{apexes}} {{part}} kulawa langu-{{parts}}",
+        "filing_part": "Kufaka imibiko {{part}} kulawa langu-{{parts}}"
+      },
+      "coops": {
+        "title": "Umbukiso · {{coops}}",
+        "every": "{{coops}} onkhe",
+        "intro": "Emanani lamcoka nemazinga ekuvikela a-{{coopLc}} ngamunye. Umugca lomfishane usho kutsi umbiko awukafakwa noma leli nani alikabikwa.",
+        "loans": "Emalimboleko",
+        "deposits": "Emadiphozithi"
+      },
+      "pearls": {
+        "title": "Kucatsaniswa Nemazinga e-PEARLS",
+        "by_apex": "Nga-{{apexLc}}",
+        "intro": "Tinkhombandlela tekuvikela tihlelwe ngetindzawo te-PEARLS. Linani la-{{apexLc}} ngamunye linani lelilula la-{{coopsLc}} lafake imibiko; likholamu lelisekta lifaka yonkhe imibiko. Umugca lomfishane usho kutsi linani alikabikwa.",
+        "groups": {
+          "p": "P — Kuvikela",
+          "e": "E — Sakhiwo setimali lesisebenta kahle",
+          "a": "A — Ikhwalithi yemphahla",
+          "r": "R — Imbuyiselo netindleko",
+          "l": "L — Imali lenyakatako",
+          "s": "S — Tibonakaliso tekukhula"
+        },
+        "rows": {
+          "loan_loss_coverage": "Kumbozwa kwekulahlekelwa kwemalimboleko",
+          "net_loans_assets": "Emalimboleko lasele / imphahla yonkhe",
+          "deposits_assets": "Emadiphozithi / imphahla yonkhe",
+          "capital_adequacy": "Kwanela kwemali yesisekelo",
+          "par30": "PAR >emalanga langu-30",
+          "npl": "Lizinga lemalimboleko langakhokhwa",
+          "roa": "Imbuyiselo yemphahla",
+          "roe": "Imbuyiselo yemali yemalunga",
+          "oer": "Lizinga letindleko tekusebenta",
+          "liquid_funds": "Lizinga lemali lenyakatako",
+          "asset_growth": "Kukhula kwemphahla (umnyaka ngemnyaka)"
+        }
+      },
+      "social": {
+        "title": "Umtselela Emphakatsini Nekufakwa Kwabonkhe Etimalini",
+        "sub": "Bulunga nekufinyelela kwetikweletu",
+        "intro": "Kutsi bantfu labanyenti kangakanani labasitwa ngu-{{coopsLc}} nekutsi tikweletu tifinyelela njani kubesifazane, entsheni nakumalunga asemakhaya. Emanani afaka {{coopsLc}} langu-{{count}} lafake imibiko.",
+        "active_members": "Emalunga lasebentako",
+        "active_borrowers": "Lababoleka labasebentako",
+        "savings_penetration": "Kufinyelela kwekonga (lokujwayelekile)",
+        "credit_penetration": "Kufinyelela kwetikweletu (lokujwayelekile)",
+        "women_borrowers": "Besifazane lababoleka",
+        "youth_borrowers": "Intsha leboleka (18–35)",
+        "rural_borrowers": "Lababoleka basemakhaya",
+        "credit_flow": "Kufinyelela kwetikweletu ematfumbeni labalulekile",
+        "segment": "Litfumba",
+        "borrowers_year": "Lababoleka {{year}}",
+        "share_borrowers": "Sabelo salababoleka",
+        "borrowers_prior": "Lababoleka kwangaphambili",
+        "fig_3": "Sitfombe 3.",
+        "fig_3_caption": "Lababoleka ematfumbeni labalulekile, umnyaka lowendlulile uma ucatsaniswa na-{{year}}.",
+        "number_borrowers": "Linani lalababoleka",
+        "note_title": "Inchazelo ngekufakwa kwabonkhe.",
+        "segment_names": {
+          "women_borrowers": "besifazane",
+          "youth_borrowers": "intsha (18–35)",
+          "rural_borrowers": "labasemakhaya"
+        },
+        "note_apex": "Sabelo salababoleka labasebentako labangu-{{segments}} sehlile uma sicatsaniswa nemnyaka lowendlulile. {{coops}} kufanele acelwe kuchaza loku futsi abeke tinhloso tekufaka bonkhe.",
+        "note": "Sabelo salababoleka labasebentako labangu-{{segments}} sehlile uma sicatsaniswa nemnyaka lowendlulile. {{apexes}} kufanele acelwe kuchaza loku futsi abeke tinhloso tekufaka bonkhe."
+      },
+      "findings": {
+        "authority": {
+          "Ministry": "{{ministry}}",
+          "Federation": "{{federation}}",
+          "Apex": "{{apex}}"
+        },
+        "intro": "Leti tento letilandzelako tinconywa kuletinhlangano letihlolwako nakusiphatsimandla sato ({{authority}}). Inchubekela phambili kufanele ibuyeketwe emhlanganweni lolandzelako wekuhlola."
+      },
+      "annex": {
+        "a_intro": "Leti tintfo letilandzelako tibonakele ngesikhatsi kuhambisaniswa emanani lakhishwe yisistimu nemibiko lefakiwe. Ticazwe lapha kuze emanani lakulombiko afundvwe ngekucaphela.",
+        "a_none": "Akubonakalanga kungahambisani ngesikhatsi emanani lakhishwe yisistimu ahlolwa uma acatsaniswa nemibiko lefakiwe.",
+        "in_this_report": "Kulombiko",
+        "extra": {
+          "oss": {
+            "name": "Kutimela ekusebenteni",
+            "definition": "Imali lengenako yonkhe yehlukaniswa ngetindleko tonkhe."
+          },
+          "liquid": {
+            "name": "Lizinga lemali lenyakatako",
+            "definition": "Imali lesesandleni nekutfutfukisa kwesikhatsi lesifushane kwehlukaniswa ngemphahla yonkhe."
+          },
+          "nlp": {
+            "name": "Emalimboleko lasele / imphahla yonkhe",
+            "definition": "Emalimboleko lasele ehlukaniswa ngemphahla yonkhe."
+          },
+          "deposits": {
+            "name": "Emadiphozithi / imphahla yonkhe",
+            "definition": "Kwonga nemadiphozithi emalunga kwehlukaniswa ngemphahla yonkhe."
+          },
+          "penetration": {
+            "name": "Kufinyelela kwekonga / kwesikweletu",
+            "definition": "Emalunga lanema-akhawunti ekonga (noma limboleko lelisebentako) njengesabelo semalunga onkhe."
+          },
+          "filing": {
+            "name": "Lizinga lekufaka imibiko",
+            "definition": "{{coops}} lanembiko lovunyiwe ehlukaniswa nga-{{coopsLc}} lokufanele afake imibiko."
+          },
+          "average": {
+            "name": "Lokujwayelekile uma kucatsaniswa nalokuhlanganisiwe",
+            "definition": "Lokujwayelekile linani lelilula lemazinga a-{{coopLc}} ngamunye; lokuhlanganisiwe lizinga lemanani lahlanganisiwe. Lokujwayelekile kuniketa {{coopsLc}} lamancane sisindvo lesilinganako."
+          }
+        }
+      },
+      "sectors": {
+        "agriculture": "Kulima",
+        "finance": "Timali",
+        "housing": "Tindlu",
+        "transport": "Tekutfutsa",
+        "manufacturing": "Kukhicita",
+        "other": "Lokunye"
+      },
+      "title_1": {
+        "Apex": "Umbiko Lohlanganisiwe",
+        "Federation": "Umbiko Lohlanganisiwe",
+        "Ministry": "Umbiko Lohlanganisiwe"
+      },
+      "title_2": {
+        "Apex": "{{apex}}",
+        "Federation": "{{federation}}",
+        "Ministry": "{{ministry}}"
+      }
+    },
+    "roles": {
+      "cooperative": {
+        "one": "Likhopharethi",
+        "other": "Emakhopharethi"
+      },
+      "apex": {
+        "one": "Inhlangano yepheksi",
+        "other": "Tinhlangano temapheksi"
+      },
+      "federation": {
+        "one": "Lifederesheni",
+        "other": "Emafederesheni"
+      },
+      "ministry": {
+        "one": "Litiko",
+        "other": "Emalitiko"
+      }
+    }
   }
 }

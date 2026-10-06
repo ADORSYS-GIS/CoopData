@@ -1214,6 +1214,53 @@
       "currentBadge": "Méthode de soumission : {{method}}",
       "changeHint": "Vous pouvez changer la méthode de soumission tant que cette soumission est encore un brouillon.",
       "changeBtn": "Changer de méthode"
+    },
+    "access": {
+      "readOnly": "Lecture seule",
+      "reclaimedAt": "Repris le {{time}}",
+      "noteFrom": "Note ({{apex}})",
+      "badge": {
+        "editing": "Vous modifiez",
+        "waiting": "Prêt à être modifié",
+        "colleague": "En cours de modification",
+        "colleagueNamed": "{{name}} modifie",
+        "reclaimed": "Repris · {{apex}}",
+        "reclaimedNamed": "Repris par {{name}}",
+        "withApex": "Chez : {{apex}}",
+        "withApexNamed": "Chez : {{apex}} · {{name}}",
+        "withCooperative": "Chez : {{coop}}",
+        "withCooperativeNamed": "Chez : {{coop}} · {{name}}"
+      },
+      "banner": {
+        "reclaimed": {
+          "title": "Cette déclaration a été reprise ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) a repris cette déclaration",
+          "body": "Vous pouvez toujours consulter tout ce qui a été saisi, mais la modification vous est désormais fermée. Si quelque chose doit encore changer, contactez votre interlocuteur ({{apex}}).",
+          "bodyNamed": "Vous pouvez toujours consulter tout ce qui a été saisi, mais la modification vous est désormais fermée. Si quelque chose doit encore changer, contactez {{name}}."
+        },
+        "withApex": {
+          "title": "Cette déclaration est en préparation ({{apex}})",
+          "titleNamed": "{{name}} ({{apex}}) prépare cette déclaration",
+          "body": "Elle a été créée pour votre compte ({{apex}}). Vous pouvez la consulter dès maintenant et pourrez la modifier lorsqu'elle vous sera confiée.",
+          "bodyNamed": "Elle a été créée pour votre compte ({{apex}}). Vous pouvez la consulter dès maintenant et pourrez la modifier lorsque {{name}} vous la confiera."
+        },
+        "colleague": {
+          "title": "Quelqu'un d'autre modifie cette déclaration",
+          "titleNamed": "{{name}} modifie cette déclaration",
+          "body": "Une seule personne peut modifier une déclaration à la fois ; elle est donc en lecture seule pour vous pendant ce temps.",
+          "bodyNamed": "Une seule personne peut modifier une déclaration à la fois ; elle est donc en lecture seule pour vous pendant que {{name}} y travaille."
+        }
+      },
+      "lost": {
+        "title": "Votre accès en modification a pris fin",
+        "reclaimed": "Cette déclaration a été reprise ({{apex}}). Les modifications non encore enregistrées n'ont pas été conservées.",
+        "reclaimedNamed": "{{name}} ({{apex}}) a repris cette déclaration. Les modifications non encore enregistrées n'ont pas été conservées.",
+        "colleague": "Quelqu'un d'autre modifie désormais cette déclaration. Les modifications non encore enregistrées n'ont pas été conservées.",
+        "colleagueNamed": "{{name}} modifie désormais cette déclaration. Les modifications non encore enregistrées n'ont pas été conservées.",
+        "generic": "Cette déclaration est désormais détenue par quelqu'un d'autre ; votre dernière modification n'a donc pas été enregistrée.",
+        "readOnlyNow": "La page est maintenant en lecture seule. Tout ce que vous avez enregistré auparavant est conservé.",
+        "ok": "Compris"
+      }
     }
   },
   "reports": {
@@ -1237,10 +1284,6 @@
       "draft": "Brouillon"
     },
     "exporting": "Exportation…",
-    "exportPdf": "Exporter PDF",
-    "rowActions": "Actions de ligne",
-    "exportSuccess": "Rapport exporté au format {{format}} !",
-    "exportFailed": "Échec de l'exportation du rapport.",
     "recentDataSubmissions": "Soumissions de données récentes",
     "recentDataSubmissionsDesc": "États financiers les plus récemment soumis — cliquez sur Exporter pour télécharger",
     "entriesCount": "{{count}} entrée",
@@ -1255,7 +1298,8 @@
     "actionsHeader": "Actions",
     "financialReportLabel": "Rapport financier {{year}}",
     "showingMostRecent": "Affichage des {{count}} soumissions les plus récentes. Utilisez le panneau d'exportation ci-dessus pour les rapports consolidés.",
-    "myCooperative": "Ma coopérative"
+    "myCooperative": "Ma coopérative",
+    "downloadReport": "Télécharger le rapport"
   },
   "benchmarking": {
     "title": "Benchmarking de performance",
@@ -4271,11 +4315,6 @@
     "title": "Exporter les rapports",
     "subtitle": "Générer et télécharger des rapports selon votre niveau d'accès",
     "exportReport": "Exporter le rapport",
-    "exportPdf": "Exporter PDF",
-    "exporting": "Exportation…",
-    "cancel": "Annuler",
-    "exportedAs": "{{label}} exporté en PDF !",
-    "exportFailed": "Échec de l'exportation : {{error}}",
     "scopeFederation": "Ce rapport inclut les données consolidées pour la fédération : {{name}}.",
     "scopeApex": "Ce rapport inclut les données consolidées pour l'apex : {{name}}.",
     "scopeNational": "Ce rapport inclut les données de toutes les fédérations, apex et coopératives à l'échelle nationale.",
@@ -4283,10 +4322,6 @@
     "scopeApexAll": "Ce rapport inclut les données de toutes les coopératives sous votre organisation apex.",
     "selectedFederation": "fédération sélectionnée",
     "selectedApex": "apex sélectionné",
-    "regenerateAndExport": "Régénérer & Exporter",
-    "regenerating": "Régénération…",
-    "regeneratedAndDownloaded": "Rapport régénéré et téléchargé !",
-    "regenerateTooltip": "Forcer une nouvelle génération de PDF, en remplaçant la version mise en cache",
     "method": {
       "title": "Type de rapport",
       "choose": "Les deux types ont des données pour cette sélection. Choisissez le rapport à exporter.",
@@ -4297,6 +4332,20 @@
       "questionnaire": "Rapport questionnaire",
       "questionnaireDesc": "Établi à partir des réponses au questionnaire ({{count}} soumissions approuvées)",
       "summary": "Type de rapport"
+    },
+    "close": "Fermer",
+    "status": {
+      "loading": "Vérification du rapport…",
+      "unavailable": "Le rapport n'a pas pu être chargé. Veuillez réessayer dans un instant.",
+      "language": "Langue",
+      "download": "Télécharger",
+      "preparing": "Préparation de votre rapport…",
+      "preparingHint": "Cela peut prendre jusqu'à une minute la première fois. Le téléchargement démarre tout seul ; vous pouvez aussi fermer cette fenêtre, nous vous préviendrons quand il sera prêt.",
+      "failed": "Nous n'avons pas pu préparer votre rapport. Veuillez réessayer.",
+      "update": "Mettre à jour le rapport",
+      "updateHint": "Reconstruire le rapport à partir des données les plus récentes",
+      "readyToast": "Votre rapport en {{language}} est prêt.",
+      "failedToast": "Nous n'avons pas pu préparer votre rapport. Veuillez réessayer."
     }
   },
   "analyticsFilter": {
@@ -5520,5 +5569,981 @@
     "bannerTitle": "Votre vie privée et vos droits sur vos données",
     "bannerDesc": "CoopData protège les données personnelles conformément à la loi eswatinienne de 2022 sur la protection des données. Consultez ci-dessous ce que vous avez accepté et faites vos demandes concernant vos données.",
     "openLegalCenter": "Ouvrir le centre juridique"
+  "pdf": {
+    "common": {
+      "and": "et",
+      "fy": "Exercice {{year}}",
+      "page_of": "Page {{page}} sur {{pages}}",
+      "part_of": "Partie {{part}} sur {{parts}}",
+      "annex": "Annexe",
+      "annex_part_of": "Annexe · partie {{part}} sur {{parts}}",
+      "as_at_31_december": "Au 31 décembre",
+      "year_ended_31_december": "Exercice clos le 31 décembre",
+      "action_plan": "Plan d'action",
+      "executive_summary": "Résumé analytique",
+      "overall_view": "Appréciation prudentielle d'ensemble",
+      "strengths": "Points forts",
+      "areas_of_concern": "Points de vigilance",
+      "no_strength": "Aucun indicateur ne respecte actuellement sa norme de référence.",
+      "no_concern": "Aucun point de vigilance n'a été relevé.",
+      "scorecard_glance": "Tableau de bord synthétique",
+      "area": "Domaine",
+      "key_indicator": "Indicateur clé",
+      "indicator": "Indicateur",
+      "formula": "Formule",
+      "benchmark": "Norme",
+      "status": "Statut",
+      "meaning": "Signification",
+      "limit": "Limite",
+      "metric": "Mesure",
+      "change": "Variation",
+      "change_pct": "Variation %",
+      "prior": "N-1",
+      "prior_year": "Exercice précédent",
+      "total": "Total",
+      "share": "Part",
+      "number": "Nombre",
+      "definition": "Définition",
+      "recommendation": "Recommandation",
+      "priority": "Priorité",
+      "timeline": "Échéance",
+      "owner": "Responsable",
+      "ref": "Réf.",
+      "item": "Élément",
+      "system_value": "Valeur système",
+      "observation": "Observation",
+      "info": "Info",
+      "million": "millions",
+      "million_short": "M",
+      "thousand_short": "k",
+      "other": "Autres",
+      "cooperative": "{{coop}}",
+      "cooperatives": "{{coops}}",
+      "apex_organisation": "{{apex}}",
+      "members": "Membres",
+      "women": "Femmes",
+      "men": "Hommes",
+      "male": "Hommes",
+      "female": "Femmes",
+      "active": "Actifs",
+      "inactive": "Inactifs",
+      "others": "Autres",
+      "gender": "Sexe",
+      "age": "Âge",
+      "filed": "Déposé",
+      "not_filed": "Non déposé",
+      "sector": "Secteur",
+      "max_limit": "Max. {{value}}",
+      "min_limit": "Min. {{value}}",
+      "pct_of_gross_loans": "% de l'encours brut des prêts",
+      "pct_of_total_assets": "% du total de l'actif",
+      "on_prior": "{{arrow}} {{change}} par rapport à {{prior}}",
+      "on_prior_year": "{{arrow}} {{change}} par rapport à l'exercice précédent",
+      "bench_meets": "Norme ≥ {{value}}",
+      "date_of_issue": "Date d'émission",
+      "reporting_period": "Période de déclaration",
+      "reporting_year": "Exercice de déclaration",
+      "reporting_year_value": "Exercice {{year}}",
+      "reporting_currency": "Devise de déclaration",
+      "submission_ref": "Réf. de la déclaration",
+      "submission_status": "Statut de la déclaration",
+      "classification": "Classification",
+      "benchmark_framework": "Référentiel de normes",
+      "pearls_adapted": "PEARLS (adapté)",
+      "version": "Version",
+      "prepared_by": "Établi par Coop Data · Plateforme unifiée de renseignement financier et de conformité des coopératives",
+      "submission_status_values": {
+        "draft": "Brouillon",
+        "submitted": "Soumise",
+        "in_review": "En cours d'examen",
+        "approved": "Approuvée",
+        "rejected": "Rejetée",
+        "returned": "Renvoyée",
+        "escalated": "Transmise à l'échelon supérieur"
+      },
+      "priorities": {
+        "High": "Élevée",
+        "Medium": "Moyenne",
+        "Standard": "Normale"
+      },
+      "timelines": {
+        "within_30_days": "Sous 30 jours",
+        "next_quarter": "Trimestre suivant",
+        "next_financial_year": "Exercice suivant"
+      },
+      "pearls_source": "Les normes suivent le système de suivi PEARLS tel que paramétré sur la plateforme Coop Data. Les autorités de supervision peuvent appliquer des limites prudentielles nationales plus strictes.",
+      "pp": "pts"
+    },
+    "status": {
+      "ok": "Conforme",
+      "warn": "À surveiller",
+      "bad": "Non conforme",
+      "na": "Non vérifié",
+      "not_reported": "Non déclaré"
+    },
+    "legend": {
+      "ok": "L'indicateur respecte la norme prudentielle.",
+      "warn": "L'indicateur est proche de la norme ou légèrement en dehors ; à suivre lors du prochain examen.",
+      "bad": "L'indicateur est en dehors de la norme et appelle une action corrective.",
+      "na": "Les données transmises sont incohérentes ou incomplètes ; l'indicateur n'est pas fiable."
+    },
+    "front": {
+      "document_control": "Contrôle du document",
+      "report_particulars": "Caractéristiques du rapport",
+      "contents": "Sommaire",
+      "basis_of_preparation": "Base d'établissement",
+      "status_legend": "Légende des statuts"
+    },
+    "signoff": {
+      "approval": "Approbation",
+      "prepared_by": "Établi par",
+      "reviewed_by": "Revu par",
+      "approved_by": "Approuvé par",
+      "name_designation_date": "Nom, fonction et date"
+    },
+    "end_of_report": "FIN DU RAPPORT",
+    "trend": {
+      "title": "Évolution pluripériodique",
+      "periods_oldest_first": "{{count}} périodes, de la plus ancienne à la plus récente",
+      "rose": "{{noun}} : hausse de {{change}}, de SZL {{from}} en {{fromLabel}} à SZL {{to}} en {{toLabel}}.",
+      "fell": "{{noun}} : baisse de {{change}}, de SZL {{from}} en {{fromLabel}} à SZL {{to}} en {{toLabel}}.",
+      "total_assets": "Total de l'actif",
+      "member_savings": "Épargne des membres",
+      "gross_loans": "Encours brut des prêts",
+      "fig_t1": "Figure T1.",
+      "fig_t1_caption": "Total de l'actif, épargne des membres et encours brut des prêts de {{scope}}, en {{unit}}. États approuvés uniquement, convertis au taux figé lors de chaque déclaration.",
+      "fig_t2": "Figure T2. Excédent net ({{unit}})",
+      "fig_t3": "Figure T3. Portefeuille à risque à plus de 30 jours (%)",
+      "fig_t4": "Figure T4. Actifs liquides (% du total de l'actif)",
+      "fig_t5": "Figure T5. Adéquation des fonds propres (fonds propres en % du total de l'actif)",
+      "source": "Source : états financiers approuvés. Les soldes sont ceux du dernier mois de chaque période. Les montants sont exprimés en SZL afin de pouvoir comparer des périodes et des {{coopsLc}} déclarant dans des devises différentes ; les tableaux des états financiers figurant ailleurs dans ce rapport utilisent la devise déclarée par chaque {{coopLc}}.",
+      "szl_million": "millions de SZL",
+      "szl_thousand": "milliers de SZL",
+      "scope_sector": "le secteur supervisé"
+    },
+    "accounts": {
+      "1101": "Caisse",
+      "1102": "Banque (compte courant)",
+      "1103": "Banque (compte d'épargne)",
+      "1104": "Placements à court terme",
+      "1201": "Portefeuille de prêts sains",
+      "1202": "Prêts en retard (1-30 jours)",
+      "1203": "Prêts en retard (31-60 jours)",
+      "1204": "Prêts en retard (61-90 jours)",
+      "1205": "Prêts non performants",
+      "1251": "Provision générale pour pertes sur prêts",
+      "1252": "Provision spécifique pour pertes sur prêts",
+      "1301": "Créances",
+      "1302": "Charges constatées d'avance",
+      "1303": "Immobilisations (coût)",
+      "1304": "Amortissements cumulés",
+      "1305": "Immobilisations incorporelles",
+      "1306": "Stocks",
+      "2101": "Épargne volontaire",
+      "2102": "Épargne obligatoire",
+      "2103": "Dépôts à terme",
+      "2201": "Emprunts à court terme",
+      "2202": "Emprunts à long terme",
+      "2301": "Dettes fournisseurs",
+      "2302": "Charges à payer",
+      "2303": "Produits constatés d'avance",
+      "3101": "Capital social permanent",
+      "3102": "Parts sociales remboursables",
+      "3201": "Réserve statutaire",
+      "3202": "Réserve générale",
+      "3203": "Réserve pour risques / adéquation des fonds propres",
+      "3301": "Excédents cumulés",
+      "3302": "Excédent de l'exercice",
+      "4101": "Produits d'intérêts sur prêts",
+      "4102": "Produits de frais et commissions",
+      "4201": "Autres produits d'exploitation",
+      "5101": "Charges d'intérêts sur dépôts",
+      "5102": "Charges d'intérêts sur emprunts",
+      "5201": "Charges de personnel",
+      "5202": "Frais administratifs",
+      "5203": "Frais de gouvernance",
+      "5204": "Dotations aux amortissements",
+      "5301": "Dotations aux provisions pour pertes sur prêts"
+    },
+    "coop": {
+      "report": {
+        "head": "COOP DATA · ÉVALUATION ANNUELLE FINANCIÈRE ET DE CONFORMITÉ",
+        "restricted_foot": "DIFFUSION RESTREINTE — Usage exclusif de la supervision",
+        "ref": "Réf. {{ref}}",
+        "kicker": "Évaluation annuelle financière et de conformité",
+        "title_1": "Rapport de supervision",
+        "title_2": "{{coop}} — Exercice {{year}}",
+        "affiliated_to": "{{apex}} : {{apexName}}",
+        "badge": "DIFFUSION RESTREINTE",
+        "period_value": "1er janv. – 31 déc. {{year}}",
+        "foot_right": "Chiffres tels que déclarés",
+        "period_comparative": "Exercice {{year}} (comparatif : exercice {{prior}})",
+        "currency_value": "Telle que déclarée",
+        "classification_value": "Restreint — usage de la supervision",
+        "basis": "La présente évaluation est établie à partir de la déclaration annuelle transmise via la plateforme Coop Data. Les ratios ont été recalculés à partir des états de la situation financière et de la performance transmis. Lorsqu'un chiffre produit par le système automatisé n'a pas pu être rapproché des états sous-jacents, le chiffre déclaré est utilisé dans le corps du rapport et l'écart est présenté en Annexe A. Les chiffres n'ont pas fait l'objet d'un audit indépendant."
+      },
+      "groups": {
+        "protection": "Protection et qualité des actifs",
+        "capital": "Structure du capital",
+        "returns": "Rendements et coûts",
+        "liquidity": "Liquidité"
+      },
+      "ratios": {
+        "par30": {
+          "label": "PAR > 30 jours",
+          "formula": "Prêts en retard de plus de 30 jours / encours brut des prêts"
+        },
+        "par90": {
+          "label": "PAR > 90 jours",
+          "formula": "Prêts en retard de plus de 90 jours / encours brut des prêts"
+        },
+        "npl_ratio": {
+          "label": "Prêts non performants",
+          "formula": "Prêts > 90 jours / encours brut des prêts"
+        },
+        "loan_loss_coverage": {
+          "label": "Couverture des pertes sur prêts",
+          "formula": "Provisions / prêts en retard de plus de 30 jours"
+        },
+        "capital_adequacy_ratio": {
+          "label": "Adéquation des fonds propres",
+          "formula": "Total des fonds propres / total de l'actif"
+        },
+        "deposits_to_loans": {
+          "label": "Épargne sur prêts",
+          "formula": "Épargne des membres / encours brut des prêts"
+        },
+        "roa": {
+          "label": "Rentabilité des actifs",
+          "formula": "Excédent net / total de l'actif"
+        },
+        "roe": {
+          "label": "Rentabilité des fonds propres",
+          "formula": "Excédent net / total des fonds propres"
+        },
+        "operating_expense_ratio": {
+          "label": "Ratio des charges d'exploitation",
+          "formula": "Charges d'exploitation / total de l'actif"
+        },
+        "operational_self_sufficiency": {
+          "label": "Autosuffisance opérationnelle",
+          "formula": "Total des produits / total des charges"
+        },
+        "net_interest_margin": {
+          "label": "Marge nette d'intérêts",
+          "formula": "(Produits d'intérêts − charges d'intérêts) / total de l'actif"
+        },
+        "liquid_funds_ratio": {
+          "label": "Actifs liquides / total de l'actif",
+          "formula": "Actifs liquides / total de l'actif"
+        }
+      },
+      "growth": {
+        "assets": "Croissance de l'actif",
+        "loans": "Croissance des prêts",
+        "savings": "Croissance de l'épargne"
+      },
+      "validation": {
+        "total_assets": "Total de l'actif",
+        "assets_note": "La somme des lignes d'actif détaillées est de {{sum}} (écart de {{diff}}). Le total déclaré est retenu.",
+        "total_equity": "Total des fonds propres",
+        "equity_note": "La somme des lignes de fonds propres détaillées est de {{sum}} (écart de {{diff}}). Le total déclaré est retenu.",
+        "balance_sheet": "Bilan",
+        "balance_system": "{{assets}} contre {{funding}}",
+        "not_adjusted": "Non corrigé",
+        "balance_note": "Le total de l'actif n'est pas égal au total du passif et des fonds propres. Le bilan n'est pas équilibré et doit être corrigé.",
+        "net_surplus": "Excédent net",
+        "surplus_note": "Les produits moins les charges donnent {{value}}. L'excédent net déclaré est retenu.",
+        "par30": "PAR > 30 jours",
+        "unverified": "Non vérifié",
+        "par30_note": "{{count}} prêts sont enregistrés en retard dans le registre des prêts, mais le grand livre ne fait état d'aucun encours en retard. Les deux sources sont incohérentes.",
+        "member_counts": "Effectifs des membres",
+        "members_system": "{{gender}} par sexe / {{status}} par statut",
+        "members_note": "Le nombre total de membres diffère entre la ventilation par sexe et celle par statut. Le total par statut est retenu."
+      },
+      "areas": {
+        "par30": "qualité du portefeuille",
+        "par90": "qualité du portefeuille",
+        "npl_ratio": "qualité du portefeuille",
+        "loan_loss_coverage": "provisionnement",
+        "capital_adequacy_ratio": "fonds propres",
+        "roa": "rentabilité",
+        "roe": "rentabilité",
+        "operating_expense_ratio": "maîtrise des coûts",
+        "operational_self_sufficiency": "viabilité",
+        "liquid_funds_ratio": "liquidité"
+      },
+      "scorecard_areas": {
+        "capital_adequacy_ratio": "Adéquation des fonds propres",
+        "par30": "Qualité des actifs",
+        "loan_loss_coverage": "Provisionnement",
+        "roa": "Résultats",
+        "operational_self_sufficiency": "Viabilité",
+        "liquid_funds_ratio": "Liquidité"
+      },
+      "text": {
+        "assets_grew": "Le total de l'actif a progressé de {{change}} par rapport à l'exercice précédent.",
+        "assets_fell": "Le total de l'actif a reculé de {{change}} par rapport à l'exercice précédent.",
+        "no_assets_verdict": "La déclaration ne comporte aucun total de l'actif ; l'évaluation est donc impossible.",
+        "no_assets_body": "{{name}} n'a déclaré aucun total de l'actif pour {{year}}. Les ratios prudentiels ne pourront être calculés qu'une fois la déclaration corrigée et transmise à nouveau.",
+        "lead_under_capitalised": "Sous-capitalisée",
+        "lead_sound": "Financièrement saine",
+        "lead_mixed": "Résultats financiers contrastés",
+        "growing": " et en croissance",
+        "shrinking": " mais en contraction",
+        "with_weaknesses": ", avec des faiblesses en matière de {{areas}}",
+        "all_met": ", et toutes les normes déclarées sont respectées",
+        "facts": "{{name}} déclare un total de l'actif de {{assets}}, des fonds propres de {{equity}} et un excédent net de {{surplus}}.",
+        "problems": " {{count}} des {{total}} indicateurs prudentiels sont en dépassement ou ne sont pas fiables.",
+        "no_problems": " Tous les indicateurs prudentiels respectent leurs normes.",
+        "inconsistencies_one": " {{count}} incohérence de données a été relevée ; voir Annexe A.",
+        "inconsistencies_many": " {{count}} incohérences de données ont été relevées ; voir Annexe A.",
+        "inconsistencies_other": " {{count}} incohérences de données ont été relevées ; voir Annexe A.",
+        "within_benchmark": "{{label}} s'établit à {{value}}, dans la norme ({{bench}}).",
+        "savings_grew": "L'épargne des membres a progressé de {{change}}.",
+        "not_reported": "{{label}} ne peut pas être évalué faute de chiffre déclaré.",
+        "against_benchmark": "{{label}} s'établit à {{value}} pour une norme de {{bench}}.",
+        "not_reconciled_one": "Les chiffres générés par le système n'ont pas pu être rapprochés à {{count}} endroit ; voir Annexe A.",
+        "not_reconciled_many": "Les chiffres générés par le système n'ont pas pu être rapprochés à {{count}} endroits ; voir Annexe A.",
+        "not_reconciled_other": "Les chiffres générés par le système n'ont pas pu être rapprochés à {{count}} endroits ; voir Annexe A."
+      },
+      "actions": {
+        "par30": {
+          "lead": "Qualité du portefeuille.",
+          "text": "Transmettre une balance âgée des prêts et rapprocher le PAR déclaré du registre des prêts."
+        },
+        "par90": {
+          "lead": "Prêts non performants.",
+          "text": "Établir un plan de recouvrement pour les prêts en retard de plus de 90 jours."
+        },
+        "loan_loss_coverage": {
+          "lead": "Provisionnement.",
+          "text": "Constituer des provisions pour pertes sur prêts conformes aux normes prudentielles (générale 1–2 % ; spécifique 100 % pour les prêts à plus de 90 jours) et comptabiliser la dotation correspondante."
+        },
+        "capital_adequacy_ratio": {
+          "lead": "Rétablissement des fonds propres.",
+          "text": "Présenter un plan de renforcement des fonds propres pour porter le total des fonds propres à au moins 10 % du total de l'actif."
+        },
+        "roa": {
+          "lead": "Rentabilité.",
+          "text": "Revoir les taux débiteurs et la structure des coûts afin de rapprocher la rentabilité des actifs de 3 %."
+        },
+        "roe": {
+          "lead": "Rendement pour les membres.",
+          "text": "Revoir l'affectation des excédents et la structure des coûts afin de rapprocher la rentabilité des fonds propres de 8 %."
+        },
+        "operating_expense_ratio": {
+          "lead": "Efficience.",
+          "text": "Établir un plan de réduction des coûts pour ramener les charges d'exploitation à 5 % de l'actif au plus."
+        },
+        "operational_self_sufficiency": {
+          "lead": "Viabilité.",
+          "text": "Ajuster la tarification et les coûts afin que les produits couvrent les charges à hauteur d'au moins 110 %."
+        },
+        "liquid_funds_ratio": {
+          "lead": "Liquidité.",
+          "text": "Porter les actifs liquides à au moins 15 % du total de l'actif."
+        },
+        "reconciliation_lead": "Rapprochement des données.",
+        "reconciliation_one": "Corriger et transmettre à nouveau la déclaration afin que l'élément de l'Annexe A concorde avec les états financiers.",
+        "reconciliation_many": "Corriger et transmettre à nouveau la déclaration afin que les {{count}} éléments de l'Annexe A concordent avec les états financiers.",
+        "reconciliation_other": "Corriger et transmettre à nouveau la déclaration afin que les {{count}} éléments de l'Annexe A concordent avec les états financiers.",
+        "inclusion_lead": "Adhésion et inclusion.",
+        "inclusion": "Déclarer les caractéristiques démographiques des membres et des emprunteurs (femmes, jeunes, ruraux) et fixer des objectifs d'inclusion."
+      },
+      "exec": {
+        "total_assets": "Total de l'actif",
+        "net_loan_portfolio": "Encours net des prêts",
+        "net_surplus": "Excédent net",
+        "capital_assets": "Fonds propres / actif"
+      },
+      "scorecard": {
+        "title": "Tableau des ratios prudentiels",
+        "sub": "Selon PEARLS",
+        "intro": "Le tableau présente chaque indicateur prudentiel de l'exercice {{year}} par rapport à l'exercice précédent et à la norme applicable. Tous les ratios sont tirés des états financiers transmis.",
+        "signs_of_growth": "Signes de croissance",
+        "change_prior": "Variation par rapport à l'exercice précédent",
+        "footnote_hint": "Les renvois en exposant (par exemple A1) correspondent à l'élément de l'Annexe A — Validation et corrections des données."
+      },
+      "statement": {
+        "code": "Code",
+        "account": "Compte",
+        "assets": "Actif",
+        "total_assets": "Total de l'actif",
+        "liabilities": "Passif",
+        "total_liabilities": "Total du passif",
+        "equity": "Fonds propres",
+        "total_equity": "Total des fonds propres",
+        "total_liabilities_equity": "Total du passif et des fonds propres",
+        "income": "Produits",
+        "total_income": "Total des produits",
+        "expenditure": "Charges",
+        "total_expenditure": "Total des charges",
+        "net_surplus_year": "Excédent net de l'exercice",
+        "net_surplus": "Excédent net",
+        "net_loan_portfolio": "Encours net des prêts",
+        "member_savings": "Épargne des membres",
+        "position_title": "État de la situation financière",
+        "performance_title": "État de la performance financière",
+        "structure": "Structure",
+        "income_surplus": "Produits et excédent",
+        "pct_assets": "% de l'actif",
+        "pct_income": "% des produits",
+        "fig_1": "Figure 1.",
+        "fig_1_caption": "Structure du bilan, exercice {{prior}} contre exercice {{year}} (millions).",
+        "fig_2": "Figure 2.",
+        "fig_2_caption": "Produits, charges et excédent, exercice {{prior}} contre exercice {{year}} (millions).",
+        "series_income": "Exercice {{year}} produits / excédent",
+        "series_expenditure": "Exercice {{year}} charges",
+        "position_as_reported": "L'état ci-dessous présente les comptes tels que déclarés.",
+        "assets_increased": "Le total de l'actif a augmenté de {{change}} pour atteindre {{value}}.",
+        "assets_decreased": "Le total de l'actif a diminué de {{change}} pour s'établir à {{value}}.",
+        "equity_share": "Les fonds propres représentent {{share}} du total de l'actif.",
+        "performance_as_reported": "L'état ci-dessous présente les produits et les charges tels que déclarés.",
+        "income_rose": "Le total des produits a progressé de {{change}} pour atteindre {{value}}.",
+        "income_fell": "Le total des produits a reculé de {{change}} pour s'établir à {{value}}.",
+        "surplus": "L'excédent net s'élève à {{value}}.",
+        "surplus_with_prior": "L'excédent net s'élève à {{value}}, contre {{prior}} lors de l'exercice précédent."
+      },
+      "structure": {
+        "liquid_assets": "Actifs liquides",
+        "net_loans": "Prêts nets",
+        "other_assets": "Autres actifs",
+        "member_savings_deposits": "Épargne et dépôts des membres",
+        "borrowings": "Emprunts",
+        "other_liabilities": "Autres passifs",
+        "member_equity": "Fonds propres des membres",
+        "performing": "Sains",
+        "days_1_30": "1–30 jours",
+        "days_31_60": "31–60 jours",
+        "days_61_90": "61–90 jours",
+        "over_90": "Plus de 90 jours",
+        "fig_s1": "Figure S1.",
+        "fig_s1_caption": "Composition de l'actif (les prêts nets correspondent à l'encours brut diminué de la provision pour pertes sur prêts).",
+        "fig_s2": "Figure S2.",
+        "fig_s2_caption": "Financement de l'actif."
+      },
+      "loans": {
+        "title": "Qualité du portefeuille de prêts et risque de crédit",
+        "register": "Le registre des prêts recense {{loans}} prêts pour un encours de {{balance}}, dont {{arrears}} ({{share}}) en retard. ",
+        "no_register": "Aucun registre des prêts n'a été transmis pour cette période. ",
+        "ledger": "Le grand livre fait état d'un encours brut des prêts de {{value}}.",
+        "portfolio_quality": "Qualité du portefeuille",
+        "par_gl": "Portefeuille à risque (grand livre)",
+        "gross_loan_portfolio": "Encours brut des prêts",
+        "par30": "PAR > 30 jours",
+        "par90": "PAR > 90 jours",
+        "provisions": "Provisions pour pertes sur prêts",
+        "coverage": "Couverture des pertes sur prêts",
+        "register_title": "Registre des prêts (par membre)",
+        "outstanding": "Prêts en cours",
+        "performing_arrears": "Sains / en retard",
+        "arrears_rate": "Taux de retard (en nombre)",
+        "register_balance": "Encours du registre",
+        "average_size": "Montant moyen des prêts",
+        "fig_l1": "Figure L1.",
+        "fig_l1_caption": "Portefeuille de prêts par nombre de jours de retard, d'après le grand livre (lignes de prêts 1201 à 1205).",
+        "by_category": "Registre des prêts par catégorie",
+        "category": "Catégorie",
+        "loans": "Prêts",
+        "balance": "Encours",
+        "share_balance": "Part de l'encours",
+        "concern_title": "Préoccupation prudentielle.",
+        "concern": "Le grand livre ne fait état d'aucun prêt en retard de plus de 30 jours, alors que {{loans}} prêts sont enregistrés en retard dans le registre des prêts. Tant qu'une analyse des retards n'a pas été transmise, la qualité des actifs est classée",
+        "unverified": "Non vérifiée",
+        "required_actions": "Actions requises",
+        "categories": {
+          "Performing": "Sain",
+          "Watch": "Sous surveillance",
+          "Substandard": "Dégradé",
+          "Doubtful": "Douteux",
+          "Loss": "Irrécouvrable"
+        }
+      },
+      "membership": {
+        "title": "Adhésion, gouvernance et inclusion",
+        "summary": "{{name}} compte {{total}} membres, dont {{active}} sont actifs. Les femmes représentent {{women}} des membres et les jeunes {{youth}}.",
+        "none": "Aucun chiffre relatif aux membres n'a été transmis pour cette période.",
+        "insights": "Analyse de l'adhésion",
+        "under_18": "Moins de 18 ans",
+        "over_50": "Plus de 50 ans",
+        "youth_18_35": "Jeunes 18–35 ans",
+        "fig_m1": "Figure M1.",
+        "fig_m1_caption": "Membres par sexe.",
+        "fig_m2": "Figure M2.",
+        "fig_m2_caption": "Membres par tranche d'âge, d'après le registre des membres.",
+        "members_unit": "membres",
+        "fig_3": "Figure 3.",
+        "fig_3_caption": "Profil des membres par sexe, âge et statut (part des membres).",
+        "membership": "Adhésion",
+        "total_members": "Nombre total de membres",
+        "active_inactive": "Actifs / inactifs",
+        "youth": "Jeunes (18–35 ans)",
+        "agm": "Participation à l'AG",
+        "savings_products": "Produits d'épargne et de dépôt",
+        "product": "Produit",
+        "total_deposits": "Total des dépôts des membres",
+        "average_per_member": "Moyenne par membre",
+        "governance_note": "Les indicateurs de gouvernance (femmes et jeunes aux postes de direction, composition des comités) ne figuraient pas dans cette déclaration."
+      },
+      "peers": {
+        "title": "Comparaison avec les pairs",
+        "intro_apex": "{{name}} est comparé aux autres membres de son groupe ({{apexLc}} : {{apexCount}}) et à l'ensemble des déclarants de l'exercice {{year}} ({{nationalCount}}). Le rang 1 correspond au meilleur résultat. Les moyennes sont des moyennes simples des ratios de chaque {{coopLc}} et incluent {{name}}.",
+        "intro": "{{name}} est comparé à l'ensemble des déclarants de l'exercice {{year}} ({{nationalCount}}). Le rang 1 correspond au meilleur résultat. Les moyennes sont des moyennes simples des ratios de chaque {{coopLc}} et incluent {{name}}.",
+        "apex_average": "Moyenne ({{apexLc}})",
+        "national_average": "Moyenne nationale",
+        "rank_apex": "Rang ({{apexLc}})",
+        "rank_national": "Rang national",
+        "rank": "{{position}} sur {{of}}",
+        "source": "Source : indicateurs calculés par Coop Data pour chaque {{coopLc}} ayant déposé une déclaration pour l'exercice. Les entités n'ayant pas déposé ne sont pas prises en compte.",
+        "indicators": {
+          "par30": "PAR > 30 jours (%)",
+          "capital_adequacy_ratio": "Adéquation des fonds propres (%)",
+          "roa": "Rentabilité des actifs (%)",
+          "roe": "Rentabilité des fonds propres (%)",
+          "operating_expense_ratio": "Ratio des charges d'exploitation (%)",
+          "liquid_funds_ratio": "Actifs liquides / total de l'actif (%)"
+        }
+      },
+      "findings": {
+        "title": "Constats et recommandations de supervision",
+        "intro": "Les actions suivantes sont recommandées au conseil d'administration et à la direction de {{name}}. L'état d'avancement devra être communiqué avec la prochaine déclaration trimestrielle."
+      },
+      "annex": {
+        "a_toc": "Annexe A — Validation et corrections des données",
+        "a_title": "Validation et corrections des données",
+        "a_intro": "Les éléments suivants ont été relevés lors du rapprochement des chiffres générés par le système avec les états transmis. Les éléments signalés par un renvoi dans le corps du rapport sont expliqués ici.",
+        "a_none": "Les chiffres générés par le système ont été contrôlés par rapport aux états transmis et aucune incohérence n'a été relevée.",
+        "used_in_report": "Retenu dans le rapport",
+        "b_toc": "Annexe B — Définitions des indicateurs et normes",
+        "b_title": "Définitions des indicateurs et normes",
+        "penetration": "Taux de pénétration de l'épargne / du crédit",
+        "penetration_def": "Membres détenant un compte d'épargne (ou un prêt en cours) en proportion du nombre total de membres."
+      }
+    },
+    "cons": {
+      "issuer": {
+        "Apex": "{{apex}}",
+        "Federation": "{{federation}}",
+        "Ministry": "{{ministry}}"
+      },
+      "head": {
+        "Apex": "COOP DATA · RAPPORT CONSOLIDÉ · {{apex}}",
+        "Federation": "COOP DATA · RAPPORT CONSOLIDÉ · {{federation}}",
+        "Ministry": "COOP DATA · RAPPORT CONSOLIDÉ · {{ministry}}"
+      },
+      "report": {
+        "national_overview": "Panorama national · {{coops}}",
+        "scope_apex": "{{issuer}} · {{coops}} sous supervision : {{total}}",
+        "scope_apexes_one": "{{issuer}} · {{coops}} sous supervision : {{total}} · {{apex}} : {{count}}",
+        "scope_apexes_many": "{{issuer}} · {{coops}} sous supervision : {{total}} · {{apexes}} : {{count}}",
+        "scope_apexes_other": "{{issuer}} · {{coops}} sous supervision : {{total}} · {{apexes}} : {{count}}",
+        "head_right": "{{subject}} · EXERCICE {{year}}",
+        "official_foot": "OFFICIEL — Confidentiel",
+        "kicker": "Performance consolidée du secteur",
+        "badge": "OFFICIEL · CONFIDENTIEL",
+        "supervised": "{{coops}} sous supervision",
+        "submission_rate": "Taux de déclaration",
+        "of": "{{filed}} sur {{total}}",
+        "foot_right": "Chiffres tels que déclarés",
+        "issuing_authority": "Autorité émettrice",
+        "scope": "Périmètre",
+        "report_type": "Type de rapport",
+        "report_type_value": "Rapport de supervision consolidé",
+        "year_comparative": "{{year}} (comparatif : exercice précédent)",
+        "covered": "{{coops}} (périmètre)",
+        "entity": "Entité",
+        "apex_organisations": "{{apexes}}",
+        "returns_submitted": "Déclarations déposées",
+        "currency_value": "Telle que déclarée",
+        "classification_value": "Officiel — confidentiel",
+        "basis_title": "Objet et base d'établissement",
+        "audience": {
+          "Ministry": "{{ministry}} (direction)",
+          "Federation": "{{federation}} (direction)",
+          "Apex": "{{apex}}"
+        },
+        "basis": "Destinataire : {{audience}}. Le présent rapport présente la situation du secteur supervisé. Il est établi à partir des déclarations annuelles transmises via la plateforme Coop Data. Les indicateurs « moyens » sont des moyennes simples des ratios des {{coopsLc}} ; lorsqu'un ratio agrégé (ratio des totaux du secteur) peut être calculé, il est présenté à côté de la moyenne. Les chiffres n'ayant pas pu être rapprochés sont signalés et expliqués en Annexe A. Les chiffres n'ont pas fait l'objet d'un audit indépendant."
+      },
+      "ratios": {
+        "par30": {
+          "area": "Qualité des actifs",
+          "label": "Portefeuille à risque > 30 jours",
+          "formula": "Prêts en retard de plus de 30 jours / encours brut des prêts"
+        },
+        "capital_adequacy_ratio": {
+          "area": "Fonds propres",
+          "label": "Adéquation des fonds propres",
+          "formula": "Total des fonds propres / total de l'actif"
+        },
+        "roa": {
+          "area": "Résultats",
+          "label": "Rentabilité des actifs",
+          "formula": "Excédent net / total de l'actif"
+        },
+        "roe": {
+          "area": "Résultats",
+          "label": "Rentabilité des fonds propres",
+          "formula": "Excédent net / total des fonds propres"
+        },
+        "operating_expense_ratio": {
+          "area": "Efficience",
+          "label": "Ratio des charges d'exploitation",
+          "formula": "Charges d'exploitation / total de l'actif"
+        },
+        "loan_loss_coverage": {
+          "area": "Provisionnement",
+          "label": "Couverture des pertes sur prêts",
+          "formula": "Provisions / prêts en retard"
+        }
+      },
+      "unaffiliated": "Non affiliées",
+      "uncategorised": "Non classées",
+      "areas": {
+        "par30": "qualité des actifs",
+        "capital_adequacy_ratio": "fonds propres",
+        "roa": "résultats",
+        "roe": "résultats",
+        "operating_expense_ratio": "efficience",
+        "loan_loss_coverage": "provisionnement"
+      },
+      "owners": {
+        "Apex": "{{coops}}",
+        "Federation": "{{apexes}}",
+        "Ministry": "Superviseurs ({{ministry}})"
+      },
+      "text": {
+        "none_filed_verdict": "Aucune déclaration n'a été déposée pour cette période.",
+        "none_filed_body": "Aucune déclaration approuvée n'existe pour les {{total}} {{coopsLc}} du périmètre ; aucun chiffre consolidé ne peut donc être présenté.",
+        "filing_full": "Respect intégral des obligations déclaratives",
+        "filing_good": "Bon respect des obligations déclaratives",
+        "filing_low": "Faible respect des obligations déclaratives",
+        "growth_up": "une croissance du bilan",
+        "growth_down": "un bilan en contraction",
+        "growth_none": "aucune comparaison avec l'exercice précédent",
+        "breaches": ", mais le secteur dépasse les normes en matière de {{areas}}",
+        "all_met": ", et les normes prudentielles sont respectées",
+        "verdict": "{{filing}} et {{growth}}{{tail}}.",
+        "filed": "{{filed}} des {{total}} {{coopsLc}} ({{rate}}) ont déposé leur déclaration. ",
+        "assets": "Le total de l'actif s'établit à {{value}} ",
+        "assets_change": "Le total de l'actif s'établit à {{value}} ({{change}} par rapport à l'exercice précédent) ",
+        "members": "et le nombre de membres à {{value}}. ",
+        "ratios_out": "{{count}} des {{total}} ratios moyens déclarés sont en dehors de la norme prudentielle. ",
+        "ratios_in": "Tous les ratios moyens déclarés respectent la norme prudentielle. ",
+        "averages_note": "Les ratios sont des moyennes simples des ratios des {{coopsLc}} ; les ratios agrégés figurent à côté en section 2.",
+        "strength_filed": "{{filed}} des {{total}} {{coopsLc}} ont déposé leur déclaration ({{rate}}).",
+        "strength_assets": "Le total de l'actif a progressé de {{change}} pour atteindre {{value}}.",
+        "strength_loans": "L'encours brut des prêts a progressé de {{change}} pour atteindre {{value}}.",
+        "strength_deposits": "Les dépôts des membres ont augmenté de {{change}} pour atteindre {{value}}.",
+        "strength_members": "Le nombre de membres a progressé de {{change}} pour atteindre {{value}}.",
+        "strength_ratio": "{{label}} : moyenne de {{value}}, dans la norme ({{bench}}).",
+        "concern_ratio": "{{label}} : moyenne de {{value}} pour une norme de {{bench}}.",
+        "concern_not_filed_one": "{{coop}} sans déclaration : {{count}}, hors de tous les totaux.",
+        "concern_not_filed_many": "{{coops}} sans déclaration : {{count}}, hors de tous les totaux.",
+        "concern_not_filed_other": "{{coops}} sans déclaration : {{count}}, hors de tous les totaux.",
+        "concern_equity": "Le total des fonds propres a reculé de {{change}} pour s'établir à {{value}}.",
+        "concern_surplus": "L'excédent net a reculé de {{change}} pour s'établir à {{value}}.",
+        "concern_loss": "Le résultat cumulé est une perte de {{value}}.",
+        "concern_unreported_one": "{{count}} indicateur n'a pas de chiffre déclaré et ne peut pas être évalué.",
+        "concern_unreported_many": "{{count}} indicateurs n'ont pas de chiffre déclaré et ne peuvent pas être évalués.",
+        "concern_unreported_other": "{{count}} indicateurs n'ont pas de chiffre déclaré et ne peuvent pas être évalués."
+      },
+      "actions": {
+        "par30": {
+          "lead": "Qualité du portefeuille.",
+          "text": "Exiger des plans de redressement des {{coopsLc}} dont le PAR > 30 jours dépasse 5 % et rendre compte des progrès lors du prochain examen."
+        },
+        "capital_adequacy_ratio": {
+          "lead": "Rétablissement des fonds propres.",
+          "text": "Exiger des plans de renforcement des fonds propres des {{coopsLc}} sous le minimum de 10 % de fonds propres sur actif, avec un suivi trimestriel."
+        },
+        "roa": {
+          "lead": "Rentabilité.",
+          "text": "Revoir les taux débiteurs et les structures de coûts afin que la rentabilité des actifs se rapproche de 3 %."
+        },
+        "roe": {
+          "lead": "Rendement pour les membres.",
+          "text": "Revoir l'affectation des excédents et les structures de coûts afin que la rentabilité des fonds propres se rapproche de 8 %."
+        },
+        "operating_expense_ratio": {
+          "lead": "Efficience.",
+          "text": "Demander des plans de réduction des coûts aux {{coopsLc}} dépassant la norme de 5 % de charges d'exploitation."
+        },
+        "loan_loss_coverage": {
+          "lead": "Provisionnement.",
+          "text": "Constituer des provisions pour pertes sur prêts conformes aux normes prudentielles (générale 1–2 % ; spécifique 100 % pour les prêts à plus de 90 jours)."
+        },
+        "generic": "Ramener {{label}} dans la limite de {{bench}}.",
+        "reporting_lead": "Exhaustivité des déclarations.",
+        "reporting_one": "Exiger une déclaration approuvée des {{coopsLc}} n'ayant pas déposé ({{count}}).",
+        "reporting_many": "Exiger une déclaration approuvée des {{coopsLc}} n'ayant pas déposé ({{count}}).",
+        "reporting_other": "Exiger une déclaration approuvée des {{coopsLc}} n'ayant pas déposé ({{count}}).",
+        "inclusion_lead": "Inclusion.",
+        "inclusion_apex": "Fixer des objectifs de crédit en faveur des femmes, des jeunes et des membres ruraux et rendre compte des progrès par {{coopLc}}.",
+        "inclusion": "Fixer des objectifs de crédit en faveur des femmes, des jeunes et des membres ruraux et rendre compte des progrès par {{apexLc}}."
+      },
+      "validation": {
+        "test_entities": "Entités de test",
+        "included": "Incluses",
+        "not_filed": "Non déposé",
+        "test_note": "Les noms laissent penser à des enregistrements de test. S'il ne s'agit pas de véritables {{coopsLc}}, leurs chiffres surestiment les totaux et les moyennes et ces enregistrements doivent être supprimés avant que le rapport ne soit utilisé.",
+        "par_npl": "PAR > 30 et ratio de prêts non performants",
+        "identical": "Identiques pour chaque {{coopLc}}",
+        "as_submitted": "Présentés tels que déclarés",
+        "par_npl_note": "Les deux ratios mesurent des tranches de retard différentes et ne sont normalement pas égaux. La correspondance des tranches de retard doit être vérifiée.",
+        "no_assets": "Déclaration sans total de l'actif",
+        "no_assets_count_one": "{{count}} {{coopLc}}",
+        "no_assets_count_many": "{{count}} {{coopsLc}}",
+        "no_assets_count_other": "{{count}} {{coopsLc}}",
+        "ratios_not_reported": "Ratios non présentés",
+        "no_assets_note": "La déclaration est marquée comme déposée mais ne comporte aucun total de l'actif ; les ratios ne peuvent donc pas être calculés pour ces {{coopsLc}}.",
+        "membership": "Adhésion",
+        "zero_members": "0 membre",
+        "not_reported": "Non déclaré",
+        "membership_note": "Aucun chiffre relatif aux membres n'a été transmis ; les mesures par membre ne sont donc pas présentées."
+      },
+      "exec": {
+        "gross_loan_portfolio": "Encours brut des prêts",
+        "total_equity": "Total des fonds propres",
+        "average": "Moyenne : {{label}}",
+        "earnings": "Résultats"
+      },
+      "financial": {
+        "title": "Situation financière consolidée et indicateurs clés",
+        "sub": "{{coops}} ayant déposé",
+        "intro": "Le tableau cumule les déclarations approuvées des {{count}} {{coopsLc}} ayant déposé et les compare à l'exercice précédent.",
+        "no_prior": " Aucune déclaration de l'exercice précédent n'est disponible ; aucune comparaison n'est donc présentée.",
+        "metrics": {
+          "assets": "Total de l'actif",
+          "loans": "Encours brut des prêts",
+          "deposits": "Dépôts des membres",
+          "equity": "Total des fonds propres",
+          "surplus": "Excédent net / (perte)",
+          "members": "Nombre total de membres"
+        },
+        "fig_1": "Figure 1.",
+        "fig_1_caption": "Situation financière consolidée, exercice précédent contre {{year}} (millions).",
+        "prudential": "Indicateurs prudentiels consolidés",
+        "average_year": "Moyenne {{year}}",
+        "average_prior": "Moyenne N-1",
+        "aggregate_year": "Agrégé {{year}}",
+        "note": "Moyenne = moyenne simple des ratios des {{coopsLc}}. Agrégé = ratio des chiffres cumulés ; un tiret indique qu'il ne peut pas être calculé à partir des chiffres cumulés."
+      },
+      "tiles": {
+        "membership_inclusion": "Adhésion et inclusion",
+        "members": "Membres",
+        "active_members": "Membres actifs",
+        "inactive_members": "Membres inactifs",
+        "of_members": "{{share}} des membres",
+        "active_borrowers": "Emprunteurs actifs",
+        "women_borrowers": "Emprunteuses",
+        "youth_borrowers": "Jeunes emprunteurs",
+        "rural_borrowers": "Emprunteurs ruraux",
+        "of_borrowers": "{{share}} des emprunteurs",
+        "deposits_lending": "Dépôts et crédit",
+        "member_deposits": "Dépôts des membres",
+        "gross_loans": "Encours brut des prêts",
+        "average_loan": "Encours moyen par prêt",
+        "par_title": "Portefeuille à risque, {{label}} (SZL)",
+        "overdue_31_60": "Retard de 31–60 jours",
+        "overdue_61_90": "Retard de 61–90 jours",
+        "over_90": "Plus de 90 jours",
+        "value_at_risk": "Encours à risque (> 30 jours)",
+        "par30_share": "PAR > 30 jours {{share}}"
+      },
+      "indicators": {
+        "title": "Indicateurs clés",
+        "intro": "Principaux chiffres des {{count}} {{coopsLc}} ayant déposé, comparés à l'exercice précédent lorsqu'une comparaison est possible.",
+        "source": "Les membres, les emprunteurs et leurs ventilations proviennent des registres des membres et des prêts des {{coopsLc}} qui les ont transmis. Les montants du portefeuille à risque proviennent des états financiers approuvés, convertis en SZL."
+      },
+      "structure": {
+        "title": "Structure du portefeuille et état des déclarations",
+        "intro_cooperative": "Les graphiques montrent la part de chaque {{coopLc}} dans l'actif et dans l'encours brut des prêts déclarés par les {{count}} {{coopsLc}} ayant déposé. Les six premières positions sont nommées ; les autres sont regroupées sous « Autres ».",
+        "intro_apex": "Les graphiques montrent la part de chaque {{apexLc}} dans l'actif et dans l'encours brut des prêts déclarés par les {{count}} {{coopsLc}} ayant déposé. Les six premières positions sont nommées ; les autres sont regroupées sous « Autres ».",
+        "fig_p1": "Figure P1.",
+        "fig_p1_cooperative": "Part du total de l'actif par {{coopLc}}.",
+        "fig_p1_apex": "Part du total de l'actif par {{apexLc}}.",
+        "fig_p2": "Figure P2.",
+        "fig_p2_cooperative": "Part de l'encours brut des prêts par {{coopLc}}.",
+        "fig_p2_apex": "Part de l'encours brut des prêts par {{apexLc}}.",
+        "fig_p3": "Figure P3.",
+        "fig_p3_caption": "État des déclarations pour {{year}}.",
+        "filing_status": "État des déclarations",
+        "under_supervision": "{{coops}} sous supervision",
+        "returns_filed": "Déclarations déposées",
+        "returns_not_filed": "Déclarations non déposées",
+        "filing_rate": "Taux de déclaration",
+        "source": "Le périmètre se limite aux {{coopsLc}} ayant transmis des états financiers. Les montants sont ceux déclarés par chaque {{coopLc}}."
+      },
+      "sector": {
+        "title": "Panorama des secteurs · {{apexes}}",
+        "sub": "Répartition et conformité",
+        "breakdown": "Répartition par secteur",
+        "filing_rate": "Taux de déclaration",
+        "avg_par30": "PAR30 moyen",
+        "avg_car": "CAR moyen",
+        "avg_roa": "ROA moyen",
+        "apex_comparison": "Comparaison · {{apexes}}",
+        "coops": "{{coops}}",
+        "assets": "Actif",
+        "risk": "Risque",
+        "filing_by_apex": "Respect des obligations déclaratives par {{apexLc}}",
+        "fig_2": "Figure 2.",
+        "fig_2_caption": "Principaux ratios par {{apexLc}} et pour l'ensemble du secteur (%).",
+        "par30": "PAR > 30 jours",
+        "capital_adequacy": "Adéquation des fonds propres",
+        "roa": "Rentabilité des actifs",
+        "operating_expense": "Charges d'exploitation",
+        "intro": "{{coopCount}} {{coopsLc}} exercent dans {{sectors}} et relèvent de {{apexGroups}}. Les ratios sont des moyennes simples des {{coopsLc}} ayant déposé.",
+        "sectors_one": "{{count}} secteur",
+        "sectors_many": "{{count}} secteurs",
+        "sectors_other": "{{count}} secteurs",
+        "apexes_one": "{{count}} {{apexLc}}",
+        "apexes_many": "{{count}} {{apexesLc}}",
+        "apexes_other": "{{count}} {{apexesLc}}",
+        "comparison_part": "Comparaison · {{apexes}} {{part}} sur {{parts}}",
+        "filing_part": "Conformité déclarative {{part}} sur {{parts}}"
+      },
+      "coops": {
+        "title": "Vue d'ensemble · {{coops}}",
+        "every": "Ensemble des {{coopsLc}}",
+        "intro": "Chiffres clés et ratios prudentiels de chaque {{coopLc}}. Un tiret signifie qu'aucune déclaration n'a été déposée ou que le chiffre n'a pas été déclaré.",
+        "loans": "Prêts",
+        "deposits": "Dépôts"
+      },
+      "pearls": {
+        "title": "Comparaison avec les normes PEARLS",
+        "by_apex": "Par {{apexLc}}",
+        "intro": "Indicateurs prudentiels regroupés par domaine PEARLS. Chaque chiffre ({{apexLc}}) est la moyenne simple des déclarations de ses {{coopsLc}} ; la colonne secteur couvre toutes les déclarations. Un tiret signifie que le chiffre n'a pas été déclaré.",
+        "groups": {
+          "p": "P — Protection",
+          "e": "E — Structure financière efficace",
+          "a": "A — Qualité des actifs",
+          "r": "R — Rendements et coûts",
+          "l": "L — Liquidité",
+          "s": "S — Signes de croissance"
+        },
+        "rows": {
+          "loan_loss_coverage": "Couverture des pertes sur prêts",
+          "net_loans_assets": "Prêts nets / total de l'actif",
+          "deposits_assets": "Dépôts / total de l'actif",
+          "capital_adequacy": "Adéquation des fonds propres",
+          "par30": "PAR > 30 jours",
+          "npl": "Ratio de prêts non performants",
+          "roa": "Rentabilité des actifs",
+          "roe": "Rentabilité des fonds propres",
+          "oer": "Ratio des charges d'exploitation",
+          "liquid_funds": "Ratio de liquidité",
+          "asset_growth": "Croissance de l'actif (sur un an)"
+        }
+      },
+      "social": {
+        "title": "Impact social et inclusion financière",
+        "sub": "Adhésion et portée du crédit",
+        "intro": "Nombre de personnes servies par les {{coopsLc}} et accès au crédit des femmes, des jeunes et des membres ruraux. Les chiffres couvrent les {{count}} {{coopsLc}} ayant déposé.",
+        "active_members": "Membres actifs",
+        "active_borrowers": "Emprunteurs actifs",
+        "savings_penetration": "Pénétration de l'épargne (moyenne)",
+        "credit_penetration": "Pénétration du crédit (moyenne)",
+        "women_borrowers": "Emprunteuses",
+        "youth_borrowers": "Jeunes emprunteurs (18–35 ans)",
+        "rural_borrowers": "Emprunteurs ruraux",
+        "credit_flow": "Accès au crédit des segments prioritaires",
+        "segment": "Segment",
+        "borrowers_year": "Emprunteurs {{year}}",
+        "share_borrowers": "Part des emprunteurs",
+        "borrowers_prior": "Emprunteurs N-1",
+        "fig_3": "Figure 3.",
+        "fig_3_caption": "Emprunteurs des segments prioritaires, exercice précédent contre {{year}}.",
+        "number_borrowers": "Nombre d'emprunteurs",
+        "note_title": "Note sur l'inclusion.",
+        "segment_names": {
+          "women_borrowers": "des femmes",
+          "youth_borrowers": "des jeunes (18–35 ans)",
+          "rural_borrowers": "des ruraux"
+        },
+        "note_apex": "La part des emprunteurs actifs qui sont {{segments}} a diminué par rapport à l'exercice précédent. Il conviendrait de demander aux {{coopsLc}} d'expliquer cette évolution et de fixer des objectifs d'inclusion.",
+        "note": "La part des emprunteurs actifs qui sont {{segments}} a diminué par rapport à l'exercice précédent. Il conviendrait de demander aux {{apexesLc}} d'expliquer cette évolution et de fixer des objectifs d'inclusion."
+      },
+      "findings": {
+        "authority": {
+          "Ministry": "{{ministry}}",
+          "Federation": "{{federation}}",
+          "Apex": "{{apex}}"
+        },
+        "intro": "Les actions suivantes sont recommandées aux entités supervisées et à leur autorité ({{authority}}). L'état d'avancement devra être examiné lors de la prochaine réunion de supervision."
+      },
+      "annex": {
+        "a_intro": "Les éléments suivants ont été relevés lors du rapprochement des chiffres générés par le système avec les déclarations transmises. Ils sont présentés ici afin que les chiffres du corps du rapport soient lus avec prudence.",
+        "a_none": "Aucune incohérence n'a été relevée lors du contrôle des chiffres générés par le système par rapport aux déclarations transmises.",
+        "in_this_report": "Dans ce rapport",
+        "extra": {
+          "oss": {
+            "name": "Autosuffisance opérationnelle",
+            "definition": "Total des produits divisé par le total des charges."
+          },
+          "liquid": {
+            "name": "Ratio de liquidité",
+            "definition": "Trésorerie et placements à court terme divisés par le total de l'actif."
+          },
+          "nlp": {
+            "name": "Prêts nets / total de l'actif",
+            "definition": "Encours net des prêts divisé par le total de l'actif."
+          },
+          "deposits": {
+            "name": "Dépôts / total de l'actif",
+            "definition": "Épargne et dépôts des membres divisés par le total de l'actif."
+          },
+          "penetration": {
+            "name": "Taux de pénétration de l'épargne / du crédit",
+            "definition": "Membres détenant un compte d'épargne (ou un prêt en cours) en proportion du nombre total de membres."
+          },
+          "filing": {
+            "name": "Taux de déclaration",
+            "definition": "Nombre de {{coopsLc}} disposant d'une déclaration approuvée rapporté au nombre total de {{coopsLc}} du périmètre."
+          },
+          "average": {
+            "name": "Moyenne et agrégat",
+            "definition": "Une moyenne est la moyenne simple des ratios de chaque {{coopLc}} ; un agrégat est le ratio des chiffres cumulés. Les moyennes donnent le même poids aux {{coopsLc}} de petite taille."
+          }
+        }
+      },
+      "sectors": {
+        "agriculture": "Agriculture",
+        "finance": "Finance",
+        "housing": "Logement",
+        "transport": "Transport",
+        "manufacturing": "Industrie manufacturière",
+        "other": "Autres"
+      },
+      "title_1": {
+        "Apex": "Rapport consolidé",
+        "Federation": "Rapport consolidé",
+        "Ministry": "Rapport consolidé"
+      },
+      "title_2": {
+        "Apex": "{{apex}}",
+        "Federation": "{{federation}}",
+        "Ministry": "{{ministry}}"
+      }
+    },
+    "roles": {
+      "cooperative": {
+        "one": "Coopérative",
+        "other": "Coopératives"
+      },
+      "apex": {
+        "one": "Organisation faîtière",
+        "other": "Organisations faîtières"
+      },
+      "federation": {
+        "one": "Fédération",
+        "other": "Fédérations"
+      },
+      "ministry": {
+        "one": "Ministère",
+        "other": "Ministères"
+      }
+    }
   }
 }
