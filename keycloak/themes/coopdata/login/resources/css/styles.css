@@ -523,6 +523,37 @@ body {
     text-align: center;
 }
 
+/* Legal consent links below the login form */
+.form-legal-links {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.form-legal-links a {
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.form-legal-links a:hover {
+    color: var(--accent-hover, var(--accent));
+    text-decoration: underline;
+}
+
+.legal-sep {
+    opacity: 0.6;
+}
+
 /* Registration link */
 .registration-link {
     text-align: center;

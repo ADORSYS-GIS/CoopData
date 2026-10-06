@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
@@ -28,6 +29,7 @@ import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
 import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
+import { Route as AppDataPrivacyRouteImport } from './routes/app.data-privacy'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCustomKpisRouteImport } from './routes/app.custom-kpis'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
@@ -38,6 +40,7 @@ import { Route as AppBasicAnalyticsRouteImport } from './routes/app.basic-analyt
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppApexesRouteImport } from './routes/app.apexes'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as AppAdminLegalRouteImport } from './routes/app.admin-legal'
 import { Route as AppUsersIndexRouteImport } from './routes/app.users.index'
 import { Route as PrintQuestionnaireIdRouteImport } from './routes/print.questionnaire.$id'
 import { Route as PrintFederationIdRouteImport } from './routes/print.federation.$id'
@@ -60,6 +63,11 @@ const UnauthorizedRoute = UnauthorizedRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -149,6 +157,11 @@ const AppDebugAuthRoute = AppDebugAuthRouteImport.update({
   path: '/debug-auth',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDataPrivacyRoute = AppDataPrivacyRouteImport.update({
+  id: '/data-privacy',
+  path: '/data-privacy',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -197,6 +210,11 @@ const AppApexesRoute = AppApexesRouteImport.update({
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminLegalRoute = AppAdminLegalRouteImport.update({
+  id: '/admin-legal',
+  path: '/admin-legal',
   getParentRoute: () => AppRoute,
 } as any)
 const AppUsersIndexRoute = AppUsersIndexRouteImport.update({
@@ -273,8 +291,10 @@ const AppSubmissionsIdManualEntryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/app/admin-legal': typeof AppAdminLegalRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
@@ -285,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/data-privacy': typeof AppDataPrivacyRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -316,8 +337,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/app/admin-legal': typeof AppAdminLegalRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
@@ -328,6 +351,7 @@ export interface FileRoutesByTo {
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/data-privacy': typeof AppDataPrivacyRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -359,8 +383,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/legal': typeof LegalRoute
   '/login': typeof LoginRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/app/admin-legal': typeof AppAdminLegalRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/apexes': typeof AppApexesRoute
   '/app/audit': typeof AppAuditRoute
@@ -371,6 +397,7 @@ export interface FileRoutesById {
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/data-privacy': typeof AppDataPrivacyRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -405,8 +432,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/legal'
     | '/login'
     | '/unauthorized'
+    | '/app/admin-legal'
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
@@ -417,6 +446,7 @@ export interface FileRouteTypes {
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
+    | '/app/data-privacy'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -448,8 +478,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/legal'
     | '/login'
     | '/unauthorized'
+    | '/app/admin-legal'
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
@@ -460,6 +492,7 @@ export interface FileRouteTypes {
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
+    | '/app/data-privacy'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -490,8 +523,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/legal'
     | '/login'
     | '/unauthorized'
+    | '/app/admin-legal'
     | '/app/analytics'
     | '/app/apexes'
     | '/app/audit'
@@ -502,6 +537,7 @@ export interface FileRouteTypes {
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
+    | '/app/data-privacy'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -535,6 +571,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  LegalRoute: typeof LegalRoute
   LoginRoute: typeof LoginRoute
   UnauthorizedRoute: typeof UnauthorizedRoute
   PrintMinistryRoute: typeof PrintMinistryRoute
@@ -559,6 +596,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -680,6 +724,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDebugAuthRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/data-privacy': {
+      id: '/app/data-privacy'
+      path: '/data-privacy'
+      fullPath: '/app/data-privacy'
+      preLoaderRoute: typeof AppDataPrivacyRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/dashboard': {
       id: '/app/dashboard'
       path: '/dashboard'
@@ -748,6 +799,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/app/analytics'
       preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin-legal': {
+      id: '/app/admin-legal'
+      path: '/admin-legal'
+      fullPath: '/app/admin-legal'
+      preLoaderRoute: typeof AppAdminLegalRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/users/': {
@@ -874,6 +932,7 @@ const AppSubmissionsIdRouteWithChildren =
   AppSubmissionsIdRoute._addFileChildren(AppSubmissionsIdRouteChildren)
 
 interface AppRouteChildren {
+  AppAdminLegalRoute: typeof AppAdminLegalRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppApexesRoute: typeof AppApexesRoute
   AppAuditRoute: typeof AppAuditRoute
@@ -884,6 +943,7 @@ interface AppRouteChildren {
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppCustomKpisRoute: typeof AppCustomKpisRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDataPrivacyRoute: typeof AppDataPrivacyRoute
   AppDebugAuthRoute: typeof AppDebugAuthRoute
   AppFederationsRoute: typeof AppFederationsRoute
   AppFinancialStatementRoute: typeof AppFinancialStatementRoute
@@ -904,6 +964,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminLegalRoute: AppAdminLegalRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppApexesRoute: AppApexesRoute,
   AppAuditRoute: AppAuditRoute,
@@ -914,6 +975,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCooperativesRoute: AppCooperativesRoute,
   AppCustomKpisRoute: AppCustomKpisRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDataPrivacyRoute: AppDataPrivacyRoute,
   AppDebugAuthRoute: AppDebugAuthRoute,
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,
@@ -940,6 +1002,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  LegalRoute: LegalRoute,
   LoginRoute: LoginRoute,
   UnauthorizedRoute: UnauthorizedRoute,
   PrintMinistryRoute: PrintMinistryRoute,

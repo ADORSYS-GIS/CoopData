@@ -141,7 +141,9 @@ jobs:
         if: steps.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'release'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ steps.images.outputs.frontend }}
+          # Scan the image this run just built (its first tag, e.g. :pr-162), not the
+          # untagged name, which means :latest and resolves to the last published image.
+          image-ref: ${{ fromJSON(steps.meta-frontend.outputs.json).tags[0] || format('{0}:latest', steps.images.outputs.frontend) }}
           format: sarif
           output: trivy-frontend-results.sarif
           severity: CRITICAL,HIGH
@@ -153,7 +155,9 @@ jobs:
         if: steps.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'release'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ steps.images.outputs.backend }}
+          # Scan the image this run just built (its first tag, e.g. :pr-162), not the
+          # untagged name, which means :latest and resolves to the last published image.
+          image-ref: ${{ fromJSON(steps.meta-backend.outputs.json).tags[0] || format('{0}:latest', steps.images.outputs.backend) }}
           format: sarif
           output: trivy-backend-results.sarif
           severity: CRITICAL,HIGH

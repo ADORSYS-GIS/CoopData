@@ -50,6 +50,117 @@
         }
       }
     },
+    "/api/v1/analytics/basic-dashboard": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "GET /api/v1/analytics/basic-dashboard",
+        "description": "Regulator-style KPIs, trends and market share computed from questionnaire\nanswers. Cooperatives see their own data; apex, federation and ministry\nusers see the consolidated view of the cooperatives in their scope.",
+        "operationId": "get_basic_dashboard",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_type",
+            "in": "query",
+            "description": "YEARLY | SEMI_ANNUAL | QUARTERLY | MONTHLY",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_value",
+            "in": "query",
+            "description": "e.g. \"Q1\", \"H2\", \"2026\", \"03\"",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "description": "Restrict to one cooperative (individual view).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "description": "Restrict to the cooperatives of one federation.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "apex_id",
+            "in": "query",
+            "description": "Restrict to the cooperatives of one apex.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Basic analytics dashboard",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasicDashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Cooperative outside the caller's scope"
+          }
+        }
+      }
+    },
     "/api/v1/analytics/benchmark": {
       "get": {
         "tags": [
@@ -119,6 +230,26 @@
             "name": "cooperative_ids",
             "in": "query",
             "description": "Comma-separated cooperative UUIDs to filter",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_type",
+            "in": "query",
+            "description": "Period type (YEARLY, QUARTERLY, MONTHLY, SEMI_ANNUAL)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_value",
+            "in": "query",
+            "description": "Period value (for example Q1, 08, H1)",
             "required": false,
             "schema": {
               "type": "string",
@@ -468,6 +599,125 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/period-series": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "GET /api/v1/analytics/period-series",
+        "description": "Statement totals per period of one frequency, ending at the chosen period,\nso charts follow the frequency filter (yearly stays yearly, quarterly stays\nquarterly). Only approved submissions count.",
+        "operationId": "get_period_series",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_type",
+            "in": "query",
+            "description": "YEARLY, SEMI_ANNUAL, QUARTERLY or MONTHLY. Defaults to YEARLY.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "period_value",
+            "in": "query",
+            "description": "Last period of the series. Omit or use \"all\" for the year's latest.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of periods to return, 1 to 12. Defaults to 8.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "nullable": true,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "apex_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statement totals per period",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodSeriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid period type"
           },
           "403": {
             "description": "Forbidden"
@@ -1364,14 +1614,71 @@
           "Export"
         ],
         "summary": "GET /api/v1/apex/export",
-        "description": "GET /api/v1/federation/export\nGET /api/v1/ministry/export\nExports a consolidated PDF report of all cooperatives within the user's scope.",
+        "description": "GET /api/v1/federation/export\nGET /api/v1/ministry/export\nDownloads a consolidated report PDF of the caller's scope once it is ready.",
         "operationId": "export_bulk_consolidated",
+        "parameters": [
+          {
+            "name": "apex_id",
+            "in": "query",
+            "description": "Apex (federation and ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "description": "Federation (ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "description": "`questionnaire` for the questionnaire report",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Report locale: en | fr | pt | ss (default en)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Consolidated PDF file stream"
           },
           "403": {
             "description": "Forbidden"
+          },
+          "409": {
+            "description": "The report is not ready in this language"
           }
         }
       }
@@ -1395,6 +1702,173 @@
           },
           "403": {
             "description": "Forbidden - apex role required"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/report": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "GET /api/v1/{apex|federation|ministry}/report",
+        "description": "Status of every language of a consolidated report.",
+        "operationId": "get_consolidated_report_status",
+        "parameters": [
+          {
+            "name": "apex_id",
+            "in": "query",
+            "description": "Apex (federation and ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "description": "Federation (ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "description": "`questionnaire` for the questionnaire report",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report status per language",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "reporting_year missing"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/report/prepare": {
+      "post": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "POST /api/v1/{apex|federation|ministry}/report/prepare",
+        "description": "Starts preparing one language of a consolidated report in the background.",
+        "operationId": "prepare_consolidated_report",
+        "parameters": [
+          {
+            "name": "apex_id",
+            "in": "query",
+            "description": "Apex (federation and ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "description": "Federation (ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "description": "`questionnaire` for the questionnaire report",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Report locale: en | fr | pt | ss (default en)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "regenerate",
+            "in": "query",
+            "description": "Regenerate the English report from the current data",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Preparation started (or already running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Language not available for this report"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "The English report must be ready first"
           }
         }
       }
@@ -1556,7 +2030,7 @@
         },
         "responses": {
           "200": {
-            "description": "Approved, forwarded to federation",
+            "description": "Approved — submission fully approved (Apex is final level)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1567,6 +2041,9 @@
           },
           "400": {
             "description": "Invalid state"
+          },
+          "403": {
+            "description": "Forbidden — submission does not belong to your apex"
           },
           "404": {
             "description": "Not found"
@@ -1656,6 +2133,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden — submission does not belong to your scope"
           },
           "404": {
             "description": "Not found"
@@ -1756,6 +2236,9 @@
           "400": {
             "description": "Invalid state"
           },
+          "403": {
+            "description": "Forbidden — submission does not belong to your apex"
+          },
           "404": {
             "description": "Not found"
           }
@@ -1782,7 +2265,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Submission submitted to federation",
+            "description": "Submitted — fully approved (apex is the final approval level)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1857,6 +2340,119 @@
           },
           "403": {
             "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/consents": {
+      "post": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "record_consent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordConsentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Consent recorded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserConsentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/consents/me": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "get_my_consents",
+        "responses": {
+          "200": {
+            "description": "User consent history retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserConsentResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/consents/status": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "get_consent_status",
+        "responses": {
+          "200": {
+            "description": "Consent status retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3450,8 +4046,8 @@
         "tags": [
           "Export"
         ],
-        "summary": "GET /api/v1/cooperative/submissions/{id}/export",
-        "description": "Exports a single cooperative submission in PDF.",
+        "summary": "GET /api/v1/{tier}/submissions/{id}/export",
+        "description": "Downloads the PDF of a submission report in one language once it is ready.",
         "operationId": "export_single_submission",
         "parameters": [
           {
@@ -3465,25 +4061,28 @@
             }
           },
           {
-            "name": "regenerate",
+            "name": "lang",
             "in": "query",
-            "description": "Force PDF re-generation",
+            "description": "Report locale: en | fr | pt | ss (default en)",
             "required": false,
             "schema": {
-              "type": "boolean",
+              "type": "string",
               "nullable": true
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Export file stream"
+            "description": "PDF file stream"
           },
           "403": {
             "description": "Forbidden"
           },
           "404": {
             "description": "Not found"
+          },
+          "409": {
+            "description": "The report is not ready in this language"
           }
         }
       }
@@ -4055,6 +4654,152 @@
           },
           "404": {
             "description": "Submission not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/questionnaire-report": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "GET /api/v1/cooperative/submissions/{id}/questionnaire-report",
+        "description": "KPI data for the questionnaire PDF report of one submission. Same access\nrule as the PDF export itself.",
+        "operationId": "get_questionnaire_report",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasicDashboardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Submission was not filled in through the questionnaire"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/report": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "GET /api/v1/{tier}/submissions/{id}/report",
+        "description": "Status of every language of a submission report.",
+        "operationId": "get_submission_report_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report status per language",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/report/prepare": {
+      "post": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "POST /api/v1/{tier}/submissions/{id}/report/prepare",
+        "description": "Starts preparing one language of a submission report in the background.",
+        "operationId": "prepare_submission_report",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Report locale: en | fr | pt | ss (default en)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "regenerate",
+            "in": "query",
+            "description": "Regenerate the English report from the current data",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Preparation started (or already running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Language not available for this report"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "The English report must be ready first"
           }
         }
       }
@@ -5003,6 +5748,9 @@
           "400": {
             "description": "Invalid state"
           },
+          "403": {
+            "description": "Forbidden — submission does not belong to your federation"
+          },
           "404": {
             "description": "Not found"
           }
@@ -5051,6 +5799,9 @@
           "400": {
             "description": "Invalid state"
           },
+          "403": {
+            "description": "Forbidden — submission does not belong to your federation"
+          },
           "404": {
             "description": "Not found"
           }
@@ -5065,12 +5816,77 @@
         "operationId": "health_check",
         "responses": {
           "200": {
-            "description": "Service is healthy",
+            "description": "Service and all dependencies are healthy",
             "content": {
               "application/json": {
                 "schema": {}
               }
             }
+          },
+          "503": {
+            "description": "Service is up but one or more dependencies are unavailable",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/legal/policies": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "list_policies",
+        "responses": {
+          "200": {
+            "description": "List latest legal policies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LegalPolicyResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/legal/policies/{id}": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "get_policy_by_slug",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Legal policy slug identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get latest policy by slug",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalPolicyResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Policy not found"
           }
         }
       }
@@ -6648,6 +7464,67 @@
           "Ministry"
         ],
         "operationId": "get_ministry_stats",
+        "parameters": [
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Restrict the counts to one reporting year; omitted counts every year.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "sector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "apex_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Ministry-level dashboard statistics",
@@ -7073,6 +7950,202 @@
           },
           "404": {
             "description": "Organization not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy/requests": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "list_all_privacy_requests",
+        "responses": {
+          "200": {
+            "description": "All privacy requests (admin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrivacyRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "submit_privacy_request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivacyRequestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Privacy request submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy/requests/me": {
+      "get": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "get_my_privacy_requests",
+        "responses": {
+          "200": {
+            "description": "Current user's privacy requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrivacyRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/privacy/requests/{request_id}": {
+      "put": {
+        "tags": [
+          "Legal & Consent"
+        ],
+        "operationId": "update_privacy_request_status",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "description": "Privacy request UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivacyRequestStatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Privacy request status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -7532,6 +8605,33 @@
           }
         }
       },
+      "AgeBands": {
+        "type": "object",
+        "required": [
+          "age_18_25",
+          "age_26_35",
+          "age_36_60",
+          "age_61_plus"
+        ],
+        "properties": {
+          "age_18_25": {
+            "type": "number",
+            "format": "double"
+          },
+          "age_26_35": {
+            "type": "number",
+            "format": "double"
+          },
+          "age_36_60": {
+            "type": "number",
+            "format": "double"
+          },
+          "age_61_plus": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "AgeDemographics": {
         "type": "object",
         "required": [
@@ -7911,6 +9011,105 @@
           }
         }
       },
+      "BasicDashboardParams": {
+        "type": "object",
+        "properties": {
+          "apex_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Restrict to the cooperatives of one apex.",
+            "nullable": true
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Restrict to one cooperative (individual view).",
+            "nullable": true
+          },
+          "federation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Restrict to the cooperatives of one federation.",
+            "nullable": true
+          },
+          "period_type": {
+            "type": "string",
+            "description": "YEARLY | SEMI_ANNUAL | QUARTERLY | MONTHLY",
+            "nullable": true
+          },
+          "period_value": {
+            "type": "string",
+            "description": "e.g. \"Q1\", \"H2\", \"2026\", \"03\"",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "BasicDashboardResponse": {
+        "type": "object",
+        "description": "Response of `GET /api/v1/analytics/basic-dashboard`.\n\n`series` keys (each a chronological list of points, `values` keys in brackets):\n- `asset_evolution` (total_assets)\n- `savings_trend` (total_deposits)\n- `loan_portfolio` (gross_loans)\n- `par_trend` (par_gt_30_pct, par_gt_90_pct, portfolio_at_risk_pct)\n- `liquidity` (maintained_pct, minimum_pct, gap_pct)\n- `financial_structure` (earning_asset_ratio, member_savings_ratio, member_share_ratio, borrowed_funds_ratio)\n- `profitability` (net_income)\n- `institutional_capital` (ratio_pct, minimum_pct, excess_pct)",
+        "required": [
+          "scope",
+          "thresholds",
+          "indicators",
+          "series",
+          "demographics",
+          "cooperatives"
+        ],
+        "properties": {
+          "cooperatives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CooperativeRow"
+            },
+            "description": "Administrators only; per-cooperative rows for the ranking table."
+          },
+          "demographics": {
+            "$ref": "#/components/schemas/Demographics"
+          },
+          "indicators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IndicatorValue"
+            }
+          },
+          "market_share": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MarketShare"
+              }
+            ],
+            "nullable": true
+          },
+          "scope": {
+            "$ref": "#/components/schemas/DashboardScope"
+          },
+          "series": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/SeriesPoint"
+              }
+            }
+          },
+          "thresholds": {
+            "$ref": "#/components/schemas/DashboardThresholds"
+          }
+        }
+      },
       "BenchmarkInsufficientData": {
         "type": "object",
         "required": [
@@ -8089,6 +9288,11 @@
             "type": "string",
             "nullable": true
           },
+          "description": {
+            "type": "string",
+            "description": "Human-readable explanation of what this account represents (from the COA seed)",
+            "nullable": true
+          },
           "display_order": {
             "type": "integer",
             "format": "int32"
@@ -8115,6 +9319,16 @@
             "type": "string",
             "nullable": true
           },
+          "period_type": {
+            "type": "string",
+            "description": "Restrict to one period type (YEARLY, QUARTERLY, MONTHLY, SEMI_ANNUAL).",
+            "nullable": true
+          },
+          "period_value": {
+            "type": "string",
+            "description": "Restrict to one period value (for example Q1, 08, H1).",
+            "nullable": true
+          },
           "reporting_year": {
             "type": "integer",
             "format": "int32",
@@ -8138,6 +9352,40 @@
           "year": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "ConsentStatusResponse": {
+        "type": "object",
+        "required": [
+          "terms_accepted",
+          "terms_version",
+          "privacy_accepted",
+          "privacy_version",
+          "has_accepted_all_required",
+          "accepted_consents"
+        ],
+        "properties": {
+          "accepted_consents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserConsentResponse"
+            }
+          },
+          "has_accepted_all_required": {
+            "type": "boolean"
+          },
+          "privacy_accepted": {
+            "type": "boolean"
+          },
+          "privacy_version": {
+            "type": "string"
+          },
+          "terms_accepted": {
+            "type": "boolean"
+          },
+          "terms_version": {
+            "type": "string"
           }
         }
       },
@@ -8431,13 +9679,18 @@
           "account_name": {
             "type": "string"
           },
+          "is_derived": {
+            "type": "boolean",
+            "description": "True when this row was derived from a formula (e.g. account 1200\n\"Gross Loans\" summed from 1201-1205) because the source document\nonly reported the child accounts, not this aggregate directly."
+          },
           "month": {
             "type": "integer",
             "format": "int32"
           },
           "value": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "description": "Native-currency value as reported in the source financial statement."
           }
         }
       },
@@ -8589,12 +9842,79 @@
           }
         }
       },
+      "CooperativeRow": {
+        "type": "object",
+        "required": [
+          "cooperative_id",
+          "name",
+          "total_members"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gross_loans": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "institutional_capital_ratio_pct": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "liquidity_ratio_pct": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "net_income": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "par_gt_30_pct": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_assets": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "total_deposits": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "total_members": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "CooperativeStatementGrid": {
         "type": "object",
         "required": [
           "cooperative_id",
           "cooperative_name",
-          "line_items"
+          "line_items",
+          "currency",
+          "is_validated",
+          "has_unmapped_items"
         ],
         "properties": {
           "cooperative_id": {
@@ -8603,6 +9923,17 @@
           },
           "cooperative_name": {
             "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Native currency of the source financial statement (e.g. \"SZL\")."
+          },
+          "has_unmapped_items": {
+            "type": "boolean"
+          },
+          "is_validated": {
+            "type": "boolean",
+            "description": "False when the statement has never passed validation (unresolved\nunmapped line items and/or open critical/high abnormality flags) —\ngrids should surface this instead of silently showing numbers that\nhaven't been confirmed accurate."
           },
           "line_items": {
             "type": "array",
@@ -8686,6 +10017,11 @@
           "cooperative_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "fiscal_start_month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Month (1-12) in which the fiscal year / Q1 begins. Defaults to 1 (January)."
           },
           "period_type": {
             "type": "string",
@@ -9323,6 +10659,11 @@
           "reporting_year"
         ],
         "properties": {
+          "fiscal_start_month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Month (1-12) in which the fiscal year / Q1 begins. Defaults to 1 (January)."
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -9437,6 +10778,80 @@
           "translations": {}
         }
       },
+      "DashboardScope": {
+        "type": "object",
+        "required": [
+          "level",
+          "cooperatives_reporting",
+          "cooperatives_in_scope",
+          "period_label",
+          "currency",
+          "native_currency",
+          "available_periods"
+        ],
+        "properties": {
+          "available_periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodOption"
+            }
+          },
+          "cooperatives_in_scope": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "cooperatives_reporting": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string",
+            "description": "Currency of every monetary value in the response. Always the\ncooperative's own reporting currency (\"SZL\") — nothing is converted."
+          },
+          "level": {
+            "type": "string",
+            "description": "\"individual\" (one cooperative) or \"consolidated\" (several)."
+          },
+          "native_currency": {
+            "type": "string"
+          },
+          "period_label": {
+            "type": "string"
+          },
+          "period_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "period_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "DashboardThresholds": {
+        "type": "object",
+        "required": [
+          "liquidity_minimum_pct",
+          "institutional_capital_minimum_pct"
+        ],
+        "properties": {
+          "institutional_capital_minimum_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "liquidity_minimum_pct": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "DelegateSubmissionRequest": {
         "type": "object",
         "properties": {
@@ -9468,6 +10883,45 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0
+          }
+        }
+      },
+      "Demographics": {
+        "type": "object",
+        "required": [
+          "registered",
+          "active",
+          "age",
+          "board",
+          "executive",
+          "credit_committee",
+          "savings_accounts",
+          "loan_accounts"
+        ],
+        "properties": {
+          "active": {
+            "$ref": "#/components/schemas/GenderCount"
+          },
+          "age": {
+            "$ref": "#/components/schemas/AgeBands"
+          },
+          "board": {
+            "$ref": "#/components/schemas/GenderCount"
+          },
+          "credit_committee": {
+            "$ref": "#/components/schemas/GenderCount"
+          },
+          "executive": {
+            "$ref": "#/components/schemas/GenderCount"
+          },
+          "loan_accounts": {
+            "$ref": "#/components/schemas/GenderCount"
+          },
+          "registered": {
+            "$ref": "#/components/schemas/GenderCount"
+          },
+          "savings_accounts": {
+            "$ref": "#/components/schemas/GenderCount"
           }
         }
       },
@@ -10230,6 +11684,23 @@
           "Other"
         ]
       },
+      "GenderCount": {
+        "type": "object",
+        "required": [
+          "male",
+          "female"
+        ],
+        "properties": {
+          "female": {
+            "type": "number",
+            "format": "double"
+          },
+          "male": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "IndicatorCatalogResponse": {
         "type": "object",
         "required": [
@@ -10327,6 +11798,64 @@
           },
           "value_text": {
             "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "IndicatorValue": {
+        "type": "object",
+        "required": [
+          "key",
+          "group",
+          "unit",
+          "status",
+          "formula",
+          "sources"
+        ],
+        "properties": {
+          "change_pct": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "formula": {
+            "type": "string",
+            "description": "Human-readable formula used for the value."
+          },
+          "group": {
+            "type": "string",
+            "description": "membership | savings | loans | risk | liquidity | structure | capital | profitability | governance"
+          },
+          "key": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "previous": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Questionnaire field keys the value is derived from."
+          },
+          "status": {
+            "type": "string",
+            "description": "computed | approximate | not_reported"
+          },
+          "unit": {
+            "type": "string",
+            "description": "count | currency | percent | ratio"
+          },
+          "value": {
+            "type": "number",
+            "format": "double",
             "nullable": true
           }
         }
@@ -10456,6 +11985,74 @@
           "include_prior_year": {
             "type": "boolean",
             "nullable": true
+          }
+        }
+      },
+      "LegalPolicyResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "policy_id",
+          "slug",
+          "title_en",
+          "title_fr",
+          "title_pt",
+          "title_ss",
+          "content_en",
+          "content_fr",
+          "content_pt",
+          "content_ss",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "content_en": {
+            "type": "string"
+          },
+          "content_fr": {
+            "type": "string"
+          },
+          "content_pt": {
+            "type": "string"
+          },
+          "content_ss": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title_en": {
+            "type": "string"
+          },
+          "title_fr": {
+            "type": "string"
+          },
+          "title_pt": {
+            "type": "string"
+          },
+          "title_ss": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -11318,6 +12915,27 @@
           }
         }
       },
+      "MarketShare": {
+        "type": "object",
+        "required": [
+          "by_assets",
+          "by_loans"
+        ],
+        "properties": {
+          "by_assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShareRow"
+            }
+          },
+          "by_loans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShareRow"
+            }
+          }
+        }
+      },
       "MemberResponse": {
         "type": "object",
         "required": [
@@ -11354,7 +12972,8 @@
         "enum": [
           "Active",
           "Dormant",
-          "Exited"
+          "Exited",
+          "Deceased"
         ]
       },
       "MembershipStatsDto": {
@@ -11659,18 +13278,36 @@
           "month_label",
           "savings",
           "loans",
-          "assets"
+          "liquid_assets",
+          "assets",
+          "liabilities",
+          "equity"
         ],
         "properties": {
           "assets": {
             "type": "number",
             "format": "double",
-            "description": "Total assets (COA 1999)."
+            "description": "Total assets (COA 1999) — already includes `loans` and\n`liquid_assets` as components. Never add this to `loans`/`savings`\nwhen computing a headline figure; that was the exact bug that\ninflated the old Portfolio Overview total to ~150x the real value."
+          },
+          "equity": {
+            "type": "number",
+            "format": "double",
+            "description": "Total equity (COA 3999), in the currency reported. May be negative."
+          },
+          "liabilities": {
+            "type": "number",
+            "format": "double",
+            "description": "Total liabilities (COA 2999), in the currency reported."
+          },
+          "liquid_assets": {
+            "type": "number",
+            "format": "double",
+            "description": "Liquid assets (COA 1100/1101–1104) — cash and near-cash holdings,\ndistinct from and much smaller than total assets. This is what the\n\"Portfolio Overview\" chart's liquidity/savings series should plot;\ndo not sum this with `assets` below."
           },
           "loans": {
             "type": "number",
             "format": "double",
-            "description": "Gross loan portfolio (COA 1201–1205)."
+            "description": "Gross loan portfolio (COA 1200/1201–1205), resolved, in the currency reported."
           },
           "month": {
             "type": "integer",
@@ -11682,7 +13319,7 @@
           "savings": {
             "type": "number",
             "format": "double",
-            "description": "Member savings and deposits (COA 2101–2103)."
+            "description": "Member savings and deposits (COA 2100/2101–2103), resolved via the\nchart-of-accounts rollup, in the currency reported."
           }
         }
       },
@@ -12690,6 +14327,247 @@
           }
         }
       },
+      "PeriodOption": {
+        "type": "object",
+        "required": [
+          "reporting_year",
+          "period_type",
+          "period_value",
+          "label"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "period_type": {
+            "type": "string"
+          },
+          "period_value": {
+            "type": "string"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PeriodSeriesParams": {
+        "type": "object",
+        "properties": {
+          "apex_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "federation_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of periods to return, 1 to 12. Defaults to 8.",
+            "nullable": true,
+            "minimum": 0
+          },
+          "period_type": {
+            "type": "string",
+            "description": "YEARLY, SEMI_ANNUAL, QUARTERLY or MONTHLY. Defaults to YEARLY.",
+            "nullable": true
+          },
+          "period_value": {
+            "type": "string",
+            "description": "Last period of the series. Omit or use \"all\" for the year's latest.",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "sector": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PeriodSeriesPoint": {
+        "type": "object",
+        "required": [
+          "period_label",
+          "reporting_year",
+          "period_type",
+          "period_value",
+          "cooperatives_reporting",
+          "assets",
+          "loans",
+          "liquid_assets",
+          "savings",
+          "liabilities",
+          "equity",
+          "total_income",
+          "total_expenses",
+          "net_income",
+          "arrears_1_30",
+          "arrears_31_60",
+          "arrears_61_90",
+          "non_performing",
+          "provisions",
+          "borrowings",
+          "share_capital",
+          "reserves",
+          "statutory_reserve",
+          "retained_earnings",
+          "financial_income",
+          "other_income",
+          "financial_expenses",
+          "operating_expenses",
+          "credit_loss_expense"
+        ],
+        "properties": {
+          "arrears_1_30": {
+            "type": "number",
+            "format": "double"
+          },
+          "arrears_31_60": {
+            "type": "number",
+            "format": "double"
+          },
+          "arrears_61_90": {
+            "type": "number",
+            "format": "double"
+          },
+          "assets": {
+            "type": "number",
+            "format": "double",
+            "description": "In the currency reported, from the approved financial statements."
+          },
+          "borrowings": {
+            "type": "number",
+            "format": "double"
+          },
+          "cooperatives_reporting": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "credit_loss_expense": {
+            "type": "number",
+            "format": "double"
+          },
+          "equity": {
+            "type": "number",
+            "format": "double"
+          },
+          "financial_expenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "financial_income": {
+            "type": "number",
+            "format": "double"
+          },
+          "liabilities": {
+            "type": "number",
+            "format": "double"
+          },
+          "liquid_assets": {
+            "type": "number",
+            "format": "double"
+          },
+          "loans": {
+            "type": "number",
+            "format": "double"
+          },
+          "net_income": {
+            "type": "number",
+            "format": "double"
+          },
+          "non_performing": {
+            "type": "number",
+            "format": "double"
+          },
+          "operating_expenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "other_income": {
+            "type": "number",
+            "format": "double"
+          },
+          "period_label": {
+            "type": "string"
+          },
+          "period_type": {
+            "type": "string"
+          },
+          "period_value": {
+            "type": "string"
+          },
+          "provisions": {
+            "type": "number",
+            "format": "double"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reserves": {
+            "type": "number",
+            "format": "double"
+          },
+          "retained_earnings": {
+            "type": "number",
+            "format": "double"
+          },
+          "savings": {
+            "type": "number",
+            "format": "double"
+          },
+          "share_capital": {
+            "type": "number",
+            "format": "double"
+          },
+          "statutory_reserve": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_expenses": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_income": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "PeriodSeriesResponse": {
+        "type": "object",
+        "required": [
+          "period_type",
+          "points"
+        ],
+        "properties": {
+          "period_type": {
+            "type": "string"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodSeriesPoint"
+            }
+          }
+        }
+      },
       "PortfolioBreakdownResponse": {
         "type": "object",
         "required": [
@@ -12727,6 +14605,70 @@
           "count": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "PrivacyRequestInput": {
+        "type": "object",
+        "required": [
+          "request_type"
+        ],
+        "properties": {
+          "details": {
+            "type": "string",
+            "nullable": true
+          },
+          "request_type": {
+            "type": "string"
+          }
+        }
+      },
+      "PrivacyRequestResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "request_type",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "request_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      },
+      "PrivacyRequestStatusUpdate": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
           }
         }
       },
@@ -12968,6 +14910,23 @@
           }
         }
       },
+      "RecordConsentRequest": {
+        "type": "object",
+        "required": [
+          "document_type"
+        ],
+        "properties": {
+          "document_type": {
+            "type": "string",
+            "description": "TERMS_OF_SERVICE, PRIVACY_POLICY, COOKIE_POLICY, ACCEPTABLE_USE,\nSECURITY_PROTECTION or DATA_RETENTION."
+          },
+          "document_version": {
+            "type": "string",
+            "description": "Ignored: the server records the version currently published. Kept so\nolder clients that still send it are accepted.",
+            "nullable": true
+          }
+        }
+      },
       "RegionCompliancePoint": {
         "type": "object",
         "required": [
@@ -12999,6 +14958,60 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RegionCompliancePoint"
+            }
+          }
+        }
+      },
+      "ReportLanguageStatus": {
+        "type": "object",
+        "description": "Status of one language of a report.",
+        "required": [
+          "lang",
+          "state",
+          "updated_at"
+        ],
+        "properties": {
+          "lang": {
+            "type": "string",
+            "description": "Report locale: en | fr | pt | ss"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ReportState"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReportState": {
+        "type": "string",
+        "description": "Status of one language of a report as shown to users.",
+        "enum": [
+          "preparing",
+          "ready",
+          "failed"
+        ]
+      },
+      "ReportStatusResponse": {
+        "type": "object",
+        "description": "What a report can be downloaded in right now and what is being prepared.\nA language missing from `languages` has not been prepared yet.",
+        "required": [
+          "languages",
+          "available_languages"
+        ],
+        "properties": {
+          "available_languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Languages this report can be prepared in (questionnaire reports: English only)."
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageStatus"
             }
           }
         }
@@ -13394,6 +15407,65 @@
           }
         }
       },
+      "SeriesPoint": {
+        "type": "object",
+        "required": [
+          "period_label",
+          "reporting_year",
+          "period_type",
+          "period_value",
+          "values"
+        ],
+        "properties": {
+          "period_label": {
+            "type": "string"
+          },
+          "period_type": {
+            "type": "string"
+          },
+          "period_value": {
+            "type": "string"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "values": {
+            "type": "object",
+            "description": "series-specific named values (see `series` docs on the response)",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        }
+      },
+      "ShareRow": {
+        "type": "object",
+        "required": [
+          "cooperative_id",
+          "name",
+          "value",
+          "share_pct"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "share_pct": {
+            "type": "number",
+            "format": "double"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "SubmissionActivityPoint": {
         "type": "object",
         "required": [
@@ -13529,6 +15601,7 @@
           "reporting_year",
           "period_type",
           "period_value",
+          "fiscal_start_month",
           "status",
           "current_tier",
           "priority",
@@ -13620,6 +15693,11 @@
             "format": "uuid",
             "description": "Financial statement ID, present after upload",
             "nullable": true
+          },
+          "fiscal_start_month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Month (1-12) in which the fiscal year / Q1 begins."
           },
           "id": {
             "type": "string",
@@ -14501,6 +16579,48 @@
           "Rural"
         ]
       },
+      "UserConsentResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "document_type",
+          "document_version",
+          "accepted_at",
+          "created_at"
+        ],
+        "properties": {
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "document_type": {
+            "type": "string"
+          },
+          "document_version": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ip_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "user_agent": {
+            "type": "string",
+            "nullable": true
+          },
+          "user_id": {
+            "type": "string"
+          }
+        }
+      },
       "UserProfileResponse": {
         "type": "object",
         "required": [
@@ -14510,11 +16630,19 @@
           "assigned_dimensions"
         ],
         "properties": {
+          "apex_name": {
+            "type": "string",
+            "nullable": true
+          },
           "assigned_dimensions": {
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "cooperation_name": {
+            "type": "string",
+            "nullable": true
           },
           "cooperation_paths": {
             "type": "array",

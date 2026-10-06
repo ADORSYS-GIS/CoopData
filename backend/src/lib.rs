@@ -17,10 +17,11 @@ pub use error::{forbidden_with_roles, AppError, AppResult};
 pub use repositories::audit_log::AuditLogRepository;
 pub use repositories::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository,
-    BalanceSheetLineItemRepository, ChartOfAccountsRepository, CooperativeRepository,
-    CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository, FederationRepository,
-    FinancialStatementRepository, FixedDepositRepository, KpiRecordRepository, LoanRepository,
-    MemberRepository, MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
+    BalanceSheetLineItemRepository, ChartOfAccountsRepository, ConsentRepository,
+    CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
+    FederationRepository, FinancialStatementRepository, FixedDepositRepository,
+    KpiRecordRepository, LegalPolicyRepository, LoanRepository, MemberRepository,
+    MinistryReportNarrativesRepository, NonFinancialIndicatorCatalogRepository,
     NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository,
     QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
     SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
@@ -77,6 +78,8 @@ pub struct AppState {
     pub gotenberg_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
     pub ai_semaphore: std::sync::Arc<tokio::sync::Semaphore>,
     pub ministry_narratives_repo: crate::repositories::MinistryReportNarrativesRepository,
+    pub consent_repo: ConsentRepository,
+    pub legal_policy_repo: LegalPolicyRepository,
     pub report_export_repo: crate::repositories::ReportExportRepository,
     pub narrative_store: crate::repositories::ReportNarrativeStore,
 }
