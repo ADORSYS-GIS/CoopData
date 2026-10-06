@@ -1614,14 +1614,71 @@
           "Export"
         ],
         "summary": "GET /api/v1/apex/export",
-        "description": "GET /api/v1/federation/export\nGET /api/v1/ministry/export\nExports a consolidated PDF report of all cooperatives within the user's scope.",
+        "description": "GET /api/v1/federation/export\nGET /api/v1/ministry/export\nDownloads a consolidated report PDF of the caller's scope once it is ready.",
         "operationId": "export_bulk_consolidated",
+        "parameters": [
+          {
+            "name": "apex_id",
+            "in": "query",
+            "description": "Apex (federation and ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "description": "Federation (ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "description": "`questionnaire` for the questionnaire report",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Report locale: en | fr | pt | ss (default en)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Consolidated PDF file stream"
           },
           "403": {
             "description": "Forbidden"
+          },
+          "409": {
+            "description": "The report is not ready in this language"
           }
         }
       }
@@ -1645,6 +1702,173 @@
           },
           "403": {
             "description": "Forbidden - apex role required"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/report": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "GET /api/v1/{apex|federation|ministry}/report",
+        "description": "Status of every language of a consolidated report.",
+        "operationId": "get_consolidated_report_status",
+        "parameters": [
+          {
+            "name": "apex_id",
+            "in": "query",
+            "description": "Apex (federation and ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "description": "Federation (ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "description": "`questionnaire` for the questionnaire report",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report status per language",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "reporting_year missing"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/report/prepare": {
+      "post": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "POST /api/v1/{apex|federation|ministry}/report/prepare",
+        "description": "Starts preparing one language of a consolidated report in the background.",
+        "operationId": "prepare_consolidated_report",
+        "parameters": [
+          {
+            "name": "apex_id",
+            "in": "query",
+            "description": "Apex (federation and ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "federation_id",
+            "in": "query",
+            "description": "Federation (ministry users)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "reporting_year",
+            "in": "query",
+            "description": "Reporting year",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "description": "`questionnaire` for the questionnaire report",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Report locale: en | fr | pt | ss (default en)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "regenerate",
+            "in": "query",
+            "description": "Regenerate the English report from the current data",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Preparation started (or already running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Language not available for this report"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "The English report must be ready first"
           }
         }
       }
@@ -3822,8 +4046,8 @@
         "tags": [
           "Export"
         ],
-        "summary": "GET /api/v1/cooperative/submissions/{id}/export",
-        "description": "Exports a single cooperative submission in PDF.",
+        "summary": "GET /api/v1/{tier}/submissions/{id}/export",
+        "description": "Downloads the PDF of a submission report in one language once it is ready.",
         "operationId": "export_single_submission",
         "parameters": [
           {
@@ -3837,25 +4061,28 @@
             }
           },
           {
-            "name": "regenerate",
+            "name": "lang",
             "in": "query",
-            "description": "Force PDF re-generation",
+            "description": "Report locale: en | fr | pt | ss (default en)",
             "required": false,
             "schema": {
-              "type": "boolean",
+              "type": "string",
               "nullable": true
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Export file stream"
+            "description": "PDF file stream"
           },
           "403": {
             "description": "Forbidden"
           },
           "404": {
             "description": "Not found"
+          },
+          "409": {
+            "description": "The report is not ready in this language"
           }
         }
       }
@@ -4470,6 +4697,109 @@
           },
           "404": {
             "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/report": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "GET /api/v1/{tier}/submissions/{id}/report",
+        "description": "Status of every language of a submission report.",
+        "operationId": "get_submission_report_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report status per language",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/v1/cooperative/submissions/{id}/report/prepare": {
+      "post": {
+        "tags": [
+          "Export"
+        ],
+        "summary": "POST /api/v1/{tier}/submissions/{id}/report/prepare",
+        "description": "Starts preparing one language of a submission report in the background.",
+        "operationId": "prepare_submission_report",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Submission ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "description": "Report locale: en | fr | pt | ss (default en)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "regenerate",
+            "in": "query",
+            "description": "Regenerate the English report from the current data",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Preparation started (or already running)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Language not available for this report"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "The English report must be ready first"
           }
         }
       }
@@ -14628,6 +14958,60 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RegionCompliancePoint"
+            }
+          }
+        }
+      },
+      "ReportLanguageStatus": {
+        "type": "object",
+        "description": "Status of one language of a report.",
+        "required": [
+          "lang",
+          "state",
+          "updated_at"
+        ],
+        "properties": {
+          "lang": {
+            "type": "string",
+            "description": "Report locale: en | fr | pt | ss"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ReportState"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReportState": {
+        "type": "string",
+        "description": "Status of one language of a report as shown to users.",
+        "enum": [
+          "preparing",
+          "ready",
+          "failed"
+        ]
+      },
+      "ReportStatusResponse": {
+        "type": "object",
+        "description": "What a report can be downloaded in right now and what is being prepared.\nA language missing from `languages` has not been prepared yet.",
+        "required": [
+          "languages",
+          "available_languages"
+        ],
+        "properties": {
+          "available_languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Languages this report can be prepared in (questionnaire reports: English only)."
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportLanguageStatus"
             }
           }
         }

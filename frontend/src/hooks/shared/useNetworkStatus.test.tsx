@@ -20,6 +20,10 @@ vi.mock("../../services/shared/authService", () => ({
 describe("useNetworkStatus", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset per test: a test that turns offline mode on must not leak into the next.
+    mockIsOfflineModeActive.mockReturnValue(false);
+    mockGetPendingCount.mockResolvedValue(0);
+    mockFlushSyncQueue.mockResolvedValue(undefined);
     vi.useFakeTimers({ shouldAdvanceTime: true });
     Object.defineProperty(navigator, "onLine", { value: true, writable: true });
   });
