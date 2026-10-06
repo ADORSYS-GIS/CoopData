@@ -1,16 +1,11 @@
 import type { ReactNode } from "react";
 
+import { tr } from "@/pages/shared/print/tpl/i18n";
+
 export type StatusTone = "ok" | "warn" | "bad" | "na";
 
-const STATUS_TEXT: Record<StatusTone, string> = {
-  ok: "Meets",
-  warn: "Watch",
-  bad: "Breach",
-  na: "Unverified",
-};
-
 export function Pill({ tone, children }: { tone: StatusTone; children?: ReactNode }) {
-  return <span className={`st ${tone}`}>{children ?? STATUS_TEXT[tone]}</span>;
+  return <span className={`st ${tone}`}>{children ?? tr(`status.${tone}`)}</span>;
 }
 
 /** Footnote reference that points to an item in Annex A. */
@@ -89,34 +84,27 @@ export function Figure({ caption, children }: { caption: ReactNode; children: Re
 export function SignOff() {
   return (
     <>
-      <h3>Approval</h3>
+      <h3>{tr("signoff.approval")}</h3>
       <div className="sign">
-        {["Prepared by", "Reviewed by", "Approved by"].map((role) => (
-          <div key={role}>
-            <div className="box" />
-            {role}
-            <span>Name, designation &amp; date</span>
-          </div>
-        ))}
+        {[tr("signoff.prepared_by"), tr("signoff.reviewed_by"), tr("signoff.approved_by")].map(
+          (role) => (
+            <div key={role}>
+              <div className="box" />
+              {role}
+              <span>{tr("signoff.name_designation_date")}</span>
+            </div>
+          ),
+        )}
       </div>
     </>
   );
 }
 
 export function EndOfReport() {
-  return <div className="eor">END OF REPORT</div>;
+  return <div className="eor">{tr("end_of_report")}</div>;
 }
 
-export const STATUS_LEGEND: { tone: StatusTone; meaning: string }[] = [
-  { tone: "ok", meaning: "Indicator is within the prudential benchmark." },
-  {
-    tone: "warn",
-    meaning:
-      "Indicator is close to, or marginally outside, the benchmark; monitor in the next review.",
-  },
-  { tone: "bad", meaning: "Indicator is outside the benchmark and requires corrective action." },
-  {
-    tone: "na",
-    meaning: "Submitted data is inconsistent or incomplete; indicator cannot be relied upon.",
-  },
-];
+const LEGEND_TONES: readonly StatusTone[] = ["ok", "warn", "bad", "na"];
+
+export const statusLegend = (): { tone: StatusTone; meaning: string }[] =>
+  LEGEND_TONES.map((tone) => ({ tone, meaning: tr(`legend.${tone}`) }));

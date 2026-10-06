@@ -5,6 +5,9 @@ import { useApex } from "@/hooks/apexes/useApexes";
 import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
+import { useReportRoleLabels } from "@/hooks/print/useReportRoleLabels";
+import { setReportRoles } from "@/pages/shared/print/tpl/i18n";
 import { useApexNarratives } from "@/hooks/analytics/useConsolidatedNarratives";
 
 export const Route = createFileRoute("/print/apex/$id")({
@@ -14,12 +17,15 @@ export const Route = createFileRoute("/print/apex/$id")({
 function PrintComponent() {
   const { t } = useTranslation();
   const { id } = Route.useParams();
-  const { token, year, name } = Route.useSearch() as {
+  const { token, year, name, lng } = Route.useSearch() as {
     token?: string;
     year?: string;
     name?: string;
+    lng?: string;
   };
 
+  const languageReady = usePrintLanguage(lng);
+  const { data: roleLabels, isLoading: isLoadingRoles } = useReportRoleLabels(token);
   const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
   const { data: apex } = useApex(id, token);
 
@@ -41,7 +47,12 @@ function PrintComponent() {
     token,
   );
 
-  const { data: narratives } = useApexNarratives(id, currentYear, token);
+  const { data: narratives, isLoading: isLoadingNarratives } = useApexNarratives(
+    id,
+    currentYear,
+    token,
+    lng,
+  );
 
   const { data: series, isLoading: isLoadingSeries } = usePeriodSeries(
     { apexId: id, reportingYear: currentYear, periodType: "yearly" },
@@ -49,7 +60,13 @@ function PrintComponent() {
     token,
   );
 
-  const isLoading = isLoadingCurrent || isLoadingPrior || isLoadingSeries;
+  const isLoading =
+    !languageReady ||
+    isLoadingRoles ||
+    isLoadingCurrent ||
+    isLoadingPrior ||
+    isLoadingSeries ||
+    isLoadingNarratives;
 
   if (isLoading || !overviewData) {
     return (
@@ -62,11 +79,12 @@ function PrintComponent() {
     );
   }
 
+  setReportRoles(roleLabels);
   return (
     <ConsolidatedReportPrint
       tier="Apex"
       entityName={
-        name || apex?.name || overviewData.cooperatives[0]?.apex_name || "Apex organisation"
+        name || apex?.name || overviewData.cooperatives[0]?.apex_name || t("pdf.cons.issuer.Apex")
       }
       year={currentYear}
       data={overviewData}

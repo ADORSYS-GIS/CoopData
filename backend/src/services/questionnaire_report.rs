@@ -36,18 +36,6 @@ pub struct QuestionnaireNarratives {
     pub outlook_recommendations: String,
 }
 
-pub fn encode_questionnaire_narrative_params(n: &QuestionnaireNarratives) -> String {
-    format!(
-        "&executive_summary={}&membership_governance={}&portfolio_quality={}&liquidity_capital={}&financial_structure_profitability={}&outlook_recommendations={}",
-        urlencoding::encode(&n.executive_summary),
-        urlencoding::encode(&n.membership_governance),
-        urlencoding::encode(&n.portfolio_quality),
-        urlencoding::encode(&n.liquidity_capital),
-        urlencoding::encode(&n.financial_structure_profitability),
-        urlencoding::encode(&n.outlook_recommendations),
-    )
-}
-
 // ── Input context ──────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
@@ -418,23 +406,6 @@ pub async fn dashboard_for_submission(
 }
 
 impl ExportGenerator {
-    /// Routes a single-submission PDF request by submission method.
-    pub(crate) async fn generate_submission_pdf(
-        state: &AppState,
-        submission_id: Uuid,
-    ) -> AppResult<Vec<u8>> {
-        let submission = state
-            .submission_repo
-            .find_by_id(submission_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
-        if is_questionnaire_method(&submission.submission_method) {
-            Self::generate_questionnaire_pdf(state, submission_id).await
-        } else {
-            Self::generate_cooperative_pdf(state, submission_id).await
-        }
-    }
-
     pub(crate) async fn generate_questionnaire_narratives(
         state: &AppState,
         submission_id: Uuid,
@@ -461,40 +432,6 @@ impl ExportGenerator {
             .narrative_generator
             .generate_questionnaire_narratives(&ctx)
             .await
-    }
-
-    pub(crate) async fn generate_questionnaire_pdf(
-        state: &AppState,
-        submission_id: Uuid,
-    ) -> AppResult<Vec<u8>> {
-        let narrative_params = match Self::generate_questionnaire_narratives(state, submission_id)
-            .await
-        {
-            Ok(result) => {
-                if let Err(e) = state
-                    .submission_repo
-                    .update_metadata(
-                        submission_id,
-                        serde_json::json!({ "ai_narratives": result }),
-                    )
-                    .await
-                {
-                    tracing::warn!(submission_id = %submission_id, error = %e, "[export] failed to persist questionnaire narratives");
-                }
-                encode_questionnaire_narrative_params(&result)
-            }
-            Err(e) => {
-                tracing::warn!(submission_id = %submission_id, error = %e, "[export] questionnaire narratives failed, rendering without AI summary");
-                String::new()
-            }
-        };
-
-        let token = state.keycloak.get_admin_token().await?;
-        let print_url = format!(
-            "{}/print/questionnaire/{}?token={}{}",
-            state.config.gotenberg_frontend_url, submission_id, token, narrative_params
-        );
-        Self::generate_pdf_via_gotenberg(state, &print_url).await
     }
 }
 
@@ -653,30 +590,6 @@ mod tests {
         for other in ["upload", "manual", "manual_grid", ""] {
             assert!(!is_questionnaire_method(other));
         }
-    }
-
-    #[test]
-    fn narrative_params_are_url_encoded_and_complete() {
-        let n = QuestionnaireNarratives {
-            executive_summary: "A & B".into(),
-            membership_governance: "m".into(),
-            portfolio_quality: "p".into(),
-            liquidity_capital: "l c".into(),
-            financial_structure_profitability: "f".into(),
-            outlook_recommendations: "o".into(),
-        };
-        let encoded = encode_questionnaire_narrative_params(&n);
-        assert!(encoded.starts_with("&executive_summary=A%20%26%20B"));
-        for key in [
-            "membership_governance",
-            "portfolio_quality",
-            "liquidity_capital",
-            "financial_structure_profitability",
-            "outlook_recommendations",
-        ] {
-            assert!(encoded.contains(&format!("&{key}=")), "missing {key}");
-        }
-        assert!(encoded.contains("liquidity_capital=l%20c"));
     }
 
     #[test]

@@ -7,11 +7,12 @@ import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { Fn, Figure, FindList, Note } from "@/pages/shared/print/tpl/TplParts";
 import { BarChart, Donut } from "@/pages/shared/print/tpl/TplTrend";
+import { percentText, short, tr } from "@/pages/shared/print/tpl/i18n";
 
 const ARREARS = /arrear|overdue|delinq|non-?perf|npl/i;
 
 export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Loan Portfolio Quality & Credit Risk" },
+  toc: { no, title: tr("coop.loans.title") },
   render: () => {
     const kpis = a.props.kpisData.kpis;
     const categories = a.props.portfolioData.categories;
@@ -34,93 +35,97 @@ export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
 
     return (
       <>
-        <Sec no={no} title="Loan Portfolio Quality & Credit Risk" sub="As at 31 December" />
+        <Sec no={no} title={tr("coop.loans.title")} sub={tr("common.as_at_31_december")} />
         <p>
           {count > 0
-            ? `The loan register records ${fmtInt(count)} loans with a balance of ${fmtInt(balance)}, of which ${fmtInt(inArrears)} (${fmtPct(count > 0 ? (inArrears / count) * 100 : null)}) are in arrears. `
-            : "No loan register was submitted for this period. "}
-          {gross !== undefined
-            ? `The general ledger reports a gross loan portfolio of ${fmtMillions(gross)}.`
-            : ""}
+            ? tr("coop.loans.register", {
+                loans: fmtInt(count),
+                balance: fmtInt(balance),
+                arrears: fmtInt(inArrears),
+                share: fmtPct(count > 0 ? (inArrears / count) * 100 : null),
+              })
+            : tr("coop.loans.no_register")}
+          {gross !== undefined ? tr("coop.loans.ledger", { value: fmtMillions(gross) }) : ""}
         </p>
         {a.props.narratives?.portfolio_quality && (
           <div className="opinion keep">
-            <div className="lbl">Portfolio quality</div>
+            <div className="lbl">{tr("coop.loans.portfolio_quality")}</div>
             <p style={{ margin: 0 }}>{a.props.narratives.portfolio_quality}</p>
           </div>
         )}
         <div className="two">
           <div>
-            <h3 style={{ marginTop: 0 }}>Portfolio-at-risk (general ledger)</h3>
+            <h3 style={{ marginTop: 0 }}>{tr("coop.loans.par_gl")}</h3>
             <table className="tbl compact">
               <thead>
                 <tr>
-                  <th>Indicator</th>
-                  <th className="num">FY {a.year}</th>
-                  <th className="num">Limit</th>
+                  <th>{tr("common.indicator")}</th>
+                  <th className="num">{tr("common.fy", { year: a.year })}</th>
+                  <th className="num">{tr("common.limit")}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Gross loan portfolio</td>
+                  <td>{tr("coop.loans.gross_loan_portfolio")}</td>
                   <td className="num">{fmtMillions(gross)}</td>
                   <td className="num">—</td>
                 </tr>
                 <tr>
                   <td>
-                    PAR &gt;30 days{a.footnote("par30") && <Fn id={a.footnote("par30") ?? ""} />}
+                    {tr("coop.loans.par30")}
+                    {a.footnote("par30") && <Fn id={a.footnote("par30") ?? ""} />}
                   </td>
                   <td className="num">{fmtPct(par30?.current ?? null)}</td>
-                  <td className="num">≤ 5%</td>
+                  <td className="num">≤ {percentText(5, 0)}</td>
                 </tr>
                 <tr>
-                  <td>PAR &gt;90 days</td>
+                  <td>{tr("coop.loans.par90")}</td>
                   <td className="num">{fmtPct(par90?.current ?? null)}</td>
-                  <td className="num">≤ 2%</td>
+                  <td className="num">≤ {percentText(2, 0)}</td>
                 </tr>
                 <tr>
-                  <td>Loan-loss provisions</td>
+                  <td>{tr("coop.loans.provisions")}</td>
                   <td className="num">{fmtInt(provisions)}</td>
                   <td className="num">—</td>
                 </tr>
                 <tr>
-                  <td>Loan-loss coverage</td>
+                  <td>{tr("coop.loans.coverage")}</td>
                   <td className="num">{fmtPct(coverage?.current ?? null)}</td>
-                  <td className="num">100%</td>
+                  <td className="num">{percentText(100, 0)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div>
-            <h3 style={{ marginTop: 0 }}>Loan register (member level)</h3>
+            <h3 style={{ marginTop: 0 }}>{tr("coop.loans.register_title")}</h3>
             <table className="tbl compact">
               <thead>
                 <tr>
-                  <th>Indicator</th>
-                  <th className="num">FY {a.year}</th>
+                  <th>{tr("common.indicator")}</th>
+                  <th className="num">{tr("common.fy", { year: a.year })}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Loans outstanding</td>
+                  <td>{tr("coop.loans.outstanding")}</td>
                   <td className="num">{fmtInt(count)}</td>
                 </tr>
                 <tr>
-                  <td>Performing / in arrears</td>
+                  <td>{tr("coop.loans.performing_arrears")}</td>
                   <td className="num">
                     {fmtInt(count - inArrears)} / {fmtInt(inArrears)}
                   </td>
                 </tr>
                 <tr>
-                  <td>Arrears rate (by number)</td>
+                  <td>{tr("coop.loans.arrears_rate")}</td>
                   <td className="num">{fmtPct(count > 0 ? (inArrears / count) * 100 : null)}</td>
                 </tr>
                 <tr>
-                  <td>Register balance outstanding</td>
+                  <td>{tr("coop.loans.register_balance")}</td>
                   <td className="num">{fmtInt(balance)}</td>
                 </tr>
                 <tr>
-                  <td>Average loan size</td>
+                  <td>{tr("coop.loans.average_size")}</td>
                   <td className="num">{count > 0 ? fmtInt(balance / count) : "—"}</td>
                 </tr>
               </tbody>
@@ -133,8 +138,7 @@ export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
               <Figure
                 caption={
                   <>
-                    <b>Figure L1.</b> Loan book by days overdue, from the general ledger (loan lines
-                    1201 to 1205).
+                    <b>{tr("coop.loans.fig_l1")}</b> {tr("coop.loans.fig_l1_caption")}
                   </>
                 }
               >
@@ -145,20 +149,24 @@ export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
             )}
             {categories.length > 0 && (
               <div>
-                <h3 style={{ marginTop: 0 }}>Loan register by category</h3>
+                <h3 style={{ marginTop: 0 }}>{tr("coop.loans.by_category")}</h3>
                 <table className="tbl compact">
                   <thead>
                     <tr>
-                      <th>Category</th>
-                      <th className="num">Loans</th>
-                      <th className="num">Balance</th>
-                      <th className="num">Share of balance</th>
+                      <th>{tr("coop.loans.category")}</th>
+                      <th className="num">{tr("coop.loans.loans")}</th>
+                      <th className="num">{tr("coop.loans.balance")}</th>
+                      <th className="num">{tr("coop.loans.share_balance")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {categories.map((c) => (
                       <tr key={c.category}>
-                        <td>{c.category}</td>
+                        <td>
+                          {tr(`coop.loans.categories.${c.category}`, {
+                            defaultValue: c.category,
+                          })}
+                        </td>
                         <td className="num">{fmtInt(c.count)}</td>
                         <td className="num">{fmtInt(c.balance)}</td>
                         <td className="num">
@@ -173,13 +181,12 @@ export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
           </div>
         )}
         {conflict && (
-          <Note title="Supervisory concern.">
-            The general ledger reports no loans overdue more than 30 days, yet {fmtInt(inArrears)}{" "}
-            loans are recorded in arrears in the loan register. Until an arrears analysis is
-            submitted, asset quality is rated <b>Unverified</b>.
+          <Note title={tr("coop.loans.concern_title")}>
+            {tr("coop.loans.concern", { loans: fmtInt(inArrears) })}{" "}
+            <b>{tr("coop.loans.unverified")}</b>.
           </Note>
         )}
-        <h3>Required actions</h3>
+        <h3>{tr("coop.loans.required_actions")}</h3>
         <FindList red items={actions.map((r) => `${r.lead} ${r.text}`)} />
       </>
     );
@@ -187,7 +194,7 @@ export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
 });
 
 export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Membership, Governance & Inclusion" },
+  toc: { no, title: tr("coop.membership.title") },
   render: () => {
     const m = a.props.membershipData;
     const male = m.male_members ?? 0;
@@ -202,10 +209,10 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
     const bands = a.props.nfStats?.membership;
     const ageBands = bands
       ? [
-          { label: "Under 18", value: bands.under_18 },
+          { label: tr("coop.membership.under_18"), value: bands.under_18 },
           { label: "18–35", value: bands.age_18_35 },
           { label: "36–50", value: bands.age_36_50 },
-          { label: "Over 50", value: bands.over_50 },
+          { label: tr("coop.membership.over_50"), value: bands.over_50 },
         ]
       : [];
     const hasAgeBands = ageBands.some((band) => band.value > 0);
@@ -213,10 +220,10 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
       ...(male + female > 0
         ? [
             {
-              label: "Gender",
+              label: tr("common.gender"),
               segments: [
-                { label: "Male", value: male },
-                { label: "Female", value: female },
+                { label: tr("common.male"), value: male },
+                { label: tr("common.female"), value: female },
               ],
             },
           ]
@@ -224,10 +231,10 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
       ...(youth > 0 && total > 0
         ? [
             {
-              label: "Age",
+              label: tr("common.age"),
               segments: [
-                { label: "Youth 18–35", value: youth },
-                { label: "Others", value: Math.max(total - youth, 0) },
+                { label: tr("coop.membership.youth_18_35"), value: youth },
+                { label: tr("common.others"), value: Math.max(total - youth, 0) },
               ],
             },
           ]
@@ -235,10 +242,10 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
       ...(active + inactive > 0
         ? [
             {
-              label: "Status",
+              label: tr("common.status"),
               segments: [
-                { label: "Active", value: active },
-                { label: "Inactive", value: inactive },
+                { label: tr("common.active"), value: active },
+                { label: tr("common.inactive"), value: inactive },
               ],
             },
           ]
@@ -247,15 +254,21 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
 
     return (
       <>
-        <Sec no={no} title="Membership, Governance & Inclusion" sub="As at 31 December" />
+        <Sec no={no} title={tr("coop.membership.title")} sub={tr("common.as_at_31_december")} />
         <p>
           {total > 0
-            ? `The cooperative has ${fmtInt(total)} members, of whom ${fmtPct(total > 0 ? (active / total) * 100 : null)} are active. Women are ${fmtPct(male + female > 0 ? (female / (male + female)) * 100 : null)} of members and youth ${fmtPct(total > 0 ? (youth / total) * 100 : null)}.`
-            : "No membership figures were submitted for this period."}
+            ? tr("coop.membership.summary", {
+                name: a.props.coopName,
+                total: fmtInt(total),
+                active: fmtPct(total > 0 ? (active / total) * 100 : null),
+                women: fmtPct(male + female > 0 ? (female / (male + female)) * 100 : null),
+                youth: fmtPct(total > 0 ? (youth / total) * 100 : null),
+              })
+            : tr("coop.membership.none")}
         </p>
         {a.props.narratives?.non_financial && (
           <div className="opinion keep">
-            <div className="lbl">Membership insights</div>
+            <div className="lbl">{tr("coop.membership.insights")}</div>
             <p style={{ margin: 0 }}>{a.props.narratives.non_financial}</p>
           </div>
         )}
@@ -264,14 +277,14 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
             <Figure
               caption={
                 <>
-                  <b>Figure M1.</b> Members by gender.
+                  <b>{tr("coop.membership.fig_m1")}</b> {tr("coop.membership.fig_m1_caption")}
                 </>
               }
             >
               <Donut
                 slices={[
-                  { label: "Women", value: female },
-                  { label: "Men", value: male },
+                  { label: tr("common.women"), value: female },
+                  { label: tr("common.men"), value: male },
                 ]}
                 format={fmtInt}
               />
@@ -279,13 +292,13 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
             <Figure
               caption={
                 <>
-                  <b>Figure M2.</b> Members by age band, from the member ledger.
+                  <b>{tr("coop.membership.fig_m2")}</b> {tr("coop.membership.fig_m2_caption")}
                 </>
               }
             >
               <BarChart
-                unit="members"
-                format={(value) => String(Math.round(value))}
+                unit={tr("coop.membership.members_unit")}
+                format={(value) => short(Math.round(value), 0)}
                 labels={ageBands.map((band) => band.label)}
                 values={ageBands.map((band) => band.value)}
               />
@@ -296,7 +309,7 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
             <Figure
               caption={
                 <>
-                  <b>Figure 3.</b> Membership profile by gender, age and status (share of members).
+                  <b>{tr("coop.membership.fig_3")}</b> {tr("coop.membership.fig_3_caption")}
                 </>
               }
             >
@@ -306,45 +319,45 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
         )}
         <div className="two">
           <div>
-            <h3 style={{ marginTop: 0 }}>Membership</h3>
+            <h3 style={{ marginTop: 0 }}>{tr("coop.membership.membership")}</h3>
             <table className="tbl compact">
               <thead>
                 <tr>
-                  <th>Indicator</th>
-                  <th className="num">Number</th>
-                  <th className="num">Share</th>
+                  <th>{tr("common.indicator")}</th>
+                  <th className="num">{tr("common.number")}</th>
+                  <th className="num">{tr("common.share")}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>
-                    Total members
+                    {tr("coop.membership.total_members")}
                     {a.footnote("members") && <Fn id={a.footnote("members") ?? ""} />}
                   </td>
                   <td className="num">{fmtInt(total)}</td>
-                  <td className="num">{total > 0 ? "100.0%" : "—"}</td>
+                  <td className="num">{total > 0 ? fmtPct(100) : "—"}</td>
                 </tr>
                 <tr>
-                  <td>Active / inactive</td>
+                  <td>{tr("coop.membership.active_inactive")}</td>
                   <td className="num">
                     {fmtInt(active)} / {fmtInt(inactive)}
                   </td>
                   <td className="num">{fmtPct(total > 0 ? (active / total) * 100 : null)}</td>
                 </tr>
                 <tr>
-                  <td>Women</td>
+                  <td>{tr("common.women")}</td>
                   <td className="num">{fmtInt(female)}</td>
                   <td className="num">
                     {fmtPct(male + female > 0 ? (female / (male + female)) * 100 : null)}
                   </td>
                 </tr>
                 <tr>
-                  <td>Youth (18–35)</td>
+                  <td>{tr("coop.membership.youth")}</td>
                   <td className="num">{fmtInt(youth)}</td>
                   <td className="num">{fmtPct(total > 0 ? (youth / total) * 100 : null)}</td>
                 </tr>
                 <tr>
-                  <td>AGM attendance</td>
+                  <td>{tr("coop.membership.agm")}</td>
                   <td className="num">{fmtInt(agm)}</td>
                   <td className="num">{fmtPct(active > 0 ? (agm / active) * 100 : null)}</td>
                 </tr>
@@ -352,12 +365,12 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
             </table>
           </div>
           <div>
-            <h3 style={{ marginTop: 0 }}>Savings &amp; deposit products</h3>
+            <h3 style={{ marginTop: 0 }}>{tr("coop.membership.savings_products")}</h3>
             <table className="tbl compact">
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th className="num">FY {a.year}</th>
+                  <th>{tr("coop.membership.product")}</th>
+                  <th className="num">{tr("common.fy", { year: a.year })}</th>
                 </tr>
               </thead>
               <tbody>
@@ -368,11 +381,11 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
                   </tr>
                 ))}
                 <tr className="total">
-                  <td>Total member deposits</td>
+                  <td>{tr("coop.membership.total_deposits")}</td>
                   <td className="num">{fmtInt(deposits)}</td>
                 </tr>
                 <tr>
-                  <td>Average per member</td>
+                  <td>{tr("coop.membership.average_per_member")}</td>
                   <td className="num">{total > 0 ? fmtInt(deposits / total) : "—"}</td>
                 </tr>
               </tbody>
@@ -380,8 +393,8 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
           </div>
         </div>
         <p className="src">
-          Governance measures (women and youth in leadership, committee composition) were not part
-          of this return. {a.footnote("members") && <Fn id={a.footnote("members") ?? ""} />}
+          {tr("coop.membership.governance_note")}{" "}
+          {a.footnote("members") && <Fn id={a.footnote("members") ?? ""} />}
         </p>
       </>
     );

@@ -5,6 +5,11 @@ import { runMutation } from "@/services/shared/syncQueueService";
 
 const NARRATIVES_KEY = "submission-narratives";
 
+const BASE_URL =
+  window.location.hostname.includes("frontend") || window.location.hostname.includes("gotenberg")
+    ? "http://backend:3000"
+    : import.meta.env.VITE_API_BASE_URL || "";
+
 export interface CooperativeNarratives {
   executive_summary: string;
   financial_position: string;
@@ -13,18 +18,22 @@ export interface CooperativeNarratives {
   benchmark_comparison: string;
 }
 
-export const useSubmissionNarratives = (submissionId: string | undefined, tokenOverride?: string) =>
+export const useSubmissionNarratives = (
+  submissionId: string | undefined,
+  tokenOverride?: string,
+  lng?: string,
+) =>
   useOfflineQuery({
-    queryKey: [NARRATIVES_KEY, submissionId, tokenOverride],
+    queryKey: [NARRATIVES_KEY, submissionId, tokenOverride, lng],
     cacheTable: "submissions",
-    cacheKey: `narratives-${submissionId}`,
+    cacheKey: `narratives-${submissionId}-${lng ?? "en"}`,
     enabled: !!submissionId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+      const lngParam = lng ? `&lng=${encodeURIComponent(lng)}` : "";
       const res = await fetch(
-        `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/narratives`,
+        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/narratives?_=${Date.now()}${lngParam}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -47,9 +56,8 @@ export const useGenerateSubmissionNarratives = () => {
           optimisticData: undefined,
           online: async () => {
             const token = await getAccessToken();
-            const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
             const res = await fetch(
-              `${baseUrl}/api/v1/cooperative/submissions/${submissionId}/narratives/generate`,
+              `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/narratives/generate`,
               {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },

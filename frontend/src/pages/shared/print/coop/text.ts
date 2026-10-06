@@ -1,23 +1,22 @@
 import type { CoopAnalysis, ScoreRow } from "@/pages/shared/print/coop/analysis";
 import { fmtInt, fmtMillions, fmtPct } from "@/pages/shared/print/coop/data";
+import { listText, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
-const AREA: Record<string, string> = {
-  par30: "portfolio quality",
-  par90: "portfolio quality",
-  npl_ratio: "portfolio quality",
-  loan_loss_coverage: "provisioning",
-  capital_adequacy_ratio: "capital",
-  roa: "profitability",
-  roe: "profitability",
-  operating_expense_ratio: "cost control",
-  operational_self_sufficiency: "sustainability",
-  liquid_funds_ratio: "liquidity",
-};
+const AREA_KEYS = new Set([
+  "par30",
+  "par90",
+  "npl_ratio",
+  "loan_loss_coverage",
+  "capital_adequacy_ratio",
+  "roa",
+  "roe",
+  "operating_expense_ratio",
+  "operational_self_sufficiency",
+  "liquid_funds_ratio",
+]);
 
-const join = (items: string[]): string =>
-  items.length <= 1
-    ? (items[0] ?? "")
-    : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+const areaOf = (key: string): string | undefined =>
+  AREA_KEYS.has(key) ? tr(`coop.areas.${key}`) : undefined;
 
 const weak = (rows: ScoreRow[]): ScoreRow[] =>
   rows.filter((r) => !r.info && (r.tone === "bad" || r.tone === "na"));
@@ -26,47 +25,57 @@ export const growthNote = (a: CoopAnalysis): string => {
   const assets = a.growth[0]?.current;
   return assets === null || assets === undefined
     ? ""
-    : `Total assets ${assets >= 0 ? "grew" : "fell"} ${Math.abs(assets).toFixed(1)}% on the prior year.`;
+    : tr(assets >= 0 ? "coop.text.assets_grew" : "coop.text.assets_fell", {
+        change: percentText(Math.abs(assets)),
+      });
 };
 
 export const verdictOf = (a: CoopAnalysis): { verdict: string; body: string } => {
   const name = a.props.coopName;
   if (!a.reported) {
     return {
-      verdict: "The return carries no total assets, so the cooperative cannot be assessed.",
-      body: `${name} has no reported total assets for ${a.year}. Prudential ratios cannot be computed until the return is corrected and resubmitted.`,
+      verdict: tr("coop.text.no_assets_verdict"),
+      body: tr("coop.text.no_assets_body", { name, year: a.year }),
     };
   }
   const byKey = new Map(a.scorecard.map((r) => [r.key, r]));
   const capital = byKey.get("capital_adequacy_ratio");
   const assetsGrowth = a.growth[0]?.current ?? null;
   const problems = weak(a.scorecard);
-  const areas = [...new Set(problems.map((r) => AREA[r.key]).filter(Boolean))];
+  const areas = [
+    ...new Set(problems.map((r) => areaOf(r.key)).filter((x): x is string => Boolean(x))),
+  ];
   const lead =
     capital?.tone === "bad"
-      ? "Under-capitalised"
-      : problems.length === 0
-        ? "Financially sound"
-        : capital?.tone === "ok"
-          ? "Financially sound"
-          : "Mixed financial results";
-  const growth = assetsGrowth === null ? "" : assetsGrowth >= 0 ? " and growing" : " but shrinking";
+      ? tr("coop.text.lead_under_capitalised")
+      : problems.length === 0 || capital?.tone === "ok"
+        ? tr("coop.text.lead_sound")
+        : tr("coop.text.lead_mixed");
+  const growth =
+    assetsGrowth === null
+      ? ""
+      : assetsGrowth >= 0
+        ? tr("coop.text.growing")
+        : tr("coop.text.shrinking");
   const tail =
     areas.length > 0
-      ? `, with weaknesses in ${join(areas)}`
-      : ", and all reported benchmarks are met";
-  const facts = [
-    `${name} reports total assets of ${fmtMillions(a.statement.totals.assets.current)}`,
-    `equity of ${fmtMillions(a.statement.totals.equity.current)} and a net surplus of ${fmtMillions(a.statement.totals.surplus.current)}.`,
-  ].join(", ");
+      ? tr("coop.text.with_weaknesses", { areas: listText(areas) })
+      : tr("coop.text.all_met");
+  const facts = tr("coop.text.facts", {
+    name,
+    assets: fmtMillions(a.statement.totals.assets.current),
+    equity: fmtMillions(a.statement.totals.equity.current),
+    surplus: fmtMillions(a.statement.totals.surplus.current),
+  });
   const status =
     problems.length > 0
-      ? ` ${problems.length} of ${a.scorecard.filter((r) => !r.info).length} prudential indicators are in breach or cannot be relied upon.`
-      : " All prudential indicators are within their benchmarks.";
+      ? tr("coop.text.problems", {
+          count: problems.length,
+          total: a.scorecard.filter((r) => !r.info).length,
+        })
+      : tr("coop.text.no_problems");
   const validation =
-    a.validation.length > 0
-      ? ` ${a.validation.length} data inconsistenc${a.validation.length === 1 ? "y was" : "ies were"} found; see Annex A.`
-      : "";
+    a.validation.length > 0 ? tr("coop.text.inconsistencies", { count: a.validation.length }) : "";
   return { verdict: `${lead}${growth}${tail}.`, body: `${facts}${status}${validation}` };
 };
 
@@ -75,11 +84,17 @@ export const strengthsOf = (a: CoopAnalysis): string[] => {
   const growth = growthNote(a);
   if (growth && (a.growth[0]?.current ?? 0) > 0) out.push(growth);
   for (const row of a.scorecard.filter((r) => !r.info && r.tone === "ok")) {
-    out.push(`${row.label} is ${fmtPct(row.current)}, within the benchmark (${row.bench}).`);
+    out.push(
+      tr("coop.text.within_benchmark", {
+        label: row.label,
+        value: fmtPct(row.current),
+        bench: row.bench,
+      }),
+    );
   }
   const savings = a.growth[2]?.current;
   if (savings !== null && savings !== undefined && savings > 0)
-    out.push(`Member savings grew ${savings.toFixed(1)}%.`);
+    out.push(tr("coop.text.savings_grew", { change: percentText(savings) }));
   return out.slice(0, 5);
 };
 
@@ -88,76 +103,41 @@ export const concernsOf = (a: CoopAnalysis): string[] => {
   for (const row of weak(a.scorecard)) {
     out.push(
       row.tone === "na"
-        ? `${row.label} cannot be assessed because no figure is reported.`
-        : `${row.label} is ${fmtPct(row.current)} against a benchmark of ${row.bench}.`,
+        ? tr("coop.text.not_reported", { label: row.label })
+        : tr("coop.text.against_benchmark", {
+            label: row.label,
+            value: fmtPct(row.current),
+            bench: row.bench,
+          }),
     );
   }
   if ((a.growth[0]?.current ?? 0) < 0) out.push(growthNote(a));
   if (a.validation.length > 0)
-    out.push(
-      `System-generated figures did not reconcile in ${a.validation.length} place${a.validation.length === 1 ? "" : "s"}; see Annex A.`,
-    );
+    out.push(tr("coop.text.not_reconciled", { count: a.validation.length }));
   return out.slice(0, 5);
 };
+
+export type Priority = "High" | "Medium" | "Standard";
 
 export interface Recommendation {
   lead: string;
   text: string;
-  priority: "High" | "Medium" | "Standard";
+  priority: Priority;
   timeline: string;
 }
 
-const ACTIONS: Record<string, [string, string, "High" | "Medium"]> = {
-  par30: [
-    "Portfolio quality.",
-    "Submit a loan-ageing schedule and reconcile the reported PAR to the loan register.",
-    "High",
-  ],
-  par90: [
-    "Non-performing loans.",
-    "Prepare a recovery plan for loans more than 90 days overdue.",
-    "High",
-  ],
-  npl_ratio: [
-    "Non-performing loans.",
-    "Prepare a recovery plan for loans more than 90 days overdue.",
-    "High",
-  ],
-  loan_loss_coverage: [
-    "Provisioning.",
-    "Establish loan-loss provisions in line with prudential standards (general 1–2%; specific 100% for loans >90 days) and record the provision expense.",
-    "High",
-  ],
-  capital_adequacy_ratio: [
-    "Capital restoration.",
-    "Present a capital-building plan to bring total equity to at least 10% of total assets.",
-    "High",
-  ],
-  roa: [
-    "Profitability.",
-    "Review lending rates and the cost structure to lift return on assets towards 3%.",
-    "Medium",
-  ],
-  roe: [
-    "Returns to members.",
-    "Review surplus allocation and cost structure to lift return on equity towards 8%.",
-    "Medium",
-  ],
-  operating_expense_ratio: [
-    "Efficiency.",
-    "Set a cost-reduction plan to bring operating expenses within 5% of assets.",
-    "Medium",
-  ],
-  operational_self_sufficiency: [
-    "Sustainability.",
-    "Adjust pricing and costs so that income covers expenses by at least 110%.",
-    "Medium",
-  ],
-  liquid_funds_ratio: [
-    "Liquidity.",
-    "Build liquid assets to at least 15% of total assets.",
-    "Medium",
-  ],
+/** Recommended action per ratio key; NPL shares the PAR >90 days action. */
+const ACTIONS: Record<string, [string, "High" | "Medium"]> = {
+  par30: ["par30", "High"],
+  par90: ["par90", "High"],
+  npl_ratio: ["par90", "High"],
+  loan_loss_coverage: ["loan_loss_coverage", "High"],
+  capital_adequacy_ratio: ["capital_adequacy_ratio", "High"],
+  roa: ["roa", "Medium"],
+  roe: ["roe", "Medium"],
+  operating_expense_ratio: ["operating_expense_ratio", "Medium"],
+  operational_self_sufficiency: ["operational_self_sufficiency", "Medium"],
+  liquid_funds_ratio: ["liquid_funds_ratio", "Medium"],
 };
 
 export const recommendationsOf = (a: CoopAnalysis): Recommendation[] => {
@@ -168,25 +148,27 @@ export const recommendationsOf = (a: CoopAnalysis): Recommendation[] => {
     if (!action || seen.has(action[0])) continue;
     seen.add(action[0]);
     out.push({
-      lead: action[0],
-      text: action[1],
-      priority: action[2],
-      timeline: action[2] === "High" ? "Within 30 days" : "Next quarter",
+      lead: tr(`coop.actions.${action[0]}.lead`),
+      text: tr(`coop.actions.${action[0]}.text`),
+      priority: action[1],
+      timeline: tr(
+        action[1] === "High" ? "common.timelines.within_30_days" : "common.timelines.next_quarter",
+      ),
     });
   }
   if (a.validation.length > 0) {
     out.push({
-      lead: "Data reconciliation.",
-      text: `Correct and resubmit the return so that the ${a.validation.length} item${a.validation.length === 1 ? "" : "s"} in Annex A reconcile with the statements.`,
+      lead: tr("coop.actions.reconciliation_lead"),
+      text: tr("coop.actions.reconciliation", { count: a.validation.length }),
       priority: "High",
-      timeline: "Within 30 days",
+      timeline: tr("common.timelines.within_30_days"),
     });
   }
   out.push({
-    lead: "Membership and inclusion.",
-    text: "Report member and borrower demographics (women, youth, rural) and set targets for inclusion.",
+    lead: tr("coop.actions.inclusion_lead"),
+    text: tr("coop.actions.inclusion"),
     priority: "Standard",
-    timeline: "Next financial year",
+    timeline: tr("common.timelines.next_financial_year"),
   });
   return out;
 };

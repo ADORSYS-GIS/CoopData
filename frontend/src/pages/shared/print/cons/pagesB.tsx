@@ -16,6 +16,7 @@ import { VBarGroups, TEAL, LIGHT, RED } from "@/pages/shared/print/tpl/TplCharts
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { Figure, Pill } from "@/pages/shared/print/tpl/TplParts";
+import { percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
 const CHECKED = ["par30", "capital_adequacy_ratio", "roa", "operating_expense_ratio"];
 
@@ -50,11 +51,11 @@ const FILING = ({ rows }: { rows: { name: string; total: number; filed: number }
     <table className="tbl">
       <thead>
         <tr>
-          <th>Apex organisation</th>
-          <th className="num">Cooperatives</th>
-          <th className="num">Filed</th>
-          <th className="num">Not filed</th>
-          <th className="num">Filing rate</th>
+          <th>{tr("common.apex_organisation")}</th>
+          <th className="num">{tr("common.cooperatives")}</th>
+          <th className="num">{tr("common.filed")}</th>
+          <th className="num">{tr("common.not_filed")}</th>
+          <th className="num">{tr("cons.sector.filing_rate")}</th>
         </tr>
       </thead>
       <tbody>
@@ -65,16 +66,16 @@ const FILING = ({ rows }: { rows: { name: string; total: number; filed: number }
             <td className="num">{row.filed}</td>
             <td className="num">{row.total - row.filed}</td>
             <td className="num">
-              {row.total > 0 ? `${((row.filed / row.total) * 100).toFixed(0)}%` : "—"}
+              {row.total > 0 ? percentText((row.filed / row.total) * 100, 0) : "—"}
             </td>
           </tr>
         ))}
         <tr className="total">
-          <td>Total</td>
+          <td>{tr("common.total")}</td>
           <td className="num">{total}</td>
           <td className="num">{filed}</td>
           <td className="num">{total - filed}</td>
-          <td className="num">{total > 0 ? `${((filed / total) * 100).toFixed(0)}%` : "—"}</td>
+          <td className="num">{total > 0 ? percentText((filed / total) * 100, 0) : "—"}</td>
         </tr>
       </tbody>
     </table>
@@ -84,7 +85,7 @@ const FILING = ({ rows }: { rows: { name: string; total: number; filed: number }
 const APEXES_PER_PAGE = 12;
 
 export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
-  const sectors = [...groupBy(a.coops, (c) => c.sector || "Uncategorised")];
+  const sectors = [...groupBy(a.coops, (c) => c.sector || tr("cons.uncategorised"))];
   const apexRows = a.apexes.map((apex) => ({
     ...apex,
     members: sumMembers(apex.filed),
@@ -94,25 +95,25 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
   const top = [...apexRows].sort((x, y) => y.assets - x.assets).slice(0, 3);
   const palette = [TEAL, LIGHT, RED, "#5E8FA3"];
   const keys = [
-    ["par30", "PAR >30 days"],
-    ["capital_adequacy_ratio", "Capital adequacy"],
-    ["roa", "Return on assets"],
-    ["operating_expense_ratio", "Operating expense"],
+    ["par30", tr("cons.sector.par30")],
+    ["capital_adequacy_ratio", tr("cons.sector.capital_adequacy")],
+    ["roa", tr("cons.sector.roa")],
+    ["operating_expense_ratio", tr("cons.sector.operating_expense")],
   ] as const;
 
   const sectorTable = (
     <>
-      <h3>Sector breakdown</h3>
+      <h3>{tr("cons.sector.breakdown")}</h3>
       <table className="tbl">
         <thead>
           <tr>
-            <th>Sector</th>
-            <th className="num">Cooperatives</th>
-            <th className="num">Share</th>
-            <th className="num">Filing rate</th>
-            <th className="num">Avg PAR30</th>
-            <th className="num">Avg CAR</th>
-            <th className="num">Avg ROA</th>
+            <th>{tr("common.sector")}</th>
+            <th className="num">{tr("common.cooperatives")}</th>
+            <th className="num">{tr("common.share")}</th>
+            <th className="num">{tr("cons.sector.filing_rate")}</th>
+            <th className="num">{tr("cons.sector.avg_par30")}</th>
+            <th className="num">{tr("cons.sector.avg_car")}</th>
+            <th className="num">{tr("cons.sector.avg_roa")}</th>
           </tr>
         </thead>
         <tbody>
@@ -120,7 +121,7 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
             const filed = members.filter((c) => c.has_data);
             return (
               <tr key={sector}>
-                <td>{sector}</td>
+                <td>{tr(`cons.sectors.${sector}`, { defaultValue: sector })}</td>
                 <td className="num">{members.length}</td>
                 <td className="num">
                   {percent((members.length / Math.max(a.coops.length, 1)) * 100, 0)}
@@ -139,19 +140,19 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
 
   const comparison = (rows: typeof apexRows, showTotal: boolean) => (
     <>
-      <h3>Apex comparison</h3>
+      <h3>{tr("cons.sector.apex_comparison")}</h3>
       <table className="tbl compact">
         <thead>
           <tr>
-            <th>Apex organisation</th>
-            <th className="num">Coops</th>
-            <th className="num">Members</th>
-            <th className="num">Assets</th>
+            <th>{tr("common.apex_organisation")}</th>
+            <th className="num">{tr("cons.sector.coops")}</th>
+            <th className="num">{tr("common.members")}</th>
+            <th className="num">{tr("cons.sector.assets")}</th>
             <th className="num">PAR30</th>
             <th className="num">CAR</th>
             <th className="num">ROA</th>
             <th className="num">OER</th>
-            <th>Risk</th>
+            <th>{tr("cons.sector.risk")}</th>
           </tr>
         </thead>
         <tbody>
@@ -172,7 +173,7 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
           ))}
           {showTotal && (
             <tr className="total">
-              <td>Sector</td>
+              <td>{tr("common.sector")}</td>
               <td className="num">{a.coops.length}</td>
               <td className="num">{integer(a.now.members)}</td>
               <td className="num">{money(a.now.assets)}</td>
@@ -194,7 +195,7 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
     <Figure
       caption={
         <>
-          <b>Figure 2.</b> Key ratios by apex organisation and for the whole sector (%).
+          <b>{tr("cons.sector.fig_2")}</b> {tr("cons.sector.fig_2_caption")}
         </>
       }
     >
@@ -202,7 +203,7 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
         unit="%"
         series={[
           ...top.map((t, i) => ({ name: t.name.slice(0, 22), color: palette[i] })),
-          { name: "Sector", color: palette[3] },
+          { name: tr("common.sector"), color: palette[3] },
         ]}
         data={keys.map(([key, label]) => ({
           label,
@@ -219,24 +220,26 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
   }));
   const intro = (
     <p>
-      {a.coops.length} cooperatives operate in {sectors.length} sector
-      {sectors.length === 1 ? "" : "s"} and are affiliated to {apexRows.length} apex organisation
-      {apexRows.length === 1 ? "" : "s"}. Ratios are simple averages of the cooperatives that filed.
+      {tr("cons.sector.intro", {
+        coopCount: a.coops.length,
+        sectors: tr("cons.sector.sectors", { count: sectors.length }),
+        apexGroups: tr("cons.sector.apexes", { count: apexRows.length }),
+      })}
     </p>
   );
 
   if (compact) {
     return [
       {
-        toc: { no, title: "Sector & Apex Overview" },
+        toc: { no, title: tr("cons.sector.title") },
         render: () => (
           <>
-            <Sec no={no} title="Sector & Apex Overview" sub="Distribution & compliance" />
+            <Sec no={no} title={tr("cons.sector.title")} sub={tr("cons.sector.sub")} />
             {intro}
             {sectorTable}
             {comparison(apexRows, true)}
             {figure}
-            <h3>Filing compliance by apex</h3>
+            <h3>{tr("cons.sector.filing_by_apex")}</h3>
             <FILING rows={filingRows} />
           </>
         ),
@@ -248,10 +251,10 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
   const filingChunks = chunk(filingRows, 18);
   return [
     {
-      toc: { no, title: "Sector & Apex Overview" },
+      toc: { no, title: tr("cons.sector.title") },
       render: () => (
         <>
-          <Sec no={no} title="Sector & Apex Overview" sub="Distribution & compliance" />
+          <Sec no={no} title={tr("cons.sector.title")} sub={tr("cons.sector.sub")} />
           {intro}
           {sectorTable}
           {figure}
@@ -262,8 +265,8 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
       render: () => (
         <>
           <Sec
-            title="Sector & Apex Overview"
-            sub={`Apex comparison ${index + 1} of ${chunks.length}`}
+            title={tr("cons.sector.title")}
+            sub={tr("cons.sector.comparison_part", { part: index + 1, parts: chunks.length })}
           />
           {comparison(rows, index === chunks.length - 1)}
         </>
@@ -273,10 +276,10 @@ export const sectorApexPages = (a: Analysis, no: string): PageSpec[] => {
       render: () => (
         <>
           <Sec
-            title="Sector & Apex Overview"
-            sub={`Filing compliance ${index + 1} of ${filingChunks.length}`}
+            title={tr("cons.sector.title")}
+            sub={tr("cons.sector.filing_part", { part: index + 1, parts: filingChunks.length })}
           />
-          <h3>Filing compliance by apex</h3>
+          <h3>{tr("cons.sector.filing_by_apex")}</h3>
           <FILING rows={rows} />
         </>
       ),
@@ -290,33 +293,32 @@ export const cooperativePages = (a: Analysis, no: string): PageSpec[] => {
   const pages = chunk(a.coops, COOPS_PER_PAGE);
   const parts = pages.length > 0 ? pages : [[]];
   return parts.map((rows, index): PageSpec => ({
-    toc: index === 0 ? { no, title: "Cooperative Overview" } : undefined,
+    toc: index === 0 ? { no, title: tr("cons.coops.title") } : undefined,
     render: () => (
       <>
         <Sec
           no={index === 0 ? no : undefined}
-          title="Cooperative Overview"
-          sub={parts.length > 1 ? `Part ${index + 1} of ${parts.length}` : "Every cooperative"}
+          title={tr("cons.coops.title")}
+          sub={
+            parts.length > 1
+              ? tr("common.part_of", { part: index + 1, parts: parts.length })
+              : tr("cons.coops.every")
+          }
         />
-        {index === 0 && (
-          <p>
-            Key figures and prudential ratios for each cooperative. A dash means the cooperative has
-            not filed or has not reported the figure.
-          </p>
-        )}
+        {index === 0 && <p>{tr("cons.coops.intro")}</p>}
         <table className="tbl compact">
           <thead>
             <tr>
-              <th>Cooperative</th>
-              <th className="num">Members</th>
-              <th className="num">Assets</th>
-              <th className="num">Loans</th>
-              <th className="num">Deposits</th>
+              <th>{tr("common.cooperative")}</th>
+              <th className="num">{tr("common.members")}</th>
+              <th className="num">{tr("cons.sector.assets")}</th>
+              <th className="num">{tr("cons.coops.loans")}</th>
+              <th className="num">{tr("cons.coops.deposits")}</th>
               <th className="num">PAR30</th>
               <th className="num">CAR</th>
               <th className="num">ROA</th>
               <th className="num">OER</th>
-              <th>Status</th>
+              <th>{tr("common.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -340,7 +342,7 @@ export const cooperativePages = (a: Analysis, no: string): PageSpec[] => {
                     {coop.has_data ? (
                       <Pill tone={riskTone([coop])} />
                     ) : (
-                      <Pill tone="na">Not filed</Pill>
+                      <Pill tone="na">{tr("common.not_filed")}</Pill>
                     )}
                   </td>
                 </tr>

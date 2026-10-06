@@ -110,6 +110,14 @@ pub fn ministry_routes() -> Router<AppState> {
             get(crate::api::handlers::export::export_single_submission),
         )
         .route(
+            "/submissions/{id}/report",
+            get(crate::api::handlers::export::get_submission_report_status),
+        )
+        .route(
+            "/submissions/{id}/report/prepare",
+            post(crate::api::handlers::export::prepare_submission_report),
+        )
+        .route(
             "/submissions/{id}/narratives",
             get(crate::api::handlers::export::get_submission_narratives)
                 .post(crate::api::handlers::export::generate_submission_narratives),
@@ -121,6 +129,14 @@ pub fn ministry_routes() -> Router<AppState> {
         .route(
             "/export",
             get(crate::api::handlers::export::export_bulk_consolidated),
+        )
+        .route(
+            "/report",
+            get(crate::api::handlers::export::get_consolidated_report_status),
+        )
+        .route(
+            "/report/prepare",
+            post(crate::api::handlers::export::prepare_consolidated_report),
         )
         .route(
             "/submissions/{id}/files",

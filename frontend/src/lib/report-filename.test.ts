@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { consolidatedFilename, individualFilename } from "@/lib/report-filename";
+import { consolidatedFilename, individualFilename, withLanguage } from "@/lib/report-filename";
 
 describe("consolidatedFilename", () => {
   it("names the apex and the level", () => {
@@ -55,5 +55,13 @@ describe("consolidatedFilename for questionnaire reports", () => {
 describe("individualFilename", () => {
   it("uses the cooperative name and year", () => {
     expect(individualFilename("Lubombo Sacco", 2026)).toBe("lubombo_sacco_2026.pdf");
+  });
+});
+
+describe("withLanguage", () => {
+  it("adds the report language before the extension", () => {
+    expect(withLanguage("ministry_national_report_2026.pdf", "ss")).toBe(
+      "ministry_national_report_2026_ss.pdf",
+    );
   });
 });

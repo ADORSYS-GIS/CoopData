@@ -1211,6 +1211,53 @@
       "currentBadge": "Submission method: {{method}}",
       "changeHint": "You can change the submission method while this submission is still a draft.",
       "changeBtn": "Change method"
+    },
+    "access": {
+      "readOnly": "Read only",
+      "reclaimedAt": "Reclaimed {{time}}",
+      "noteFrom": "Note from the {{apex}}",
+      "badge": {
+        "editing": "You're editing",
+        "waiting": "Ready for you to edit",
+        "colleague": "Being edited",
+        "colleagueNamed": "{{name}} is editing",
+        "reclaimed": "Reclaimed by the {{apex}}",
+        "reclaimedNamed": "Reclaimed by {{name}}",
+        "withApex": "With the {{apex}}",
+        "withApexNamed": "With the {{apex}} · {{name}}",
+        "withCooperative": "With the {{coop}}",
+        "withCooperativeNamed": "With the {{coop}} · {{name}}"
+      },
+      "banner": {
+        "reclaimed": {
+          "title": "The {{apex}} has taken this submission back",
+          "titleNamed": "{{name}} from the {{apex}} has taken this submission back",
+          "body": "You can still see everything that was filled in, but editing is now closed for you. If something still needs to change, contact the {{apex}}.",
+          "bodyNamed": "You can still see everything that was filled in, but editing is now closed for you. If something still needs to change, contact {{name}}."
+        },
+        "withApex": {
+          "title": "The {{apex}} is preparing this submission",
+          "titleNamed": "{{name}} from the {{apex}} is preparing this submission",
+          "body": "The {{apex}} created it on your behalf. You can view it now, and you will be able to edit it once they hand it over to you.",
+          "bodyNamed": "The {{apex}} created it on your behalf. You can view it now, and you will be able to edit it once {{name}} hands it over to you."
+        },
+        "colleague": {
+          "title": "Someone else is editing this submission",
+          "titleNamed": "{{name}} is editing this submission",
+          "body": "Only one person can edit a submission at a time, so it is read-only for you while they work on it.",
+          "bodyNamed": "Only one person can edit a submission at a time, so it is read-only for you while {{name}} works on it."
+        }
+      },
+      "lost": {
+        "title": "Your editing access has ended",
+        "reclaimed": "The {{apex}} has taken this submission back. Anything you had not saved yet was not kept.",
+        "reclaimedNamed": "{{name}} from the {{apex}} has taken this submission back. Anything you had not saved yet was not kept.",
+        "colleague": "Someone else is now editing this submission. Anything you had not saved yet was not kept.",
+        "colleagueNamed": "{{name}} is now editing this submission. Anything you had not saved yet was not kept.",
+        "generic": "Someone else now holds this submission, so your last change was not saved.",
+        "readOnlyNow": "The page is now read-only. Everything you saved before is safe.",
+        "ok": "Got it"
+      }
     }
   },
   "reports": {
@@ -1234,10 +1281,6 @@
       "draft": "Draft"
     },
     "exporting": "Exporting…",
-    "exportPdf": "Export PDF",
-    "rowActions": "Row actions",
-    "exportSuccess": "Report exported as {{format}}!",
-    "exportFailed": "Failed to export report.",
     "recentDataSubmissions": "Recent Data Submissions",
     "recentDataSubmissionsDesc": "Most recently submitted financial statements — click Export to download",
     "entriesCount": "{{count}} entry",
@@ -1252,7 +1295,8 @@
     "actionsHeader": "Actions",
     "financialReportLabel": "{{year}} Financial Report",
     "showingMostRecent": "Showing the {{count}} most recent submissions. Use the Export Panel above for consolidated reports.",
-    "myCooperative": "My Cooperative"
+    "myCooperative": "My Cooperative",
+    "downloadReport": "Download report"
   },
   "benchmarking": {
     "title": "Performance Benchmarking",
@@ -4268,11 +4312,6 @@
     "title": "Export Reports",
     "subtitle": "Generate and download reports based on your access level",
     "exportReport": "Export Report",
-    "exportPdf": "Export PDF",
-    "exporting": "Exporting...",
-    "cancel": "Cancel",
-    "exportedAs": "{{label}} exported as PDF!",
-    "exportFailed": "Export failed: {{error}}",
     "scopeFederation": "This report includes consolidated data for federation: {{name}}.",
     "scopeApex": "This report includes consolidated data for apex: {{name}}.",
     "scopeNational": "This report includes data from all federations, apexes, and cooperatives nationwide.",
@@ -4280,10 +4319,6 @@
     "scopeApexAll": "This report includes data from all cooperatives under your apex organization.",
     "selectedFederation": "selected federation",
     "selectedApex": "selected apex",
-    "regenerateAndExport": "Regenerate & Export",
-    "regenerating": "Regenerating...",
-    "regeneratedAndDownloaded": "Report regenerated and downloaded!",
-    "regenerateTooltip": "Force a fresh PDF generation, replacing the cached version",
     "method": {
       "title": "Report type",
       "choose": "Both types have data for this selection. Choose which report to export.",
@@ -4294,6 +4329,20 @@
       "questionnaire": "Questionnaire report",
       "questionnaireDesc": "Built from questionnaire answers ({{count}} approved submissions)",
       "summary": "Report type"
+    },
+    "close": "Close",
+    "status": {
+      "loading": "Checking the report…",
+      "unavailable": "The report couldn't be loaded. Please try again in a moment.",
+      "language": "Language",
+      "download": "Download",
+      "preparing": "Preparing your report…",
+      "preparingHint": "This can take up to a minute the first time. The download starts by itself; you can also close this window and we'll let you know when it's ready.",
+      "failed": "We couldn't prepare your report. Please try again.",
+      "update": "Update report",
+      "updateHint": "Rebuild the report from the latest data",
+      "readyToast": "Your {{language}} report is ready.",
+      "failedToast": "We couldn't prepare your report. Please try again."
     }
   },
   "analyticsFilter": {
@@ -5423,5 +5472,972 @@
     },
     "lockedFrequency": "{{year}} is already set to {{frequency}} reporting.",
     "lockedFrequencyDrafts": "{{year}} is set to {{frequency}} reporting. Delete your draft submissions for that year to change it."
+  },
+  "pdf": {
+    "common": {
+      "and": "and",
+      "fy": "FY {{year}}",
+      "page_of": "Page {{page}} of {{pages}}",
+      "part_of": "Part {{part}} of {{parts}}",
+      "annex": "Annex",
+      "annex_part_of": "Annex · part {{part}} of {{parts}}",
+      "as_at_31_december": "As at 31 December",
+      "year_ended_31_december": "Year ended 31 December",
+      "action_plan": "Action plan",
+      "executive_summary": "Executive Summary",
+      "overall_view": "Overall supervisory view",
+      "strengths": "Strengths",
+      "areas_of_concern": "Areas of concern",
+      "no_strength": "No indicator currently meets its benchmark.",
+      "no_concern": "No area of concern was identified.",
+      "scorecard_glance": "Scorecard at a glance",
+      "area": "Area",
+      "key_indicator": "Key indicator",
+      "indicator": "Indicator",
+      "formula": "Formula",
+      "benchmark": "Benchmark",
+      "status": "Status",
+      "meaning": "Meaning",
+      "limit": "Limit",
+      "metric": "Metric",
+      "change": "Change",
+      "change_pct": "Change %",
+      "prior": "Prior",
+      "prior_year": "Prior year",
+      "total": "Total",
+      "share": "Share",
+      "number": "Number",
+      "definition": "Definition",
+      "recommendation": "Recommendation",
+      "priority": "Priority",
+      "timeline": "Timeline",
+      "owner": "Owner",
+      "ref": "Ref.",
+      "item": "Item",
+      "system_value": "System value",
+      "observation": "Observation",
+      "info": "Info",
+      "million": "million",
+      "million_short": "m",
+      "thousand_short": "k",
+      "other": "Other",
+      "cooperative": "{{coop}}",
+      "cooperatives": "{{coops}}",
+      "apex_organisation": "{{apex}}",
+      "members": "Members",
+      "women": "Women",
+      "men": "Men",
+      "male": "Male",
+      "female": "Female",
+      "active": "Active",
+      "inactive": "Inactive",
+      "others": "Others",
+      "gender": "Gender",
+      "age": "Age",
+      "filed": "Filed",
+      "not_filed": "Not filed",
+      "sector": "Sector",
+      "max_limit": "Max {{value}}",
+      "min_limit": "Min {{value}}",
+      "pct_of_gross_loans": "% of gross loans",
+      "pct_of_total_assets": "% of total assets",
+      "on_prior": "{{arrow}} {{change}} on {{prior}}",
+      "on_prior_year": "{{arrow}} {{change}} on prior year",
+      "bench_meets": "Benchmark ≥ {{value}}",
+      "date_of_issue": "Date of issue",
+      "reporting_period": "Reporting period",
+      "reporting_year": "Reporting year",
+      "reporting_year_value": "Reporting year {{year}}",
+      "reporting_currency": "Reporting currency",
+      "submission_ref": "Submission ref.",
+      "submission_status": "Submission status",
+      "classification": "Classification",
+      "benchmark_framework": "Benchmark framework",
+      "pearls_adapted": "PEARLS (adapted)",
+      "version": "Version",
+      "prepared_by": "Prepared by Coop Data · Unified Cooperative Financial Intelligence & Compliance",
+      "submission_status_values": {
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "in_review": "In review",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "returned": "Returned",
+        "escalated": "Escalated"
+      },
+      "priorities": {
+        "High": "High",
+        "Medium": "Medium",
+        "Standard": "Standard"
+      },
+      "timelines": {
+        "within_30_days": "Within 30 days",
+        "next_quarter": "Next quarter",
+        "next_financial_year": "Next financial year"
+      },
+      "pearls_source": "Benchmarks follow the PEARLS monitoring system as configured on the Coop Data platform. Supervisory authorities may apply stricter national prudential limits.",
+      "pp": "pp"
+    },
+    "status": {
+      "ok": "Meets",
+      "warn": "Watch",
+      "bad": "Breach",
+      "na": "Unverified",
+      "not_reported": "Not reported"
+    },
+    "legend": {
+      "ok": "Indicator is within the prudential benchmark.",
+      "warn": "Indicator is close to, or marginally outside, the benchmark; monitor in the next review.",
+      "bad": "Indicator is outside the benchmark and requires corrective action.",
+      "na": "Submitted data is inconsistent or incomplete; indicator cannot be relied upon."
+    },
+    "front": {
+      "document_control": "Document Control",
+      "report_particulars": "Report particulars",
+      "contents": "Contents",
+      "basis_of_preparation": "Basis of preparation",
+      "status_legend": "Status legend"
+    },
+    "signoff": {
+      "approval": "Approval",
+      "prepared_by": "Prepared by",
+      "reviewed_by": "Reviewed by",
+      "approved_by": "Approved by",
+      "name_designation_date": "Name, designation & date"
+    },
+    "end_of_report": "END OF REPORT",
+    "trend": {
+      "title": "Multi-Period Trend",
+      "periods_oldest_first": "{{count}} periods, oldest first",
+      "rose": "{{noun}} rose {{change}} from SZL {{from}} in {{fromLabel}} to SZL {{to}} in {{toLabel}}.",
+      "fell": "{{noun}} fell {{change}} from SZL {{from}} in {{fromLabel}} to SZL {{to}} in {{toLabel}}.",
+      "total_assets": "Total assets",
+      "member_savings": "Member savings",
+      "gross_loans": "Gross loans",
+      "fig_t1": "Figure T1.",
+      "fig_t1_caption": "Total assets, member savings and gross loans of {{scope}}, in {{unit}}. Approved statements only, converted at the rate frozen on each submission.",
+      "fig_t2": "Figure T2. Net surplus ({{unit}})",
+      "fig_t3": "Figure T3. Portfolio at risk over 30 days (%)",
+      "fig_t4": "Figure T4. Liquid assets (% of total assets)",
+      "fig_t5": "Figure T5. Capital adequacy (equity % of total assets)",
+      "source": "Source: approved financial statements. Balances are taken at the latest month of each period. Amounts are shown in SZL so that periods and {{coopsLc}} reporting in different currencies can be compared; the statement tables elsewhere in this report use the currency reported by each {{coopLc}}.",
+      "szl_million": "SZL million",
+      "szl_thousand": "SZL thousand",
+      "scope_sector": "the supervised sector"
+    },
+    "accounts": {
+      "1101": "Cash on hand",
+      "1102": "Cash at bank (current)",
+      "1103": "Cash at bank (savings)",
+      "1104": "Short-term investments",
+      "1201": "Performing loan portfolio",
+      "1202": "Loans in arrears (1-30 days)",
+      "1203": "Loans in arrears (31-60 days)",
+      "1204": "Loans in arrears (61-90 days)",
+      "1205": "Non-performing loans",
+      "1251": "General loan loss provision",
+      "1252": "Specific loan loss provision",
+      "1301": "Accounts receivable",
+      "1302": "Prepaid expenses",
+      "1303": "Fixed assets (cost)",
+      "1304": "Accumulated depreciation",
+      "1305": "Intangible assets",
+      "1306": "Inventories",
+      "2101": "Voluntary savings",
+      "2102": "Mandatory savings",
+      "2103": "Fixed-term deposits",
+      "2201": "Short-term borrowings",
+      "2202": "Long-term borrowings",
+      "2301": "Accounts payable",
+      "2302": "Accrued expenses",
+      "2303": "Deferred income",
+      "3101": "Permanent share capital",
+      "3102": "Withdrawable shares",
+      "3201": "Statutory reserve",
+      "3202": "General reserve",
+      "3203": "Risk/capital adequacy reserve",
+      "3301": "Accumulated surplus",
+      "3302": "Current year surplus",
+      "4101": "Interest income from loans",
+      "4102": "Fees & commissions income",
+      "4201": "Other operating income",
+      "5101": "Interest expense on deposits",
+      "5102": "Interest expense on borrowings",
+      "5201": "Personnel costs",
+      "5202": "Administrative expenses",
+      "5203": "Governance expenses",
+      "5204": "Depreciation & amortization",
+      "5301": "Loan loss provision expense"
+    },
+    "coop": {
+      "report": {
+        "head": "COOP DATA · ANNUAL FINANCIAL & COMPLIANCE ASSESSMENT",
+        "restricted_foot": "RESTRICTED — For supervisory use only",
+        "ref": "Ref. {{ref}}",
+        "kicker": "Annual Financial & Compliance Assessment",
+        "title_1": "{{coop}} Supervisory",
+        "title_2": "Report — Financial Year {{year}}",
+        "affiliated_to": "Affiliated to {{apexName}}",
+        "badge": "RESTRICTED",
+        "period_value": "1 Jan – 31 Dec {{year}}",
+        "foot_right": "Figures as reported by the {{coopLc}}",
+        "period_comparative": "FY {{year}} (comparative FY {{prior}})",
+        "currency_value": "As reported by the {{coopLc}}",
+        "classification_value": "Restricted — supervisory use",
+        "basis": "This assessment is compiled from the annual return submitted by the {{coopLc}} through the Coop Data platform. Ratios have been recomputed from the submitted statements of financial position and performance. Where a figure produced by the automated system could not be reconciled to the underlying statements, the reported figure is used in the body of this report and the difference is disclosed in Annex A. Figures have not been independently audited."
+      },
+      "groups": {
+        "protection": "Protection & asset quality",
+        "capital": "Capital structure",
+        "returns": "Rates of return & costs",
+        "liquidity": "Liquidity"
+      },
+      "ratios": {
+        "par30": {
+          "label": "PAR >30 days",
+          "formula": "Loans overdue >30 days / gross loans"
+        },
+        "par90": {
+          "label": "PAR >90 days",
+          "formula": "Loans overdue >90 days / gross loans"
+        },
+        "npl_ratio": {
+          "label": "Non-performing loans",
+          "formula": "Loans >90 days / gross loans"
+        },
+        "loan_loss_coverage": {
+          "label": "Loan-loss coverage",
+          "formula": "Provisions / loans overdue >30 days"
+        },
+        "capital_adequacy_ratio": {
+          "label": "Capital adequacy",
+          "formula": "Total equity / total assets"
+        },
+        "deposits_to_loans": {
+          "label": "Savings to loans",
+          "formula": "Member savings / gross loans"
+        },
+        "roa": {
+          "label": "Return on assets",
+          "formula": "Net surplus / total assets"
+        },
+        "roe": {
+          "label": "Return on equity",
+          "formula": "Net surplus / total equity"
+        },
+        "operating_expense_ratio": {
+          "label": "Operating expense ratio",
+          "formula": "Operating expenses / total assets"
+        },
+        "operational_self_sufficiency": {
+          "label": "Operational self-sufficiency",
+          "formula": "Total income / total expenses"
+        },
+        "net_interest_margin": {
+          "label": "Net interest margin",
+          "formula": "(Interest income − interest expense) / total assets"
+        },
+        "liquid_funds_ratio": {
+          "label": "Liquid assets / total assets",
+          "formula": "Liquid assets / total assets"
+        }
+      },
+      "growth": {
+        "assets": "Asset growth",
+        "loans": "Loan growth",
+        "savings": "Savings growth"
+      },
+      "validation": {
+        "total_assets": "Total assets",
+        "assets_note": "Listed asset lines sum to {{sum}} (difference {{diff}}). The reported total is used.",
+        "total_equity": "Total equity",
+        "equity_note": "Listed equity lines sum to {{sum}} (difference {{diff}}). The reported total is used.",
+        "balance_sheet": "Balance sheet",
+        "balance_system": "{{assets}} vs {{funding}}",
+        "not_adjusted": "Not adjusted",
+        "balance_note": "Total assets do not equal total liabilities plus equity. The statement does not balance and should be corrected by the {{coopLc}}.",
+        "net_surplus": "Net surplus",
+        "surplus_note": "Income minus expenditure gives {{value}}. The reported net surplus is used.",
+        "par30": "PAR >30 days",
+        "unverified": "Unverified",
+        "par30_note": "{{count}} loans are recorded in arrears in the loan register, but the general ledger reports no overdue balance. The two sources are inconsistent.",
+        "member_counts": "Member counts",
+        "members_system": "{{gender}} by gender / {{status}} by status",
+        "members_note": "Member totals differ between the gender and the status breakdowns. The status total is used."
+      },
+      "areas": {
+        "par30": "portfolio quality",
+        "par90": "portfolio quality",
+        "npl_ratio": "portfolio quality",
+        "loan_loss_coverage": "provisioning",
+        "capital_adequacy_ratio": "capital",
+        "roa": "profitability",
+        "roe": "profitability",
+        "operating_expense_ratio": "cost control",
+        "operational_self_sufficiency": "sustainability",
+        "liquid_funds_ratio": "liquidity"
+      },
+      "scorecard_areas": {
+        "capital_adequacy_ratio": "Capital adequacy",
+        "par30": "Asset quality",
+        "loan_loss_coverage": "Provisioning",
+        "roa": "Earnings",
+        "operational_self_sufficiency": "Sustainability",
+        "liquid_funds_ratio": "Liquidity"
+      },
+      "text": {
+        "assets_grew": "Total assets grew {{change}} on the prior year.",
+        "assets_fell": "Total assets fell {{change}} on the prior year.",
+        "no_assets_verdict": "The return carries no total assets, so the {{coopLc}} cannot be assessed.",
+        "no_assets_body": "{{name}} has no reported total assets for {{year}}. Prudential ratios cannot be computed until the return is corrected and resubmitted.",
+        "lead_under_capitalised": "Under-capitalised",
+        "lead_sound": "Financially sound",
+        "lead_mixed": "Mixed financial results",
+        "growing": " and growing",
+        "shrinking": " but shrinking",
+        "with_weaknesses": ", with weaknesses in {{areas}}",
+        "all_met": ", and all reported benchmarks are met",
+        "facts": "{{name}} reports total assets of {{assets}}, equity of {{equity}} and a net surplus of {{surplus}}.",
+        "problems": " {{count}} of {{total}} prudential indicators are in breach or cannot be relied upon.",
+        "no_problems": " All prudential indicators are within their benchmarks.",
+        "inconsistencies_one": " {{count}} data inconsistency was found; see Annex A.",
+        "inconsistencies_other": " {{count}} data inconsistencies were found; see Annex A.",
+        "within_benchmark": "{{label}} is {{value}}, within the benchmark ({{bench}}).",
+        "savings_grew": "Member savings grew {{change}}.",
+        "not_reported": "{{label}} cannot be assessed because no figure is reported.",
+        "against_benchmark": "{{label}} is {{value}} against a benchmark of {{bench}}.",
+        "not_reconciled_one": "System-generated figures did not reconcile in {{count}} place; see Annex A.",
+        "not_reconciled_other": "System-generated figures did not reconcile in {{count}} places; see Annex A."
+      },
+      "actions": {
+        "par30": {
+          "lead": "Portfolio quality.",
+          "text": "Submit a loan-ageing schedule and reconcile the reported PAR to the loan register."
+        },
+        "par90": {
+          "lead": "Non-performing loans.",
+          "text": "Prepare a recovery plan for loans more than 90 days overdue."
+        },
+        "loan_loss_coverage": {
+          "lead": "Provisioning.",
+          "text": "Establish loan-loss provisions in line with prudential standards (general 1–2%; specific 100% for loans >90 days) and record the provision expense."
+        },
+        "capital_adequacy_ratio": {
+          "lead": "Capital restoration.",
+          "text": "Present a capital-building plan to bring total equity to at least 10% of total assets."
+        },
+        "roa": {
+          "lead": "Profitability.",
+          "text": "Review lending rates and the cost structure to lift return on assets towards 3%."
+        },
+        "roe": {
+          "lead": "Returns to members.",
+          "text": "Review surplus allocation and cost structure to lift return on equity towards 8%."
+        },
+        "operating_expense_ratio": {
+          "lead": "Efficiency.",
+          "text": "Set a cost-reduction plan to bring operating expenses within 5% of assets."
+        },
+        "operational_self_sufficiency": {
+          "lead": "Sustainability.",
+          "text": "Adjust pricing and costs so that income covers expenses by at least 110%."
+        },
+        "liquid_funds_ratio": {
+          "lead": "Liquidity.",
+          "text": "Build liquid assets to at least 15% of total assets."
+        },
+        "reconciliation_lead": "Data reconciliation.",
+        "reconciliation_one": "Correct and resubmit the return so that the {{count}} item in Annex A reconcile with the statements.",
+        "reconciliation_other": "Correct and resubmit the return so that the {{count}} items in Annex A reconcile with the statements.",
+        "inclusion_lead": "Membership and inclusion.",
+        "inclusion": "Report member and borrower demographics (women, youth, rural) and set targets for inclusion."
+      },
+      "exec": {
+        "total_assets": "Total assets",
+        "net_loan_portfolio": "Net loan portfolio",
+        "net_surplus": "Net surplus",
+        "capital_assets": "Capital / assets"
+      },
+      "scorecard": {
+        "title": "Prudential Ratio Scorecard",
+        "sub": "PEARLS-based",
+        "intro": "The table sets out each prudential indicator for FY {{year}} against the prior year and the applicable benchmark. All ratios are taken from the submitted financial statements.",
+        "signs_of_growth": "Signs of growth",
+        "change_prior": "Change on the prior year",
+        "footnote_hint": "Superscript references (for example A1) point to the corresponding item in Annex A — Data Validation & Corrections."
+      },
+      "statement": {
+        "code": "Code",
+        "account": "Account",
+        "assets": "Assets",
+        "total_assets": "Total assets",
+        "liabilities": "Liabilities",
+        "total_liabilities": "Total liabilities",
+        "equity": "Equity",
+        "total_equity": "Total equity",
+        "total_liabilities_equity": "Total liabilities & equity",
+        "income": "Income",
+        "total_income": "Total income",
+        "expenditure": "Expenditure",
+        "total_expenditure": "Total expenditure",
+        "net_surplus_year": "Net surplus for the year",
+        "net_surplus": "Net surplus",
+        "net_loan_portfolio": "Net loan portfolio",
+        "member_savings": "Member savings",
+        "position_title": "Statement of Financial Position",
+        "performance_title": "Statement of Financial Performance",
+        "structure": "Structure",
+        "income_surplus": "Income & surplus",
+        "pct_assets": "% of assets",
+        "pct_income": "% of income",
+        "fig_1": "Figure 1.",
+        "fig_1_caption": "Balance-sheet structure, FY {{prior}} vs FY {{year}} (million).",
+        "fig_2": "Figure 2.",
+        "fig_2_caption": "Income, expenditure and surplus, FY {{prior}} vs FY {{year}} (million).",
+        "series_income": "FY {{year}} income / surplus",
+        "series_expenditure": "FY {{year}} expenditure",
+        "position_as_reported": "The statement below lists the accounts as reported.",
+        "assets_increased": "Total assets increased by {{change}} to {{value}}.",
+        "assets_decreased": "Total assets decreased by {{change}} to {{value}}.",
+        "equity_share": "Equity is {{share}} of total assets.",
+        "performance_as_reported": "The statement below lists income and expenditure as reported.",
+        "income_rose": "Total income rose {{change}} to {{value}}.",
+        "income_fell": "Total income fell {{change}} to {{value}}.",
+        "surplus": "The net surplus is {{value}}.",
+        "surplus_with_prior": "The net surplus is {{value}}, against {{prior}} in the prior year."
+      },
+      "structure": {
+        "liquid_assets": "Liquid assets",
+        "net_loans": "Net loans",
+        "other_assets": "Other assets",
+        "member_savings_deposits": "Member savings & deposits",
+        "borrowings": "Borrowings",
+        "other_liabilities": "Other liabilities",
+        "member_equity": "Member equity",
+        "performing": "Performing",
+        "days_1_30": "1–30 days",
+        "days_31_60": "31–60 days",
+        "days_61_90": "61–90 days",
+        "over_90": "Over 90 days",
+        "fig_s1": "Figure S1.",
+        "fig_s1_caption": "Composition of assets (net loans are gross loans less the allowance for loan losses).",
+        "fig_s2": "Figure S2.",
+        "fig_s2_caption": "Funding of assets."
+      },
+      "loans": {
+        "title": "Loan Portfolio Quality & Credit Risk",
+        "register": "The loan register records {{loans}} loans with a balance of {{balance}}, of which {{arrears}} ({{share}}) are in arrears. ",
+        "no_register": "No loan register was submitted for this period. ",
+        "ledger": "The general ledger reports a gross loan portfolio of {{value}}.",
+        "portfolio_quality": "Portfolio quality",
+        "par_gl": "Portfolio-at-risk (general ledger)",
+        "gross_loan_portfolio": "Gross loan portfolio",
+        "par30": "PAR >30 days",
+        "par90": "PAR >90 days",
+        "provisions": "Loan-loss provisions",
+        "coverage": "Loan-loss coverage",
+        "register_title": "Loan register (member level)",
+        "outstanding": "Loans outstanding",
+        "performing_arrears": "Performing / in arrears",
+        "arrears_rate": "Arrears rate (by number)",
+        "register_balance": "Register balance outstanding",
+        "average_size": "Average loan size",
+        "fig_l1": "Figure L1.",
+        "fig_l1_caption": "Loan book by days overdue, from the general ledger (loan lines 1201 to 1205).",
+        "by_category": "Loan register by category",
+        "category": "Category",
+        "loans": "Loans",
+        "balance": "Balance",
+        "share_balance": "Share of balance",
+        "concern_title": "Supervisory concern.",
+        "concern": "The general ledger reports no loans overdue more than 30 days, yet {{loans}} loans are recorded in arrears in the loan register. Until an arrears analysis is submitted, asset quality is rated",
+        "unverified": "Unverified",
+        "required_actions": "Required actions",
+        "categories": {
+          "Performing": "Performing",
+          "Watch": "Watch",
+          "Substandard": "Substandard",
+          "Doubtful": "Doubtful",
+          "Loss": "Loss"
+        }
+      },
+      "membership": {
+        "title": "Membership, Governance & Inclusion",
+        "summary": "{{name}} has {{total}} members, of whom {{active}} are active. Women are {{women}} of members and youth {{youth}}.",
+        "none": "No membership figures were submitted for this period.",
+        "insights": "Membership insights",
+        "under_18": "Under 18",
+        "over_50": "Over 50",
+        "youth_18_35": "Youth 18–35",
+        "fig_m1": "Figure M1.",
+        "fig_m1_caption": "Members by gender.",
+        "fig_m2": "Figure M2.",
+        "fig_m2_caption": "Members by age band, from the member ledger.",
+        "members_unit": "members",
+        "fig_3": "Figure 3.",
+        "fig_3_caption": "Membership profile by gender, age and status (share of members).",
+        "membership": "Membership",
+        "total_members": "Total members",
+        "active_inactive": "Active / inactive",
+        "youth": "Youth (18–35)",
+        "agm": "AGM attendance",
+        "savings_products": "Savings & deposit products",
+        "product": "Product",
+        "total_deposits": "Total member deposits",
+        "average_per_member": "Average per member",
+        "governance_note": "Governance measures (women and youth in leadership, committee composition) were not part of this return."
+      },
+      "peers": {
+        "title": "Peer Comparison",
+        "intro_apex": "{{name}} is compared with the {{apexCount}} {{coopsLc}} of its {{apexLc}} and with the {{nationalCount}} {{coopsLc}} that filed a return for FY {{year}}. A rank of 1 is the best result. Averages are simple averages of each {{coopLc}}'s ratio and include {{name}}.",
+        "intro": "{{name}} is compared with the {{nationalCount}} {{coopsLc}} that filed a return for FY {{year}}. A rank of 1 is the best result. Averages are simple averages of each {{coopLc}}'s ratio and include {{name}}.",
+        "apex_average": "{{apex}} average",
+        "national_average": "National average",
+        "rank_apex": "Rank in {{apexLc}}",
+        "rank_national": "National rank",
+        "rank": "{{position}} of {{of}}",
+        "source": "Source: indicators computed by Coop Data for every {{coopLc}} with a return for the year. {{coops}} that did not file are not counted.",
+        "indicators": {
+          "par30": "PAR >30 days (%)",
+          "capital_adequacy_ratio": "Capital adequacy (%)",
+          "roa": "Return on assets (%)",
+          "roe": "Return on equity (%)",
+          "operating_expense_ratio": "Operating expense ratio (%)",
+          "liquid_funds_ratio": "Liquid assets / total assets (%)"
+        }
+      },
+      "findings": {
+        "title": "Supervisory Findings & Recommendations",
+        "intro": "The following actions are recommended to the Board and management of {{name}}. Progress should be reported with the next quarterly return."
+      },
+      "annex": {
+        "a_toc": "Annex A — Data Validation & Corrections",
+        "a_title": "Data Validation & Corrections",
+        "a_intro": "The following items were identified when reconciling the system-generated figures with the submitted statements. Items marked with a reference in the body of the report are explained here.",
+        "a_none": "The system-generated figures were checked against the submitted statements and no inconsistency was identified.",
+        "used_in_report": "Used in report",
+        "b_toc": "Annex B — Indicator Definitions & Benchmarks",
+        "b_title": "Indicator Definitions & Benchmarks",
+        "penetration": "Savings / credit penetration",
+        "penetration_def": "Members holding a savings account (or an active loan) as a share of total members."
+      }
+    },
+    "cons": {
+      "issuer": {
+        "Apex": "{{apex}}",
+        "Federation": "{{federation}}",
+        "Ministry": "{{ministry}}"
+      },
+      "head": {
+        "Apex": "COOP DATA · {{apex}} CONSOLIDATED REPORT",
+        "Federation": "COOP DATA · {{federation}} CONSOLIDATED REPORT",
+        "Ministry": "COOP DATA · {{ministry}} CONSOLIDATED REPORT"
+      },
+      "report": {
+        "national_overview": "National {{coop}} Overview",
+        "scope_apex": "{{issuer}} · {{total}} {{coopsLc}} under supervision",
+        "scope_apexes_one": "{{issuer}} · {{total}} {{coopsLc}} under supervision · {{count}} {{apexLc}}",
+        "scope_apexes_other": "{{issuer}} · {{total}} {{coopsLc}} under supervision · {{count}} {{apexesLc}}",
+        "head_right": "{{subject}} · REPORTING YEAR {{year}}",
+        "official_foot": "OFFICIAL — Confidential",
+        "kicker": "Consolidated sector performance",
+        "badge": "OFFICIAL · CONFIDENTIAL",
+        "supervised": "Supervised {{coopsLc}}",
+        "submission_rate": "Submission rate",
+        "of": "{{filed}} of {{total}}",
+        "foot_right": "Figures as reported by the filing {{coopsLc}}",
+        "issuing_authority": "Issuing authority",
+        "scope": "Scope",
+        "report_type": "Report type",
+        "report_type_value": "Consolidated supervisory report",
+        "year_comparative": "{{year}} (comparative: prior year)",
+        "covered": "{{coops}} covered",
+        "entity": "Entity",
+        "apex_organisations": "{{apexes}}",
+        "returns_submitted": "Returns submitted",
+        "currency_value": "As reported by the {{coopsLc}}",
+        "classification_value": "Official — confidential",
+        "basis_title": "Purpose and basis of preparation",
+        "audience": {
+          "Ministry": "{{ministry}} leadership",
+          "Federation": "{{federationLc}} leadership",
+          "Apex": "the {{apexLc}}"
+        },
+        "basis": "This report shows {{audience}} the condition of the supervised {{coopLc}} sector. It is compiled from annual returns submitted through the Coop Data platform. \"Average\" indicators are simple averages of the ratios of the {{coopsLc}}; where an aggregate ratio (the ratio of sector totals) can be derived, it is shown beside the average. Figures that could not be reconciled are flagged and explained in Annex A. Figures have not been independently audited."
+      },
+      "ratios": {
+        "par30": {
+          "area": "Asset quality",
+          "label": "Portfolio at risk >30 days",
+          "formula": "Loans overdue >30 days / gross loans"
+        },
+        "capital_adequacy_ratio": {
+          "area": "Capital",
+          "label": "Capital adequacy",
+          "formula": "Total equity / total assets"
+        },
+        "roa": {
+          "area": "Earnings",
+          "label": "Return on assets",
+          "formula": "Net surplus / total assets"
+        },
+        "roe": {
+          "area": "Earnings",
+          "label": "Return on equity",
+          "formula": "Net surplus / total equity"
+        },
+        "operating_expense_ratio": {
+          "area": "Efficiency",
+          "label": "Operating expense ratio",
+          "formula": "Operating expenses / total assets"
+        },
+        "loan_loss_coverage": {
+          "area": "Provisioning",
+          "label": "Loan-loss coverage",
+          "formula": "Provisions / loans overdue"
+        }
+      },
+      "unaffiliated": "Unaffiliated",
+      "uncategorised": "Uncategorised",
+      "areas": {
+        "par30": "asset quality",
+        "capital_adequacy_ratio": "capital",
+        "roa": "earnings",
+        "roe": "earnings",
+        "operating_expense_ratio": "efficiency",
+        "loan_loss_coverage": "provisioning"
+      },
+      "owners": {
+        "Apex": "{{coops}}",
+        "Federation": "{{apexes}}",
+        "Ministry": "{{ministry}} supervisors"
+      },
+      "text": {
+        "none_filed_verdict": "No returns have been filed for this period.",
+        "none_filed_body": "None of the {{total}} {{coopsLc}} in scope has an approved return, so no consolidated figure can be reported.",
+        "filing_full": "Full filing compliance",
+        "filing_good": "Good filing compliance",
+        "filing_low": "Low filing compliance",
+        "growth_up": "balance-sheet growth",
+        "growth_down": "a shrinking balance sheet",
+        "growth_none": "no prior-year comparison",
+        "breaches": ", but the sector breaches the benchmarks for {{areas}}",
+        "all_met": ", and the prudential benchmarks are met",
+        "verdict": "{{filing}} and {{growth}}{{tail}}.",
+        "filed": "{{filed}} of {{total}} {{coopsLc}} ({{rate}}) filed. ",
+        "assets": "Total assets stand at {{value}} ",
+        "assets_change": "Total assets stand at {{value}} ({{change}} on the prior year) ",
+        "members": "and members number {{value}}. ",
+        "ratios_out": "{{count}} of {{total}} reported average ratios are outside the prudential benchmark. ",
+        "ratios_in": "All reported average ratios are within the prudential benchmark. ",
+        "averages_note": "Ratios are simple averages of the ratios of the {{coopsLc}}; aggregate ratios are shown beside them in Section 2.",
+        "strength_filed": "{{filed}} of {{total}} {{coopsLc}} filed ({{rate}}).",
+        "strength_assets": "Total assets grew {{change}} to {{value}}.",
+        "strength_loans": "The gross loan portfolio grew {{change}} to {{value}}.",
+        "strength_deposits": "Member deposits rose {{change}} to {{value}}.",
+        "strength_members": "Membership grew {{change}} to {{value}} members.",
+        "strength_ratio": "{{label}} averages {{value}}, within the benchmark ({{bench}}).",
+        "concern_ratio": "{{label}} averages {{value}} against a benchmark of {{bench}}.",
+        "concern_not_filed_one": "{{count}} {{coopLc}} did not file and is excluded from every total.",
+        "concern_not_filed_other": "{{count}} {{coopsLc}} did not file and are excluded from every total.",
+        "concern_equity": "Total equity fell {{change}} to {{value}}.",
+        "concern_surplus": "Net surplus fell {{change}} to {{value}}.",
+        "concern_loss": "The combined result is a loss of {{value}}.",
+        "concern_unreported_one": "{{count}} indicator has no reported figure and cannot be assessed.",
+        "concern_unreported_other": "{{count}} indicators have no reported figure and cannot be assessed."
+      },
+      "actions": {
+        "par30": {
+          "lead": "Portfolio quality.",
+          "text": "Require remedial plans for {{coopsLc}} above 5% PAR >30 days and report progress at the next review."
+        },
+        "capital_adequacy_ratio": {
+          "lead": "Capital restoration.",
+          "text": "Require capital-building plans from {{coopsLc}} below the 10% capital-to-assets minimum, with quarterly reporting."
+        },
+        "roa": {
+          "lead": "Profitability.",
+          "text": "Review lending rates and cost structures so that return on assets moves towards 3%."
+        },
+        "roe": {
+          "lead": "Returns to members.",
+          "text": "Review surplus allocation and cost structures so that return on equity moves towards 8%."
+        },
+        "operating_expense_ratio": {
+          "lead": "Efficiency.",
+          "text": "Ask {{coopsLc}} above the 5% operating-expense benchmark for cost-reduction plans."
+        },
+        "loan_loss_coverage": {
+          "lead": "Provisioning.",
+          "text": "Establish loan-loss provisions in line with prudential standards (general 1–2%; specific 100% for loans >90 days)."
+        },
+        "generic": "Bring {{label}} within {{bench}}.",
+        "reporting_lead": "Complete reporting.",
+        "reporting_one": "Require the {{count}} {{coopLc}} that did not file to submit an approved return.",
+        "reporting_other": "Require the {{count}} {{coopsLc}} that did not file to submit an approved return.",
+        "inclusion_lead": "Inclusion.",
+        "inclusion_apex": "Set targets for credit to women, young people and rural members and report progress by {{coopLc}}.",
+        "inclusion": "Set targets for credit to women, young people and rural members and report progress by {{apexLc}}."
+      },
+      "validation": {
+        "test_entities": "Test entities",
+        "included": "Included",
+        "not_filed": "Not filed",
+        "test_note": "Names suggest test records. If they are not real {{coopsLc}}, their figures overstate the totals and averages and they should be removed before the report is relied upon.",
+        "par_npl": "PAR >30 and NPL ratio",
+        "identical": "Identical for every {{coopLc}}",
+        "as_submitted": "Reported as submitted",
+        "par_npl_note": "The two ratios measure different overdue ranges and are not normally equal. The arrears bucket mapping should be checked.",
+        "no_assets": "Filed without total assets",
+        "no_assets_count_one": "{{count}} {{coopLc}}",
+        "no_assets_count_other": "{{count}} {{coopsLc}}",
+        "ratios_not_reported": "Ratios not reported",
+        "no_assets_note": "The return is marked filed but has no total assets, so ratios cannot be computed for these {{coopsLc}}.",
+        "membership": "Membership",
+        "zero_members": "0 members",
+        "not_reported": "Not reported",
+        "membership_note": "No membership figures were submitted, so per-member measures are not shown."
+      },
+      "exec": {
+        "gross_loan_portfolio": "Gross loan portfolio",
+        "total_equity": "Total equity",
+        "average": "Average {{label}}",
+        "earnings": "Earnings"
+      },
+      "financial": {
+        "title": "Consolidated Financial Position & KPIs",
+        "sub": "All filing {{coopsLc}}",
+        "intro": "The table adds up the approved returns of the {{count}} filing {{coopsLc}} and compares them with the prior year.",
+        "no_prior": " No prior-year return is available, so no comparison is shown.",
+        "metrics": {
+          "assets": "Total assets",
+          "loans": "Gross loan portfolio",
+          "deposits": "Member deposits",
+          "equity": "Total equity",
+          "surplus": "Net surplus / (loss)",
+          "members": "Total members"
+        },
+        "fig_1": "Figure 1.",
+        "fig_1_caption": "Consolidated financial position, prior year vs {{year}} (million).",
+        "prudential": "Consolidated prudential indicators",
+        "average_year": "Average {{year}}",
+        "average_prior": "Average prior",
+        "aggregate_year": "Aggregate {{year}}",
+        "note": "Average = simple average of the ratios of the {{coopsLc}}. Aggregate = ratio of the summed figures; a dash means it cannot be derived from the summed figures."
+      },
+      "tiles": {
+        "membership_inclusion": "Membership and inclusion",
+        "members": "Members",
+        "active_members": "Active members",
+        "inactive_members": "Inactive members",
+        "of_members": "{{share}} of members",
+        "active_borrowers": "Active borrowers",
+        "women_borrowers": "Women borrowers",
+        "youth_borrowers": "Youth borrowers",
+        "rural_borrowers": "Rural borrowers",
+        "of_borrowers": "{{share}} of borrowers",
+        "deposits_lending": "Deposits and lending",
+        "member_deposits": "Member deposits",
+        "gross_loans": "Gross loans",
+        "average_loan": "Average loan balance",
+        "par_title": "Portfolio at risk, {{label}} (SZL)",
+        "overdue_31_60": "Overdue 31–60 days",
+        "overdue_61_90": "Overdue 61–90 days",
+        "over_90": "Over 90 days",
+        "value_at_risk": "Value at risk (>30 days)",
+        "par30_share": "PAR >30 days {{share}}"
+      },
+      "indicators": {
+        "title": "Key Indicators",
+        "intro": "Headline figures for the {{count}} {{coopsLc}} that filed, compared with the prior year where a comparison exists.",
+        "source": "Members, borrowers and their breakdowns come from the member and loan ledgers of the {{coopsLc}} that submitted them. The portfolio-at-risk amounts come from the approved financial statements, converted to SZL."
+      },
+      "structure": {
+        "title": "Portfolio Structure & Filing Status",
+        "intro_cooperative": "The charts show each {{coopLc}}'s share of the assets and of the gross loans reported by the {{count}} {{coopsLc}} that filed. The six largest are named; the rest are grouped as Other.",
+        "intro_apex": "The charts show each {{apexLc}}'s share of the assets and of the gross loans reported by the {{count}} {{coopsLc}} that filed. The six largest are named; the rest are grouped as Other.",
+        "fig_p1": "Figure P1.",
+        "fig_p1_cooperative": "Share of total assets by {{coopLc}}.",
+        "fig_p1_apex": "Share of total assets by {{apexLc}}.",
+        "fig_p2": "Figure P2.",
+        "fig_p2_cooperative": "Share of gross loans by {{coopLc}}.",
+        "fig_p2_apex": "Share of gross loans by {{apexLc}}.",
+        "fig_p3": "Figure P3.",
+        "fig_p3_caption": "Filing status for {{year}}.",
+        "filing_status": "Filing status",
+        "under_supervision": "{{coops}} under supervision",
+        "returns_filed": "Returns filed",
+        "returns_not_filed": "Returns not filed",
+        "filing_rate": "Filing rate",
+        "source": "Only {{coopsLc}} that submitted financial statements are included. Amounts are as reported by each {{coopLc}}."
+      },
+      "sector": {
+        "title": "Sector & {{apex}} Overview",
+        "sub": "Distribution & compliance",
+        "breakdown": "Sector breakdown",
+        "filing_rate": "Filing rate",
+        "avg_par30": "Avg PAR30",
+        "avg_car": "Avg CAR",
+        "avg_roa": "Avg ROA",
+        "apex_comparison": "{{apex}} comparison",
+        "coops": "{{coops}}",
+        "assets": "Assets",
+        "risk": "Risk",
+        "filing_by_apex": "Filing compliance by {{apexLc}}",
+        "fig_2": "Figure 2.",
+        "fig_2_caption": "Key ratios by {{apexLc}} and for the whole sector (%).",
+        "par30": "PAR >30 days",
+        "capital_adequacy": "Capital adequacy",
+        "roa": "Return on assets",
+        "operating_expense": "Operating expense",
+        "intro": "{{coopCount}} {{coopsLc}} operate in {{sectors}} and are affiliated to {{apexGroups}}. Ratios are simple averages of the {{coopsLc}} that filed.",
+        "sectors_one": "{{count}} sector",
+        "sectors_other": "{{count}} sectors",
+        "apexes_one": "{{count}} {{apexLc}}",
+        "apexes_other": "{{count}} {{apexesLc}}",
+        "comparison_part": "{{apex}} comparison {{part}} of {{parts}}",
+        "filing_part": "Filing compliance {{part}} of {{parts}}"
+      },
+      "coops": {
+        "title": "{{coop}} Overview",
+        "every": "Every {{coopLc}}",
+        "intro": "Key figures and prudential ratios for each {{coopLc}}. A dash means the {{coopLc}} has not filed or has not reported the figure.",
+        "loans": "Loans",
+        "deposits": "Deposits"
+      },
+      "pearls": {
+        "title": "PEARLS Benchmark Comparison",
+        "by_apex": "By {{apexLc}}",
+        "intro": "Prudential indicators grouped by PEARLS area. Each {{apexLc}} figure is the simple average of its filing {{coopsLc}}; the sector column covers all filing {{coopsLc}}. A dash means the figure was not reported.",
+        "groups": {
+          "p": "P — Protection",
+          "e": "E — Effective financial structure",
+          "a": "A — Asset quality",
+          "r": "R — Rates of return & costs",
+          "l": "L — Liquidity",
+          "s": "S — Signs of growth"
+        },
+        "rows": {
+          "loan_loss_coverage": "Loan-loss coverage",
+          "net_loans_assets": "Net loans / total assets",
+          "deposits_assets": "Deposits / total assets",
+          "capital_adequacy": "Capital adequacy",
+          "par30": "PAR >30 days",
+          "npl": "Non-performing loan ratio",
+          "roa": "Return on assets",
+          "roe": "Return on equity",
+          "oer": "Operating expense ratio",
+          "liquid_funds": "Liquid funds ratio",
+          "asset_growth": "Asset growth (year on year)"
+        }
+      },
+      "social": {
+        "title": "Social Impact & Financial Inclusion",
+        "sub": "Membership and credit reach",
+        "intro": "How many people the {{coopsLc}} serve and how credit reaches women, young people and rural members. Figures cover the {{count}} filing {{coopsLc}}.",
+        "active_members": "Active members",
+        "active_borrowers": "Active borrowers",
+        "savings_penetration": "Savings penetration (average)",
+        "credit_penetration": "Credit penetration (average)",
+        "women_borrowers": "Women borrowers",
+        "youth_borrowers": "Youth borrowers (18–35)",
+        "rural_borrowers": "Rural borrowers",
+        "credit_flow": "Credit flow to priority segments",
+        "segment": "Segment",
+        "borrowers_year": "Borrowers {{year}}",
+        "share_borrowers": "Share of borrowers",
+        "borrowers_prior": "Borrowers prior",
+        "fig_3": "Figure 3.",
+        "fig_3_caption": "Borrowers in priority segments, prior year vs {{year}}.",
+        "number_borrowers": "Number of borrowers",
+        "note_title": "Inclusion note.",
+        "segment_names": {
+          "women_borrowers": "women",
+          "youth_borrowers": "youth (18–35)",
+          "rural_borrowers": "rural"
+        },
+        "note_apex": "The share of active borrowers who are {{segments}} fell against the prior year. {{coops}} should be asked to explain the trend and set inclusion targets.",
+        "note": "The share of active borrowers who are {{segments}} fell against the prior year. {{apexes}} should be asked to explain the trend and set inclusion targets."
+      },
+      "findings": {
+        "authority": {
+          "Ministry": "the {{ministry}}",
+          "Federation": "the {{federationLc}}",
+          "Apex": "the {{apexLc}}"
+        },
+        "intro": "The following actions are recommended to {{authority}} and the supervised entities. Progress should be reviewed at the next supervisory meeting."
+      },
+      "annex": {
+        "a_intro": "The following items were identified when reconciling the system-generated figures with the submitted returns. Items are disclosed here so that the figures in the body of this report can be read with care.",
+        "a_none": "No inconsistency was identified when the system-generated figures were checked against the submitted returns.",
+        "in_this_report": "In this report",
+        "extra": {
+          "oss": {
+            "name": "Operational self-sufficiency",
+            "definition": "Total income divided by total expenses."
+          },
+          "liquid": {
+            "name": "Liquid funds ratio",
+            "definition": "Cash and short-term investments divided by total assets."
+          },
+          "nlp": {
+            "name": "Net loans / total assets",
+            "definition": "Net loan portfolio divided by total assets."
+          },
+          "deposits": {
+            "name": "Deposits / total assets",
+            "definition": "Member savings and deposits divided by total assets."
+          },
+          "penetration": {
+            "name": "Savings / credit penetration",
+            "definition": "Members holding a savings account (or an active loan) as a share of total members."
+          },
+          "filing": {
+            "name": "Filing rate",
+            "definition": "{{coops}} with an approved return divided by {{coopsLc}} required to file."
+          },
+          "average": {
+            "name": "Average vs aggregate",
+            "definition": "An average is the simple mean of each {{coopLc}}'s ratio; an aggregate is the ratio of the summed figures. Averages give small {{coopsLc}} equal weight."
+          }
+        }
+      },
+      "sectors": {
+        "agriculture": "Agriculture",
+        "finance": "Finance",
+        "housing": "Housing",
+        "transport": "Transport",
+        "manufacturing": "Manufacturing",
+        "other": "Other"
+      },
+      "title_1": {
+        "Apex": "{{apex}} Consolidated",
+        "Federation": "{{federation}} Consolidated",
+        "Ministry": "{{ministry}} Consolidated"
+      },
+      "title_2": {
+        "Apex": "Report",
+        "Federation": "Report",
+        "Ministry": "Report"
+      }
+    },
+    "roles": {
+      "cooperative": {
+        "one": "Cooperative",
+        "other": "Cooperatives"
+      },
+      "apex": {
+        "one": "Apex",
+        "other": "Apexes"
+      },
+      "federation": {
+        "one": "Federation",
+        "other": "Federations"
+      },
+      "ministry": {
+        "one": "Ministry",
+        "other": "Ministries"
+      }
+    }
   }
 }
