@@ -401,10 +401,27 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   // the field-validation tests). For an account_grid field this means at
   // least one row must be entered — an untouched grid has no answers[key]
   // at all, same as any other empty field.
+  const isGridComplete = (field: TemplateField, val: unknown): boolean => {
+    const grid = (val as Record<string, AccountGridValue> | undefined) ?? {};
+    return (field.rows ?? [])
+      .filter((row) => row.mandatory)
+      .every((row) =>
+        [
+          grid[row.code]?.openingBalance,
+          grid[row.code]?.closingBalance,
+          grid[row.code]?.annualMovement,
+        ].some((n) => typeof n === "number"),
+      );
+  };
+
   const findMissingFields = (fields: TemplateField[]): { key: string; label: string }[] => {
     const missing: { key: string; label: string }[] = [];
     fields.forEach((field: TemplateField) => {
-      if (!isValueFilled(answers[field.key])) {
+      const filled =
+        field.type === "account_grid"
+          ? isGridComplete(field, answers[field.key])
+          : isValueFilled(answers[field.key]);
+      if (!filled) {
         missing.push({ key: field.key, label: field.label });
       }
     });
@@ -684,7 +701,12 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {(section.fields || []).map((field: TemplateField) =>
                 field.type === "account_grid" ? (
-                  <div key={field.key} className="flex flex-col gap-1.5 sm:col-span-2">
+                  <div
+                    key={field.key}
+                    id={`field-${field.key}`}
+                    tabIndex={-1}
+                    className="flex flex-col gap-1.5 sm:col-span-2 outline-none"
+                  >
                     {field.description && (
                       <span className="text-xs text-muted-foreground mb-1 leading-relaxed">
                         {field.description}
