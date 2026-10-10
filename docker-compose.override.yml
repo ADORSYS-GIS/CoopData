@@ -56,8 +56,28 @@ services:
       # Live source mount — file changes on host instantly trigger HMR.
       - ./frontend:/app
       - /app/node_modules
-    ports:
+    # !override stops the base file's "5174:80" from being merged in, so
+    # port 5174 is free for the offline-capable frontend-pwa service below.
+    ports: !override
       - "5173:5173"
+
+  frontend-pwa:
+    # Production build (service worker + precache) served by nginx, so
+    # offline mode can be tested locally. The Vite dev server on 5173 never
+    # registers a service worker, so the app cannot load there offline.
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+        VITE_KEYCLOAK_URL: http://localhost:8180
+        VITE_KEYCLOAK_REALM: coop-data
+        VITE_KEYCLOAK_CLIENT_ID: coopdata-frontend
+    container_name: coopdata-frontend-pwa
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
 
 volumes:
   backend_cargo_registry:

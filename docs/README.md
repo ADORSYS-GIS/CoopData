@@ -111,6 +111,7 @@ Reference documentation for developers. Organized by technology.
 | [`rbac-smoke-testing.md`](knowledge/frontend/rbac-smoke-testing.md) | RBAC smoke testing patterns |
 | [`sync-manager.md`](knowledge/frontend/sync-manager.md) | Sync manager patterns |
 | [`offline-sync-conflict.md`](knowledge/frontend/offline-sync-conflict.md) | Offline sync conflict resolution |
+| [`offline-local-testing.md`](knowledge/frontend/offline-local-testing.md) | Testing offline mode locally (why :5173 can't, use :5174) |
 | [`e2e-smoke-tests-mock-auth.md`](knowledge/frontend/e2e-smoke-tests-mock-auth.md) | E2E smoke tests mock auth setup |
 | [`user_manual.md`](knowledge/frontend/user_manual.md) | User manual |
 | [`database.md`](knowledge/frontend/database.md) | Frontend database (Dexie/IndexedDB) |

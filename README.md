@@ -63,12 +63,15 @@ This script will:
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Frontend | http://localhost:5174 | — |
+| Frontend (dev, hot reload) | http://localhost:5173 | — |
+| Frontend (production build, offline/PWA testing) | http://localhost:5174 | — |
 | Backend API | http://localhost:3000/api/v1 | — |
 | Swagger UI | http://localhost:3000/swagger-ui/ | — |
 | Keycloak Admin | http://localhost:8180 | admin / admin |
 | PostgreSQL | localhost:5432 | coopdata / password |
 | Redis | localhost:6379 | — |
+
+> **Testing offline mode?** Use **:5174**. The dev server on :5173 has no service worker, so the app cannot load there offline. After frontend changes, rebuild with `docker compose up -d --build frontend-pwa`. See [docs/knowledge/frontend/offline-local-testing.md](docs/knowledge/frontend/offline-local-testing.md).
 
 ### Test Users (Keycloak)
 
