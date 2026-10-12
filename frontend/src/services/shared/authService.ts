@@ -10,6 +10,8 @@ const REFRESH_THRESHOLD_SECONDS = 30;
 const OFFLINE_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 let keycloakInitialized = false;
+// keycloak-js allows init() only once; it is skipped when the app starts offline.
+let keycloakInitAttempted = false;
 let isLoggingOut = false;
 let keycloakInitPromise: Promise<boolean> | null = null;
 let keycloakReadyResolvers: ((value: boolean) => void)[] = [];
@@ -88,6 +90,7 @@ async function doInitKeycloak(): Promise<boolean> {
   }
 
   try {
+    keycloakInitAttempted = true;
     const authenticated = await keycloak.init({
       onLoad: "check-sso",
       pkceMethod: "S256",
@@ -175,6 +178,56 @@ async function doInitKeycloak(): Promise<boolean> {
       return true;
     }
 
+    return false;
+  }
+}
+
+/**
+ * Leaves offline mode once the network is back. When the app started offline,
+ * Keycloak initialisation was skipped: complete it now with the cached tokens
+ * (refreshing them), so API calls and the sync queue use a live session again.
+ * Returns true when a live session is available.
+ *
+ * If initialisation already ran and failed (Keycloak unreachable at startup),
+ * keycloak-js cannot be initialised again; a page reload is then required.
+ */
+export async function restoreOnlineSession(): Promise<boolean> {
+  if (!navigator.onLine || isLoggingOut) return false;
+
+  if (keycloak.authenticated) {
+    try {
+      await keycloak.updateToken(REFRESH_THRESHOLD_SECONDS);
+      await persistTokens();
+      offlineModeActive = false;
+      return true;
+    } catch (error) {
+      console.warn("[auth] Token refresh failed while restoring the online session:", error);
+      return false;
+    }
+  }
+
+  if (keycloakInitAttempted) return false;
+
+  const cachedTokens = await loadCachedTokens();
+  if (!cachedTokens) return false;
+
+  keycloakInitAttempted = true;
+  try {
+    const authenticated = await keycloak.init({
+      pkceMethod: "S256",
+      enableLogging: import.meta.env.DEV,
+      checkLoginIframe: false,
+      token: cachedTokens.token,
+      refreshToken: cachedTokens.refreshToken,
+      idToken: cachedTokens.idToken || undefined,
+    });
+    if (!authenticated) return false;
+    await persistTokens();
+    offlineModeActive = false;
+    console.log("[auth] Online session restored after starting offline");
+    return true;
+  } catch (error) {
+    console.warn("[auth] Could not restore the online session:", error);
     return false;
   }
 }

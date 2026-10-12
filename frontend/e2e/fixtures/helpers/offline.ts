@@ -126,3 +126,75 @@ export function deleteCached(page: Page, store: string, keys: string[]) {
 export function deleteQuerySnapshot(page: Page) {
   return deleteRows(page, "keyval-store", "keyval", ["coopdata_query_cache"]);
 }
+
+export interface QueueItemView {
+  tag?: string;
+  endpoint: string;
+  status: string;
+  retryCount: number;
+  lastError?: string;
+}
+
+/** Adds an item to the sync queue exactly as enqueue() would, for the logged-in user. */
+export async function addQueueItem(
+  page: Page,
+  item: { tag: string; endpoint: string; method: string; body?: unknown },
+): Promise<void> {
+  await page.evaluate(
+    async ({ db, item }) => {
+      const profile = JSON.parse(localStorage.getItem("coopdata_user_profile") ?? "{}");
+      const conn = await new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open(db);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      await new Promise<void>((resolve, reject) => {
+        const tx = conn.transaction("syncQueue", "readwrite");
+        tx.objectStore("syncQueue").add({
+          ...item,
+          correlationId: crypto.randomUUID(),
+          userId: profile.id,
+          createdAt: Date.now(),
+          retryCount: 0,
+          status: "pending",
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      conn.close();
+    },
+    { db: OFFLINE_DB, item },
+  );
+}
+
+export async function queueItems(page: Page): Promise<QueueItemView[]> {
+  return page.evaluate(async (db) => {
+    const conn = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(db);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const rows = await new Promise<QueueItemView[]>((resolve) => {
+      const req = conn.transaction("syncQueue").objectStore("syncQueue").getAll();
+      req.onsuccess = () => resolve(req.result);
+    });
+    conn.close();
+    return rows;
+  }, OFFLINE_DB);
+}
+
+export async function clearQueue(page: Page): Promise<void> {
+  await page.evaluate(async (db) => {
+    const conn = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(db);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    await new Promise<void>((resolve) => {
+      const tx = conn.transaction("syncQueue", "readwrite");
+      tx.objectStore("syncQueue").clear();
+      tx.oncomplete = () => resolve();
+    });
+    conn.close();
+  }, OFFLINE_DB);
+}

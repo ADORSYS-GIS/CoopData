@@ -131,8 +131,12 @@ function RootComponent() {
       queryClient.invalidateQueries();
     };
     window.addEventListener("coopdata-sync-complete", handleSyncComplete);
+    // Requests made while the session was still offline failed or served the
+    // device copy: refetch everything once the live session is back.
+    window.addEventListener("coopdata-session-restored", handleSyncComplete);
     return () => {
       window.removeEventListener("coopdata-sync-complete", handleSyncComplete);
+      window.removeEventListener("coopdata-session-restored", handleSyncComplete);
     };
   }, [queryClient]);
 

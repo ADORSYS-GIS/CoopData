@@ -16,7 +16,9 @@ import {
   getAccessToken,
   getUserProfile,
   isOfflineModeActive,
+  restoreOnlineSession,
 } from "@/services/shared/authService";
+import { flushSyncQueue } from "@/services/shared/syncQueueService";
 import { apiClient } from "@/openapi-client";
 import { mergeServerNames, type ServerProfileNames } from "@/services/shared/profileNames";
 import { seedOfflineCache } from "@/services/shared/offlineSeeder";
@@ -41,7 +43,17 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
 
   // Track online/offline status and flush sync queue / trigger seeder when back online
   useEffect(() => {
-    const handleOnline = () => {
+    const handleOnline = async () => {
+      // Started offline: finish the skipped Keycloak start-up before anything
+      // talks to the server, otherwise the outbox stays blocked until a reload.
+      if (isOfflineModeActive()) {
+        const restored = await restoreOnlineSession();
+        if (!restored) return;
+        setIsOfflineAuthenticated(false);
+        setAccessToken(await getAccessToken());
+        window.dispatchEvent(new CustomEvent("coopdata-session-restored"));
+        void flushSyncQueue();
+      }
       setIsOffline(false);
       void seedOfflineCache();
     };
