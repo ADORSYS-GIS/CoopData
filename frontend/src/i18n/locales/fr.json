@@ -6499,5 +6499,12 @@
       "notFound": "Cet élément n'existe plus sur le serveur.",
       "server": "Le serveur n'a pas accepté cette modification."
     }
+  },
+  "logoutPrompt": {
+    "title": "Se déconnecter ?",
+    "offline": "Vous êtes hors ligne. Si vous vous déconnectez maintenant, vous ne pourrez pas vous reconnecter avant d'avoir une connexion Internet.",
+    "unsent": "Vous avez {{count}} modification(s) pas encore envoyée(s). Elles restent sur cet appareil et seront envoyées à votre prochaine connexion avec Internet.",
+    "stay": "Rester connecté",
+    "confirm": "Se déconnecter quand même"
   }
 }

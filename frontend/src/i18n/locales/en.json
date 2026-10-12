@@ -6489,5 +6489,12 @@
       "notFound": "This item no longer exists on the server.",
       "server": "The server didn't accept this change."
     }
+  },
+  "logoutPrompt": {
+    "title": "Log out?",
+    "offline": "You're offline. If you log out now, you won't be able to sign in again until you have an internet connection.",
+    "unsent": "You have {{count}} change(s) not sent yet. They stay on this device and will be sent the next time you sign in with internet.",
+    "stay": "Stay signed in",
+    "confirm": "Log out anyway"
   }
 }

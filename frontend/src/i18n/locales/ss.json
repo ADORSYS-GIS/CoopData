@@ -6489,5 +6489,12 @@
       "notFound": "Loku akusekho ku-server.",
       "server": "I-server ayilwemukelanga lolushintjo."
     }
+  },
+  "logoutPrompt": {
+    "title": "Uyaphuma?",
+    "offline": "Awukho ku-inthanethi. Nawuphuma nyalo, angeke ukhone kungena futsi uze ube ne-inthanethi.",
+    "unsent": "Une-{{count}} lushintjo lolungakatfunyelwa. Lutawuhlala kulelithuluzi futsi lutfunyelwe nawungena ne-inthanethi.",
+    "stay": "Hlala ungenile",
+    "confirm": "Phuma noma kunjalo"
   }
 }

@@ -18,7 +18,13 @@ import {
   isOfflineModeActive,
   restoreOnlineSession,
 } from "@/services/shared/authService";
-import { flushSyncQueue } from "@/services/shared/syncQueueService";
+import {
+  flushSyncQueue,
+  getFailedItems,
+  getPendingCount,
+} from "@/services/shared/syncQueueService";
+import { isAppOffline } from "@/services/shared/networkGuard";
+import { LogoutConfirmDialog, type LogoutPrompt } from "@/components/shared/LogoutConfirmDialog";
 import { apiClient } from "@/openapi-client";
 import { mergeServerNames, type ServerProfileNames } from "@/services/shared/profileNames";
 import { seedOfflineCache } from "@/services/shared/offlineSeeder";
@@ -29,6 +35,18 @@ import { ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Changes still on this device; 0 if storage can't be read (never blocks logout). */
+async function countUnsentChanges(): Promise<number> {
+  try {
+    return (await getPendingCount()) + (await getFailedItems()).length;
+  } catch {
+    return 0;
+  }
+}
+
+/** Tables that survive logout: queued changes and per-user drafts. */
+const KEPT_ON_LOGOUT = new Set(["syncQueue", "drafts"]);
+
 export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +54,7 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isOfflineAuthenticated, setIsOfflineAuthenticated] = useState(false);
+  const [logoutPrompt, setLogoutPrompt] = useState<LogoutPrompt | null>(null);
   const { t } = useTranslation();
 
   // Ref to store logout function for use in inactivity timeout
@@ -219,11 +238,14 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     await keycloakLogin();
   }, []);
 
-  const logout = useCallback(async () => {
+  const performLogout = useCallback(async () => {
     console.log("[auth-context] logout() called — redirecting");
     try {
+      // Cached copies are cleared, but the outbox and the user's drafts are kept:
+      // an automatic idle logout must not lose work. Both are tied to this user and
+      // resume when they sign in again.
       await Promise.all(
-        offlineDb.tables.filter((t) => t.name !== "syncQueue").map((t) => t.clear()),
+        offlineDb.tables.filter((t) => !KEPT_ON_LOGOUT.has(t.name)).map((t) => t.clear()),
       );
       console.log("[auth-context] Offline database cache cleared on logout");
     } catch (e) {
@@ -235,10 +257,22 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
   }, []);
 
-  // Keep logoutRef in sync with logout callback
+  /** User-initiated logout: asks first if it would lock them out offline or leave changes unsent. */
+  const logout = useCallback(async () => {
+    const offline = isAppOffline();
+    if (!offline) await flushSyncQueue().catch(() => undefined);
+    const unsentCount = await countUnsentChanges();
+    if (offline || unsentCount > 0) {
+      setLogoutPrompt({ offline, unsentCount });
+      return;
+    }
+    await performLogout();
+  }, [performLogout]);
+
+  // The idle timeout logs out without asking: nobody is there to answer.
   useEffect(() => {
-    logoutRef.current = logout;
-  }, [logout]);
+    logoutRef.current = performLogout;
+  }, [performLogout]);
 
   const hasRoleFn = useCallback(
     (role: Role) => {
@@ -277,7 +311,19 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     isOfflineAuthenticated,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <LogoutConfirmDialog
+        prompt={logoutPrompt}
+        onStay={() => setLogoutPrompt(null)}
+        onLogout={() => {
+          setLogoutPrompt(null);
+          void performLogout();
+        }}
+      />
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

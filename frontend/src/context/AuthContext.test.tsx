@@ -13,6 +13,21 @@ vi.mock("@/services/shared/authService", () => ({
   isOfflineModeActive: vi.fn().mockReturnValue(false),
 }));
 
+const syncQueue = vi.hoisted(() => ({
+  flushSyncQueue: vi.fn().mockResolvedValue(undefined),
+  getPendingCount: vi.fn().mockResolvedValue(0),
+  getFailedItems: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("@/services/shared/syncQueueService", () => syncQueue);
+
+const offlineTables = vi.hoisted(() =>
+  ["submissions", "analytics", "syncQueue", "drafts"].map((name) => ({
+    name,
+    clear: vi.fn().mockResolvedValue(undefined),
+  })),
+);
+vi.mock("@/services/shared/offlineDb", () => ({ offlineDb: { tables: offlineTables } }));
+
 vi.mock("@/services/shared/offlineSeeder", () => ({
   seedOfflineCache: vi.fn().mockResolvedValue(undefined),
 }));
@@ -160,6 +175,51 @@ describe("AuthContext", () => {
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.user).toBeNull();
       expect(result.current.accessToken).toBeNull();
+    });
+
+    it("keeps queued changes and drafts on logout, clearing only cached copies", async () => {
+      mockedInitKeycloak.mockResolvedValue(true);
+      mockedGetUserProfile.mockReturnValue(makeProfile("ministry"));
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      const cleared = offlineTables.filter((t) => t.clear.mock.calls.length > 0).map((t) => t.name);
+      expect(cleared).toEqual(["submissions", "analytics"]);
+    });
+
+    it("asks before logging out while offline", async () => {
+      mockedInitKeycloak.mockResolvedValue(true);
+      mockedGetUserProfile.mockReturnValue(makeProfile("cooperative"));
+      const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      expect(mockedLogout).not.toHaveBeenCalled();
+      expect(result.current.isAuthenticated).toBe(true);
+      onLine.mockRestore();
+    });
+
+    it("asks before logging out when changes are still unsent", async () => {
+      mockedInitKeycloak.mockResolvedValue(true);
+      mockedGetUserProfile.mockReturnValue(makeProfile("cooperative"));
+      syncQueue.getPendingCount.mockResolvedValueOnce(2);
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      expect(syncQueue.flushSyncQueue).toHaveBeenCalled();
+      expect(mockedLogout).not.toHaveBeenCalled();
     });
   });
 

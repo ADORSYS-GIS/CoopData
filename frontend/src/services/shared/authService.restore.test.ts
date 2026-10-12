@@ -102,3 +102,55 @@ describe("restoreOnlineSession", () => {
     expect(keycloak.init).not.toHaveBeenCalled();
   });
 });
+
+describe("logout", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    idb.get.mockResolvedValue(CACHED_TOKENS);
+    idb.del.mockResolvedValue(undefined);
+    keycloak.logout.mockResolvedValue(undefined);
+  });
+
+  it("logs out of Keycloak online and removes the saved login and profile", async () => {
+    setOnline(true);
+    const auth = await freshAuthService();
+    localStorage.setItem("coopdata_user_profile", JSON.stringify({ id: "u" }));
+
+    void auth.logout();
+
+    await vi.waitFor(() =>
+      expect(keycloak.logout).toHaveBeenCalledWith({ redirectUri: expect.stringContaining("/") }),
+    );
+    expect(idb.del).toHaveBeenCalled();
+    expect(localStorage.getItem("coopdata_user_profile")).toBeNull();
+  });
+
+  it("never resolves, so callers can't redirect inside the app while it leaves", async () => {
+    setOnline(true);
+    const auth = await freshAuthService();
+    let settled = false;
+
+    void auth.logout().then(() => (settled = true));
+    await vi.waitFor(() => expect(keycloak.logout).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(settled).toBe(false);
+  });
+
+  it("does not try to reach Keycloak while offline", async () => {
+    setOnline(false);
+    const auth = await freshAuthService();
+    const replace = vi.fn();
+    const realLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...realLocation, origin: realLocation.origin, replace },
+    });
+
+    void auth.logout();
+
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith(`${realLocation.origin}/`));
+    expect(keycloak.logout).not.toHaveBeenCalled();
+    Object.defineProperty(window, "location", { configurable: true, value: realLocation });
+  });
+});

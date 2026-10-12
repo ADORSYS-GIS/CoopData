@@ -6499,5 +6499,12 @@
       "notFound": "Este item já não existe no servidor.",
       "server": "O servidor não aceitou esta alteração."
     }
+  },
+  "logoutPrompt": {
+    "title": "Terminar sessão?",
+    "offline": "Está offline. Se terminar a sessão agora, só poderá voltar a entrar quando tiver ligação à Internet.",
+    "unsent": "Tem {{count}} alteração(ões) ainda não enviada(s). Ficam neste dispositivo e serão enviadas da próxima vez que entrar com Internet.",
+    "stay": "Manter sessão",
+    "confirm": "Terminar mesmo assim"
   }
 }

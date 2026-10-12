@@ -66,7 +66,10 @@ test.describe("Offline mode", () => {
     await context.setOffline(true);
     await page.reload();
 
-    await expect(page.getByText("You're offline — showing cached data")).toBeVisible();
+    // The same text can also show briefly as a toast: check the status banner.
+    await expect(
+      page.getByRole("status").getByText("You're offline — showing cached data"),
+    ).toBeVisible();
     await expect(page.getByText(CRASH_TEXT)).toHaveCount(0);
   });
 

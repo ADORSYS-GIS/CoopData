@@ -40,11 +40,13 @@ test.describe("Offline sync queue", () => {
 
     await context.setOffline(true);
     await page.reload(); // the app now starts offline (cached token, no Keycloak)
-    await expect(page.getByText(OFFLINE_BANNER)).toBeVisible();
+    await expect(page.getByRole("status").getByText(OFFLINE_BANNER)).toBeVisible();
     await addQueueItem(page, { tag: "C", endpoint: NOOP_ENDPOINT, method: "POST", body: {} });
 
     await context.setOffline(false); // no reload
-    await expect(page.getByText(OFFLINE_BANNER)).toHaveCount(0, { timeout: 20_000 });
+    await expect(page.getByRole("status").getByText(OFFLINE_BANNER)).toHaveCount(0, {
+      timeout: 20_000,
+    });
     await expect
       .poll(async () => (await queueItems(page)).find((i) => i.tag === "C")?.retryCount ?? 0, {
         timeout: 20_000,

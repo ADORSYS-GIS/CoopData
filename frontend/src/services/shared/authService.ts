@@ -245,16 +245,33 @@ export async function login(): Promise<void> {
   });
 }
 
+/**
+ * Ends the session on this device and in Keycloak, then leaves the app.
+ *
+ * Never resolves: the page is navigating away. Callers must not continue with
+ * code that redirects inside the app — a client-side jump to /login starts a
+ * Keycloak sign-in that cancels the logout navigation and silently signs the
+ * user back in.
+ */
 export async function logout(): Promise<void> {
   console.log("[auth] logout() called");
   isLoggingOut = true;
   offlineModeActive = false;
   await clearCachedTokens();
+  try {
+    localStorage.removeItem("coopdata_user_profile");
+  } catch {
+    // storage unavailable: nothing to remove
+  }
   keycloakInitialized = false;
-  await keycloak.logout({
-    redirectUri: window.location.origin + "/",
-  });
-  isLoggingOut = false;
+  if (navigator.onLine) {
+    await keycloak.logout({ redirectUri: window.location.origin + "/" });
+  } else {
+    // Keycloak can't be reached: end the local session and go to the start page
+    // instead of a browser error page.
+    window.location.replace(window.location.origin + "/");
+  }
+  return new Promise<void>(() => {});
 }
 
 export async function getAccessToken(): Promise<string> {
