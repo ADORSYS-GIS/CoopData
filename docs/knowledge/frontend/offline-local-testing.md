@@ -48,10 +48,10 @@ There are two reasons:
 
 The repo has two compose files that Docker merges automatically when you run `docker compose up` **without `-f`**:
 
-| File | `frontend` service |
-|---|---|
-| `docker-compose.yml` | Production build: `frontend/Dockerfile` → `npm run build` → nginx, port `5174:80` |
-| `docker-compose.override.yml` | **Replaces it** with the Vite dev server: `Dockerfile.dev`, port `5173` |
+| File                          | `frontend` service                                                                |
+| ----------------------------- | --------------------------------------------------------------------------------- |
+| `docker-compose.yml`          | Production build: `frontend/Dockerfile` → `npm run build` → nginx, port `5174:80` |
+| `docker-compose.override.yml` | **Replaces it** with the Vite dev server: `Dockerfile.dev`, port `5173`           |
 
 The override wins, so locally only the dev server ran. There was no way to reach a built, offline-capable frontend.
 
@@ -87,10 +87,10 @@ frontend-pwa:
 
 `docker compose up` now starts both frontends:
 
-| URL | What runs | Service worker | Works offline | Hot reload | Use it for |
-|---|---|---|---|---|---|
-| `http://localhost:5173` | Vite dev server | ❌ | ❌ | ✅ | Day-to-day coding |
-| `http://localhost:5174` | Production build on nginx | ✅ | ✅ | ❌ | Testing offline / PWA |
+| URL                     | What runs                 | Service worker | Works offline | Hot reload | Use it for            |
+| ----------------------- | ------------------------- | -------------- | ------------- | ---------- | --------------------- |
+| `http://localhost:5173` | Vite dev server           | ❌             | ❌            | ✅         | Day-to-day coding     |
+| `http://localhost:5174` | Production build on nginx | ✅             | ✅            | ❌         | Testing offline / PWA |
 
 **Why port 5174:** Keycloak's `coopdata-frontend` client already lists `http://localhost:5174/*` as a valid redirect URI (`keycloak/realm-coopdata.json`), so login works without realm changes.
 
@@ -108,6 +108,21 @@ frontend-pwa:
 6. Switch Network to **Offline** and reload. The app loads, the offline banner shows, and cached data is displayed.
 7. While offline, save something (for example, add a member). It appears in IndexedDB → `syncQueue` with `status: "pending"`.
 8. Switch back to **No throttling**. Within a few seconds the item changes to `status: "done"`.
+
+### Automated offline tests (Playwright)
+
+`frontend/e2e/specs/offline.spec.ts` checks the offline fixes end to end against the PWA build: the app opens offline; uncached submissions show the "not available offline" message instead of crashing (A); data downloaded by the seeder is found offline (G); pages refetch by themselves when the connection returns (H).
+
+```bash
+cd frontend && npm run test:e2e:offline
+```
+
+Requirements:
+
+- the stack is running (`docker compose up -d`), with `frontend-pwa` built from your current code
+- the `E2E_*` accounts in `frontend/.env`. The apex account needs a cooperative with members; the ministry account needs at least one submission. Tests skip with a reason when data is missing.
+
+The spec runs with one worker (parallel logins overload the local backend and make the seeder drop requests). It's skipped in CI and when `:5174` isn't reachable. Use `npm run test:e2e:offline:headed` to watch it. Each test was verified to **fail on the code before the fixes** and pass after.
 
 ### After changing frontend code
 
@@ -132,13 +147,13 @@ Then reload once while **online**, so the service worker installs the new versio
 
 **None.** Production is started by `start-prod.sh`, which always passes `-f docker-compose.ghcr.yaml`. When `-f` is given, Docker ignores `docker-compose.override.yml`, and that's the only file this fix changed.
 
-| File | Changed | Used by |
-|---|---|---|
-| `docker-compose.override.yml` | ✅ | Local `docker compose up` only |
-| `docker-compose.yml` | ❌ | Local |
-| `docker-compose.ghcr.yaml` | ❌ | Production (`start-prod.sh`) |
-| `frontend/Dockerfile` | ❌ | CI builds the production image from it |
-| `frontend/vite.config.ts` | ❌ | Both |
+| File                          | Changed | Used by                                |
+| ----------------------------- | ------- | -------------------------------------- |
+| `docker-compose.override.yml` | ✅      | Local `docker compose up` only         |
+| `docker-compose.yml`          | ❌      | Local                                  |
+| `docker-compose.ghcr.yaml`    | ❌      | Production (`start-prod.sh`)           |
+| `frontend/Dockerfile`         | ❌      | CI builds the production image from it |
+| `frontend/vite.config.ts`     | ❌      | Both                                   |
 
 ### How production serves the offline-capable app (unchanged)
 
@@ -156,6 +171,8 @@ Production always runs the built app over HTTPS, so the service worker has alway
 ---
 
 ## 6. Related Docs
+
+- [`offline-known-issues.md`](offline-known-issues.md): known offline bugs, how they were reproduced, fix status
 
 - [`offline-first-architecture.md`](../../features/offline-first-architecture.md): overall offline design (IndexedDB, sync queue, offline auth)
 - [`sync-manager.md`](sync-manager.md): sync queue patterns
