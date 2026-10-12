@@ -2440,7 +2440,7 @@ pub async fn create_apex_submission(
     };
 
     let mut model = ActiveModel {
-        id: Set(Uuid::new_v4()),
+        id: Set(body.id.unwrap_or_else(Uuid::new_v4)),
         reference: Set(None),
         cooperative_id: Set(coop.id),
         reporting_year: Set(body.reporting_year),

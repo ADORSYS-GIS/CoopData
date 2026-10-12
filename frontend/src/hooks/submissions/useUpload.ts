@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
 import { useUserRole } from "@/lib/auth";
 import type { components } from "@/openapi-client/api";
+import { assertOnline } from "@/services/shared/networkGuard";
 
 export type UploadResponse = components["schemas"]["UploadResponse"];
 
@@ -24,6 +25,7 @@ export const useUploadFinancialStatement = (submissionId?: string) => {
       currency?: string;
       submissionId?: string;
     }): Promise<UploadResponse> => {
+      assertOnline();
       const base = role === "apex" ? "/api/v1/apex" : "/api/v1/cooperative";
       const token = await getAccessToken();
       const form = new FormData();
@@ -100,6 +102,7 @@ export const useDeleteSingleFile = (submissionId?: string) => {
   const role = useUserRole();
   return useMutation({
     mutationFn: async ({ submissionId: sid, fileId }: { submissionId: string; fileId: string }) => {
+      assertOnline();
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/${role}/submissions/${sid}/files/${fileId}`, {
         method: "DELETE",

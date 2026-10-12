@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "@/services/shared/authService";
 import { useUserRole } from "@/lib/auth";
 import type { NfUploadResponse } from "@/types/non-financial";
+import { assertOnline } from "@/services/shared/networkGuard";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -34,6 +35,7 @@ export const useNfUpload = () => {
       submissionId,
       section,
     }: UploadParams): Promise<NfUploadResponse> => {
+      assertOnline();
       const token = await getAccessToken();
       const formData = new FormData();
       formData.append("file", file);

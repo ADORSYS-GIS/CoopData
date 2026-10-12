@@ -4977,7 +4977,8 @@
     "online": "Kuxhumene",
     "noSessionTitle": "Akukho lusito lwe-inthanethi",
     "noSessionDesc": "Sicela unxibelelanise ne-inthanethi ukuze ungene ngemvume okokuqala.",
-    "dataUnavailable": "Lolwatiso alukatfolakali ngaphandle kwe-inthanethi. Luvule kanye uxhumeke ku-inthanethi kuze lutfolakale ngaphandle kwe-inthanethi."
+    "dataUnavailable": "Lolwatiso alukatfolakali ngaphandle kwe-inthanethi. Luvule kanye uxhumeke ku-inthanethi kuze lutfolakale ngaphandle kwe-inthanethi.",
+    "actionRequiresConnection": "Lesento sidzinga kuxhumeka ku-inthanethi."
   },
   "basicBenchmarking": {
     "pageTitle": "Kuhlukaniswa Kwekusebenta Lokucala",

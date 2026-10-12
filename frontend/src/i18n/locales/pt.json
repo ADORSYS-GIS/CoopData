@@ -4977,7 +4977,8 @@
     "online": "Online",
     "noSessionTitle": "Sem ligação disponível",
     "noSessionDesc": "Por favor, ligue-se à internet para iniciar sessão pela primeira vez.",
-    "dataUnavailable": "Esta informação ainda não está disponível offline. Abra-a uma vez enquanto estiver online para a tornar disponível offline."
+    "dataUnavailable": "Esta informação ainda não está disponível offline. Abra-a uma vez enquanto estiver online para a tornar disponível offline.",
+    "actionRequiresConnection": "Esta ação requer uma ligação à Internet."
   },
   "basicBenchmarking": {
     "pageTitle": "Benchmarking Básico",

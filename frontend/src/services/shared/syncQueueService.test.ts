@@ -70,6 +70,7 @@ vi.mock("./offlineDb", () => {
 
 import { getUserProfile } from "./authService";
 import { enqueue, flushSyncQueue, runMutation } from "./syncQueueService";
+import { OfflineActionError } from "./networkGuard";
 
 const mockedGetUserProfile = vi.mocked(getUserProfile);
 
@@ -163,8 +164,24 @@ describe("syncQueueService", () => {
         optimisticData: undefined,
         online: async () => {},
       }),
-    ).rejects.toThrow("Destructive actions cannot be performed while offline.");
+    ).rejects.toBeInstanceOf(OfflineActionError);
 
     expect(mockSyncQueueStore.length).toBe(0);
+  });
+
+  it("should refuse online-only actions offline instead of queueing them", async () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const online = vi.fn();
+
+    await expect(
+      runMutation("/api/v1/apex/submissions/{id}/approve", "POST", {
+        pathParams: { id: "sub-1" },
+        online,
+        requiresConnection: true,
+      }),
+    ).rejects.toBeInstanceOf(OfflineActionError);
+
+    expect(mockSyncQueueStore.length).toBe(0);
+    expect(online).not.toHaveBeenCalled();
   });
 });

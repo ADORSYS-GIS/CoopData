@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { getAccessToken } from "@/services/shared/authService";
 import { runMutation } from "@/services/shared/syncQueueService";
+import { assertOnline } from "@/services/shared/networkGuard";
 
 const NARRATIVES_KEY = "submission-narratives";
 
@@ -48,10 +49,12 @@ export const useGenerateSubmissionNarratives = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
+      assertOnline();
       return runMutation<CooperativeNarratives>(
         "/api/v1/cooperative/submissions/{id}/narratives/generate",
         "POST",
         {
+          requiresConnection: true,
           pathParams: { id: submissionId },
           optimisticData: undefined,
           online: async () => {

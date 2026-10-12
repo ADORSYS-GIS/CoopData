@@ -12,6 +12,7 @@ import {
 import { cacheGet, cacheSet } from "@/services/shared/offlineCache";
 import { getUserProfile } from "@/services/shared/authService";
 import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
+import { assertOnline } from "@/services/shared/networkGuard";
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
 export type ReviewActionRequest = components["schemas"]["ReviewActionRequest"];
@@ -140,8 +141,10 @@ export const useApexApprove = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      assertOnline();
       await updateCachedSubmissionStatus(id, "approved", "apex", comment, "approve");
       return runMutation<SubmissionResponse>("/api/v1/apex/submissions/{id}/approve", "POST", {
+        requiresConnection: true,
         pathParams: { id },
         body: { comment },
         optimisticData: { id, status: "approved" } as unknown as SubmissionResponse,
@@ -165,8 +168,10 @@ export const useApexReturn = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      assertOnline();
       await updateCachedSubmissionStatus(id, "draft", "cooperative", comment, "return");
       return runMutation<SubmissionResponse>("/api/v1/apex/submissions/{id}/return", "POST", {
+        requiresConnection: true,
         pathParams: { id },
         body: { comment },
         optimisticData: { id, status: "draft" } as unknown as SubmissionResponse,
@@ -192,11 +197,13 @@ export const useFederationApprove = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      assertOnline();
       await updateCachedSubmissionStatus(id, "in_review", "ministry", comment, "approve");
       return runMutation<SubmissionResponse>(
         "/api/v1/federation/submissions/{id}/approve",
         "POST",
         {
+          requiresConnection: true,
           pathParams: { id },
           body: { comment },
           optimisticData: { id, status: "in_review" } as unknown as SubmissionResponse,
@@ -224,8 +231,10 @@ export const useFederationReturn = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      assertOnline();
       await updateCachedSubmissionStatus(id, "submitted", "apex", comment, "return");
       return runMutation<SubmissionResponse>("/api/v1/federation/submissions/{id}/return", "POST", {
+        requiresConnection: true,
         pathParams: { id },
         body: { comment },
         optimisticData: { id, status: "submitted" } as unknown as SubmissionResponse,
@@ -254,8 +263,10 @@ export const useMinistryApprove = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      assertOnline();
       await updateCachedSubmissionStatus(id, "approved", "ministry", comment, "approve");
       return runMutation<SubmissionResponse>("/api/v1/ministry/submissions/{id}/approve", "POST", {
+        requiresConnection: true,
         pathParams: { id },
         body: { comment },
         optimisticData: { id, status: "approved" } as unknown as SubmissionResponse,
@@ -282,8 +293,10 @@ export const useMinistryReject = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      assertOnline();
       await updateCachedSubmissionStatus(id, "rejected", "ministry", comment, "reject");
       return runMutation<SubmissionResponse>("/api/v1/ministry/submissions/{id}/reject", "POST", {
+        requiresConnection: true,
         pathParams: { id },
         body: { comment },
         optimisticData: { id, status: "rejected" } as unknown as SubmissionResponse,

@@ -7,6 +7,7 @@ import { cacheGet, cacheSet } from "@/services/shared/offlineCache";
 import type { SubmissionResponse } from "./useSubmissions";
 import type { components } from "@/openapi-client/api";
 import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
+import { assertOnline } from "@/services/shared/networkGuard";
 
 export type FinancialStatementResponse = components["schemas"]["FinancialStatementResponse"] & {
   start_month?: number;
@@ -88,10 +89,12 @@ export const useValidateExtraction = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
+      assertOnline();
       return runMutation<unknown>(
         "/api/v1/cooperative/submissions/{id}/validate-extraction",
         "POST",
         {
+          requiresConnection: true,
           pathParams: { id: submissionId },
           optimisticData: undefined,
           online: async () => {
@@ -117,6 +120,7 @@ export const useSubmitSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
+      assertOnline();
       const userId = getUserProfile()?.id ?? "anon";
 
       // 1. Update single submission detail cache in IndexedDB
@@ -172,6 +176,7 @@ export const useSubmitSubmission = () => {
           : "/api/v1/cooperative/submissions/{id}/submit";
 
       return runMutation<unknown>(basePath, "POST", {
+        requiresConnection: true,
         pathParams: { id: submissionId },
         optimisticData: { id: submissionId, status: "submitted", current_tier: "apex" },
         online: async () => {

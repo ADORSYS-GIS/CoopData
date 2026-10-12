@@ -1,5 +1,6 @@
 import { offlineDb, type SyncQueueItem } from "./offlineDb";
 import { getAccessToken, isOfflineModeActive, getUserProfile } from "./authService";
+import { OfflineActionError } from "./networkGuard";
 
 interface SyncManagerLike {
   register(tag: string): Promise<void>;
@@ -82,11 +83,13 @@ export async function runMutation<T>(
     optimisticData?: unknown;
     online: () => Promise<T>;
     verificationToken?: string;
+    /** Refuse instead of queueing when offline (deletes always require a connection). */
+    requiresConnection?: boolean;
   },
 ): Promise<T> {
   const isOffline = !navigator.onLine || isOfflineModeActive();
-  if (isOffline && method === "DELETE") {
-    throw new Error("Destructive actions cannot be performed while offline.");
+  if (isOffline && (method === "DELETE" || opts.requiresConnection)) {
+    throw new OfflineActionError();
   }
 
   const profile = getUserProfile();

@@ -411,6 +411,10 @@ pub struct MembershipStatsResponse {
 
 #[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct CreateApexSubmissionRequest {
+    /// Client-generated id, so a draft created offline keeps the id that
+    /// queued follow-up edits already reference.
+    #[serde(default)]
+    pub id: Option<Uuid>,
     pub cooperative_id: Uuid,
     pub reporting_year: i32,
     #[serde(default)]
@@ -561,5 +565,37 @@ mod period_validation_tests {
         assert!(validate_period(Some("quarterly"), Some("Q1"), 2024).is_ok());
         assert!(validate_period(Some("semiannual"), Some("H1"), 2024).is_ok());
         assert!(validate_period(Some("monthly"), Some("06"), 2024).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod create_apex_submission_request_tests {
+    use super::CreateApexSubmissionRequest;
+    use uuid::Uuid;
+
+    #[test]
+    fn accepts_a_client_generated_id() {
+        let id = Uuid::new_v4();
+        let body = serde_json::json!({
+            "id": id,
+            "cooperative_id": Uuid::new_v4(),
+            "reporting_year": 2026,
+        });
+
+        let req: CreateApexSubmissionRequest = serde_json::from_value(body).unwrap();
+
+        assert_eq!(req.id, Some(id));
+    }
+
+    #[test]
+    fn id_is_optional_for_existing_clients() {
+        let body = serde_json::json!({
+            "cooperative_id": Uuid::new_v4(),
+            "reporting_year": 2026,
+        });
+
+        let req: CreateApexSubmissionRequest = serde_json::from_value(body).unwrap();
+
+        assert_eq!(req.id, None);
     }
 }
