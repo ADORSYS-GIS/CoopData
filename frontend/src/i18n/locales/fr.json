@@ -4978,7 +4978,10 @@
     "noSessionTitle": "Aucune connexion disponible",
     "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter pour la première fois.",
     "dataUnavailable": "Ces informations ne sont pas encore disponibles hors ligne. Ouvrez-les une fois en ligne pour les rendre disponibles hors ligne.",
-    "actionRequiresConnection": "Cette action nécessite une connexion Internet."
+    "actionRequiresConnection": "Cette action nécessite une connexion Internet.",
+    "inviteQueued": "Invitation enregistrée sur cet appareil",
+    "resendQueued": "Renvoi enregistré sur cet appareil",
+    "inviteQueuedDesc": "Vous êtes hors ligne. Elle sera envoyée dès votre retour en ligne — la personne ne recevra l'e-mail qu'à ce moment-là."
   },
   "basicBenchmarking": {
     "pageTitle": "Analyse comparative de base",

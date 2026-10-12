@@ -28,6 +28,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { isAppOffline } from "@/services/shared/networkGuard";
 
 type MemberResponse = components["schemas"]["MemberResponse"];
 
@@ -116,7 +117,9 @@ export const ApexUsersPage: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success(t("apexUsersPage.toastInvitationSent", { name: `${fn} ${ln}` }));
+          if (isAppOffline())
+            toast.info(t("offline.inviteQueued"), { description: t("offline.inviteQueuedDesc") });
+          else toast.success(t("apexUsersPage.toastInvitationSent", { name: `${fn} ${ln}` }));
           setShowInvite(false);
           setFirstName("");
           setLastName("");
@@ -181,7 +184,10 @@ export const ApexUsersPage: React.FC = () => {
     resendVerification.mutate(
       { apexId, userId: m.id },
       {
-        onSuccess: () => toast.success(t("apexUsersPage.toastResent", { name })),
+        onSuccess: () =>
+          isAppOffline()
+            ? toast.info(t("offline.resendQueued"), { description: t("offline.inviteQueuedDesc") })
+            : toast.success(t("apexUsersPage.toastResent", { name })),
         onError: (err) => {
           const e = err as { message?: string; error?: string };
           toast.error(e.message ?? e.error ?? t("apexUsersPage.toastResendFailed"));

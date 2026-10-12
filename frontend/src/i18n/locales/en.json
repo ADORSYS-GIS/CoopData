@@ -4978,7 +4978,10 @@
     "noSessionTitle": "No connection available",
     "noSessionDesc": "Please connect to the internet to sign in for the first time.",
     "dataUnavailable": "This information isn't available offline yet. Open it once while online to make it available offline.",
-    "actionRequiresConnection": "This action needs an internet connection."
+    "actionRequiresConnection": "This action needs an internet connection.",
+    "inviteQueued": "Invitation saved on this device",
+    "resendQueued": "Resend saved on this device",
+    "inviteQueuedDesc": "You're offline. It will be sent when you're back online — the person only receives the email then."
   },
   "basicBenchmarking": {
     "pageTitle": "Basic Benchmarking",

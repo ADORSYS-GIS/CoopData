@@ -3,8 +3,10 @@ import {
   PWA_URL,
   cachedKeys,
   cachedValue,
+  clearQueue,
   isPwaServerUp,
   loginForOffline,
+  queueItems,
 } from "../fixtures/helpers/offline";
 
 /**
@@ -17,6 +19,7 @@ import {
  */
 
 const NEEDS_CONNECTION = "This action needs an internet connection.";
+const SEND_INVITATION = "Send invitation";
 
 test.describe("Offline action rules", () => {
   test.skip(!!process.env.CI, "Requires real backend + Keycloak + PWA build - skipped in CI");
@@ -92,5 +95,31 @@ test.describe("Offline action rules", () => {
       return;
     }
     test.skip(true, "No apex-held draft that can be delegated");
+  });
+
+  test("D-3: an invitation made offline says it will be sent once back online", async ({
+    page,
+    context,
+  }) => {
+    await loginForOffline(page, "apex");
+    const coops =
+      (await cachedValue<{ id: string }[]>(page, "cooperatives", "cooperatives-list")) ?? [];
+    test.skip(coops.length === 0, "Apex account has no cooperative");
+    await clearQueue(page);
+
+    await context.setOffline(true);
+    await page.goto(`/app/cooperative-members/${coops[0].id}`);
+    await page.getByRole("button", { name: "Invite member" }).first().click();
+    await page.getByPlaceholder("e.g. Jean").fill("E2E");
+    await page.getByPlaceholder("e.g. Dupont").fill("Offline");
+    await page.getByPlaceholder("email@example.com").fill("e2e-never-sent@example.invalid");
+    await page.getByRole("button", { name: SEND_INVITATION }).click();
+
+    await expect(page.getByText("Invitation saved on this device")).toBeVisible();
+    await expect(page.getByText(/only receives the email then/)).toBeVisible();
+    expect((await queueItems(page)).some((i) => i.endpoint.endsWith("/members"))).toBe(true);
+
+    // Never send it: drop the queued invite before the connection returns.
+    await clearQueue(page);
   });
 });
