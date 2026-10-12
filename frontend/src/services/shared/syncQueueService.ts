@@ -3,6 +3,9 @@ import { getAccessToken, isOfflineModeActive, getUserProfile } from "./authServi
 import { OfflineActionError } from "./networkGuard";
 import { CORRELATION_HEADER, expectRequest, resolveEndpoint } from "./correlation";
 
+/** Waits between automatic retries; after the last one the item is marked failed. */
+const RETRY_DELAYS_MS = [10_000, 30_000, 60_000, 5 * 60_000, 15 * 60_000, 30 * 60_000];
+
 interface SyncManagerLike {
   register(tag: string): Promise<void>;
 }
@@ -36,21 +39,43 @@ export async function getPendingCount(): Promise<number> {
   }
 }
 
+const RESET_FOR_RETRY = {
+  status: "pending" as const,
+  retryCount: 0,
+  lastError: undefined,
+  lastStatus: undefined,
+  nextAttemptAt: undefined,
+};
+
+/** The current user's changes the server refused or that ran out of retries. */
 export async function getFailedItems(): Promise<SyncQueueItem[]> {
-  return await offlineDb.syncQueue.where("status").equals("failed").toArray();
+  const userId = getUserProfile()?.id;
+  if (!userId) return [];
+  return await offlineDb.syncQueue
+    .where("status")
+    .equals("failed")
+    .and((item) => item.userId === userId)
+    .toArray();
 }
 
 export async function retryFailed(): Promise<void> {
+  const userId = getUserProfile()?.id;
   await offlineDb.syncQueue
     .where("status")
     .equals("failed")
-    .modify({ status: "pending", retryCount: 0, lastError: undefined });
+    .and((item) => item.userId === userId)
+    .modify(RESET_FOR_RETRY);
+  void flushSyncQueue();
+}
 
-  if ("serviceWorker" in navigator && "SyncManager" in window) {
-    navigator.serviceWorker.ready
-      .then((sw) => (sw as unknown as { sync: SyncManagerLike }).sync.register("coopdata-sync"))
-      .catch(() => {});
-  }
+export async function retryItem(id: number): Promise<void> {
+  await offlineDb.syncQueue.update(id, RESET_FOR_RETRY);
+  void flushSyncQueue();
+}
+
+/** Drops a failed change for good (the user chose not to send it). */
+export async function dismissItem(id: number): Promise<void> {
+  await offlineDb.syncQueue.delete(id);
 }
 
 const syncChannel =
@@ -127,19 +152,42 @@ export async function runMutation<T>(
       }
     } catch (err) {
       console.warn("[runMutation] Online request failed:", err);
+      // fetch rejects with a TypeError when the network drops: the write may not have
+      // arrived, so keep it queued and carry on as if offline (the correlation id
+      // prevents a duplicate). Any other error is the server's answer, which the
+      // caller shows; retrying it in the background would only repeat it.
+      const lostConnection =
+        err instanceof TypeError && method !== "DELETE" && !opts.requiresConnection;
       const item = await offlineDb.syncQueue.where("correlationId").equals(correlationId).first();
       if (item) {
-        if (method === "DELETE") {
-          await offlineDb.syncQueue.delete(item.id!);
+        if (lostConnection) {
+          await offlineDb.syncQueue.update(item.id!, {
+            status: "pending",
+            retryCount: 0,
+            nextAttemptAt: Date.now() + RETRY_DELAYS_MS[0],
+          });
         } else {
-          await offlineDb.syncQueue.update(item.id!, { status: "pending", lastError: String(err) });
+          await offlineDb.syncQueue.delete(item.id!);
         }
       }
+      if (lostConnection) return opts.optimisticData as T;
       throw err;
     }
   }
 
   return opts.optimisticData as T;
+}
+
+/** Answers that won't change on retry: the request itself is refused. */
+const DEFINITIVE_STATUSES = new Set([400, 403, 404, 409, 410, 422]);
+
+/** Next state for an item whose attempt failed for a reason that may be temporary. */
+function retryLater(item: SyncQueueItem, failure: { lastError?: string; lastStatus?: number }) {
+  const retryCount = (item.retryCount ?? 0) + 1;
+  const delay = RETRY_DELAYS_MS[retryCount - 1];
+  return delay === undefined
+    ? { status: "failed" as const, retryCount, nextAttemptAt: undefined, ...failure }
+    : { status: "pending" as const, retryCount, nextAttemptAt: Date.now() + delay, ...failure };
 }
 
 /** Turns an error response into the message the server meant for the user. */
@@ -176,12 +224,13 @@ async function doFlushSyncQueue(): Promise<void> {
   }
 
   try {
-    // Reset any items stuck in 'syncing' for more than 2 minutes back to 'pending'
+    // Reset items whose send started over 2 minutes ago and never finished
+    // (tab closed or crashed mid-request) back to 'pending'.
     const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
     await offlineDb.syncQueue
       .where("status")
       .equals("syncing")
-      .and((item) => (item.createdAt ?? 0) < twoMinutesAgo)
+      .and((item) => (item.syncStartedAt ?? item.createdAt ?? 0) < twoMinutesAgo)
       .modify({ status: "pending" });
 
     const profile = getUserProfile();
@@ -191,7 +240,7 @@ async function doFlushSyncQueue(): Promise<void> {
     const pending = await offlineDb.syncQueue
       .where("status")
       .equals("pending")
-      .and((item) => item.userId === currentUserId)
+      .and((item) => item.userId === currentUserId && (item.nextAttemptAt ?? 0) <= Date.now())
       .toArray();
     if (pending.length === 0) return;
 
@@ -199,7 +248,10 @@ async function doFlushSyncQueue(): Promise<void> {
 
     for (const item of pending) {
       try {
-        await offlineDb.syncQueue.update(item.id!, { status: "syncing" });
+        await offlineDb.syncQueue.update(item.id!, {
+          status: "syncing",
+          syncStartedAt: Date.now(),
+        });
 
         const token = await getAccessToken();
         const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
@@ -224,34 +276,32 @@ async function doFlushSyncQueue(): Promise<void> {
           await offlineDb.syncQueue.update(item.id!, { status: "done" });
         } else {
           const reason = readableError(res.status, await res.text().catch(() => ""));
-          // A real conflict (e.g. "a submission already exists for this period") or a
-          // body the server rejects won't change on retry. Retried saves that already
-          // succeeded are answered 200 by the idempotency check (same correlation id).
-          if (res.status === 409 || res.status === 422) {
+          // A refusal (e.g. "a submission already exists for this period", no
+          // permission, record deleted) won't change on retry. Retried saves that
+          // already succeeded are answered 200 by the idempotency check (same id).
+          if (DEFINITIVE_STATUSES.has(res.status)) {
             console.warn(`[syncQueue] Item ${item.id} refused (${res.status}): ${reason}`);
             await offlineDb.syncQueue.update(item.id!, {
               status: "failed",
               retryCount: (item.retryCount ?? 0) + 1,
+              nextAttemptAt: undefined,
               lastError: reason,
               lastStatus: res.status,
             });
           } else {
-            const retryCount = (item.retryCount ?? 0) + 1;
-            await offlineDb.syncQueue.update(item.id!, {
-              status: retryCount >= 5 ? "failed" : "pending",
-              retryCount,
-              lastError: reason,
-              lastStatus: res.status,
-            });
+            await offlineDb.syncQueue.update(
+              item.id!,
+              retryLater(item, { lastError: reason, lastStatus: res.status }),
+            );
           }
         }
       } catch (err) {
-        const retryCount = (item.retryCount ?? 0) + 1;
-        await offlineDb.syncQueue.update(item.id!, {
-          status: retryCount >= 5 ? "failed" : "pending",
-          retryCount,
-          lastError: String(err),
-        });
+        // Network failure: no answer from the server, so no message to keep.
+        console.warn(`[syncQueue] Item ${item.id} could not reach the server:`, err);
+        await offlineDb.syncQueue.update(
+          item.id!,
+          retryLater(item, { lastError: undefined, lastStatus: undefined }),
+        );
       }
     }
 

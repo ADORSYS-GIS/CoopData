@@ -6441,5 +6441,50 @@
         "other": "Ministries"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Not saved: {{count}}",
+    "panelTitle": "Changes that couldn't be saved",
+    "panelDescription": "These changes were made on this device but the server didn't accept them. Retry them, or dismiss to discard them.",
+    "empty": "Nothing to fix — all your changes were saved.",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "retryAll": "Retry all",
+    "madeAt": "Made {{time}}",
+    "action": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete"
+    },
+    "subject": {
+      "section": "Submission section",
+      "questionnaire": "Questionnaire answers",
+      "financialStatement": "Financial statement",
+      "indicators": "Non-financial indicators",
+      "narratives": "Narratives",
+      "members": "Member data",
+      "savings": "Savings account",
+      "loans": "Loan",
+      "fixedDeposits": "Fixed deposit",
+      "farmCoop": "Farm data",
+      "submission": "Submission",
+      "invitation": "Invitation",
+      "user": "User",
+      "organization": "Organization",
+      "federation": "Federation",
+      "apex": "Apex",
+      "cooperative": "Cooperative",
+      "customKpi": "Custom KPI",
+      "questionnaireTemplate": "Questionnaire template",
+      "indicatorCatalog": "Indicator",
+      "change": "Change"
+    },
+    "reason": {
+      "network": "The server couldn't be reached after several attempts.",
+      "sessionExpired": "Your session expired. Sign in again, then retry.",
+      "forbidden": "You no longer have permission for this.",
+      "notFound": "This item no longer exists on the server.",
+      "server": "The server didn't accept this change."
+    }
   }
 }

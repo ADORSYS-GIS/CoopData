@@ -72,6 +72,10 @@ export interface SyncQueueItem {
   lastError?: string;
   /** HTTP status of the last refusal (absent for network errors). */
   lastStatus?: number;
+  /** Earliest time (ms) of the next automatic retry. */
+  nextAttemptAt?: number;
+  /** When the current send started; used to rescue items stuck in "syncing". */
+  syncStartedAt?: number;
   status: "pending" | "syncing" | "failed" | "done";
   optimisticData?: unknown;
   verificationToken?: string;

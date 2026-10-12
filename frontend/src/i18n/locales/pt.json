@@ -6451,5 +6451,50 @@
         "other": "Ministérios"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Não guardado: {{count}}",
+    "panelTitle": "Alterações que não foram guardadas",
+    "panelDescription": "Estas alterações foram feitas neste dispositivo, mas o servidor não as aceitou. Tente novamente ou descarte-as.",
+    "empty": "Nada a corrigir — todas as suas alterações foram guardadas.",
+    "retry": "Tentar novamente",
+    "dismiss": "Descartar",
+    "retryAll": "Tentar todas novamente",
+    "madeAt": "Feita em {{time}}",
+    "action": {
+      "create": "Criação",
+      "update": "Atualização",
+      "delete": "Eliminação"
+    },
+    "subject": {
+      "section": "Secção da submissão",
+      "questionnaire": "Respostas ao questionário",
+      "financialStatement": "Demonstração financeira",
+      "indicators": "Indicadores não financeiros",
+      "narratives": "Narrativas",
+      "members": "Dados dos membros",
+      "savings": "Conta poupança",
+      "loans": "Empréstimo",
+      "fixedDeposits": "Depósito a prazo",
+      "farmCoop": "Dados agrícolas",
+      "submission": "Submissão",
+      "invitation": "Convite",
+      "user": "Utilizador",
+      "organization": "Organização",
+      "federation": "Federação",
+      "apex": "Apex",
+      "cooperative": "Cooperativa",
+      "customKpi": "KPI personalizado",
+      "questionnaireTemplate": "Modelo de questionário",
+      "indicatorCatalog": "Indicador",
+      "change": "Alteração"
+    },
+    "reason": {
+      "network": "Não foi possível contactar o servidor após várias tentativas.",
+      "sessionExpired": "A sua sessão expirou. Inicie sessão novamente e tente outra vez.",
+      "forbidden": "Já não tem permissão para isto.",
+      "notFound": "Este item já não existe no servidor.",
+      "server": "O servidor não aceitou esta alteração."
+    }
   }
 }

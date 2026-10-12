@@ -103,4 +103,28 @@ test.describe("Offline sync queue", () => {
 
     await clearQueue(page);
   });
+
+  test("F: a change the server refuses is shown to the user, who can dismiss it", async ({
+    page,
+  }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+
+    await addQueueItem(page, { tag: "F", endpoint: NOOP_ENDPOINT, method: "POST", body: {} });
+
+    // A 404 won't change on retry: reported right away, not after slow retries.
+    const badge = page.getByRole("button", { name: "Not saved: 1" });
+    await expect(badge).toBeVisible({ timeout: 15_000 });
+    expect((await queueItems(page)).find((i) => i.tag === "F")?.retryCount).toBe(1);
+
+    await badge.click();
+    const panel = page.getByRole("dialog", { name: "Changes that couldn't be saved" });
+    await expect(panel.getByText("Create · Change")).toBeVisible();
+    await expect(panel.getByText("This item no longer exists on the server.")).toBeVisible();
+
+    await panel.getByRole("button", { name: /^Dismiss/ }).click();
+    await expect(panel.getByText("Nothing to fix — all your changes were saved.")).toBeVisible();
+    await expect(badge).toHaveCount(0);
+    expect((await queueItems(page)).find((i) => i.tag === "F")).toBeUndefined();
+  });
 });

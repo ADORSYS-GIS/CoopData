@@ -1,14 +1,20 @@
-import { WifiOff, Wifi } from "lucide-react";
+import { useState } from "react";
+import { WifiOff, Wifi, AlertTriangle } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/shared/useNetworkStatus";
+import { useFailedSyncItems } from "@/hooks/shared/useFailedSyncItems";
 import { useTranslation } from "react-i18next";
+import { SyncProblemsDialog } from "./SyncProblemsDialog";
 
 /**
  * Small, unobtrusive network-status indicator shown in the bottom-right corner.
  * Displays a compact pill with a status dot — online or offline — plus a
- * pending-sync badge when there are queued offline changes.
+ * pending-sync badge when there are queued offline changes, and a red badge
+ * opening the list of changes the server didn't accept.
  */
 export function OfflineStatusBanner() {
   const { isOnline, wasOffline, pendingSyncCount } = useNetworkStatus();
+  const failed = useFailedSyncItems();
+  const [problemsOpen, setProblemsOpen] = useState(false);
   const { t } = useTranslation();
 
   // Always show a subtle indicator so the user knows their connectivity state.
@@ -62,6 +68,26 @@ export function OfflineStatusBanner() {
           {pendingSyncCount}
         </span>
       )}
+
+      {failed.items.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setProblemsOpen(true)}
+          className="ml-1 inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground hover:bg-destructive/90"
+        >
+          <AlertTriangle className="size-3" aria-hidden="true" />
+          {t("sync.failedBadge", { count: failed.items.length })}
+        </button>
+      )}
+
+      <SyncProblemsDialog
+        open={problemsOpen}
+        onOpenChange={setProblemsOpen}
+        items={failed.items}
+        onRetry={(id) => void failed.retry(id)}
+        onDismiss={(id) => void failed.dismiss(id)}
+        onRetryAll={() => void failed.retryAll()}
+      />
     </div>
   );
 }

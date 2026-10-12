@@ -31,6 +31,10 @@ vi.mock("./offlineDb", () => {
         mockSyncQueueStore[idx] = { ...mockSyncQueueStore[idx], ...changes };
       }
     }),
+    delete: vi.fn(async (id: number) => {
+      const idx = mockSyncQueueStore.findIndex((x) => x.id === id);
+      if (idx !== -1) mockSyncQueueStore.splice(idx, 1);
+    }),
     first: vi.fn(async () => mockSyncQueueStore[0]),
     where: vi.fn((field) => ({
       equals: vi.fn((val) => {
@@ -69,7 +73,14 @@ vi.mock("./offlineDb", () => {
 });
 
 import { getUserProfile } from "./authService";
-import { enqueue, flushSyncQueue, runMutation } from "./syncQueueService";
+import {
+  dismissItem,
+  enqueue,
+  flushSyncQueue,
+  getFailedItems,
+  retryItem,
+  runMutation,
+} from "./syncQueueService";
 import { OfflineActionError } from "./networkGuard";
 
 const mockedGetUserProfile = vi.mocked(getUserProfile);
@@ -141,7 +152,7 @@ describe("syncQueueService", () => {
     expect(mockSyncQueueStore[0].userId).toBe("user-123");
   });
 
-  it("should throw online error on runMutation failure", async () => {
+  it("drops an online save the server refused instead of retrying it later", async () => {
     await expect(
       runMutation("/api/v1/cooperatives", "POST", {
         body: { name: "Coop A" },
@@ -152,8 +163,21 @@ describe("syncQueueService", () => {
       }),
     ).rejects.toThrow("Validation failed");
 
-    expect(mockSyncQueueStore.length).toBe(1);
+    expect(mockSyncQueueStore.length).toBe(0);
+  });
+
+  it("keeps an online save queued when the network drops and carries on as offline", async () => {
+    const result = await runMutation("/api/v1/cooperatives", "POST", {
+      body: { name: "Coop A" },
+      optimisticData: { name: "Coop A (local)" },
+      online: async () => {
+        throw new TypeError("Failed to fetch");
+      },
+    });
+
+    expect(result).toEqual({ name: "Coop A (local)" });
     expect(mockSyncQueueStore[0].status).toBe("pending");
+    expect(mockSyncQueueStore[0].nextAttemptAt).toBeGreaterThan(Date.now());
   });
 
   it("should block offline delete on runMutation immediately", async () => {
@@ -224,5 +248,55 @@ describe("syncQueueService", () => {
       lastError: "HTTP 503",
       lastStatus: 503,
     });
+  });
+
+  it("marks a refusal that won't change on retry as failed immediately", async () => {
+    await enqueue({ endpoint: "/api/v1/x/{id}", method: "PUT", userId: "user-123" });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => "",
+    } as any);
+
+    await flushSyncQueue();
+
+    expect(mockSyncQueueStore[0]).toMatchObject({ status: "failed", lastStatus: 404 });
+  });
+
+  it("skips items still waiting for their next retry", async () => {
+    await enqueue({ endpoint: "/api/v1/x", method: "POST", userId: "user-123" });
+    mockSyncQueueStore[0].nextAttemptAt = Date.now() + 60_000;
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock;
+
+    await flushSyncQueue();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("gives up after the last scheduled retry", async () => {
+    await enqueue({ endpoint: "/api/v1/x", method: "POST", userId: "user-123" });
+    mockSyncQueueStore[0].retryCount = 6;
+    global.fetch = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await flushSyncQueue();
+
+    expect(mockSyncQueueStore[0]).toMatchObject({ status: "failed", retryCount: 7 });
+    expect(mockSyncQueueStore[0].lastStatus).toBeUndefined();
+  });
+
+  it("lists only the current user's failed items, which can be retried or dismissed", async () => {
+    await enqueue({ endpoint: "/api/v1/a", method: "POST", userId: "user-123" });
+    await enqueue({ endpoint: "/api/v1/b", method: "POST", userId: "someone-else" });
+    mockSyncQueueStore.forEach((item) => (item.status = "failed"));
+
+    const failed = await getFailedItems();
+    expect(failed.map((i) => i.endpoint)).toEqual(["/api/v1/a"]);
+
+    await retryItem(failed[0].id!);
+    expect(mockSyncQueueStore[0]).toMatchObject({ status: "pending", retryCount: 0 });
+
+    await dismissItem(mockSyncQueueStore[1].id!);
+    expect(mockSyncQueueStore.map((i) => i.endpoint)).toEqual(["/api/v1/a"]);
   });
 });

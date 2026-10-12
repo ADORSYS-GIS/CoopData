@@ -6451,5 +6451,50 @@
         "other": "Ministères"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Non enregistré : {{count}}",
+    "panelTitle": "Modifications non enregistrées",
+    "panelDescription": "Ces modifications ont été faites sur cet appareil mais le serveur ne les a pas acceptées. Réessayez, ou ignorez-les pour les abandonner.",
+    "empty": "Rien à corriger — toutes vos modifications ont été enregistrées.",
+    "retry": "Réessayer",
+    "dismiss": "Ignorer",
+    "retryAll": "Tout réessayer",
+    "madeAt": "Faite le {{time}}",
+    "action": {
+      "create": "Création",
+      "update": "Modification",
+      "delete": "Suppression"
+    },
+    "subject": {
+      "section": "Section de la soumission",
+      "questionnaire": "Réponses au questionnaire",
+      "financialStatement": "État financier",
+      "indicators": "Indicateurs non financiers",
+      "narratives": "Commentaires",
+      "members": "Données des membres",
+      "savings": "Compte d'épargne",
+      "loans": "Prêt",
+      "fixedDeposits": "Dépôt à terme",
+      "farmCoop": "Données agricoles",
+      "submission": "Soumission",
+      "invitation": "Invitation",
+      "user": "Utilisateur",
+      "organization": "Organisation",
+      "federation": "Fédération",
+      "apex": "Apex",
+      "cooperative": "Coopérative",
+      "customKpi": "KPI personnalisé",
+      "questionnaireTemplate": "Modèle de questionnaire",
+      "indicatorCatalog": "Indicateur",
+      "change": "Modification"
+    },
+    "reason": {
+      "network": "Le serveur est resté injoignable après plusieurs tentatives.",
+      "sessionExpired": "Votre session a expiré. Reconnectez-vous, puis réessayez.",
+      "forbidden": "Vous n'avez plus l'autorisation pour cela.",
+      "notFound": "Cet élément n'existe plus sur le serveur.",
+      "server": "Le serveur n'a pas accepté cette modification."
+    }
   }
 }

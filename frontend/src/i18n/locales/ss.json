@@ -6441,5 +6441,50 @@
         "other": "Emalitiko"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Akugcinwanga: {{count}}",
+    "panelTitle": "Lushintjo lolungakagcinwa",
+    "panelDescription": "Lolushintjo lwentiwa kulelithuluzi kodvwa i-server ayilwemukelanga. Phindza uzame, noma ulususe.",
+    "empty": "Kute lokufanele kulungiswe — konkhe lokushintjile kugciniwe.",
+    "retry": "Phindza uzame",
+    "dismiss": "Susa",
+    "retryAll": "Phindza konkhe",
+    "madeAt": "Kwentiwe ngu-{{time}}",
+    "action": {
+      "create": "Kwakha",
+      "update": "Kubuyeketa",
+      "delete": "Kususa"
+    },
+    "subject": {
+      "section": "Sigaba sesicelo",
+      "questionnaire": "Timphendvulo temibuto",
+      "financialStatement": "Sitatimende setimali",
+      "indicators": "Tinkomba letingasito tetimali",
+      "narratives": "Tincazelo",
+      "members": "Imininingwane yemalunga",
+      "savings": "I-akhawunti yekonga",
+      "loans": "Imboleko",
+      "fixedDeposits": "Idiphozithi lengashintji",
+      "farmCoop": "Imininingwane yepulazi",
+      "submission": "Sicelo",
+      "invitation": "Simemo",
+      "user": "Umsebentisi",
+      "organization": "Inhlangano",
+      "federation": "I-federation",
+      "apex": "I-apex",
+      "cooperative": "Libhizinisi lekubambisana",
+      "customKpi": "I-KPI lehleliwe",
+      "questionnaireTemplate": "Sifanekiso semibuto",
+      "indicatorCatalog": "Inkomba",
+      "change": "Lushintjo"
+    },
+    "reason": {
+      "network": "I-server ayikatfolakali ngemuva kwemizamo leminyenti.",
+      "sessionExpired": "Sikhatsi sakho siphelelwe. Phindza ungene, bese uyazama.",
+      "forbidden": "Awusenayo imvume yaloku.",
+      "notFound": "Loku akusekho ku-server.",
+      "server": "I-server ayilwemukelanga lolushintjo."
+    }
   }
 }
