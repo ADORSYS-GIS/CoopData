@@ -4976,7 +4976,8 @@
     "backOnline": "Back online — syncing your changes",
     "online": "Online",
     "noSessionTitle": "No connection available",
-    "noSessionDesc": "Please connect to the internet to sign in for the first time."
+    "noSessionDesc": "Please connect to the internet to sign in for the first time.",
+    "dataUnavailable": "This information isn't available offline yet. Open it once while online to make it available offline."
   },
   "basicBenchmarking": {
     "pageTitle": "Basic Benchmarking",

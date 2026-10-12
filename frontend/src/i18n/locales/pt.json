@@ -4976,7 +4976,8 @@
     "backOnline": "Ligação restabelecida — a sincronizar as suas alterações",
     "online": "Online",
     "noSessionTitle": "Sem ligação disponível",
-    "noSessionDesc": "Por favor, ligue-se à internet para iniciar sessão pela primeira vez."
+    "noSessionDesc": "Por favor, ligue-se à internet para iniciar sessão pela primeira vez.",
+    "dataUnavailable": "Esta informação ainda não está disponível offline. Abra-a uma vez enquanto estiver online para a tornar disponível offline."
   },
   "basicBenchmarking": {
     "pageTitle": "Benchmarking Básico",
