@@ -184,4 +184,45 @@ describe("syncQueueService", () => {
     expect(mockSyncQueueStore.length).toBe(0);
     expect(online).not.toHaveBeenCalled();
   });
+
+  it("reports an 'already exists' conflict as failed with the server's message, not done", async () => {
+    await enqueue({
+      endpoint: "/api/v1/cooperative/submissions",
+      method: "POST",
+      userId: "user-123",
+      body: { reporting_year: 2023 },
+    });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      text: async () =>
+        JSON.stringify({ error: "conflict", message: "A submission already exists for 2023" }),
+    } as any);
+
+    await flushSyncQueue();
+
+    expect(mockSyncQueueStore[0]).toMatchObject({
+      status: "failed",
+      lastError: "A submission already exists for 2023",
+      lastStatus: 409,
+    });
+  });
+
+  it("keeps a server error pending for retry and records its status", async () => {
+    await enqueue({ endpoint: "/api/v1/x", method: "POST", userId: "user-123" });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      text: async () => "",
+    } as any);
+
+    await flushSyncQueue();
+
+    expect(mockSyncQueueStore[0]).toMatchObject({
+      status: "pending",
+      retryCount: 1,
+      lastError: "HTTP 503",
+      lastStatus: 503,
+    });
+  });
 });

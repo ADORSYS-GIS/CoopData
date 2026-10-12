@@ -70,6 +70,8 @@ export interface SyncQueueItem {
   createdAt: number;
   retryCount: number;
   lastError?: string;
+  /** HTTP status of the last refusal (absent for network errors). */
+  lastStatus?: number;
   status: "pending" | "syncing" | "failed" | "done";
   optimisticData?: unknown;
   verificationToken?: string;

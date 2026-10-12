@@ -80,4 +80,27 @@ test.describe("Offline sync queue", () => {
 
     await clearQueue(page);
   });
+
+  test("E: an 'already exists' refusal is reported as failed, not as saved", async ({ page }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+
+    // The server refuses: this email is already a user. Nothing is created.
+    await addQueueItem(page, {
+      tag: "E",
+      endpoint: "/api/v1/users",
+      method: "POST",
+      body: { email: process.env.E2E_MINISTRY_EMAIL, full_name: "E2E", role: "ministry" },
+    });
+
+    await expect
+      .poll(async () => (await queueItems(page)).find((i) => i.tag === "E")?.status, {
+        timeout: 20_000,
+      })
+      .toBe("failed");
+    const item = (await queueItems(page)).find((i) => i.tag === "E");
+    expect(item?.lastError).toMatch(/already exists/i);
+
+    await clearQueue(page);
+  });
 });

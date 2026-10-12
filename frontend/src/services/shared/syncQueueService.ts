@@ -142,6 +142,18 @@ export async function runMutation<T>(
   return opts.optimisticData as T;
 }
 
+/** Turns an error response into the message the server meant for the user. */
+function readableError(status: number, body: string): string {
+  try {
+    const parsed = JSON.parse(body) as { message?: unknown; error?: unknown };
+    if (typeof parsed.message === "string" && parsed.message) return parsed.message;
+    if (typeof parsed.error === "string" && parsed.error) return parsed.error;
+  } catch {
+    // not JSON
+  }
+  return body.trim() || `HTTP ${status}`;
+}
+
 let isFlushing = false;
 
 export async function pruneSyncQueue(): Promise<void> {
@@ -211,50 +223,25 @@ async function doFlushSyncQueue(): Promise<void> {
         if (res.ok) {
           await offlineDb.syncQueue.update(item.id!, { status: "done" });
         } else {
-          const errorText = await res.text().catch(() => `HTTP ${res.status}`);
-          let isIdempotentDone = false;
-          try {
-            const errObj = JSON.parse(errorText);
-            if (
-              errObj.error === "conflict" &&
-              errObj.message &&
-              (errObj.message.toLowerCase().includes("already exists") ||
-                errObj.message.toLowerCase().includes("duplicate"))
-            ) {
-              isIdempotentDone = true;
-            }
-          } catch {
-            if (
-              (res.status === 409 || res.status === 400) &&
-              (errorText.toLowerCase().includes("already exists") ||
-                errorText.toLowerCase().includes("duplicate"))
-            ) {
-              isIdempotentDone = true;
-            }
-          }
-
-          if (isIdempotentDone) {
-            console.log(
-              `[syncQueue] Item ${item.id} already processed on server (${res.status}), marking done.`,
-            );
-            await offlineDb.syncQueue.update(item.id!, { status: "done" });
-          } else if (res.status === 422) {
-            // 422 = Unprocessable Entity: body schema mismatch — won't fix itself with retries
-            console.error(
-              `[syncQueue] Item ${item.id} got 422 (body validation error), marking failed.`,
-              { endpoint: item.endpoint, errorText },
-            );
+          const reason = readableError(res.status, await res.text().catch(() => ""));
+          // A real conflict (e.g. "a submission already exists for this period") or a
+          // body the server rejects won't change on retry. Retried saves that already
+          // succeeded are answered 200 by the idempotency check (same correlation id).
+          if (res.status === 409 || res.status === 422) {
+            console.warn(`[syncQueue] Item ${item.id} refused (${res.status}): ${reason}`);
             await offlineDb.syncQueue.update(item.id!, {
               status: "failed",
               retryCount: (item.retryCount ?? 0) + 1,
-              lastError: errorText,
+              lastError: reason,
+              lastStatus: res.status,
             });
           } else {
             const retryCount = (item.retryCount ?? 0) + 1;
             await offlineDb.syncQueue.update(item.id!, {
               status: retryCount >= 5 ? "failed" : "pending",
               retryCount,
-              lastError: errorText,
+              lastError: reason,
+              lastStatus: res.status,
             });
           }
         }
