@@ -53,4 +53,31 @@ test.describe("Offline sync queue", () => {
 
     await clearQueue(page);
   });
+
+  test("D: an online save and its outbox retries carry the same correlation id", async ({
+    page,
+  }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+    await page.goto("/app/custom-kpis");
+
+    // Every attempt is dropped before reaching the server: nothing is saved.
+    const ids: (string | null)[] = [];
+    await page.route("**/api/v1/ministry/custom-kpis", async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      ids.push(route.request().headers()["x-correlation-id"] ?? null);
+      return route.abort("failed");
+    });
+
+    await page.getByRole("button", { name: /new custom kpi/i }).click();
+    await page.fill("#dialog-kpi-name", `E2E-NOT-SAVED-${Date.now()}`);
+    await page.fill("#dialog-formula-editor", "total_equity / total_assets * 100");
+    await page.getByRole("button", { name: /save custom kpi/i }).click();
+
+    await expect.poll(() => ids.length, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
+    expect(ids[0]).toBeTruthy();
+    expect(new Set(ids).size).toBe(1);
+
+    await clearQueue(page);
+  });
 });

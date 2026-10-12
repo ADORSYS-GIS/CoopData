@@ -1,6 +1,7 @@
 import { offlineDb, type SyncQueueItem } from "./offlineDb";
 import { getAccessToken, isOfflineModeActive, getUserProfile } from "./authService";
 import { OfflineActionError } from "./networkGuard";
+import { CORRELATION_HEADER, expectRequest, resolveEndpoint } from "./correlation";
 
 interface SyncManagerLike {
   register(tag: string): Promise<void>;
@@ -109,7 +110,18 @@ export async function runMutation<T>(
       const item = await offlineDb.syncQueue.where("correlationId").equals(correlationId).first();
       if (item) {
         await offlineDb.syncQueue.update(item.id!, { status: "syncing" });
-        const data = await opts.online();
+        // Same id as an outbox retry would use, so a lost reply can't cause a duplicate.
+        const release = expectRequest(
+          method,
+          resolveEndpoint(endpoint, opts.pathParams),
+          correlationId,
+        );
+        let data: T;
+        try {
+          data = await opts.online();
+        } finally {
+          release();
+        }
         await offlineDb.syncQueue.update(item.id!, { status: "done" });
         return data;
       }
@@ -179,19 +191,12 @@ async function doFlushSyncQueue(): Promise<void> {
 
         const token = await getAccessToken();
         const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-        // Substitute {id} placeholders with the stored path params.
-        let path = item.endpoint;
-        if (item.pathParams) {
-          for (const [key, value] of Object.entries(item.pathParams)) {
-            path = path.replaceAll(`{${key}}`, encodeURIComponent(value));
-          }
-        }
-        const url = `${baseUrl}${path}`;
+        const url = `${baseUrl}${resolveEndpoint(item.endpoint, item.pathParams)}`;
 
         const headers: Record<string, string> = {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          "X-Correlation-Id": item.correlationId,
+          [CORRELATION_HEADER]: item.correlationId,
         };
         if (item.verificationToken) {
           headers["x-verification-token"] = item.verificationToken;
