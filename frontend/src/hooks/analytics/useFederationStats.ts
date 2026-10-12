@@ -1,5 +1,6 @@
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export interface FederationStatsResponse {
   cooperative_count: number;
@@ -23,8 +24,7 @@ function extractErrorMessage(err: unknown): string {
 export const useFederationStats = (enabled = true) =>
   useOfflineQuery<FederationStatsResponse>({
     queryKey: ["federation-stats"],
-    cacheTable: "analytics",
-    cacheKey: "federation-stats",
+    ...offlineCacheKeys.federationStats(),
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

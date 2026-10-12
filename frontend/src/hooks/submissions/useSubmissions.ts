@@ -5,6 +5,7 @@ import { getAccessToken, getUserProfile } from "@/services/shared/authService";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { runMutation } from "@/services/shared/syncQueueService";
 import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"] & {
   period_type?: string;
@@ -63,8 +64,7 @@ export class DuplicateSubmissionError extends Error {
 export const useCooperativeSubmissions = (enabled = true) =>
   useOfflineQuery<SubmissionResponse[]>({
     queryKey: [SUBMISSIONS_KEY],
-    cacheTable: "submissions",
-    cacheKey: "cooperative-list",
+    ...offlineCacheKeys.cooperativeSubmissions(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/submissions");
@@ -78,8 +78,7 @@ export const useCooperativeSubmissions = (enabled = true) =>
 export const useApexSubmissions = (enabled = true) =>
   useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["apex-submissions"],
-    cacheTable: "submissions",
-    cacheKey: "apex-list",
+    ...offlineCacheKeys.apexSubmissions(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/submissions");
@@ -97,8 +96,7 @@ export const useFederationSubmissions = (
   const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
   return useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["federation-submissions", { all, enabled }],
-    cacheTable: "submissions",
-    cacheKey: `federation-list-${all ?? "default"}`,
+    ...offlineCacheKeys.federationSubmissions(all),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/federation/submissions", {
@@ -121,8 +119,7 @@ export const useMinistrySubmissions = (
   const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
   return useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["ministry-submissions", { all, enabled }],
-    cacheTable: "submissions",
-    cacheKey: `ministry-list-${all ?? "default"}`,
+    ...offlineCacheKeys.ministrySubmissions(all),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/submissions", {
@@ -141,8 +138,7 @@ export const useMinistrySubmissions = (
 export const useSubmission = (id: string, role?: string, tokenOverride?: string) =>
   useOfflineQuery<SubmissionResponse>({
     queryKey: [SUBMISSIONS_KEY, id],
-    cacheTable: "submissions",
-    cacheKey: `submission-${id}`,
+    ...offlineCacheKeys.submission(id),
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
 
@@ -531,8 +527,7 @@ export interface SubmissionReviewResponse {
 export const useSubmissionReviews = (submissionId: string | undefined) =>
   useOfflineQuery<SubmissionReviewResponse[]>({
     queryKey: ["submission-reviews", submissionId],
-    cacheTable: "submissions",
-    cacheKey: `reviews-${submissionId}`,
+    ...offlineCacheKeys.submissionReviews(submissionId),
     enabled: !!submissionId,
     queryFn: async () => {
       const token = await getAccessToken();
@@ -555,8 +550,7 @@ export const useApexStats = (enabled = true) =>
     rejected_submissions: number;
   }>({
     queryKey: ["apex-stats"],
-    cacheTable: "submissions",
-    cacheKey: "apex-stats",
+    ...offlineCacheKeys.apexStats(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/stats");
@@ -579,8 +573,7 @@ export const useCooperativeStats = (enabled = true) =>
     rejected_submissions: number;
   }>({
     queryKey: ["cooperative-stats"],
-    cacheTable: "submissions",
-    cacheKey: "cooperative-stats",
+    ...offlineCacheKeys.cooperativeStats(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/stats");

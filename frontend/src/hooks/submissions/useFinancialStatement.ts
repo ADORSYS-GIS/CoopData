@@ -6,6 +6,7 @@ import { getUserProfile } from "@/services/shared/authService";
 import { cacheGet, cacheSet } from "@/services/shared/offlineCache";
 import type { SubmissionResponse } from "./useSubmissions";
 import type { components } from "@/openapi-client/api";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export type FinancialStatementResponse = components["schemas"]["FinancialStatementResponse"] & {
   start_month?: number;
@@ -27,8 +28,7 @@ function extractErrorMessage(err: unknown): string {
 export const useFinancialStatement = (id: string | null | undefined) =>
   useOfflineQuery({
     queryKey: ["financial-statement", id],
-    cacheTable: "submissions",
-    cacheKey: `financial-statement-${id}`,
+    ...offlineCacheKeys.financialStatement(id),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/financial-statements/{id}", {
         params: { path: { id: id! } },
@@ -42,8 +42,7 @@ export const useFinancialStatement = (id: string | null | undefined) =>
 export const useLineItems = (financialStatementId: string | null) =>
   useOfflineQuery({
     queryKey: ["line-items", financialStatementId],
-    cacheTable: "submissions",
-    cacheKey: `line-items-${financialStatementId}`,
+    ...offlineCacheKeys.lineItems(financialStatementId),
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/cooperative/financial-statements/{id}/line-items",

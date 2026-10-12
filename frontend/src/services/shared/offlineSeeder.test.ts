@@ -4,6 +4,7 @@ import { apiClient } from "@/openapi-client";
 import { cacheSet } from "./offlineCache";
 import { getUserProfile, fetchWithAuth } from "./authService";
 import type { UserProfile } from "@/types/auth";
+import { SUPPORTED_LANGUAGES } from "@/i18n";
 
 // Mock the dependencies
 vi.mock("@/openapi-client", () => ({
@@ -180,6 +181,97 @@ describe("offlineSeeder", () => {
       expect(fetchWithAuth).toHaveBeenCalledWith(
         expect.stringContaining("/api/v1/cooperative/profile"),
       );
+    });
+  });
+
+  describe("Saves data where the pages read it", () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, "onLine", { value: true, writable: true });
+    });
+
+    it("saves apex cooperative members under the label useCooperativeMembers reads", async () => {
+      vi.mocked(getUserProfile).mockReturnValue(profileFixture({ id: "apx-1", role: "apex" }));
+      vi.mocked(apiClient.GET).mockImplementation(async (url: string) => {
+        if (url === "/api/v1/apex/cooperatives") {
+          return stubGetResponse({ data: [{ id: "coop-a" }] });
+        }
+        return stubGetResponse({ data: [] });
+      });
+
+      await seedOfflineCache();
+
+      expect(cacheSet).toHaveBeenCalledWith(
+        "cooperatives",
+        "cooperative-coop-a-members",
+        "apx-1",
+        expect.anything(),
+      );
+      expect(cacheSet).not.toHaveBeenCalledWith(
+        "cooperatives",
+        "cooperative-members-coop-a",
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it("saves ministry stats under the dashboard's default-filter label", async () => {
+      vi.mocked(getUserProfile).mockReturnValue(profileFixture({ id: "min-1", role: "ministry" }));
+
+      await seedOfflineCache();
+
+      expect(cacheSet).toHaveBeenCalledWith(
+        "analytics",
+        "ministry-stats-{}",
+        "min-1",
+        expect.anything(),
+      );
+    });
+
+    it("saves the ministry cooperatives list under the label useCooperatives reads", async () => {
+      vi.mocked(getUserProfile).mockReturnValue(profileFixture({ id: "min-1", role: "ministry" }));
+
+      await seedOfflineCache();
+
+      expect(cacheSet).toHaveBeenCalledWith(
+        "cooperatives",
+        "cooperatives-list",
+        "min-1",
+        expect.anything(),
+      );
+      expect(cacheSet).not.toHaveBeenCalledWith(
+        "cooperatives",
+        "ministry-cooperatives",
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it("pre-downloads translated data for every supported language", async () => {
+      vi.mocked(getUserProfile).mockReturnValue(profileFixture({ id: "min-1", role: "ministry" }));
+
+      await seedOfflineCache();
+
+      expect(SUPPORTED_LANGUAGES).toEqual(expect.arrayContaining(["en", "fr", "pt", "ss"]));
+      for (const lang of SUPPORTED_LANGUAGES) {
+        expect(apiClient.GET).toHaveBeenCalledWith("/api/v1/ministry/custom-kpis", {
+          params: { query: { lang } },
+        });
+        expect(cacheSet).toHaveBeenCalledWith(
+          "analytics",
+          `custom-kpis-${lang}`,
+          "min-1",
+          expect.anything(),
+        );
+        expect(fetchWithAuth).toHaveBeenCalledWith(
+          expect.stringContaining(`questionnaire_type=financial&lang=${lang}`),
+        );
+        expect(cacheSet).toHaveBeenCalledWith(
+          "submissions",
+          `indicator-catalog-financial-${lang}`,
+          "min-1",
+          expect.anything(),
+        );
+      }
     });
   });
 

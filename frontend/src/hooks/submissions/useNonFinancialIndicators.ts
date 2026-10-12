@@ -4,6 +4,7 @@ import { apiClient } from "@/openapi-client";
 import { runMutation } from "@/services/shared/syncQueueService";
 import i18n from "@/i18n";
 import type { components } from "@/openapi-client/api";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export type IndicatorCatalogResponse = components["schemas"]["IndicatorCatalogResponse"];
 export type CreateIndicatorRequest = components["schemas"]["CreateIndicatorRequest"];
@@ -29,8 +30,7 @@ export const useIndicatorCatalog = (coopType?: string) => {
   const lang = i18n.language?.split("-")[0] || "en";
   return useOfflineQuery({
     queryKey: [INDICATOR_CATALOG_KEY, coopType, lang],
-    cacheTable: "submissions",
-    cacheKey: `indicator-catalog-${coopType}-${lang}`,
+    ...offlineCacheKeys.indicatorCatalog(coopType, lang),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/non-financial-indicators/catalog", {
         params: {
@@ -46,8 +46,7 @@ export const useIndicatorCatalog = (coopType?: string) => {
 export const useSubmissionEntries = (submissionId: string) =>
   useOfflineQuery({
     queryKey: [SUBMISSION_ENTRIES_KEY, submissionId],
-    cacheTable: "submissions",
-    cacheKey: `nf-indicators-${submissionId}`,
+    ...offlineCacheKeys.nfIndicators(submissionId),
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/cooperative/submissions/{id}/non-financial-indicators",

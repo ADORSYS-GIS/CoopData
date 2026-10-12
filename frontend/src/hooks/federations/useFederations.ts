@@ -9,6 +9,7 @@ import { keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-q
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import { runMutation } from "@/services/shared/syncQueueService";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 const FEDERATIONS_KEY = "federations";
 
@@ -25,8 +26,7 @@ function extractErrorMessage(err: unknown): string {
 export const useFederations = (enabled = true) =>
   useOfflineQuery({
     queryKey: [FEDERATIONS_KEY],
-    cacheTable: "federations",
-    cacheKey: "federations-list",
+    ...offlineCacheKeys.federationsList(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations");
@@ -174,8 +174,7 @@ export const useFederationDeletePreview = (id: string) =>
 export const useFederationMembers = (federationId: string) =>
   useOfflineQuery({
     queryKey: [FEDERATIONS_KEY, federationId, "members"],
-    cacheTable: "federations",
-    cacheKey: `federation-${federationId}-members`,
+    ...offlineCacheKeys.federationMembers(federationId),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}/members", {
         params: { path: { id: federationId } },
@@ -193,8 +192,7 @@ export const useFederationMembers = (federationId: string) =>
 export const useFederationInvitations = (federationId: string) =>
   useOfflineQuery({
     queryKey: [FEDERATIONS_KEY, federationId, "invitations"],
-    cacheTable: "federations",
-    cacheKey: `federation-${federationId}-invitations`,
+    ...offlineCacheKeys.federationInvitations(federationId),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/federations/{id}/invitations", {
         params: { path: { id: federationId } },

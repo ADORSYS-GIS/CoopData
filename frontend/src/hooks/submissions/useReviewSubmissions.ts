@@ -11,6 +11,7 @@ import {
 } from "@/hooks/submissions/useSubmissions";
 import { cacheGet, cacheSet } from "@/services/shared/offlineCache";
 import { getUserProfile } from "@/services/shared/authService";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"];
 export type ReviewActionRequest = components["schemas"]["ReviewActionRequest"];
@@ -124,8 +125,7 @@ async function updateCachedSubmissionStatus(
 export const useSubmissionFlags = (submissionId: string | null) =>
   useOfflineQuery({
     queryKey: ["submission-flags", submissionId],
-    cacheTable: "submissions",
-    cacheKey: `submission-flags-${submissionId}`,
+    ...offlineCacheKeys.submissionFlags(submissionId),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/submissions/{id}/flags", {
         params: { path: { id: submissionId! } },
