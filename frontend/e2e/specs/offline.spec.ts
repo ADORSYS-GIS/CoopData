@@ -191,4 +191,18 @@ test.describe("Offline mode", () => {
       expect(analytics).toContain(`custom-kpis-${lang}`);
     }
   });
+
+  test("I: the page-data snapshot saves without errors while pages load", async ({ page }) => {
+    const failures: string[] = [];
+    page.on("console", (msg) => {
+      if (msg.text().includes("[persister] Failed to persist")) failures.push(msg.text());
+    });
+    await loginForOffline(page, "ministry");
+
+    for (const path of ["/app/submissions", "/app/custom-kpis", "/app/dashboard"]) {
+      await page.goto(path, { waitUntil: "networkidle" });
+    }
+
+    expect(failures).toEqual([]);
+  });
 });
