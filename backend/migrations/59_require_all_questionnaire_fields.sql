@@ -1,10 +1,10 @@
--- Migration 54: make the "Required" badge in the ministry template editor
+-- Migration 59: make the "Required" badge in the ministry template editor
 -- match the questionnaire wizard's actual behavior (every field blocks
 -- progress regardless of the flag) by setting required=true everywhere.
 -- Also removes test debris left behind by someone exercising the ministry
 -- template editor (confirmed junk, not real content):
 --   - non_financial "financials" section had a stray {"key":"h",...} field
---     already removed by migration 52; its description had separately been
+--     already removed by migration 57; its description had separately been
 --     overwritten to literal "test eng" on respondent_name.
 --   - translations (fr/pt/ss) for this template are 100% placeholder test
 --     values ("name fr", "desc port", a section titled literally "swa", an

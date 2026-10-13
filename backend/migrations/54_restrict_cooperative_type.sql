@@ -1,4 +1,4 @@
--- Migration 47: restrict cooperative_type to sacco / multipurpose only.
+-- Migration 54: restrict cooperative_type to sacco / multipurpose only.
 -- Cooperative creation now only offers these two types. Existing rows of the
 -- dropped types are remapped rather than deleted: 'finance' -> 'sacco' (it is
 -- a financial-services variant of SACCO); 'farm', 'housing', 'transport',

@@ -1,4 +1,4 @@
--- Migration 55: optional "Cash flow and receivables" section on the active
+-- Migration 60: optional "Cash flow and receivables" section on the active
 -- financial (chart-of-accounts) questionnaire.
 --
 -- The KPI Data Mapping sheet of "MPC FINANCE QUESTIONNAIRE.xlsx" needs figures

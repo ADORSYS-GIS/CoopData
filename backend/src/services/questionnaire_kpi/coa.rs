@@ -1,5 +1,5 @@
 //! Chart-of-accounts balances and ratios for the MPC financial questionnaire
-//! (multipurpose cooperatives only — see migration 51). Parses the
+//! (multipurpose cooperatives only — see migration 56). Parses the
 //! `account_grid` answers, one key per Level-1 category
 //! (`coa_assets`, `coa_liabilities`, `coa_equity`, `coa_revenue`,
 //! `coa_direct_costs`, `coa_operating_expenses`, `coa_finance_costs`), each a

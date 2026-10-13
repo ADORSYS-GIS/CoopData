@@ -1,7 +1,7 @@
--- Migration 51: rebuild the FINANCIAL questionnaire as a chart-of-accounts
+-- Migration 56: rebuild the FINANCIAL questionnaire as a chart-of-accounts
 -- mapping form, matching "MPC FINANCE QUESTIONNAIRE.xlsx" (Super Chart of
 -- Accounts + KPI Data Mapping). SACCO cooperatives no longer use any
--- questionnaire (upload/manual only — see migration 49); the financial
+-- questionnaire (upload/manual only — see migration 54); the financial
 -- questionnaire is now multipurpose-only, and its old SACCO-narrative shape
 -- (leadership/training/membership/capitalization/savings/loans/financials/
 -- loan_quality/liquidity sections, built for the old survey-style Financial

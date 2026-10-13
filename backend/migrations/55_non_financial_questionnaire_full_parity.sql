@@ -1,4 +1,4 @@
--- Migration 48: bring the non_financial questionnaire template to full parity
+-- Migration 55: bring the non_financial questionnaire template to full parity
 -- with the Eswatini "Non-Financial Primary Cooperatives Questionnaire"
 -- (Parts I & II, 53 questions) and add the fields needed for the core +
 -- secondary indicators in "Non-Financial Questionnaire Indicators.docx".

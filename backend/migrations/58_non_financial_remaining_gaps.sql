@@ -1,4 +1,4 @@
--- Migration 53: three genuine gaps found during a full question-by-question
+-- Migration 58: three genuine gaps found during a full question-by-question
 -- re-check of the non_financial template against the source PDF (Q10b, Q30,
 -- Q47's last-year equity). Additive, admin-edit-safe. Idempotent.
 

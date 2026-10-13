@@ -1,4 +1,4 @@
--- Migration 52: fix data corruption found in the live non_financial
+-- Migration 57: fix data corruption found in the live non_financial
 -- questionnaire template's "financials" section — a stray test field
 -- ({"key":"h","label":"h",...}, almost certainly left behind by someone
 -- testing the ministry template editor) had replaced three original fields
