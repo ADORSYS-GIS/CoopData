@@ -127,6 +127,33 @@ export function deleteQuerySnapshot(page: Page) {
   return deleteRows(page, "keyval-store", "keyval", ["coopdata_query_cache"]);
 }
 
+/**
+ * Moves the saved login's deadline (Keycloak's offline-token expiry) while
+ * keeping the time of the last refresh recent, as after normal online use.
+ */
+export async function setSavedLoginDeadline(page: Page, expiresAt: number): Promise<void> {
+  await page.evaluate(async (expiresAt) => {
+    const conn = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open("keyval-store");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const store = conn.transaction("keyval", "readwrite").objectStore("keyval");
+      const get = store.get("coopdata_tokens");
+      get.onsuccess = () => {
+        const put = store.put(
+          { ...get.result, timestamp: Date.now(), refreshTokenExpiry: expiresAt },
+          "coopdata_tokens",
+        );
+        put.onsuccess = () => resolve();
+        put.onerror = () => reject(put.error);
+      };
+    });
+    conn.close();
+  }, expiresAt);
+}
+
 export interface QueueItemView {
   tag?: string;
   endpoint: string;

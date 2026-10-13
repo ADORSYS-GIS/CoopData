@@ -6,7 +6,7 @@ import { mapKeycloakRolesToRole } from "@/constants/roles";
 
 const TOKEN_CACHE_KEY = "coopdata_tokens";
 const REFRESH_THRESHOLD_SECONDS = 30;
-// 30-day offline token validity window
+// Fallback offline window, used only when the offline token carries no expiry
 const OFFLINE_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 let keycloakInitialized = false;
@@ -550,9 +550,26 @@ interface CachedTokens {
   offlineToken: boolean; // true when offline_access scope was granted
 }
 
-/** Checks whether the stored refresh token is still within the 30-day offline window. */
+/**
+ * When the saved login stops working. Keycloak fixes this deadline at the
+ * password sign-in and copies it unchanged into every refreshed offline token,
+ * so it does not move with refreshes. Tokens without an expiry fall back to
+ * 30 days after the last refresh.
+ */
+function offlineSessionExpiry(cached: CachedTokens): number {
+  return cached.refreshTokenExpiry > 0
+    ? cached.refreshTokenExpiry
+    : cached.timestamp + OFFLINE_TOKEN_MAX_AGE_MS;
+}
+
+/** Checks whether the stored offline token can still be used without a network. */
 function isOfflineTokenValid(cached: CachedTokens): boolean {
-  return cached.offlineToken && Date.now() - cached.timestamp < OFFLINE_TOKEN_MAX_AGE_MS;
+  return cached.offlineToken && Date.now() < offlineSessionExpiry(cached);
+}
+
+/** When the saved login on this device ends (Unix ms), or null when there is none. */
+export function getOfflineSessionExpiry(): number | null {
+  return lastCachedTokens ? offlineSessionExpiry(lastCachedTokens) : null;
 }
 
 /** Synchronously read the user profile from a localStorage mirror (fallback for offline). */
@@ -570,7 +587,7 @@ async function persistTokens(): Promise<void> {
 
   // Parse expiry from JWT claims
   let tokenExpiry = Date.now() + 5 * 60 * 1000; // default 5 min
-  let refreshTokenExpiry = Date.now() + OFFLINE_TOKEN_MAX_AGE_MS;
+  let refreshTokenExpiry = 0; // unknown: offlineSessionExpiry() falls back
   try {
     const [, tp] = keycloak.token.split(".");
     const claims = JSON.parse(atob(tp.replace(/-/g, "+").replace(/_/g, "/"))) as Record<
@@ -610,6 +627,7 @@ async function persistTokens(): Promise<void> {
 
   try {
     await set(TOKEN_CACHE_KEY, tokens);
+    lastCachedTokens = tokens;
     // Mirror profile to localStorage for synchronous offline reads
     if (profile) localStorage.setItem("coopdata_user_profile", JSON.stringify(profile));
   } catch {
@@ -620,10 +638,12 @@ async function persistTokens(): Promise<void> {
 async function loadCachedTokens(): Promise<CachedTokens | null> {
   try {
     const tokens = await get<CachedTokens>(TOKEN_CACHE_KEY);
-    lastCachedTokens = tokens ?? null;
-    if (!tokens) return null;
-    // Accept cached tokens within the 30-day offline window
-    if (Date.now() - tokens.timestamp < OFFLINE_TOKEN_MAX_AGE_MS) {
+    if (!tokens) {
+      lastCachedTokens = null;
+      return null;
+    }
+    if (Date.now() < offlineSessionExpiry(tokens)) {
+      lastCachedTokens = tokens;
       return tokens;
     }
     await clearCachedTokens();
@@ -634,6 +654,7 @@ async function loadCachedTokens(): Promise<CachedTokens | null> {
 }
 
 async function clearCachedTokens(): Promise<void> {
+  lastCachedTokens = null;
   try {
     await del(TOKEN_CACHE_KEY);
   } catch {

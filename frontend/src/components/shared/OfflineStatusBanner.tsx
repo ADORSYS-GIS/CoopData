@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { WifiOff, Wifi, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { WifiOff, Wifi, AlertTriangle, Clock } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/shared/useNetworkStatus";
+import { useSessionDeadline } from "@/hooks/shared/useSessionDeadline";
 import { useFailedSyncItems } from "@/hooks/shared/useFailedSyncItems";
 import { useTranslation } from "react-i18next";
 import { SyncProblemsDialog } from "./SyncProblemsDialog";
@@ -15,7 +17,8 @@ export function OfflineStatusBanner() {
   const { isOnline, wasOffline, pendingSyncCount } = useNetworkStatus();
   const failed = useFailedSyncItems();
   const [problemsOpen, setProblemsOpen] = useState(false);
-  const { t } = useTranslation();
+  const deadline = useSessionDeadline();
+  const { t, i18n } = useTranslation();
 
   // Always show a subtle indicator so the user knows their connectivity state.
   return (
@@ -67,6 +70,25 @@ export function OfflineStatusBanner() {
         >
           {pendingSyncCount}
         </span>
+      )}
+
+      {deadline.warn && deadline.expiresAt !== null && (
+        <button
+          type="button"
+          onClick={() =>
+            toast.info(
+              t("sessionDeadline.hint", {
+                date: new Date(deadline.expiresAt ?? 0).toLocaleString(i18n.language),
+              }),
+            )
+          }
+          className="ml-1 inline-flex items-center gap-1 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-warning-foreground hover:bg-warning/90"
+        >
+          <Clock className="size-3" aria-hidden="true" />
+          {deadline.daysLeft === 0
+            ? t("sessionDeadline.badgeToday")
+            : t("sessionDeadline.badge", { count: deadline.daysLeft ?? 0 })}
+        </button>
       )}
 
       {failed.items.length > 0 && (

@@ -8,6 +8,7 @@ import {
   isPwaServerUp,
   loginForOffline,
   queueItems,
+  setSavedLoginDeadline,
 } from "../fixtures/helpers/offline";
 
 /**
@@ -18,6 +19,8 @@ import {
  *
  * Same requirements as offline.spec.ts. Run: npm run test:e2e:offline
  */
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 test.describe("Logout keeps offline work", () => {
   test.skip(!!process.env.CI, "Requires real backend + Keycloak + PWA build - skipped in CI");
@@ -102,5 +105,49 @@ test.describe("Logout keeps offline work", () => {
     expect((await queueItems(page)).some((i) => i.tag === "D5")).toBe(true);
 
     await clearQueue(page);
+  });
+
+  test("saved login ends at Keycloak's deadline, even after a recent refresh", async ({
+    page,
+    context,
+  }) => {
+    await loginForOffline(page, "apex");
+    await setSavedLoginDeadline(page, Date.now() - 60_000);
+
+    await context.setOffline(true);
+    await page.reload();
+
+    await expect(page.getByText("Please connect to the internet to sign in.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Logout" })).toHaveCount(0);
+  });
+
+  test("warns in the last days before the saved login ends", async ({ page, context }) => {
+    await loginForOffline(page, "apex");
+    await setSavedLoginDeadline(page, Date.now() + 2.5 * DAY_MS);
+
+    await context.setOffline(true);
+    await page.reload();
+
+    const badge = page.getByRole("button", { name: "Sign-in ends in 2 days" });
+    await expect(badge).toBeVisible();
+    await badge.click();
+    await expect(page.getByText(/you need internet to sign in again/)).toBeVisible();
+  });
+
+  test("logs out when the deadline passes while the app is open offline", async ({
+    page,
+    context,
+  }) => {
+    await loginForOffline(page, "apex");
+    await page.clock.install();
+    await setSavedLoginDeadline(page, Date.now() + 30_000);
+
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Logout" }).first()).toBeVisible();
+
+    await page.clock.fastForward("02:00");
+
+    await expect(page).toHaveURL(`${PWA_URL}/`);
   });
 });

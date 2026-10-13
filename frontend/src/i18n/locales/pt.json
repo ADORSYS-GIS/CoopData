@@ -4976,7 +4976,7 @@
     "backOnline": "Ligação restabelecida — a sincronizar as suas alterações",
     "online": "Online",
     "noSessionTitle": "Sem ligação disponível",
-    "noSessionDesc": "Por favor, ligue-se à internet para iniciar sessão pela primeira vez.",
+    "noSessionDesc": "Por favor, ligue-se à internet para iniciar sessão.",
     "dataUnavailable": "Esta informação ainda não está disponível offline. Abra-a uma vez enquanto estiver online para a tornar disponível offline.",
     "actionRequiresConnection": "Esta ação requer uma ligação à Internet.",
     "inviteQueued": "Convite guardado neste dispositivo",
@@ -6506,5 +6506,11 @@
     "unsent": "Tem {{count}} alteração(ões) ainda não enviada(s). Ficam neste dispositivo e serão enviadas da próxima vez que entrar com Internet.",
     "stay": "Manter sessão",
     "confirm": "Terminar mesmo assim"
+  },
+  "sessionDeadline": {
+    "badge_one": "A sessão termina em {{count}} dia",
+    "badge_other": "A sessão termina em {{count}} dias",
+    "badgeToday": "A sessão termina hoje",
+    "hint": "A sua sessão neste dispositivo termina em {{date}}. Depois disso, precisa de internet para iniciar sessão novamente com a sua palavra-passe. As alterações não enviadas são mantidas."
   }
 }

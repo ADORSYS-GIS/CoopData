@@ -24,6 +24,7 @@ import {
   getPendingCount,
 } from "@/services/shared/syncQueueService";
 import { isAppOffline } from "@/services/shared/networkGuard";
+import { useSessionDeadline } from "@/hooks/shared/useSessionDeadline";
 import { LogoutConfirmDialog, type LogoutPrompt } from "@/components/shared/LogoutConfirmDialog";
 import { apiClient } from "@/openapi-client";
 import { mergeServerNames, type ServerProfileNames } from "@/services/shared/profileNames";
@@ -273,6 +274,15 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     logoutRef.current = performLogout;
   }, [performLogout]);
+
+  // Keycloak ends the saved login at a fixed deadline. Offline nobody else
+  // enforces it, so the app logs out itself (drafts and the outbox are kept).
+  useSessionDeadline(
+    useCallback(() => {
+      console.log("[auth-context] Saved login reached its deadline — logging out");
+      void logoutRef.current();
+    }, []),
+  );
 
   const hasRoleFn = useCallback(
     (role: Role) => {

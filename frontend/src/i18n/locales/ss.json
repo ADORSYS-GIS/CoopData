@@ -4976,7 +4976,7 @@
     "backOnline": "Ubuyile ku-inthanethi — uyavumelanisa",
     "online": "Kuxhumene",
     "noSessionTitle": "Akukho lusito lwe-inthanethi",
-    "noSessionDesc": "Sicela unxibelelanise ne-inthanethi ukuze ungene ngemvume okokuqala.",
+    "noSessionDesc": "Sicela unxibelelanise ne-inthanethi kute ungene.",
     "dataUnavailable": "Lolwatiso alukatfolakali ngaphandle kwe-inthanethi. Luvule kanye uxhumeke ku-inthanethi kuze lutfolakale ngaphandle kwe-inthanethi.",
     "actionRequiresConnection": "Lesento sidzinga kuxhumeka ku-inthanethi.",
     "inviteQueued": "Simemo sigcinwe kulelithuluzi",
@@ -6496,5 +6496,11 @@
     "unsent": "Une-{{count}} lushintjo lolungakatfunyelwa. Lutawuhlala kulelithuluzi futsi lutfunyelwe nawungena ne-inthanethi.",
     "stay": "Hlala ungenile",
     "confirm": "Phuma noma kunjalo"
+  },
+  "sessionDeadline": {
+    "badge_one": "Kungena kuphela ngelilanga lelilinye ({{count}})",
+    "badge_other": "Kungena kuphela emalangeni langu-{{count}}",
+    "badgeToday": "Kungena kuphela lamuhla",
+    "hint": "Kungena kwakho kulelithuluzi kuphela nga-{{date}}. Ngemuva kwaloko udzinga i-inthanethi kute ungene futsi ngephasiwedi yakho. Lushintjo lolungakatfunyelwa luyagcinwa."
   }
 }

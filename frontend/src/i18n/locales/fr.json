@@ -4976,7 +4976,7 @@
     "backOnline": "Connexion rétablie — synchronisation de vos modifications",
     "online": "Online",
     "noSessionTitle": "Aucune connexion disponible",
-    "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter pour la première fois.",
+    "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter.",
     "dataUnavailable": "Ces informations ne sont pas encore disponibles hors ligne. Ouvrez-les une fois en ligne pour les rendre disponibles hors ligne.",
     "actionRequiresConnection": "Cette action nécessite une connexion Internet.",
     "inviteQueued": "Invitation enregistrée sur cet appareil",
@@ -6506,5 +6506,11 @@
     "unsent": "Vous avez {{count}} modification(s) pas encore envoyée(s). Elles restent sur cet appareil et seront envoyées à votre prochaine connexion avec Internet.",
     "stay": "Rester connecté",
     "confirm": "Se déconnecter quand même"
+  },
+  "sessionDeadline": {
+    "badge_one": "Connexion valable encore {{count}} jour",
+    "badge_other": "Connexion valable encore {{count}} jours",
+    "badgeToday": "La connexion expire aujourd'hui",
+    "hint": "Votre connexion sur cet appareil expire le {{date}}. Ensuite, il faudra Internet pour vous reconnecter avec votre mot de passe. Les modifications non envoyées sont conservées."
   }
 }
