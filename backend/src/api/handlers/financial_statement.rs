@@ -240,14 +240,7 @@ pub async fn update_line_items(
 
     // Enforce exclusive editor on the parent submission
     if let Some(sub) = state.submission_repo.find_by_id(fs.submission_id).await? {
-        let current_user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-        if let Some(editor_id) = sub.edited_by {
-            if current_user_id != Some(editor_id) {
-                return Err(AppError::Forbidden(
-                    "Only the editor assigned to this submission can modify it".into(),
-                ));
-            }
-        }
+        crate::services::edit_access::ensure_submission_editor(&sub, &claims)?;
     }
 
     let mut updated = vec![];

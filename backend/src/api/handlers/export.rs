@@ -1,17 +1,20 @@
 use axum::body::Body;
+use axum::http::StatusCode;
 use axum::response::Response;
 use axum::{
     extract::{Path, Query, State},
     response::IntoResponse,
-    Extension,
+    Extension, Json,
 };
-use rust_decimal::prelude::ToPrimitive;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::api::dto::report_export::ReportStatusResponse;
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
-use crate::services::export_generator::EXPORT_PREFIX;
+use crate::services::export_generator::QUESTIONNAIRE_LOCALE;
+use crate::services::narrative_translation;
+use crate::services::report_jobs::{self, ReportTarget};
 use crate::AppState;
 
 #[derive(Debug, serde::Deserialize)]
@@ -23,39 +26,43 @@ pub struct ExportQuery {
     /// `questionnaire` exports the report built from questionnaire answers;
     /// anything else (or nothing) exports the statement-based report.
     pub method: Option<String>,
-}
-
-#[derive(Debug, serde::Deserialize, Default)]
-pub struct SingleExportQuery {
-    /// Pass `regenerate=true` to bypass the cached PDF and force a fresh generation.
+    /// Report locale (`en`, `fr`, `pt`, `ss`). Accepts `lng` as an alias. Defaults to `en`.
+    #[serde(alias = "lng")]
+    pub lang: Option<String>,
+    /// Prepare: regenerate the English report from the current data.
     #[serde(default)]
     pub regenerate: bool,
 }
 
-/// GET /api/v1/cooperative/submissions/{id}/export
-/// Exports a single cooperative submission in PDF.
-#[utoipa::path(
-    get,
-    path = "/api/v1/cooperative/submissions/{id}/export",
-    params(
-        ("id" = Uuid, Path, description = "Submission ID"),
-        ("regenerate" = Option<bool>, Query, description = "Force PDF re-generation")
-    ),
-    responses(
-        (status = 200, description = "Export file stream"),
-        (status = 403, description = "Forbidden"),
-        (status = 404, description = "Not found")
-    ),
-    tag = "Export"
-)]
-pub async fn export_single_submission(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Path(id): Path<Uuid>,
-    Query(query): Query<SingleExportQuery>,
-) -> AppResult<impl IntoResponse> {
+#[derive(Debug, serde::Deserialize, Default)]
+pub struct SingleExportQuery {
+    /// Report locale (`en`, `fr`, `pt`, `ss`). Accepts `lng` as an alias. Defaults to `en`.
+    #[serde(alias = "lng")]
+    pub lang: Option<String>,
+    /// Prepare: regenerate the English report from the current data.
+    #[serde(default)]
+    pub regenerate: bool,
+}
+
+/// Normalises a requested report locale, defaulting to English.
+fn requested_locale(lang: Option<&str>) -> String {
+    crate::services::localization::normalize_lang(lang)
+        .unwrap_or_else(|| crate::services::localization::FALLBACK_LOCALE.to_string())
+}
+
+/// The requested locale, or English for English-only (questionnaire) reports.
+fn report_locale(target: ReportTarget, lang: Option<&str>) -> String {
+    if target.languages().len() == 1 {
+        QUESTIONNAIRE_LOCALE.to_string()
+    } else {
+        requested_locale(lang)
+    }
+}
+
+/// The report of a submission the caller may access.
+async fn submission_target(state: &AppState, claims: &Claims, id: Uuid) -> AppResult<ReportTarget> {
     let allowed_coops =
-        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(state, claims).await?;
 
     let submission = state
         .submission_repo
@@ -69,90 +76,40 @@ pub async fn export_single_submission(
         ));
     }
 
-    let filename = format!("submission_{}.pdf", id);
-    let storage_key = format!("{EXPORT_PREFIX}/individual/{}/{}", id, filename);
-
-    let bytes = if !query.regenerate {
-        match state.storage.get_object(&storage_key).await {
-            Ok(b) => {
-                tracing::info!(submission_id = %id, "Serving cached PDF from storage");
-                b
-            }
-            Err(_) => {
-                tracing::info!(submission_id = %id, "Cache miss — generating PDF");
-                let generated_bytes =
-                    crate::services::export_generator::ExportGenerator::generate_submission_pdf(
-                        &state, id,
-                    )
-                    .await?;
-                state
-                    .storage
-                    .store(&storage_key, &generated_bytes, "application/pdf")
-                    .await?;
-                generated_bytes
-            }
-        }
-    } else {
-        tracing::info!(submission_id = %id, "Force-regenerating PDF (regenerate=true)");
-        let generated_bytes =
-            crate::services::export_generator::ExportGenerator::generate_submission_pdf(&state, id)
-                .await?;
-        state
-            .storage
-            .store(&storage_key, &generated_bytes, "application/pdf")
-            .await?;
-        generated_bytes
-    };
-
-    let res = Response::builder()
-        .header("Content-Type", "application/pdf")
-        .header(
-            "Content-Disposition",
-            format!("attachment; filename=\"{}\"", filename),
-        )
-        .body(Body::from(bytes))
-        .unwrap();
-    Ok(res)
+    Ok(ReportTarget::Submission {
+        id,
+        questionnaire: crate::services::questionnaire_report::is_questionnaire_method(
+            &submission.submission_method,
+        ),
+    })
 }
 
-/// GET /api/v1/apex/export
-/// GET /api/v1/federation/export
-/// GET /api/v1/ministry/export
-/// Exports a consolidated PDF report of all cooperatives within the user's scope.
-#[utoipa::path(
-    get,
-    path = "/api/v1/apex/export",
-    responses(
-        (status = 200, description = "Consolidated PDF file stream"),
-        (status = 403, description = "Forbidden")
-    ),
-    tag = "Export"
-)]
-pub async fn export_bulk_consolidated(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Query(mut query): Query<ExportQuery>,
-) -> AppResult<impl IntoResponse> {
-    if let Some(year) = query.reporting_year {
-        query.reporting_year = Some(year.clamp(1900, 2100));
-    }
-    if query.apex_id.is_none() && claims.is_apex() {
+/// The consolidated report (apex, federation or national) the caller asked for,
+/// restricted to the caller's scope.
+async fn consolidated_target(
+    state: &AppState,
+    claims: &Claims,
+    query: &ExportQuery,
+) -> AppResult<ReportTarget> {
+    let mut apex_id = query.apex_id;
+    let mut federation_id = query.federation_id;
+    if apex_id.is_none() && claims.is_apex() {
         if let Ok(id) =
-            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await
+            crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(state, claims).await
         {
-            query.apex_id = Some(id);
+            apex_id = Some(id);
         }
     }
-    if query.federation_id.is_none() && claims.is_federation() {
+    if federation_id.is_none() && claims.is_federation() {
         if let Some(org_id) = claims.get_organization_id() {
             if let Ok(Some(fed)) = state.federation_repo.find_by_keycloak_id(&org_id).await {
-                query.federation_id = Some(fed.id);
+                federation_id = Some(fed.id);
             }
         }
     }
 
     let mut allowed_coops =
-        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
+        crate::api::handlers::cooperative::resolve_caller_cooperative_ids(state, claims).await?;
 
     if allowed_coops.is_empty() {
         return Err(AppError::Forbidden(
@@ -160,11 +117,11 @@ pub async fn export_bulk_consolidated(
         ));
     }
 
-    if let Some(apex_id) = query.apex_id {
+    if let Some(apex_id) = apex_id {
         let coops = state.cooperative_repo.find_by_apex_id(apex_id).await?;
         let coop_ids: Vec<Uuid> = coops.into_iter().map(|c| c.id).collect();
         allowed_coops.retain(|id| coop_ids.contains(id));
-    } else if let Some(fed_id) = query.federation_id {
+    } else if let Some(fed_id) = federation_id {
         let apexes = state.apex_repo.find_by_federation_id(fed_id).await?;
         let mut coop_ids = vec![];
         for apex in apexes {
@@ -184,184 +141,253 @@ pub async fn export_bulk_consolidated(
         .method
         .as_deref()
         .is_some_and(|m| m.eq_ignore_ascii_case("questionnaire"));
-    let tag = if questionnaire { "_questionnaire" } else { "" };
+    let year = query
+        .reporting_year
+        .ok_or_else(|| {
+            AppError::BadRequest("reporting_year is required for consolidated exports".into())
+        })?
+        .clamp(1900, 2100);
 
-    // Bucket checks
-    if let (Some(apex_id), Some(year)) = (query.apex_id, query.reporting_year) {
-        let filename = format!("apex_{}_{}{}.pdf", apex_id, year, tag);
-        let storage_key = format!("{EXPORT_PREFIX}/apex/{}/{}", apex_id, filename);
-        if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-            tracing::info!(apex_id = %apex_id, reporting_year = year, "Bucket HIT for Apex export");
-            let res = Response::builder()
-                .header("Content-Type", "application/pdf")
-                .header(
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", filename),
-                )
-                .body(Body::from(bytes))
-                .unwrap();
-            return Ok(res);
-        }
-    } else if let (Some(fed_id), Some(year)) = (query.federation_id, query.reporting_year) {
-        let filename = format!("federation_{}_{}{}.pdf", fed_id, year, tag);
-        let storage_key = format!("{EXPORT_PREFIX}/federation/{}/{}", fed_id, filename);
-        if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-            tracing::info!(federation_id = %fed_id, reporting_year = year, "Bucket HIT for Federation export");
-            let res = Response::builder()
-                .header("Content-Type", "application/pdf")
-                .header(
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", filename),
-                )
-                .body(Body::from(bytes))
-                .unwrap();
-            return Ok(res);
-        }
-    } else if query.apex_id.is_none() && query.federation_id.is_none() {
-        if let Some(year) = query.reporting_year {
-            let filename = format!("ministry_{}{}.pdf", year, tag);
-            let storage_key = format!("{EXPORT_PREFIX}/ministry/{}", filename);
-            if let Ok(bytes) = state.storage.get_object(&storage_key).await {
-                tracing::info!(reporting_year = year, "Bucket HIT for Ministry export");
-                let res = Response::builder()
-                    .header("Content-Type", "application/pdf")
-                    .header(
-                        "Content-Disposition",
-                        format!("attachment; filename=\"{}\"", filename),
-                    )
-                    .body(Body::from(bytes))
-                    .unwrap();
-                return Ok(res);
-            }
-        }
+    Ok(match (apex_id, federation_id) {
+        (Some(id), _) => ReportTarget::Apex {
+            id,
+            year,
+            questionnaire,
+        },
+        (None, Some(id)) => ReportTarget::Federation {
+            id,
+            year,
+            questionnaire,
+        },
+        (None, None) => ReportTarget::Ministry {
+            year,
+            questionnaire,
+        },
+    })
+}
+
+/// Streams the PDF of a ready language; 409 while it is not ready.
+async fn download(state: &AppState, target: ReportTarget, lang: &str) -> AppResult<Response> {
+    match report_jobs::ready_pdf(state, target, lang).await? {
+        Some(bytes) => Ok(pdf_response(bytes, &target.filename(lang))),
+        None => Err(AppError::Conflict("The report is not ready yet".into())),
     }
+}
 
-    // Determine storage_key and display filename
-    let (storage_key, display_filename) = if let Some(year) = query.reporting_year {
-        match (query.apex_id, query.federation_id) {
-            (Some(aid), _) => {
-                let fn_ = format!("apex_{}_{}{}.pdf", aid, year, tag);
-                (format!("{EXPORT_PREFIX}/apex/{}/{}", aid, fn_), fn_)
-            }
-            (_, Some(fid)) => {
-                let fn_ = format!("federation_{}_{}{}.pdf", fid, year, tag);
-                (format!("{EXPORT_PREFIX}/federation/{}/{}", fid, fn_), fn_)
-            }
-            (None, None) => {
-                let fn_ = format!("ministry_{}{}.pdf", year, tag);
-                (format!("{EXPORT_PREFIX}/ministry/{}", fn_), fn_)
-            }
-        }
-    } else {
-        return Err(AppError::BadRequest(
-            "reporting_year is required for consolidated exports".into(),
-        ));
-    };
+async fn status_response(
+    state: &AppState,
+    target: ReportTarget,
+) -> AppResult<Json<ReportStatusResponse>> {
+    let statuses = report_jobs::statuses(state, target).await?;
+    Ok(Json(ReportStatusResponse::new(target, statuses)))
+}
 
-    let token = state.keycloak.get_admin_token().await?;
-    let year = query.reporting_year.unwrap_or_default();
-    let (route, scope_query) = if questionnaire {
-        ("print/questionnaire-consolidated", true)
-    } else {
-        ("", false)
-    };
-    let print_url = if let Some(apex_id) = query.apex_id {
-        let name = state
-            .apex_repo
-            .find_by_id(apex_id)
-            .await?
-            .map(|apex| apex.display_name)
-            .unwrap_or_default();
-        if scope_query {
-            format!(
-                "{}/{}?token={}&year={}&scope=apex&id={}&name={}",
-                state.config.gotenberg_frontend_url,
-                route,
-                token,
-                year,
-                apex_id,
-                urlencoding::encode(&name)
-            )
-        } else {
-            format!(
-                "{}/print/apex/{}?token={}&year={}&name={}",
-                state.config.gotenberg_frontend_url,
-                apex_id,
-                token,
-                year,
-                urlencoding::encode(&name)
-            )
-        }
-    } else if let Some(fed_id) = query.federation_id {
-        let name = state
-            .federation_repo
-            .find_by_id(fed_id)
-            .await?
-            .map(|federation| federation.display_name)
-            .unwrap_or_default();
-        if scope_query {
-            format!(
-                "{}/{}?token={}&year={}&scope=federation&id={}&name={}",
-                state.config.gotenberg_frontend_url,
-                route,
-                token,
-                year,
-                fed_id,
-                urlencoding::encode(&name)
-            )
-        } else {
-            format!(
-                "{}/print/federation/{}?token={}&year={}&name={}",
-                state.config.gotenberg_frontend_url,
-                fed_id,
-                token,
-                year,
-                urlencoding::encode(&name)
-            )
-        }
-    } else if scope_query {
-        format!(
-            "{}/{}?token={}&year={}&scope=ministry",
-            state.config.gotenberg_frontend_url, route, token, year
-        )
-    } else {
-        format!(
-            "{}/print/ministry?token={}&year={}",
-            state.config.gotenberg_frontend_url, token, year
-        )
-    };
+async fn prepare_response(
+    state: &AppState,
+    target: ReportTarget,
+    lang: Option<&str>,
+    regenerate: bool,
+) -> AppResult<(StatusCode, Json<ReportStatusResponse>)> {
+    let lang = report_locale(target, lang);
+    let statuses = report_jobs::prepare(state, target, &lang, regenerate).await?;
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(ReportStatusResponse::new(target, statuses)),
+    ))
+}
 
-    let bytes = crate::services::export_generator::ExportGenerator::generate_pdf_via_gotenberg(
-        &state, &print_url,
-    )
-    .await?;
+/// GET /api/v1/{tier}/submissions/{id}/export
+/// Downloads the PDF of a submission report in one language once it is ready.
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/export",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)")
+    ),
+    responses(
+        (status = 200, description = "PDF file stream"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "The report is not ready in this language")
+    ),
+    tag = "Export"
+)]
+pub async fn export_single_submission(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<SingleExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = submission_target(&state, &claims, id).await?;
+    let lang = report_locale(target, query.lang.as_deref());
+    download(&state, target, &lang).await
+}
 
-    if let Err(e) = state
-        .storage
-        .store(&storage_key, &bytes, "application/pdf")
-        .await
+/// GET /api/v1/{tier}/submissions/{id}/report
+/// Status of every language of a submission report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/cooperative/submissions/{id}/report",
+    params(("id" = Uuid, Path, description = "Submission ID")),
+    responses(
+        (status = 200, description = "Report status per language", body = ReportStatusResponse),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found")
+    ),
+    tag = "Export"
+)]
+pub async fn get_submission_report_status(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let target = submission_target(&state, &claims, id).await?;
+    status_response(&state, target).await
+}
+
+/// POST /api/v1/{tier}/submissions/{id}/report/prepare
+/// Starts preparing one language of a submission report in the background.
+#[utoipa::path(
+    post,
+    path = "/api/v1/cooperative/submissions/{id}/report/prepare",
+    params(
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)"),
+        ("regenerate" = Option<bool>, Query, description = "Regenerate the English report from the current data")
+    ),
+    responses(
+        (status = 202, description = "Preparation started (or already running)", body = ReportStatusResponse),
+        (status = 400, description = "Language not available for this report"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "The English report must be ready first")
+    ),
+    tag = "Export"
+)]
+pub async fn prepare_submission_report(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<SingleExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = submission_target(&state, &claims, id).await?;
+    tracing::info!(report = %target.key(), lang = ?query.lang, regenerate = query.regenerate, "Report preparation requested");
+    prepare_response(&state, target, query.lang.as_deref(), query.regenerate).await
+}
+
+/// GET /api/v1/apex/export
+/// GET /api/v1/federation/export
+/// GET /api/v1/ministry/export
+/// Downloads a consolidated report PDF of the caller's scope once it is ready.
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/export",
+    params(
+        ("apex_id" = Option<Uuid>, Query, description = "Apex (federation and ministry users)"),
+        ("federation_id" = Option<Uuid>, Query, description = "Federation (ministry users)"),
+        ("reporting_year" = i32, Query, description = "Reporting year"),
+        ("method" = Option<String>, Query, description = "`questionnaire` for the questionnaire report"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)")
+    ),
+    responses(
+        (status = 200, description = "Consolidated PDF file stream"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "The report is not ready in this language")
+    ),
+    tag = "Export"
+)]
+pub async fn export_bulk_consolidated(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = consolidated_target(&state, &claims, &query).await?;
+    let lang = report_locale(target, query.lang.as_deref());
+    download(&state, target, &lang).await
+}
+
+/// GET /api/v1/{apex|federation|ministry}/report
+/// Status of every language of a consolidated report.
+#[utoipa::path(
+    get,
+    path = "/api/v1/apex/report",
+    params(
+        ("apex_id" = Option<Uuid>, Query, description = "Apex (federation and ministry users)"),
+        ("federation_id" = Option<Uuid>, Query, description = "Federation (ministry users)"),
+        ("reporting_year" = i32, Query, description = "Reporting year"),
+        ("method" = Option<String>, Query, description = "`questionnaire` for the questionnaire report")
+    ),
+    responses(
+        (status = 200, description = "Report status per language", body = ReportStatusResponse),
+        (status = 400, description = "reporting_year missing"),
+        (status = 403, description = "Forbidden")
+    ),
+    tag = "Export"
+)]
+pub async fn get_consolidated_report_status(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = consolidated_target(&state, &claims, &query).await?;
+    status_response(&state, target).await
+}
+
+/// POST /api/v1/{apex|federation|ministry}/report/prepare
+/// Starts preparing one language of a consolidated report in the background.
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/report/prepare",
+    params(
+        ("apex_id" = Option<Uuid>, Query, description = "Apex (federation and ministry users)"),
+        ("federation_id" = Option<Uuid>, Query, description = "Federation (ministry users)"),
+        ("reporting_year" = i32, Query, description = "Reporting year"),
+        ("method" = Option<String>, Query, description = "`questionnaire` for the questionnaire report"),
+        ("lang" = Option<String>, Query, description = "Report locale: en | fr | pt | ss (default en)"),
+        ("regenerate" = Option<bool>, Query, description = "Regenerate the English report from the current data")
+    ),
+    responses(
+        (status = 202, description = "Preparation started (or already running)", body = ReportStatusResponse),
+        (status = 400, description = "Language not available for this report"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "The English report must be ready first")
+    ),
+    tag = "Export"
+)]
+pub async fn prepare_consolidated_report(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Query(query): Query<ExportQuery>,
+) -> AppResult<impl IntoResponse> {
+    let target = consolidated_target(&state, &claims, &query).await?;
+    tracing::info!(report = %target.key(), lang = ?query.lang, regenerate = query.regenerate, "Report preparation requested");
+    prepare_response(&state, target, query.lang.as_deref(), query.regenerate).await
+}
+
+fn pdf_response(bytes: Vec<u8>, filename: &str) -> Response {
+    let mut res = Response::new(Body::from(bytes));
+    let headers = res.headers_mut();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static("application/pdf"),
+    );
+    if let Ok(value) =
+        axum::http::HeaderValue::from_str(&format!("attachment; filename=\"{filename}\""))
     {
-        tracing::warn!(error = %e, key = %storage_key, "Failed to cache live-generated export");
+        headers.insert(axum::http::header::CONTENT_DISPOSITION, value);
     }
-
-    let res = Response::builder()
-        .header("Content-Type", "application/pdf")
-        .header(
-            "Content-Disposition",
-            format!("attachment; filename=\"{}\"", display_filename),
-        )
-        .body(Body::from(bytes))
-        .unwrap();
-    Ok(res)
+    res
 }
 
 /// GET /api/v1/{tier}/submissions/{id}/narratives
 /// Returns AI-generated narratives for a submission from metadata cache.
+/// Accepts an optional `?lng=` query param (en | fr | pt | ss). Defaults to "en".
 #[utoipa::path(
     get,
     path = "/api/v1/cooperative/submissions/{id}/narratives",
     params(
-        ("id" = Uuid, Path, description = "Submission ID")
+        ("id" = Uuid, Path, description = "Submission ID"),
+        ("lng" = Option<String>, Query, description = "Locale code (en|fr|pt|ss)")
     ),
     responses(
         (status = 200, description = "AI narratives or null"),
@@ -374,6 +400,7 @@ pub async fn get_submission_narratives(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<Uuid>,
+    Query(params): Query<SingleExportQuery>,
 ) -> AppResult<impl IntoResponse> {
     let allowed_coops =
         crate::api::handlers::cooperative::resolve_caller_cooperative_ids(&state, &claims).await?;
@@ -390,7 +417,12 @@ pub async fn get_submission_narratives(
         ));
     }
 
-    let narratives = submission.metadata.get("ai_narratives").cloned();
+    let lang = requested_locale(params.lang.as_deref());
+    let narratives = submission
+        .metadata
+        .get("ai_narratives")
+        .cloned()
+        .map(|v| narrative_translation::select_locale(v, &lang));
 
     Ok(axum::Json(narratives))
 }
@@ -436,205 +468,18 @@ pub async fn generate_submission_narratives(
         ));
     }
 
-    if crate::services::questionnaire_report::is_questionnaire_method(&submission.submission_method)
-    {
-        let narratives =
-            crate::services::export_generator::ExportGenerator::generate_questionnaire_narratives(
-                &state, id,
-            )
-            .await?;
-        state
-            .submission_repo
-            .update_metadata(id, serde_json::json!({ "ai_narratives": narratives }))
-            .await?;
-        return Ok(axum::Json(serde_json::json!(narratives)));
-    }
-
-    let coop = state
-        .cooperative_repo
-        .find_by_id(submission.cooperative_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Cooperative not found".into()))?;
-
-    let kpi_records = state.kpi_record_repo.find_by_submission(id).await?;
-
-    let prior_kpi_records = if submission.reporting_year > 2020 {
-        if let Some(prior_sub) = state
-            .submission_repo
-            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
-            .await?
-        {
-            state
-                .kpi_record_repo
-                .find_by_submission(prior_sub.id)
-                .await?
-        } else {
-            Vec::new()
-        }
-    } else {
-        Vec::new()
-    };
-
-    // Fetch line items from financial statement
-    let line_items = match state
-        .financial_statement_repo
-        .find_by_submission(id)
-        .await?
-    {
-        Some(fs) => {
-            let raw_items = state
-                .line_item_repo
-                .find_by_financial_statement(fs.id)
-                .await?;
-            if raw_items.is_empty() {
-                None
-            } else {
-                let prior_line_items = if submission.reporting_year > 2020 {
-                    if let Some(prior_sub) = state
-                        .submission_repo
-                        .find_by_cooperative_and_year(
-                            submission.cooperative_id,
-                            submission.reporting_year - 1,
-                        )
-                        .await?
-                    {
-                        if let Some(pfs) = state
-                            .financial_statement_repo
-                            .find_by_submission(prior_sub.id)
-                            .await?
-                        {
-                            state
-                                .line_item_repo
-                                .find_by_financial_statement(pfs.id)
-                                .await
-                                .unwrap_or_default()
-                        } else {
-                            Vec::new()
-                        }
-                    } else {
-                        Vec::new()
-                    }
-                } else {
-                    Vec::new()
-                };
-
-                let mut items: Vec<crate::services::report_narrative::BalanceSheetLineItemData> =
-                    Vec::new();
-                let mut by_code: std::collections::HashMap<
-                    i32,
-                    &crate::entities::balance_sheet_line_item::Model,
-                > = std::collections::HashMap::new();
-                for item in &raw_items {
-                    if let Some(code) = item.account_code {
-                        by_code.insert(code, item);
-                    }
-                }
-                let mut prior_map: std::collections::HashMap<i32, f64> =
-                    std::collections::HashMap::new();
-                for item in &prior_line_items {
-                    if let (Some(code), Some(val)) = (item.account_code, item.value) {
-                        prior_map.insert(code, val.to_f64().unwrap_or(0.0));
-                    }
-                }
-                for (code, item) in &by_code {
-                    let current = item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
-                    let prior = prior_map.get(code).copied();
-                    items.push(
-                        crate::services::report_narrative::BalanceSheetLineItemData {
-                            account_code: Some(*code),
-                            account_name: item.account_name.clone(),
-                            current_value: current,
-                            prior_value: prior,
-                        },
-                    );
-                }
-                items.sort_by_key(|i| i.account_code.unwrap_or(0));
-                Some(items)
-            }
-        }
-        None => None,
-    };
-
-    // Compute NF stats
-    let nf_response =
-        crate::services::nf_indicator_engine::NfIndicatorEngine::compute_for_submission(
-            &state.db,
-            submission.cooperative_id,
-            Some(id),
-        )
-        .await
-        .ok();
-
-    let membership_stats =
-        nf_response
-            .as_ref()
-            .map(|nf| crate::services::report_narrative::MembershipStats {
-                total_members: nf.membership.total,
-                active_members: nf.membership.active,
-                dormant_members: nf.membership.dormant,
-                women_members: nf.membership.female,
-                youth_members: nf.membership.age_18_35 + nf.membership.under_18,
-                rural_members: nf.membership.rural,
-                agm_participation_pct: nf.membership.agm_participation_pct,
-                leadership_count: nf.membership.leadership_count,
-                voting_participation_pct: if nf.membership.total > 0 {
-                    nf.membership.voting_count as f64 / nf.membership.total as f64 * 100.0
-                } else {
-                    0.0
-                },
-            });
-
-    let savings_stats =
-        nf_response
-            .as_ref()
-            .map(|nf| crate::services::report_narrative::SavingsStats {
-                total_savings_accounts: nf.savings.total_accounts,
-                active_savers: nf.savings.active_accounts,
-                savings_penetration_pct: nf.savings.savings_penetration_pct,
-                avg_savings_balance: nf.savings.average_balance,
-            });
-
-    let loan_stats = nf_response
-        .as_ref()
-        .map(|nf| crate::services::report_narrative::LoanStats {
-            active_borrowers: nf.loans.members_with_loans,
-            women_borrowers: nf.loans.women_borrowers,
-            youth_borrowers: nf.loans.youth_borrowers,
-            rural_borrowers: nf.loans.rural_borrowers,
-            on_time_repayment_pct: nf.loans.on_time_repayment_pct,
-        });
-
-    let ctx = crate::services::report_narrative::build_cooperative_context(
-        &coop,
-        &submission,
-        &kpi_records,
-        &prior_kpi_records,
-        line_items,
-        membership_stats,
-        savings_stats,
-        loan_stats,
-        None,
-        None,
-        None,
+    let questionnaire = crate::services::questionnaire_report::is_questionnaire_method(
+        &submission.submission_method,
     );
+    report_jobs::regenerate_submission_narratives(&state, id, questionnaire).await?;
 
-    let _permit = state
-        .ai_semaphore
-        .acquire()
-        .await
-        .map_err(|_| AppError::InternalServerError("AI semaphore closed".into()))?;
-
-    let narratives = state
-        .narrative_generator
-        .generate_cooperative_narratives(&ctx)
-        .await?;
-
-    state
+    let stored = state
         .submission_repo
-        .update_metadata(id, serde_json::json!({ "ai_narratives": narratives }))
-        .await?;
-
-    Ok(axum::Json(serde_json::json!(narratives)))
+        .find_by_id(id)
+        .await?
+        .and_then(|s| s.metadata.get("ai_narratives").cloned())
+        .map(|v| narrative_translation::select_locale(v, "en"));
+    Ok(axum::Json(stored.unwrap_or(serde_json::Value::Null)))
 }
 
 /// GET /api/v1/apex/{id}/narratives?year=2025
@@ -644,7 +489,8 @@ pub async fn generate_submission_narratives(
     path = "/api/v1/apex/{id}/narratives",
     params(
         ("id" = String, Path, description = "Apex Keycloak ID"),
-        ("year" = i32, Query, description = "Reporting year")
+        ("year" = i32, Query, description = "Reporting year"),
+        ("lng" = Option<String>, Query, description = "Locale code (en|fr|pt|ss)")
     ),
     responses(
         (status = 200, description = "AI narratives or null"),
@@ -665,7 +511,10 @@ pub async fn get_apex_narratives(
         .ok_or_else(|| AppError::NotFound("Apex not found".into()))?;
 
     let year_key = format!("ai_narratives_{}", year);
-    let narratives = apex.metadata.and_then(|m| m.get(&year_key).cloned());
+    let raw = apex.metadata.and_then(|m| m.get(&year_key).cloned());
+
+    let lang = requested_locale(params.lang.as_deref());
+    let narratives = raw.map(|v| narrative_translation::select_locale(v, &lang));
 
     Ok(axum::Json(narratives))
 }
@@ -677,7 +526,8 @@ pub async fn get_apex_narratives(
     path = "/api/v1/federation/{id}/narratives",
     params(
         ("id" = String, Path, description = "Federation Keycloak ID"),
-        ("year" = i32, Query, description = "Reporting year")
+        ("year" = i32, Query, description = "Reporting year"),
+        ("lng" = Option<String>, Query, description = "Locale code (en|fr|pt|ss)")
     ),
     responses(
         (status = 200, description = "AI narratives or null"),
@@ -698,7 +548,10 @@ pub async fn get_federation_narratives(
         .ok_or_else(|| AppError::NotFound("Federation not found".into()))?;
 
     let year_key = format!("ai_narratives_{}", year);
-    let narratives = federation.metadata.and_then(|m| m.get(&year_key).cloned());
+    let raw = federation.metadata.and_then(|m| m.get(&year_key).cloned());
+
+    let lang = requested_locale(params.lang.as_deref());
+    let narratives = raw.map(|v| narrative_translation::select_locale(v, &lang));
 
     Ok(axum::Json(narratives))
 }
@@ -709,7 +562,8 @@ pub async fn get_federation_narratives(
     get,
     path = "/api/v1/ministry/submissions/narratives",
     params(
-        ("year" = i32, Query, description = "Reporting year")
+        ("year" = i32, Query, description = "Reporting year"),
+        ("lng" = Option<String>, Query, description = "Locale code (en|fr|pt|ss)")
     ),
     responses(
         (status = 200, description = "AI narratives or null"),
@@ -724,6 +578,9 @@ pub async fn get_ministry_narratives(
     let year = params.reporting_year.unwrap_or(2025).clamp(1900, 2100);
     let cached = state.ministry_narratives_repo.find_by_year(year).await?;
 
-    let narratives = cached.map(|c| c.narratives_json);
+    let raw = cached.map(|c| c.narratives_json);
+    let lang = requested_locale(params.lang.as_deref());
+    let narratives = raw.map(|v| narrative_translation::select_locale(v, &lang));
+
     Ok(axum::Json(narratives))
 }

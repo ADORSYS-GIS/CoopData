@@ -9,6 +9,7 @@ import {
 } from "@/pages/shared/print/coop/data";
 import type { ReportDataProps } from "@/pages/shared/print/components/types";
 import type { StatusTone } from "@/pages/shared/print/tpl/TplParts";
+import { localizePercent, tr } from "@/pages/shared/print/tpl/i18n";
 
 export interface ScoreRow {
   group: string;
@@ -22,11 +23,11 @@ export interface ScoreRow {
   info?: boolean;
 }
 
+type GroupId = "protection" | "capital" | "returns" | "liquidity";
+
 interface Def {
-  group: string;
+  group: GroupId;
   key: string;
-  label: string;
-  formula: string;
   bench: string;
   /** Threshold for "meets"; `max` means lower is better. */
   good?: number;
@@ -36,114 +37,90 @@ interface Def {
 
 const DEFS: Def[] = [
   {
-    group: "Protection & asset quality",
+    group: "protection",
     key: "par30",
-    label: "PAR >30 days",
-    formula: "Loans overdue >30 days / gross loans",
     bench: "≤ 5%",
     good: 5,
     watch: 10,
     dir: "max",
   },
   {
-    group: "Protection & asset quality",
+    group: "protection",
     key: "par90",
-    label: "PAR >90 days",
-    formula: "Loans overdue >90 days / gross loans",
     bench: "≤ 2%",
     good: 2,
     watch: 5,
     dir: "max",
   },
   {
-    group: "Protection & asset quality",
+    group: "protection",
     key: "npl_ratio",
-    label: "Non-performing loans",
-    formula: "Loans >90 days / gross loans",
     bench: "≤ 2%",
     good: 2,
     watch: 5,
     dir: "max",
   },
   {
-    group: "Protection & asset quality",
+    group: "protection",
     key: "loan_loss_coverage",
-    label: "Loan-loss coverage",
-    formula: "Provisions / loans overdue >30 days",
     bench: "100%",
     good: 100,
     watch: 80,
     dir: "min",
   },
   {
-    group: "Capital structure",
+    group: "capital",
     key: "capital_adequacy_ratio",
-    label: "Capital adequacy",
-    formula: "Total equity / total assets",
     bench: "≥ 10%",
     good: 10,
     watch: 8,
     dir: "min",
   },
   {
-    group: "Capital structure",
+    group: "capital",
     key: "deposits_to_loans",
-    label: "Savings to loans",
-    formula: "Member savings / gross loans",
     bench: "—",
   },
   {
-    group: "Rates of return & costs",
+    group: "returns",
     key: "roa",
-    label: "Return on assets",
-    formula: "Net surplus / total assets",
     bench: "≥ 3%",
     good: 3,
     watch: 1,
     dir: "min",
   },
   {
-    group: "Rates of return & costs",
+    group: "returns",
     key: "roe",
-    label: "Return on equity",
-    formula: "Net surplus / total equity",
     bench: "≥ 8%",
     good: 8,
     watch: 4,
     dir: "min",
   },
   {
-    group: "Rates of return & costs",
+    group: "returns",
     key: "operating_expense_ratio",
-    label: "Operating expense ratio",
-    formula: "Operating expenses / total assets",
     bench: "≤ 5%",
     good: 5,
     watch: 8,
     dir: "max",
   },
   {
-    group: "Rates of return & costs",
+    group: "returns",
     key: "operational_self_sufficiency",
-    label: "Operational self-sufficiency",
-    formula: "Total income / total expenses",
     bench: "≥ 110%",
     good: 110,
     watch: 100,
     dir: "min",
   },
   {
-    group: "Rates of return & costs",
+    group: "returns",
     key: "net_interest_margin",
-    label: "Net interest margin",
-    formula: "(Interest income − interest expense) / total assets",
     bench: "—",
   },
   {
-    group: "Liquidity",
+    group: "liquidity",
     key: "liquid_funds_ratio",
-    label: "Liquid assets / total assets",
-    formula: "Liquid assets / total assets",
     bench: "≥ 15%",
     good: 15,
     watch: 10,
@@ -201,10 +178,13 @@ const validate = (
   ) {
     add({
       key: "assets",
-      item: "Total assets",
+      item: tr("coop.validation.total_assets"),
       system: fmtInt(reported.assets.current),
       used: fmtInt(reported.assets.current),
-      note: `Listed asset lines sum to ${fmtInt(sumAssets)} (difference ${fmtInt(reported.assets.current - sumAssets)}). The reported total is used.`,
+      note: tr("coop.validation.assets_note", {
+        sum: fmtInt(sumAssets),
+        diff: fmtInt(reported.assets.current - sumAssets),
+      }),
     });
   }
   const sumEquity = equity.reduce((s, l) => s + (l.current ?? 0), 0);
@@ -215,10 +195,13 @@ const validate = (
   ) {
     add({
       key: "equity",
-      item: "Total equity",
+      item: tr("coop.validation.total_equity"),
       system: fmtInt(reported.equity.current),
       used: fmtInt(reported.equity.current),
-      note: `Listed equity lines sum to ${fmtInt(sumEquity)} (difference ${fmtInt(reported.equity.current - sumEquity)}). The reported total is used.`,
+      note: tr("coop.validation.equity_note", {
+        sum: fmtInt(sumEquity),
+        diff: fmtInt(reported.equity.current - sumEquity),
+      }),
     });
   }
   if (
@@ -227,10 +210,13 @@ const validate = (
   ) {
     add({
       key: "balance",
-      item: "Balance sheet",
-      system: `${fmtInt(totals.assets.current)} vs ${fmtInt(totals.liabilities.current + totals.equity.current)}`,
-      used: "Not adjusted",
-      note: "Total assets do not equal total liabilities plus equity. The statement does not balance and should be corrected by the cooperative.",
+      item: tr("coop.validation.balance_sheet"),
+      system: tr("coop.validation.balance_system", {
+        assets: fmtInt(totals.assets.current),
+        funding: fmtInt(totals.liabilities.current + totals.equity.current),
+      }),
+      used: tr("coop.validation.not_adjusted"),
+      note: tr("coop.validation.balance_note"),
     });
   }
   const surplusFromLines = totals.income.current - Math.abs(totals.expenses.current);
@@ -241,10 +227,10 @@ const validate = (
   ) {
     add({
       key: "surplus",
-      item: "Net surplus",
+      item: tr("coop.validation.net_surplus"),
       system: fmtInt(reported.surplus.current),
       used: fmtInt(reported.surplus.current),
-      note: `Income minus expenditure gives ${fmtInt(surplusFromLines)}. The reported net surplus is used.`,
+      note: tr("coop.validation.surplus_note", { value: fmtInt(surplusFromLines) }),
     });
   }
   const par30 = kpiOf(kpis, "par30")?.value ?? 0;
@@ -254,10 +240,10 @@ const validate = (
   if (par30 === 0 && arrears > 0) {
     add({
       key: "par30",
-      item: "PAR >30 days",
-      system: "0.0%",
-      used: "Unverified",
-      note: `${arrears} loans are recorded in arrears in the loan register, but the general ledger reports no overdue balance. The two sources are inconsistent.`,
+      item: tr("coop.validation.par30"),
+      system: fmtPct(0),
+      used: tr("coop.validation.unverified"),
+      note: tr("coop.validation.par30_note", { count: arrears }),
     });
   }
   const members = props.membershipData;
@@ -266,10 +252,13 @@ const validate = (
   if (byStatus > 0 && byGender > 0 && byStatus !== byGender) {
     add({
       key: "members",
-      item: "Member counts",
-      system: `${fmtInt(byGender)} by gender / ${fmtInt(byStatus)} by status`,
+      item: tr("coop.validation.member_counts"),
+      system: tr("coop.validation.members_system", {
+        gender: fmtInt(byGender),
+        status: fmtInt(byStatus),
+      }),
       used: fmtInt(byStatus),
-      note: "Member totals differ between the gender and the status breakdowns. The status total is used.",
+      note: tr("coop.validation.members_note"),
     });
   }
   return items;
@@ -287,11 +276,11 @@ export const analyseCoop = (props: ReportDataProps): CoopAnalysis => {
     const before = kpiOf(priorKpis, def.key);
     const value = reported && now ? now.value : null;
     return {
-      group: def.group,
+      group: tr(`coop.groups.${def.group}`),
       key: def.key,
-      label: def.label,
-      formula: def.formula,
-      bench: def.bench,
+      label: tr(`coop.ratios.${def.key}.label`),
+      formula: tr(`coop.ratios.${def.key}.formula`),
+      bench: localizePercent(def.bench),
       current: value,
       prior: before ? before.value : null,
       tone: toneOf(def, value, now?.status),
@@ -308,13 +297,13 @@ export const analyseCoop = (props: ReportDataProps): CoopAnalysis => {
   const savingsNow = kpiOf(kpis, "total_member_deposits")?.value;
   const savingsBefore = kpiOf(priorKpis, "total_member_deposits")?.value;
   const growth = [
-    growthOf("Asset growth", "assets"),
+    growthOf(tr("coop.growth.assets"), "assets"),
     {
-      label: "Loan growth",
+      label: tr("coop.growth.loans"),
       current: loansNow !== undefined ? changePct(loansNow, loansBefore) : null,
     },
     {
-      label: "Savings growth",
+      label: tr("coop.growth.savings"),
       current: savingsNow !== undefined ? changePct(savingsNow, savingsBefore) : null,
     },
   ];

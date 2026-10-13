@@ -134,14 +134,7 @@ pub async fn upload_non_financial(
     {
         let sub = state.submission_repo.find_by_id(submission_id).await?;
         if let Some(sub) = sub {
-            let current_user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-            if let Some(editor_id) = sub.edited_by {
-                if current_user_id != Some(editor_id) {
-                    return Err(AppError::Forbidden(
-                        "Only the editor assigned to this submission can modify it".into(),
-                    ));
-                }
-            }
+            crate::services::edit_access::ensure_submission_editor(&sub, &claims)?;
         }
     }
 
@@ -2631,14 +2624,7 @@ pub async fn delete_non_financial_data(
     }
 
     // Enforce exclusive editor
-    let current_user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-    if let Some(editor_id) = submission.edited_by {
-        if current_user_id != Some(editor_id) {
-            return Err(AppError::Forbidden(
-                "Only the editor assigned to this submission can modify it".into(),
-            ));
-        }
-    }
+    crate::services::edit_access::ensure_submission_editor(&submission, &claims)?;
 
     let coop_id = submission.cooperative_id;
     state

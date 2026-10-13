@@ -6,12 +6,16 @@ import { RouterProvider } from "@tanstack/react-router";
 import { I18nextProvider } from "react-i18next";
 import { registerSW } from "virtual:pwa-register";
 import { getRouter } from "./router";
+import { installEditAccessInterceptor } from "./services/shared/editAccessEvents";
 import "./styles.css";
 
 // Register Service Worker for instant offline app shell caching in production
 if (import.meta.env.PROD) {
   registerSW({ immediate: true });
 }
+
+// Raw fetch calls report "you no longer hold this submission" like the API client does.
+installEditAccessInterceptor();
 
 const router = getRouter();
 

@@ -23,6 +23,41 @@ keycloak/themes/coopdata/login/
         └── coopdatalogo.jpg  # Logo for brand panel
 ```
 
+## Email Theme
+
+The CoopData theme also includes a branded email theme for transactional emails (password resets, verification, admin actions) located at `keycloak/themes/coopdata/email/`.
+
+### Directory Layout
+
+```text
+keycloak/themes/coopdata/email/
+├── theme.properties          # Theme configuration (parent=base)
+├── html/
+│   ├── template.ftl          # Base HTML layout macro
+│   ├── password-reset.ftl    # HTML password reset template
+│   ├── email-verification.ftl
+│   └── executeActions.ftl
+├── text/
+│   ├── password-reset.ftl    # Plain-text password reset template
+│   ├── email-verification.ftl
+│   └── executeActions.ftl
+└── resources/
+    └── img/
+        └── coopdatalogo.png  # Logo for email header
+```
+
+**Note on Logo Duplication:** Keycloak requires assets to be under each theme's specific root directory. The `coopdatalogo.png` file is intentionally duplicated in both `login/resources/img/` and `email/resources/img/`. Do not delete either copy thinking it is redundant.
+
+### Design Patterns
+
+The HTML email templates follow a consistent, branded structure defined in `html/template.ftl`:
+- **Header:** Centered CoopData logo on a clean white background.
+- **Top Accent:** A guaranteed-render 6px red (`#e11d48`) top border accent. This is implemented as a `<td style="background-color: #e11d48;">&nbsp;</td>` to ensure compatibility with Outlook on Windows (which ignores CSS borders on tables).
+- **Callout Block:** Security warnings (e.g., link expiration) use a `.callout` CSS class featuring a light grey background and red left border to draw the user's attention.
+- **Buttons:** Navy Blue (`#1e293b`) buttons matching the frontend brand, replacing Keycloak's default indigo.
+
+*(Note: The email templates currently hardcode English text. If internationalization is required in the future, strings should be lifted into per-locale message bundles matching the login theme's approach.)*
+
 ## Configuration
 
 ### theme.properties

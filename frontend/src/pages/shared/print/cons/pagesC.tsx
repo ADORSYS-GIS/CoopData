@@ -18,11 +18,15 @@ import { HBarPairs } from "@/pages/shared/print/tpl/TplCharts";
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { Figure, Note, Pill } from "@/pages/shared/print/tpl/TplParts";
+import { localizePercent, listText, tr } from "@/pages/shared/print/tpl/i18n";
 
 const APEX_COLUMNS = 3;
 
+type PearlsGroup = "p" | "e" | "a" | "r" | "l" | "s";
+
 interface PearlsRow {
-  group?: string;
+  group?: PearlsGroup;
+  /** Key under `cons.pearls.rows`. */
   label: string;
   bench: string;
   value: (coops: readonly CoopKpiRow[], prior: readonly CoopKpiRow[] | undefined) => number | null;
@@ -46,7 +50,7 @@ const growth =
   };
 
 const kpiRow = (
-  group: string | undefined,
+  group: PearlsGroup | undefined,
   label: string,
   key: string,
   bench: string,
@@ -59,10 +63,10 @@ const kpiRow = (
 });
 
 const ROWS: PearlsRow[] = [
-  kpiRow("P — Protection", "Loan-loss coverage", "loan_loss_coverage", "100%"),
+  kpiRow("p", "loan_loss_coverage", "loan_loss_coverage", "100%"),
   {
-    group: "E — Effective financial structure",
-    label: "Net loans / total assets",
+    group: "e",
+    label: "net_loans_assets",
     bench: "70–80%",
     value: (coops) =>
       share(
@@ -72,7 +76,7 @@ const ROWS: PearlsRow[] = [
     tone: range(70, 80),
   },
   {
-    label: "Deposits / total assets",
+    label: "deposits_assets",
     bench: "70–80%",
     value: (coops) =>
       share(
@@ -81,28 +85,28 @@ const ROWS: PearlsRow[] = [
       ),
     tone: range(70, 80),
   },
-  kpiRow(undefined, "Capital adequacy", "capital_adequacy_ratio", "≥ 10%"),
-  kpiRow("A — Asset quality", "PAR >30 days", "par30", "≤ 5%"),
+  kpiRow(undefined, "capital_adequacy", "capital_adequacy_ratio", "≥ 10%"),
+  kpiRow("a", "par30", "par30", "≤ 5%"),
   {
-    label: "Non-performing loan ratio",
+    label: "npl",
     bench: "—",
     value: (coops) => avgKpi(coops, "npl_ratio"),
     tone: () => "na",
     info: true,
   },
-  kpiRow("R — Rates of return & costs", "Return on assets", "roa", "≥ 3%"),
-  kpiRow(undefined, "Return on equity", "roe", "≥ 8%"),
-  kpiRow(undefined, "Operating expense ratio", "operating_expense_ratio", "≤ 5%"),
+  kpiRow("r", "roa", "roa", "≥ 3%"),
+  kpiRow(undefined, "roe", "roe", "≥ 8%"),
+  kpiRow(undefined, "oer", "operating_expense_ratio", "≤ 5%"),
   {
-    group: "L — Liquidity",
-    label: "Liquid funds ratio",
+    group: "l",
+    label: "liquid_funds",
     bench: "≥ 15%",
     value: (coops) => avgKpi(coops, "liquid_funds_ratio"),
     tone: (value) => (value === null ? "na" : value >= 15 ? "ok" : value >= 10 ? "warn" : "bad"),
   },
   {
-    group: "S — Signs of growth",
-    label: "Asset growth (year on year)",
+    group: "s",
+    label: "asset_growth",
     bench: "—",
     value: growth("total_assets"),
     tone: () => "na",
@@ -116,35 +120,31 @@ export const pearlsPages = (a: Analysis, no: string): PageSpec[] => {
   const columns = parts.length > 0 ? parts : [[]];
 
   return columns.map((group, index): PageSpec => ({
-    toc: index === 0 ? { no, title: "PEARLS Benchmark Comparison" } : undefined,
+    toc: index === 0 ? { no, title: tr("cons.pearls.title") } : undefined,
     render: () => (
       <>
         <Sec
           no={index === 0 ? no : undefined}
-          title="PEARLS Benchmark Comparison"
+          title={tr("cons.pearls.title")}
           sub={
-            columns.length > 1 ? `Part ${index + 1} of ${columns.length}` : "By apex organisation"
+            columns.length > 1
+              ? tr("common.part_of", { part: index + 1, parts: columns.length })
+              : tr("cons.pearls.by_apex")
           }
         />
-        {index === 0 && (
-          <p>
-            Prudential indicators grouped by PEARLS area. Each apex figure is the simple average of
-            its filing cooperatives; the sector column covers all filing cooperatives. A dash means
-            the figure was not reported.
-          </p>
-        )}
+        {index === 0 && <p>{tr("cons.pearls.intro")}</p>}
         <table className="tbl">
           <thead>
             <tr>
-              <th>Indicator</th>
+              <th>{tr("common.indicator")}</th>
               {group.map((name) => (
                 <th key={name} className="num">
                   {name}
                 </th>
               ))}
-              <th className="num">Sector</th>
-              <th className="num">Benchmark</th>
-              <th style={{ width: "22mm" }}>Status</th>
+              <th className="num">{tr("common.sector")}</th>
+              <th className="num">{tr("common.benchmark")}</th>
+              <th style={{ width: "22mm" }}>{tr("common.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -154,11 +154,11 @@ export const pearlsPages = (a: Analysis, no: string): PageSpec[] => {
                 <Fragment key={row.label}>
                   {row.group && (
                     <tr className="grp">
-                      <td colSpan={group.length + 4}>{row.group}</td>
+                      <td colSpan={group.length + 4}>{tr(`cons.pearls.groups.${row.group}`)}</td>
                     </tr>
                   )}
                   <tr>
-                    <td className="ind">{row.label}</td>
+                    <td className="ind">{tr(`cons.pearls.rows.${row.label}`)}</td>
                     {group.map((name) => {
                       const apex = a.apexes.find((x) => x.name === name);
                       const value = apex ? row.value(apex.coops, a.priorApexes.get(name)) : null;
@@ -169,9 +169,13 @@ export const pearlsPages = (a: Analysis, no: string): PageSpec[] => {
                       );
                     })}
                     <td className="num">{percent(sector)}</td>
-                    <td className="num">{row.bench}</td>
+                    <td className="num">{localizePercent(row.bench)}</td>
                     <td>
-                      {row.info ? <Pill tone="na">Info</Pill> : <Pill tone={row.tone(sector)} />}
+                      {row.info ? (
+                        <Pill tone="na">{tr("common.info")}</Pill>
+                      ) : (
+                        <Pill tone={row.tone(sector)} />
+                      )}
                     </td>
                   </tr>
                 </Fragment>
@@ -207,7 +211,7 @@ const cell = (change: Change | null) => (
 );
 
 export const socialPage = (a: Analysis, no: string): PageSpec => ({
-  toc: { no, title: "Social Impact & Financial Inclusion" },
+  toc: { no, title: tr("cons.social.title") },
   render: () => {
     const { year } = a.input;
     const now = a.filed;
@@ -215,17 +219,17 @@ export const socialPage = (a: Analysis, no: string): PageSpec => ({
     const borrowers = sumNf(now, "active_borrowers");
     const borrowersBefore = before ? sumNf(before, "active_borrowers") : 0;
     const counts = [
-      { label: "Active members", key: "active_members" as const },
-      { label: "Active borrowers", key: "active_borrowers" as const },
+      { label: tr("cons.social.active_members"), key: "active_members" as const },
+      { label: tr("cons.social.active_borrowers"), key: "active_borrowers" as const },
     ];
     const rates = [
-      { label: "Savings penetration (average)", key: "savings_penetration_pct" as const },
-      { label: "Credit penetration (average)", key: "credit_penetration_pct" as const },
+      { label: tr("cons.social.savings_penetration"), key: "savings_penetration_pct" as const },
+      { label: tr("cons.social.credit_penetration"), key: "credit_penetration_pct" as const },
     ];
     const segments = [
-      { label: "Women borrowers", key: "women_borrowers" as const },
-      { label: "Youth borrowers (18–35)", key: "youth_borrowers" as const },
-      { label: "Rural borrowers", key: "rural_borrowers" as const },
+      { label: tr("cons.social.women_borrowers"), key: "women_borrowers" as const },
+      { label: tr("cons.social.youth_borrowers"), key: "youth_borrowers" as const },
+      { label: tr("cons.social.rural_borrowers"), key: "rural_borrowers" as const },
     ];
     const declining = segments.filter((s) => {
       const shareNow = borrowers > 0 ? sumNf(now, s.key) / borrowers : 0;
@@ -236,22 +240,15 @@ export const socialPage = (a: Analysis, no: string): PageSpec => ({
 
     return (
       <>
-        <Sec
-          no={no}
-          title="Social Impact & Financial Inclusion"
-          sub="Membership and credit reach"
-        />
-        <p>
-          How many people the cooperatives serve and how credit reaches women, young people and
-          rural members. Figures cover the {a.filing.filed} filing cooperatives.
-        </p>
+        <Sec no={no} title={tr("cons.social.title")} sub={tr("cons.social.sub")} />
+        <p>{tr("cons.social.intro", { count: a.filing.filed })}</p>
         <table className="tbl">
           <thead>
             <tr>
-              <th>Metric</th>
+              <th>{tr("common.metric")}</th>
               <th className="num">{year}</th>
-              <th className="num">Prior year</th>
-              <th className="num">Change</th>
+              <th className="num">{tr("common.prior_year")}</th>
+              <th className="num">{tr("common.change")}</th>
             </tr>
           </thead>
           <tbody>
@@ -278,15 +275,15 @@ export const socialPage = (a: Analysis, no: string): PageSpec => ({
           </tbody>
         </table>
 
-        <h3>Credit flow to priority segments</h3>
+        <h3>{tr("cons.social.credit_flow")}</h3>
         <table className="tbl">
           <thead>
             <tr>
-              <th>Segment</th>
-              <th className="num">Borrowers {year}</th>
-              <th className="num">Share of borrowers</th>
-              <th className="num">Borrowers prior</th>
-              <th className="num">Change</th>
+              <th>{tr("cons.social.segment")}</th>
+              <th className="num">{tr("cons.social.borrowers_year", { year })}</th>
+              <th className="num">{tr("cons.social.share_borrowers")}</th>
+              <th className="num">{tr("cons.social.borrowers_prior")}</th>
+              <th className="num">{tr("common.change")}</th>
             </tr>
           </thead>
           <tbody>
@@ -306,13 +303,13 @@ export const socialPage = (a: Analysis, no: string): PageSpec => ({
         <Figure
           caption={
             <>
-              <b>Figure 3.</b> Borrowers in priority segments, prior year vs {year}.
+              <b>{tr("cons.social.fig_3")}</b> {tr("cons.social.fig_3_caption", { year })}
             </>
           }
         >
           <HBarPairs
-            unit="Number of borrowers"
-            priorLabel="Prior year"
+            unit={tr("cons.social.number_borrowers")}
+            priorLabel={tr("common.prior_year")}
             currentLabel={String(year)}
             format={(v) => integer(v)}
             rows={segments.map(({ label, key }) => ({
@@ -323,11 +320,10 @@ export const socialPage = (a: Analysis, no: string): PageSpec => ({
           />
         </Figure>
         {declining.length > 0 && (
-          <Note title="Inclusion note.">
-            The share of active borrowers who are{" "}
-            {declining.map((s) => s.label.toLowerCase().replace(" borrowers", "")).join(" and ")}{" "}
-            fell against the prior year. {a.input.tier === "Apex" ? "Cooperatives" : "Apexes"}{" "}
-            should be asked to explain the trend and set inclusion targets.
+          <Note title={tr("cons.social.note_title")}>
+            {tr(a.input.tier === "Apex" ? "cons.social.note_apex" : "cons.social.note", {
+              segments: listText(declining.map((s) => tr(`cons.social.segment_names.${s.key}`))),
+            })}
           </Note>
         )}
       </>

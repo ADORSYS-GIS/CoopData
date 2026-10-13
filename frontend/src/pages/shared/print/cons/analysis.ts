@@ -13,6 +13,7 @@ import {
   type Tone,
   type Totals,
 } from "@/pages/shared/print/consolidated/stats";
+import { localizePercent, tr } from "@/pages/shared/print/tpl/i18n";
 
 export interface ConsInput {
   tier: Tier;
@@ -37,49 +38,30 @@ const rangeTone =
   (value: number | null): Tone =>
     value === null ? "na" : value >= low && value <= high ? "ok" : "warn";
 
-export const RATIO_META: Record<
-  string,
-  { area: string; label: string; formula: string; bench: string }
-> = {
-  par30: {
-    area: "Asset quality",
-    label: "Portfolio at risk >30 days",
-    formula: "Loans overdue >30 days / gross loans",
-    bench: "≤ 5%",
-  },
-  capital_adequacy_ratio: {
-    area: "Capital",
-    label: "Capital adequacy",
-    formula: "Total equity / total assets",
-    bench: "≥ 10%",
-  },
-  roa: {
-    area: "Earnings",
-    label: "Return on assets",
-    formula: "Net surplus / total assets",
-    bench: "≥ 3%",
-  },
-  roe: {
-    area: "Earnings",
-    label: "Return on equity",
-    formula: "Net surplus / total equity",
-    bench: "≥ 8%",
-  },
-  operating_expense_ratio: {
-    area: "Efficiency",
-    label: "Operating expense ratio",
-    formula: "Operating expenses / total assets",
-    bench: "≤ 5%",
-  },
-  loan_loss_coverage: {
-    area: "Provisioning",
-    label: "Loan-loss coverage",
-    formula: "Provisions / loans overdue",
-    bench: "100%",
-  },
+const RATIO_BENCH: Record<string, string> = {
+  par30: "≤ 5%",
+  capital_adequacy_ratio: "≥ 10%",
+  roa: "≥ 3%",
+  roe: "≥ 8%",
+  operating_expense_ratio: "≤ 5%",
+  loan_loss_coverage: "100%",
 };
 
-export const RATIO_KEYS = Object.keys(RATIO_META);
+export interface RatioMeta {
+  area: string;
+  label: string;
+  formula: string;
+  bench: string;
+}
+
+export const ratioMeta = (key: string): RatioMeta => ({
+  area: tr(`cons.ratios.${key}.area`),
+  label: tr(`cons.ratios.${key}.label`),
+  formula: tr(`cons.ratios.${key}.formula`),
+  bench: localizePercent(RATIO_BENCH[key] ?? "—"),
+});
+
+export const RATIO_KEYS = Object.keys(RATIO_BENCH);
 
 export interface RatioRow {
   key: string;
@@ -149,7 +131,7 @@ export const analyse = (input: ConsInput): Analysis => {
   const before = prior && prior.length > 0 ? totalsOf(prior) : null;
 
   const ratios = RATIO_KEYS.map((key): RatioRow => {
-    const meta = RATIO_META[key];
+    const meta = ratioMeta(key);
     const avgNow = avgKpi(coops, key);
     return {
       key,
@@ -161,8 +143,9 @@ export const analyse = (input: ConsInput): Analysis => {
     };
   });
 
-  const groups = groupBy(coops, (c) => c.apex_name || "Unaffiliated");
-  const priorGroups = prior ? groupBy(prior, (c) => c.apex_name || "Unaffiliated") : new Map();
+  const unaffiliated = tr("cons.unaffiliated");
+  const groups = groupBy(coops, (c) => c.apex_name || unaffiliated);
+  const priorGroups = prior ? groupBy(prior, (c) => c.apex_name || unaffiliated) : new Map();
 
   const change = (a: number, b: number | undefined) => (before ? changeOf(a, b) : null);
   return {

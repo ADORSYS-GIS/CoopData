@@ -1,4 +1,5 @@
 import type { PeriodSeriesPoint } from "@/hooks/analytics/usePeriodSeries";
+import { tr } from "@/pages/shared/print/tpl/i18n";
 
 /** Periods shown in a report trend; older points are dropped. */
 export const TREND_LIMIT = 8;
@@ -59,8 +60,8 @@ export interface AmountUnit {
 /** Millions for large amounts, thousands for small ones, so small figures do not round to zero. */
 export const unitFor = (largest: number): AmountUnit =>
   largest >= 1_000_000
-    ? { divisor: 1_000_000, label: "SZL million" }
-    : { divisor: 1_000, label: "SZL thousand" };
+    ? { divisor: 1_000_000, label: tr("trend.szl_million") }
+    : { divisor: 1_000, label: tr("trend.szl_thousand") };
 
 /** Amount in the chosen unit, to two decimals. */
 export const scaled = (value: number, unit: AmountUnit): number =>
