@@ -66,11 +66,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/context/AuthContext";
 
 const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const deleteFS = useDeleteFinancialStatement();
+  const { isOffline } = useAuth();
   const [open, setOpen] = React.useState(false);
 
   const handleDelete = async () => {
@@ -92,7 +94,8 @@ const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) 
     <>
       <button
         onClick={() => setOpen(true)}
-        disabled={deleteFS.isPending}
+        disabled={deleteFS.isPending || isOffline}
+        title={isOffline ? t("offline.actionRequiresConnection") : undefined}
         className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
       >
         {deleteFS.isPending ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
@@ -212,6 +215,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
   const { data: uploadedFiles = [] } = useSubmissionFiles(submission?.id, "financial");
   const [selectedFileId, setSelectedFileId] = React.useState<string | null>(null);
   const deleteSingleFile = useDeleteSingleFile(submission?.id);
+  const { isOffline } = useAuth();
 
   const activeFileId = selectedFileId || (uploadedFiles[0]?.id ?? extractionJob?.source_file_id);
 
@@ -412,8 +416,12 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                               <button
                                 type="button"
                                 onClick={(e) => handleDeleteSingleFile(e, file.id)}
-                                disabled={deleteSingleFile.isPending}
-                                title="Delete this file"
+                                disabled={deleteSingleFile.isPending || isOffline}
+                                title={
+                                  isOffline
+                                    ? t("offline.actionRequiresConnection")
+                                    : "Delete this file"
+                                }
                                 className="ml-1 rounded p-0.5 hover:bg-black/20 hover:text-destructive transition-colors cursor-pointer"
                               >
                                 <X className="size-3" />

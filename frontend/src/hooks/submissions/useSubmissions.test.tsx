@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   useCooperativeSubmissions,
   useCreateSubmission,
+  useCreateApexSubmission,
   useUpdateSubmissionMethod,
   useDeleteSubmission,
   useSubmission,
@@ -149,6 +150,46 @@ describe("useSubmissions Hooks", () => {
       expect(result.current.error).toBeInstanceOf(DuplicateSubmissionError);
       expect((result.current.error as DuplicateSubmissionError).submissionId).toBe(
         "existing-sub-1",
+      );
+    });
+  });
+
+  describe("useCreateApexSubmission", () => {
+    it("sends a client-generated id and caches an openable draft for offline use", async () => {
+      vi.mocked(apiClient.POST).mockResolvedValueOnce({
+        data: { id: "server-echo" },
+        error: undefined,
+      } as any);
+
+      const { result } = renderHook(() => useCreateApexSubmission(), {
+        wrapper: createWrapper(),
+      });
+      result.current.mutate({
+        cooperative_id: "coop-1",
+        cooperative_name: "Coop One",
+        reporting_year: 2026,
+      } as any);
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      const [, method, opts] = vi.mocked(syncQueueService.runMutation).mock.calls[0];
+      const body = (opts as { body: Record<string, unknown> }).body;
+      expect(method).toBe("POST");
+      expect(body.id).toEqual(expect.any(String));
+      expect(body.cooperative_id).toBe("coop-1");
+      expect(body).not.toHaveProperty("cooperative_name");
+      expect(cacheSet).toHaveBeenCalledWith("submissions", "apex-list", "user-123", [
+        expect.objectContaining({
+          id: body.id,
+          cooperative_name: "Coop One",
+          current_tier: "apex",
+          status: "draft",
+        }),
+      ]);
+      expect(cacheSet).toHaveBeenCalledWith(
+        "submissions",
+        `submission-${body.id}`,
+        "user-123",
+        expect.objectContaining({ id: body.id }),
       );
     });
   });

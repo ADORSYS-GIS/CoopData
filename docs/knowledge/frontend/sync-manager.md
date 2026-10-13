@@ -1,5 +1,7 @@
 # Sync Manager & Background Sync Guide
 
+> ⚠️ **Outdated — original plan, not the current code.** This document was written before offline mode was implemented and describes pieces that were never built as written (there is no `services/sync/` folder or `syncManager`; syncing is done by `services/shared/syncQueueService.ts`). For how offline mode actually works, read [`offline-mode.md`](offline-mode.md).
+
 > **Core Philosophy**: The `syncManager` is the single orchestrator that bridges offline local writes and online server synchronization. It owns the `online`/`offline` window events, drives the `precacheAll` proactive download, and processes the `sync_queue` table in strict chronological order. Nothing syncs without going through this layer.
 >
 > **Stop-and-Ask Rule**: If you are adding a new entity that can be created or updated offline, you must add a corresponding sync service and register it inside `syncManager.syncAll()` in the correct dependency order.

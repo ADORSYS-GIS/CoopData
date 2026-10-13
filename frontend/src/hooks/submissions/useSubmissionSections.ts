@@ -5,6 +5,7 @@ import { useUserRole } from "@/lib/auth";
 import { getAccessToken } from "@/services/shared/authService";
 import { runMutation } from "@/services/shared/syncQueueService";
 import type { components } from "@/openapi-client/api";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export type SubmissionSectionResponse = components["schemas"]["SubmissionSectionResponse"];
 export type UpdateSectionStatusRequest = components["schemas"]["UpdateSectionStatusRequest"];
@@ -29,8 +30,7 @@ function sectionPath(submissionId: string, section: string, role: string | null)
 export const useSubmissionSections = (submissionId: string | null | undefined) =>
   useOfflineQuery({
     queryKey: [SUBMISSIONS_KEY, submissionId, "sections"],
-    cacheTable: "submissions",
-    cacheKey: `sections-${submissionId}`,
+    ...offlineCacheKeys.submissionSections(submissionId),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/submissions/{id}/sections", {
         params: { path: { id: submissionId! } },

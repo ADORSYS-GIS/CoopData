@@ -1,5 +1,6 @@
 import { apiClient } from "@/openapi-client";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export interface KpiValue {
   name: string;
@@ -124,8 +125,7 @@ export const useNationalOverview = (
 ) =>
   useOfflineQuery<NationalOverviewResponse>({
     queryKey: ["national-overview", params],
-    cacheTable: "analytics",
-    cacheKey: `national-overview-${JSON.stringify(params)}`,
+    ...offlineCacheKeys.nationalOverview(params),
     enabled,
     fallbackData: EMPTY_NATIONAL_OVERVIEW,
     queryFn: async () => {

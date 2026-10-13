@@ -75,10 +75,12 @@ const defaultPreview: DeletePreviewData = {
   members: 42,
 };
 
+type VerifyIdentity = React.ComponentProps<typeof DeleteConfirmationDialog>["onVerifyIdentity"];
+
 function makeOnVerifyIdentity(
   response: MockResponse = { ok: true, verification_token: "tok", requires_otp: false },
 ) {
-  return vi.fn().mockResolvedValue(response) as unknown as ReturnType<typeof vi.fn>;
+  return vi.fn<VerifyIdentity>().mockResolvedValue(response);
 }
 
 function renderDialog(
@@ -239,10 +241,10 @@ describe("DeleteConfirmationDialog", () => {
     });
 
     it("should show error message when verification fails", async () => {
-      const onVerifyIdentity = vi.fn().mockResolvedValue({
+      const onVerifyIdentity = vi.fn<VerifyIdentity>().mockResolvedValue({
         ok: false,
         message: "Invalid password",
-      }) as unknown as ReturnType<typeof vi.fn>;
+      });
       renderDialog({ onVerifyIdentity });
 
       typeInInput(screen.getByTestId("input"), "Pilot Federation");
@@ -357,9 +359,9 @@ describe("DeleteConfirmationDialog", () => {
 
   describe("OTP (2FA) support", () => {
     it("should show OTP field after verification returns requires_otp true", async () => {
-      const onVerifyIdentity = vi.fn().mockImplementation(async () => {
+      const onVerifyIdentity = vi.fn<VerifyIdentity>().mockImplementation(async () => {
         return { ok: true, verification_token: "tok-otp", requires_otp: true };
-      }) as unknown as ReturnType<typeof vi.fn>;
+      });
       const onConfirmDelete = vi.fn().mockImplementation(async () => {
         return undefined;
       });
@@ -378,7 +380,7 @@ describe("DeleteConfirmationDialog", () => {
 
     it("should reveal OTP field when backend returns OTP challenge (ok=false, requires_otp=true)", async () => {
       const onVerifyIdentity = vi
-        .fn()
+        .fn<VerifyIdentity>()
         .mockResolvedValueOnce({ ok: false, requires_otp: true })
         .mockResolvedValueOnce({ ok: true, verification_token: "tok-2", requires_otp: true });
       const onConfirmDelete = vi.fn().mockResolvedValue(undefined);

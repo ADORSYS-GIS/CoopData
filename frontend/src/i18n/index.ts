@@ -6,16 +6,23 @@ import pt from "./locales/pt.json";
 import ss from "./locales/ss.json";
 import fr from "./locales/fr.json";
 
+const resources = {
+  en: { translation: en },
+  pt: { translation: pt },
+  ss: { translation: ss },
+  fr: { translation: fr },
+};
+
+export type SupportedLanguage = keyof typeof resources;
+
+/** Every UI language the app ships; the offline seeder pre-downloads translated data for each. */
+export const SUPPORTED_LANGUAGES = Object.keys(resources) as SupportedLanguage[];
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: {
-      en: { translation: en },
-      pt: { translation: pt },
-      ss: { translation: ss },
-      fr: { translation: fr },
-    },
+    resources,
     fallbackLng: "en",
     interpolation: {
       escapeValue: false, // React already escapes

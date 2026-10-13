@@ -2,6 +2,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockDraftsStore: any[] = [];
+const currentUser = vi.hoisted(() => ({ id: "user-a" as string | null }));
+
+vi.mock("./authService", () => ({
+  getUserProfile: () => (currentUser.id ? { id: currentUser.id } : null),
+}));
 
 vi.mock("./offlineDb", () => {
   const draftsTable = {
@@ -33,6 +38,7 @@ import { offlineDb } from "./offlineDb";
 describe("manualEntryDraftService", () => {
   beforeEach(() => {
     mockDraftsStore.length = 0;
+    currentUser.id = "user-a";
     vi.clearAllMocks();
   });
 
@@ -93,5 +99,25 @@ describe("manualEntryDraftService", () => {
   it("returns false when the existence check fails", async () => {
     vi.mocked(offlineDb.drafts.get).mockRejectedValueOnce(new Error("database closed"));
     await expect(hasManualEntryDraft("sub-1", "financial")).resolves.toBe(false);
+  });
+
+  it("keeps each user's draft private on a shared device", async () => {
+    await saveManualEntryDraft("sub-1", "financial", { owner: "a" });
+
+    currentUser.id = "user-b";
+    expect(await loadManualEntryDraft("sub-1", "financial")).toBeNull();
+    await saveManualEntryDraft("sub-1", "financial", { owner: "b" });
+
+    currentUser.id = "user-a";
+    expect(await loadManualEntryDraft("sub-1", "financial")).toEqual({ owner: "a" });
+    expect(mockDraftsStore.map((d) => d.userId).sort()).toEqual(["user-a", "user-b"]);
+  });
+
+  it("saves nothing when nobody is signed in", async () => {
+    currentUser.id = null;
+
+    await saveManualEntryDraft("sub-1", "financial", { a: 1 });
+
+    expect(mockDraftsStore).toHaveLength(0);
   });
 });

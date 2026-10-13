@@ -1,6 +1,7 @@
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export interface BenchmarkResponse {
   reporting_year: number | null;
@@ -40,8 +41,7 @@ const extractErrorMessage = (error: unknown): string => {
 export const useBenchmark = (params: BenchmarkParams = {}, enabled = true) =>
   useOfflineQuery<BenchmarkResponse>({
     queryKey: ["benchmark", params],
-    cacheTable: "analytics",
-    cacheKey: `benchmark-${JSON.stringify(params)}`,
+    ...offlineCacheKeys.benchmark(params),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/analytics/benchmark", {

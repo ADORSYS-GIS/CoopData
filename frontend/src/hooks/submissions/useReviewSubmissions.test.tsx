@@ -14,6 +14,7 @@ import {
 import { apiClient } from "@/openapi-client";
 import { cacheSet, cacheGet } from "@/services/shared/offlineCache";
 import * as syncQueueService from "@/services/shared/syncQueueService";
+import { OfflineActionError } from "@/services/shared/networkGuard";
 
 vi.mock("@/openapi-client", () => ({
   apiClient: {
@@ -98,6 +99,19 @@ describe("useReviewSubmissions Hooks", () => {
         expect.any(Object),
       );
       expect(cacheSet).toHaveBeenCalled(); // via updateCachedSubmissionStatus
+    });
+
+    it("refuses offline without queueing or changing the cached status", async () => {
+      const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+
+      const { result } = renderHook(() => useApexApprove(), { wrapper: createWrapper() });
+      result.current.mutate({ id: "sub-1", comment: "Looks good" });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.error).toBeInstanceOf(OfflineActionError);
+      expect(cacheSet).not.toHaveBeenCalled();
+      expect(syncQueueService.runMutation).not.toHaveBeenCalled();
+      onLine.mockRestore();
     });
   });
 

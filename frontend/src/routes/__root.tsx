@@ -1,3 +1,4 @@
+import { defaultShouldDehydrateQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { get, set, del } from "idb-keyval";
 import { Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
@@ -131,8 +132,12 @@ function RootComponent() {
       queryClient.invalidateQueries();
     };
     window.addEventListener("coopdata-sync-complete", handleSyncComplete);
+    // Requests made while the session was still offline failed or served the
+    // device copy: refetch everything once the live session is back.
+    window.addEventListener("coopdata-session-restored", handleSyncComplete);
     return () => {
       window.removeEventListener("coopdata-sync-complete", handleSyncComplete);
+      window.removeEventListener("coopdata-session-restored", handleSyncComplete);
     };
   }, [queryClient]);
 
@@ -166,9 +171,12 @@ function RootComponent() {
             buster: `${import.meta.env.VITE_APP_VERSION ?? "v1"}_${
               getCachedProfileSync()?.id ?? getUserProfile()?.id ?? "anon"
             }_${getCachedProfileSync()?.role ?? getUserProfile()?.role ?? "none"}`,
-            // Never persist queries that errored (avoids persisting 403 forbidden results)
+            // Persist only finished, successful queries: errored ones would replay
+            // e.g. 403s, and still-loading ones carry their in-flight Promise, which
+            // IndexedDB can't store (DataCloneError) — that failed every save made
+            // while anything was loading.
             dehydrateOptions: {
-              shouldDehydrateQuery: (query) => query.state.status !== "error",
+              shouldDehydrateQuery: defaultShouldDehydrateQuery,
             },
           }}
           onSuccess={() => {

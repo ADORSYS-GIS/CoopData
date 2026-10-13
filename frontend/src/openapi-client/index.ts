@@ -13,6 +13,7 @@ import createClient from "openapi-fetch";
 import type { paths } from "./api";
 import { getAccessToken } from "@/services/shared/authService";
 import { reportIfEditAccessLost } from "@/services/shared/editAccessEvents";
+import { CORRELATION_HEADER, takeCorrelationId } from "@/services/shared/correlation";
 import i18n from "i18next";
 import { toast } from "sonner";
 
@@ -81,6 +82,10 @@ apiClient.use({
       request.headers.set("Authorization", `Bearer ${token}`);
     } catch {
       // Not authenticated — let the request proceed without token
+    }
+    if (!request.headers.has(CORRELATION_HEADER)) {
+      const correlationId = takeCorrelationId(request.method, request.url);
+      if (correlationId) request.headers.set(CORRELATION_HEADER, correlationId);
     }
     return request;
   },

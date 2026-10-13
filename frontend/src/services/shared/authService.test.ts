@@ -325,15 +325,8 @@ describe("authService", () => {
     });
   });
 
-  describe("logout", () => {
-    it("should call keycloak.logout and clear tokens", async () => {
-      mockKeycloakInstance.logout.mockResolvedValue(undefined);
-      await logout();
-      expect(mockKeycloakInstance.logout).toHaveBeenCalledWith({
-        redirectUri: expect.stringContaining("/"),
-      });
-    });
-  });
+  // logout tests live in authService.restore.test.ts: logout leaves the module
+  // in its "leaving" state, so each test needs a fresh copy of the module.
 
   describe("getAccessToken", () => {
     it("should throw when not authenticated", async () => {

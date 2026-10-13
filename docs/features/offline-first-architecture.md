@@ -1,7 +1,9 @@
 # CoopData — Offline-First Architecture Design
 
+> ⚠️ **Outdated — original plan, not the current code.** This document was written before offline mode was implemented and describes pieces that were never built as written (for example a `useOfflineMutation` hook, `/api/v1/sync/push` and `/sync/pull` endpoints, and a custom service-worker sync handler). For how offline mode actually works, read [`offline-mode.md`](../knowledge/frontend/offline-mode.md).
+
 > **Branch:** `72-offline-support-implementation`
-> **Status:** DESIGN — Pending Implementation
+> **Status:** Original design (August 2026). Implemented differently — see the warning above.
 > **Last Updated:** 2026-08-12
 
 ---
@@ -398,6 +400,8 @@ VitePWA({
   devOptions: { enabled: true, type: "module" },
 }),
 ```
+
+> **Implementation note:** the shipped config sets `devOptions.enabled: false`, so the Vite dev server (`:5173`) never registers a service worker and cannot load offline. Test offline behaviour against the production build on `:5174` (the `frontend-pwa` service in `docker-compose.override.yml`). See [`offline-local-testing.md`](../knowledge/frontend/offline-local-testing.md).
 
 ### 6.3 API Request Interception Strategy
 

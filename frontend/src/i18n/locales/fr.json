@@ -4976,7 +4976,14 @@
     "backOnline": "Connexion rétablie — synchronisation de vos modifications",
     "online": "Online",
     "noSessionTitle": "Aucune connexion disponible",
-    "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter pour la première fois."
+    "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter.",
+    "reconnectNeedsReload": "La connexion est rétablie, mais l'application doit être rechargée pour reconnecter votre session.",
+    "reload": "Recharger",
+    "dataUnavailable": "Ces informations ne sont pas encore disponibles hors ligne. Ouvrez-les une fois en ligne pour les rendre disponibles hors ligne.",
+    "actionRequiresConnection": "Cette action nécessite une connexion Internet.",
+    "inviteQueued": "Invitation enregistrée sur cet appareil",
+    "resendQueued": "Renvoi enregistré sur cet appareil",
+    "inviteQueuedDesc": "Vous êtes hors ligne. Elle sera envoyée dès votre retour en ligne — la personne ne recevra l'e-mail qu'à ce moment-là."
   },
   "basicBenchmarking": {
     "pageTitle": "Analyse comparative de base",
@@ -6449,5 +6456,63 @@
         "other": "Ministères"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Non enregistré : {{count}}",
+    "panelTitle": "Modifications non enregistrées",
+    "panelDescription": "Ces modifications ont été faites sur cet appareil mais le serveur ne les a pas acceptées. Réessayez, ou ignorez-les pour les abandonner.",
+    "empty": "Rien à corriger — toutes vos modifications ont été enregistrées.",
+    "retry": "Réessayer",
+    "dismiss": "Ignorer",
+    "retryAll": "Tout réessayer",
+    "madeAt": "Faite le {{time}}",
+    "action": {
+      "create": "Création",
+      "update": "Modification",
+      "delete": "Suppression"
+    },
+    "subject": {
+      "section": "Section de la soumission",
+      "questionnaire": "Réponses au questionnaire",
+      "financialStatement": "État financier",
+      "indicators": "Indicateurs non financiers",
+      "narratives": "Commentaires",
+      "members": "Données des membres",
+      "savings": "Compte d'épargne",
+      "loans": "Prêt",
+      "fixedDeposits": "Dépôt à terme",
+      "farmCoop": "Données agricoles",
+      "submission": "Soumission",
+      "invitation": "Invitation",
+      "user": "Utilisateur",
+      "organization": "Organisation",
+      "federation": "Fédération",
+      "apex": "Apex",
+      "cooperative": "Coopérative",
+      "customKpi": "KPI personnalisé",
+      "questionnaireTemplate": "Modèle de questionnaire",
+      "indicatorCatalog": "Indicateur",
+      "change": "Modification"
+    },
+    "reason": {
+      "network": "Le serveur est resté injoignable après plusieurs tentatives.",
+      "sessionExpired": "Votre session a expiré. Reconnectez-vous, puis réessayez.",
+      "forbidden": "Vous n'avez plus l'autorisation pour cela.",
+      "notFound": "Cet élément n'existe plus sur le serveur.",
+      "server": "Le serveur n'a pas accepté cette modification."
+    }
+  },
+  "logoutPrompt": {
+    "title": "Se déconnecter ?",
+    "offline": "Vous êtes hors ligne. Si vous vous déconnectez maintenant, vous ne pourrez pas vous reconnecter avant d'avoir une connexion Internet.",
+    "unsent": "Vous avez {{count}} modification(s) pas encore envoyée(s). Elles restent sur cet appareil et seront envoyées à votre prochaine connexion avec Internet.",
+    "stay": "Rester connecté",
+    "confirm": "Se déconnecter quand même"
+  },
+  "sessionDeadline": {
+    "badge_one": "Connexion valable encore {{count}} jour",
+    "badge_other": "Connexion valable encore {{count}} jours",
+    "badgeToday": "La connexion expire aujourd'hui",
+    "hint": "Votre connexion sur cet appareil expire le {{date}}. Ensuite, il faudra Internet pour vous reconnecter avec votre mot de passe. Les modifications non envoyées sont conservées."
   }
 }

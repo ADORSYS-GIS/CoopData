@@ -37,9 +37,11 @@ export default defineConfig({
       // Global coverage thresholds set to realistic levels based on current coverage
       // perFile: false ensures thresholds apply to the global aggregate only,
       // so untested files don't block the build.
+      // Lowered for vitest 5, whose v8 coverage counts functions and branches
+      // more precisely (same tests: functions ~80% -> ~52%, branches ~78% -> ~56%).
       thresholds: {
-        functions: 55,
-        branches: 65,
+        functions: 50,
+        branches: 55,
         perFile: false,
       },
     },
