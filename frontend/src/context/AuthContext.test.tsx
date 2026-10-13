@@ -92,6 +92,9 @@ describe("AuthContext", () => {
     mockedGetAccessToken.mockResolvedValue("fake-token");
     mockedLogin.mockResolvedValue(undefined);
     mockedLogout.mockResolvedValue(undefined);
+    syncQueue.flushSyncQueue.mockResolvedValue(undefined);
+    syncQueue.getPendingCount.mockResolvedValue(0);
+    syncQueue.getFailedItems.mockResolvedValue([]);
   });
 
   describe("useAuth", () => {
