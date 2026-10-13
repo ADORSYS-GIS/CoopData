@@ -3,7 +3,6 @@ import {
   INDICATOR_KEYS,
   type DashboardScope,
   type GenderCount,
-  type ShareRow,
   type IndicatorGroup,
   type IndicatorValue,
   type SeriesPoint,
@@ -15,37 +14,31 @@ export type CellTone = "good" | "warn" | "bad" | "neutral";
 export const NOT_REPORTED_DASH = "—";
 
 const HIGHER_IS_WORSE_KEYS = new Set([
-  "inactive_members",
-  "loans_in_arrears_count",
-  "total_overdrafts",
-  "borrowed_funds_ratio",
-  "liquidity_gap_pct",
-  "operating_expense_ratio_pct",
+  "debt_to_equity_ratio",
+  "days_sales_outstanding",
+  "activity_concentration_risk_pct",
 ]);
 
 export const GROUP_ORDER: IndicatorGroup[] = [
   "membership",
-  "savings",
-  "loans",
-  "risk",
-  "liquidity",
-  "structure",
-  "capital",
-  "profitability",
   "governance",
   "training",
+  "profitability",
+  "savings",
+  "risk",
+  "capital",
   "coa",
 ];
 
 export const HEADLINE_KEYS = [
-  "registered_members",
-  "total_assets",
-  "total_deposits",
-  "gross_loan_portfolio",
+  "active_members_pct",
+  "women_members_pct",
+  "savings_account_penetration_pct",
   "par_gt_30_pct",
-  "liquidity_ratio_pct",
-  "institutional_capital_ratio_pct",
-  "net_income",
+  "agm_attendance_pct",
+  "total_operating_margin_pct",
+  "monetary_reserve_coverage_pct",
+  "delinquent_loan_account_rate_pct",
 ];
 
 export const isNotReported = (indicator: IndicatorValue): boolean =>
@@ -152,13 +145,11 @@ export const rateNote = (_scope: DashboardScope): string | null => null;
 export type RankingKey =
   | "name"
   | "total_members"
-  | "total_assets"
-  | "total_deposits"
-  | "gross_loans"
+  | "active_members_pct"
+  | "women_members_pct"
   | "par_gt_30_pct"
-  | "liquidity_ratio_pct"
-  | "institutional_capital_ratio_pct"
-  | "net_income";
+  | "total_operating_margin_pct"
+  | "monetary_reserve_coverage_pct";
 
 export const sortRows = <T extends object>(
   rows: T[],
@@ -206,26 +197,4 @@ export const currencyPrefix = (currency: string): string => (currency === "SZL" 
 export const womenSharePct = (counts: GenderCount): number | null => {
   const total = counts.male + counts.female;
   return total > 0 ? (counts.female / total) * 100 : null;
-};
-
-export interface DonutSlice {
-  name: string;
-  value: number;
-  share_pct: number;
-}
-
-export const topShares = (rows: ShareRow[], max: number, otherLabel: string): DonutSlice[] => {
-  const sorted = [...rows].sort((a, b) => b.value - a.value);
-  if (sorted.length <= max)
-    return sorted.map((r) => ({ name: r.name, value: r.value, share_pct: r.share_pct }));
-  const head = sorted.slice(0, max - 1);
-  const tail = sorted.slice(max - 1);
-  return [
-    ...head.map((r) => ({ name: r.name, value: r.value, share_pct: r.share_pct })),
-    {
-      name: otherLabel,
-      value: tail.reduce((sum, r) => sum + r.value, 0),
-      share_pct: tail.reduce((sum, r) => sum + r.share_pct, 0),
-    },
-  ];
 };

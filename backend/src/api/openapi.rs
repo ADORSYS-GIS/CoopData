@@ -309,8 +309,6 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::basic_dashboard::DashboardThresholds,
         api_module::dto::basic_dashboard::IndicatorValue,
         api_module::dto::basic_dashboard::SeriesPoint,
-        api_module::dto::basic_dashboard::ShareRow,
-        api_module::dto::basic_dashboard::MarketShare,
         api_module::dto::basic_dashboard::GenderCount,
         api_module::dto::basic_dashboard::AgeBands,
         api_module::dto::basic_dashboard::Demographics,

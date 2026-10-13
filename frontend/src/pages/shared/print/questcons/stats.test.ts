@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { complianceOf, coverageOf, marketSlices } from "@/pages/shared/print/questcons/stats";
+import { complianceOf, coverageOf } from "@/pages/shared/print/questcons/stats";
 import { concernsOf, recommendationsOf, strengthsOf } from "@/pages/shared/print/questcons/text";
 import { analyseQuestionnaire } from "@/pages/shared/print/quest/data";
 import type { BasicDashboardResponse, CooperativeRow } from "@/types/basic-dashboard";
@@ -8,15 +8,15 @@ import type { BasicDashboardResponse, CooperativeRow } from "@/types/basic-dashb
 const row = (
   id: string,
   par: number | null,
-  liquidity: number | null,
-  capital: number | null,
+  margin: number | null,
+  reserve: number | null,
 ): CooperativeRow =>
   ({
     cooperative_id: id,
     name: id,
     par_gt_30_pct: par,
-    liquidity_ratio_pct: liquidity,
-    institutional_capital_ratio_pct: capital,
+    total_operating_margin_pct: margin,
+    monetary_reserve_coverage_pct: reserve,
   }) as CooperativeRow;
 
 const dashboard = (rows: CooperativeRow[], inScope = rows.length): BasicDashboardResponse =>
@@ -31,21 +31,14 @@ const dashboard = (rows: CooperativeRow[], inScope = rows.length): BasicDashboar
     indicators: [],
     series: {},
     demographics: {},
-    market_share: {
-      by_assets: [
-        { cooperative_id: "a", name: "A", value: 60, share_pct: 60 },
-        { cooperative_id: "b", name: "B", value: 40, share_pct: 40 },
-      ],
-      by_loans: [],
-    },
     cooperatives: rows,
   }) as unknown as BasicDashboardResponse;
 
 const rows = [
-  row("a", 3, 20, 10),
-  row("b", 7, 10, 9),
-  row("c", 12, 15, 5),
-  row("d", null, null, 8),
+  row("a", 3, 20, 120),
+  row("b", 7, -5, 90),
+  row("c", 12, 0, 50),
+  row("d", null, null, 100),
 ];
 
 describe("complianceOf", () => {
@@ -53,8 +46,8 @@ describe("complianceOf", () => {
     const c = complianceOf(dashboard(rows));
 
     expect(c.par30).toEqual({ meets: 1, below: 2, notReported: 1 });
-    expect(c.liquidity).toEqual({ meets: 2, below: 1, notReported: 1 });
-    expect(c.capital).toEqual({ meets: 3, below: 1, notReported: 0 });
+    expect(c.operatingMargin).toEqual({ meets: 2, below: 1, notReported: 1 });
+    expect(c.reserveCoverage).toEqual({ meets: 2, below: 2, notReported: 0 });
   });
 
   it("splits cooperatives into PAR bands that add up to the total", () => {
@@ -76,16 +69,6 @@ describe("coverageOf", () => {
   });
 });
 
-describe("marketSlices", () => {
-  it("builds slices from the market share rows", () => {
-    expect(marketSlices(dashboard(rows)).assets).toEqual([
-      { label: "A", value: 60 },
-      { label: "B", value: 40 },
-    ]);
-    expect(marketSlices(dashboard(rows)).loans).toEqual([]);
-  });
-});
-
 describe("findings", () => {
   const analysis = (d: BasicDashboardResponse) =>
     analyseQuestionnaire({ dashboard: d, submissionId: "", coopName: "Fed", narratives: null });
@@ -100,7 +83,7 @@ describe("findings", () => {
   });
 
   it("lists strengths and no reporting recommendation when everything filed", () => {
-    const d = dashboard([row("a", 3, 20, 10)]);
+    const d = dashboard([row("a", 3, 20, 120)]);
 
     expect(strengthsOf(analysis(d))[0]).toContain("The cooperative in scope filed");
     expect(recommendationsOf(analysis(d)).map((r) => r.lead)).not.toContain("Reporting coverage.");

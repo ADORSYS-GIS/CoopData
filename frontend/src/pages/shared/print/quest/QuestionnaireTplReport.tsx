@@ -4,14 +4,13 @@ import type { QuestionnaireReportProps } from "@/pages/shared/print/components/q
 import { rateNote } from "@/lib/basic-dashboard";
 import { analyseQuestionnaire } from "@/pages/shared/print/quest/data";
 import { executivePage, membershipPage } from "@/pages/shared/print/quest/pages1";
-import { liquidityCapitalPage, portfolioPage, riskPage } from "@/pages/shared/print/quest/pages2";
+import { resiliencePage, savingsLoanQualityPage } from "@/pages/shared/print/quest/pages2";
 import {
   annexAPages,
   annexBPages,
-  assetTrendPage,
   findingsPage,
   mpcFinancialRatiosPage,
-  structurePage,
+  performancePage,
 } from "@/pages/shared/print/quest/pages3";
 import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 
@@ -45,12 +44,10 @@ export const QuestionnaireTplReport: FC<Props> = ({ apexName, status, ...props }
   const pages: PageSpec[] = [
     executivePage(a, next()),
     membershipPage(a, next()),
-    portfolioPage(a, next()),
-    riskPage(a, next()),
-    liquidityCapitalPage(a, next()),
-    structurePage(a, next()),
+    savingsLoanQualityPage(a, next()),
+    resiliencePage(a, next()),
+    performancePage(a, next()),
     ...optional((no) => mpcFinancialRatiosPage(a, no)),
-    ...optional((no) => assetTrendPage(a, no)),
     findingsPage(a, next()),
     ...annexAPages(a, "A"),
     ...annexBPages(a, "B"),
@@ -88,7 +85,7 @@ export const QuestionnaireTplReport: FC<Props> = ({ apexName, status, ...props }
           ["Benchmark framework", "PEARLS (adapted)", "Version", "1.0"],
         ],
         basis:
-          "This assessment is compiled from the questionnaire the cooperative answered through the Coop Data platform. It is not based on financial statements. Some indicators are estimated from grouped answers and some cannot be computed when a question was left unanswered; both are listed in Annex A. Liquidity is measured against member savings and institutional capital against total assets, as defined in Annex B. Figures have not been independently audited.",
+          "This assessment is compiled from the questionnaire the cooperative answered through the Coop Data platform. It is not based on financial statements. Some indicators are estimated from grouped answers and some cannot be computed when a question was left unanswered; both are listed in Annex A. Each indicator is defined in Annex B. Figures have not been independently audited.",
       }}
       pages={pages}
     />

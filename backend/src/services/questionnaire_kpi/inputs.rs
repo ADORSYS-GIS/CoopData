@@ -157,6 +157,7 @@ inputs! {
     delinq_0_30: first ["delinquent_value_0_30"], money = true;
     delinq_31_365: first ["delinquent_value_31_365"], money = true;
     written_off: first ["written_off_loans", "written_off_loans_value"], money = true;
+    recovered: first ["recovered_loans_last_12mo"], money = true;
     interest_suspense: first ["interest_in_suspense"], money = true;
     interest_payable: first ["interest_payable"], money = true;
     overdrafts: first ["total_overdrafts"], money = true;
@@ -210,6 +211,8 @@ inputs! {
     main_act_2_income: first ["main_activity_2_income"], money = true;
     main_act_2_expenses: first ["main_activity_2_expenses"], money = true;
     main_act_2_distrib: first ["main_activity_2_distrib_members"], money = true;
+    other_income: first ["other_activities_income"], money = true;
+    other_expenditure: first ["other_activities_expenditure"], money = true;
 }
 
 /// Financial answers win over non-financial ones for the same key.

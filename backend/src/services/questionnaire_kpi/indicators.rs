@@ -1,8 +1,6 @@
 //! Builds the ordered indicator list shown on the Basic Analytics dashboard.
 
-use super::derived::{
-    ratio_pct, Derived, INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
-};
+use super::derived::{ratio_pct, Derived};
 use super::inputs::Inputs;
 use crate::api::dto::basic_dashboard::IndicatorValue;
 
@@ -74,57 +72,27 @@ fn only_if(cond: bool, v: Option<f64>) -> Option<f64> {
 }
 
 pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
-    let mut o: Vec<IndicatorValue> = Vec::with_capacity(70);
+    let mut o: Vec<IndicatorValue> = Vec::with_capacity(24);
     let have_members = i.has_any(&["reg_m", "reg_f"]);
     let registered = have_members.then_some(d.registered);
     let exact = d.buckets_exact;
-    let note_buckets = Some("Needs the overdue-days buckets in the Loan Quality section.");
+    let ratio_unless_zero = |n: Option<f64>, base: Option<f64>| -> Option<f64> {
+        base.filter(|b| *b > 0.0).and_then(|b| n.map(|v| v / b * 100.0))
+    };
 
-    // ── membership ──
-    add(
-        &mut o,
-        "membership",
-        "count",
-        "registered_members",
-        registered,
-        false,
-        "Registered members male + female",
-        &["registered_members_male", "registered_members_female"],
-        None,
-    );
-    add(
-        &mut o,
-        "membership",
-        "count",
-        "active_members",
-        i.has_any(&["act_m", "act_f"]).then_some(d.active),
-        false,
-        "Active members male + female",
-        &["active_members_male", "active_members_female"],
-        None,
-    );
-    let inactive = (have_members && i.has_any(&["act_m", "act_f"]))
-        .then_some((d.registered - d.active).max(0.0));
-    add(
-        &mut o,
-        "membership",
-        "count",
-        "inactive_members",
-        inactive,
-        false,
-        "Registered - active members",
-        &["registered_members_*", "active_members_*"],
-        None,
-    );
+    // ── A. membership and inclusion (indicators 01-04) ──
     add(
         &mut o,
         "membership",
         "percent",
         "active_members_pct",
-        only_if(have_members, ratio_pct(Some(d.active), Some(d.registered))),
+        only_if(
+            have_members && i.has_any(&["act_m", "act_f"]),
+            ratio_pct(Some(d.active), Some(d.registered)),
+        ),
         false,
-        "Active / registered x 100",
-        &["active_members_*", "registered_members_*"],
+        "Active members / registered members x 100",
+        &["total_active_male", "total_active_female", "total_registered_male", "total_registered_female"],
         None,
     );
     add(
@@ -134,8 +102,8 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "women_members_pct",
         only_if(have_members, ratio_pct(Some(i.reg_f), Some(d.registered))),
         false,
-        "Female registered / registered x 100",
-        &["registered_members_female"],
+        "Female registered members / registered members x 100",
+        &["total_registered_male", "total_registered_female"],
         None,
     );
     let youth = i
@@ -148,658 +116,26 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "youth_members_pct",
         ratio_pct(youth, registered),
         false,
-        "Members aged 18-35 / registered x 100",
-        &["age_18_25_*", "age_26_35_*"],
+        "Members aged 18-35 (18-25 + 26-35, both sexes) / registered members x 100",
+        &["age_18_25_male", "age_18_25_female", "age_26_35_male", "age_26_35_female"],
         None,
     );
     add(
         &mut o,
         "membership",
-        "count",
-        "number_of_groups",
-        i.has("groups").then_some(i.groups),
-        false,
-        "Number of member groups",
-        &["number_of_groups"],
-        None,
-    );
-
-    // ── savings ──
-    add(
-        &mut o,
-        "savings",
-        "currency",
-        "total_deposits",
-        d.deposits,
-        false,
-        "Net savings value male + female",
-        &["savings_value_male", "savings_value_female"],
-        None,
-    );
-    add(
-        &mut o,
-        "savings",
-        "count",
-        "deposit_accounts",
-        d.deposit_accounts,
-        false,
-        "Savings accounts male + female",
-        &["savings_accounts_male", "savings_accounts_female"],
-        None,
-    );
-    let avg_savings = d
-        .deposits
-        .zip(d.deposit_accounts)
-        .and_then(|(v, n)| (n > 0.0).then_some(v / n));
-    add(
-        &mut o,
-        "savings",
-        "currency",
-        "avg_savings_per_account",
-        avg_savings,
-        false,
-        "Total deposits / deposit accounts",
-        &["savings_value_*", "savings_accounts_*"],
-        None,
-    );
-
-    // ── loans ──
-    add(
-        &mut o,
-        "loans",
-        "currency",
-        "gross_loan_portfolio",
-        d.gross_loans,
-        !i.has_any(&["out_val_m", "out_val_f"]),
-        "Outstanding loans male + female",
-        &["outstanding_value_male", "outstanding_value_female"],
-        None,
-    );
-    add(
-        &mut o,
-        "loans",
-        "count",
-        "loans_outstanding_count",
-        d.loans_out_count,
-        !d.loans_out_count_exact,
-        "Number of loans outstanding",
-        &["loans_outstanding_count", "loans_issued_*"],
-        Some("Falls back to loan accounts issued when the outstanding count is not entered."),
-    );
-    let avg_loan = d
-        .gross_loans
-        .zip(d.loans_out_count)
-        .and_then(|(v, n)| (n > 0.0).then_some(v / n));
-    add(
-        &mut o,
-        "loans",
-        "currency",
-        "avg_loan_balance",
-        avg_loan,
-        !d.loans_out_count_exact,
-        "Gross loan portfolio / loans outstanding",
-        &["outstanding_value_*", "loans_outstanding_count"],
-        None,
-    );
-    add(
-        &mut o,
-        "loans",
-        "currency",
-        "total_disbursed_active",
-        i.has("total_disbursed").then_some(i.total_disbursed),
-        false,
-        "Total disbursed on active loans",
-        &["total_disbursed_active"],
-        None,
-    );
-    add(
-        &mut o,
-        "loans",
-        "count",
-        "loans_awaiting_approval",
-        i.has("loans_awaiting").then_some(i.loans_awaiting),
-        false,
-        "Loans awaiting approval",
-        &["loans_awaiting_approval"],
-        None,
-    );
-    add(
-        &mut o,
-        "loans",
-        "count",
-        "loans_in_arrears_count",
-        i.has("loans_arrears_count")
-            .then_some(i.loans_arrears_count),
-        false,
-        "Number of loans in arrears",
-        &["loans_in_arrears_count"],
-        None,
-    );
-    add(
-        &mut o,
-        "loans",
-        "currency",
-        "projected_interest_earnings",
-        d.projected_interest,
-        true,
-        "Gross loans x monthly rate x average term (halved for reducing balance)",
-        &[
-            "avg_interest_rate",
-            "avg_loan_term_months",
-            "interest_rate_method",
-        ],
-        Some("Estimate only; actual earnings depend on repayment schedules."),
-    );
-    let female_pct = if i.has("female_borrowers") {
-        ratio_pct(Some(i.female_borrowers), d.loans_out_count)
-    } else {
-        ratio_pct(Some(i.loan_acc_f), Some(i.loan_acc_m + i.loan_acc_f))
-            .filter(|_| i.has_any(&["loan_acc_m", "loan_acc_f"]))
-    };
-    add(
-        &mut o,
-        "loans",
         "percent",
-        "female_borrowers_pct",
-        female_pct,
-        !i.has("female_borrowers"),
-        "Female borrowers / loans outstanding x 100",
-        &["female_borrowers_count", "loans_issued_female"],
-        None,
-    );
-    add(
-        &mut o,
-        "loans",
-        "currency",
-        "total_overdrafts",
-        i.has("overdrafts").then_some(i.overdrafts),
-        false,
-        "Total overdrafts",
-        &["total_overdrafts"],
-        None,
-    );
-
-    // ── risk ──
-    let par = |amount: Option<f64>| d.par_pct(amount);
-    add(
-        &mut o,
-        "risk",
-        "percent",
-        "par_gt_7_pct",
-        par(only_if(exact, d.overdue_gt_7)),
-        false,
-        "Balance overdue > 7 days / gross loans x 100",
-        &[
-            "par_8_30_value",
-            "par_31_90_value",
-            "par_91_180_value",
-            "par_181_360_value",
-            "par_over_360_value",
-        ],
-        note_buckets,
-    );
-    add(
-        &mut o,
-        "risk",
-        "percent",
-        "par_gt_30_pct",
-        par(d.overdue_gt_30),
-        !exact,
-        "Balance overdue > 30 days / gross loans x 100",
-        &[
-            "par_31_90_value",
-            "par_91_180_value",
-            "par_181_360_value",
-            "par_over_360_value",
-            "delinquent_value_31_365",
-        ],
-        Some("Falls back to the 31-365 day delinquency field when the buckets are empty."),
-    );
-    add(
-        &mut o,
-        "risk",
-        "percent",
-        "par_gt_90_pct",
-        par(only_if(exact, d.overdue_gt_90)),
-        false,
-        "Balance overdue > 90 days / gross loans x 100",
-        &[
-            "par_91_180_value",
-            "par_181_360_value",
-            "par_over_360_value",
-        ],
-        note_buckets,
-    );
-    add(
-        &mut o,
-        "risk",
-        "percent",
-        "par_30_90_pct",
-        par(only_if(exact, d.overdue_30_90)),
-        false,
-        "Balance overdue 31-90 days / gross loans x 100",
-        &["par_31_90_value"],
-        note_buckets,
-    );
-    add(
-        &mut o,
-        "risk",
-        "percent",
-        "par_180_360_pct",
-        par(only_if(exact, d.overdue_180_360)),
-        false,
-        "Balance overdue 181-360 days / gross loans x 100",
-        &["par_181_360_value"],
-        note_buckets,
-    );
-    add(
-        &mut o,
-        "risk",
-        "percent",
-        "portfolio_at_risk_pct",
-        par(d.overdue_total),
-        !exact,
-        "All overdue balance / gross loans x 100",
-        &[
-            "par_1_7_value",
-            "par_8_30_value",
-            "delinquent_value_0_30",
-            "delinquent_value_31_365",
-        ],
-        None,
-    );
-    add(
-        &mut o,
-        "risk",
-        "currency",
-        "value_at_risk",
-        d.overdue_total,
-        !exact,
-        "Balance of all overdue loans",
-        &["par_*_value", "delinquent_value_*"],
-        None,
-    );
-    add(
-        &mut o,
-        "risk",
-        "currency",
-        "var_gt_7",
-        only_if(exact, d.overdue_gt_7),
-        false,
-        "Balance overdue > 7 days",
-        &[
-            "par_8_30_value",
-            "par_31_90_value",
-            "par_91_180_value",
-            "par_181_360_value",
-            "par_over_360_value",
-        ],
-        note_buckets,
-    );
-    add(
-        &mut o,
-        "risk",
-        "currency",
-        "var_gt_30",
-        d.overdue_gt_30,
-        !exact,
-        "Balance overdue > 30 days",
-        &[
-            "par_31_90_value",
-            "par_91_180_value",
-            "par_181_360_value",
-            "par_over_360_value",
-            "delinquent_value_31_365",
-        ],
-        None,
-    );
-    add(
-        &mut o,
-        "risk",
-        "currency",
-        "var_gt_90",
-        only_if(exact, d.overdue_gt_90),
-        false,
-        "Balance overdue > 90 days",
-        &[
-            "par_91_180_value",
-            "par_181_360_value",
-            "par_over_360_value",
-        ],
-        note_buckets,
-    );
-    add(
-        &mut o,
-        "risk",
-        "currency",
-        "interest_in_suspense",
-        i.has("interest_suspense").then_some(i.interest_suspense),
-        false,
-        "Interest in suspense",
-        &["interest_in_suspense"],
-        None,
-    );
-    add(
-        &mut o,
-        "risk",
-        "currency",
-        "interest_payable",
-        i.has("interest_payable").then_some(i.interest_payable),
-        false,
-        "Interest payable",
-        &["interest_payable"],
-        None,
-    );
-    add(
-        &mut o,
-        "risk",
-        "currency",
-        "written_off_loans",
-        i.has("written_off").then_some(i.written_off),
-        false,
-        "Written-off loans",
-        &["written_off_loans"],
-        None,
-    );
-
-    // ── liquidity ──
-    let liq = d.liquidity_ratio_pct();
-    add(
-        &mut o,
-        "liquidity",
-        "currency",
-        "liquid_assets",
-        d.liquid_assets,
-        false,
-        "Cash on hand + cash at bank + money in bank",
-        &["cash_on_hand", "cash_at_bank_current", "bank_investment"],
-        None,
-    );
-    add(
-        &mut o,
-        "liquidity",
-        "percent",
-        "liquidity_ratio_pct",
-        liq,
-        false,
-        "Liquid assets / member savings x 100",
-        &[
-            "cash_on_hand",
-            "cash_at_bank_current",
-            "bank_investment",
-            "savings_value_*",
-        ],
-        None,
-    );
-    add(
-        &mut o,
-        "liquidity",
-        "percent",
-        "liquidity_minimum_pct",
-        Some(LIQUIDITY_MINIMUM_PCT),
-        false,
-        "Regulatory minimum liquidity to member savings",
-        &[],
-        Some("Regulatory constant."),
-    );
-    add(
-        &mut o,
-        "liquidity",
-        "percent",
-        "liquidity_gap_pct",
-        liq.map(|v| LIQUIDITY_MINIMUM_PCT - v),
-        false,
-        "Minimum - maintained liquidity (positive = shortfall)",
-        &[],
-        None,
-    );
-
-    // ── structure ──
-    add(
-        &mut o,
-        "structure",
-        "currency",
-        "total_assets",
-        d.total_assets,
-        false,
-        "Non-current assets + total current assets",
-        &["non_current_assets", "total_current_assets"],
-        None,
-    );
-    add(
-        &mut o,
-        "structure",
-        "percent",
-        "earning_asset_ratio",
-        ratio_pct(d.earning_assets, d.total_assets),
-        false,
-        "(Loans + investments) / total assets x 100",
-        &[
-            "outstanding_value_*",
-            "bank_investment",
-            "share_investment",
-            "other_investments",
-        ],
-        None,
-    );
-    add(
-        &mut o,
-        "structure",
-        "percent",
-        "member_savings_ratio",
-        ratio_pct(d.deposits, d.total_assets),
-        false,
-        "Member savings / total assets x 100",
-        &["savings_value_*"],
-        None,
-    );
-    add(
-        &mut o,
-        "structure",
-        "percent",
-        "member_share_ratio",
-        ratio_pct(
-            i.has("share_capital").then_some(i.share_capital),
-            d.total_assets,
+        "female_active_members_pct",
+        only_if(
+            i.has_any(&["act_m", "act_f"]),
+            ratio_pct(Some(i.act_f), Some(d.active)),
         ),
         false,
-        "Member share capital / total assets x 100",
-        &["total_share_capital"],
-        None,
-    );
-    add(
-        &mut o,
-        "structure",
-        "percent",
-        "borrowed_funds_ratio",
-        ratio_pct(i.has("borrowed").then_some(i.borrowed), d.total_assets),
-        false,
-        "Borrowed funds / total assets x 100",
-        &["borrowed_funds_total"],
-        None,
-    );
-    add(
-        &mut o,
-        "structure",
-        "percent",
-        "loans_to_savings_ratio",
-        ratio_pct(d.gross_loans, d.deposits),
-        false,
-        "Gross loans / member savings x 100",
-        &["outstanding_value_*", "savings_value_*"],
+        "Female active members / active members x 100",
+        &["total_active_male", "total_active_female"],
         None,
     );
 
-    // ── capital ──
-    let cap_ratio = d.institutional_capital_ratio_pct();
-    add(
-        &mut o,
-        "capital",
-        "currency",
-        "institutional_capital",
-        d.institutional_capital,
-        false,
-        "Retained earnings + statutory reserves + donations",
-        &[
-            "retained_earnings",
-            "accumulated_statutory_reserves",
-            "donations_grants",
-        ],
-        Some("Excludes member share capital."),
-    );
-    add(
-        &mut o,
-        "capital",
-        "percent",
-        "institutional_capital_ratio_pct",
-        cap_ratio,
-        false,
-        "Institutional capital / total assets x 100",
-        &[
-            "retained_earnings",
-            "accumulated_statutory_reserves",
-            "donations_grants",
-            "non_current_assets",
-            "total_current_assets",
-        ],
-        None,
-    );
-    add(
-        &mut o,
-        "capital",
-        "percent",
-        "institutional_capital_minimum_pct",
-        Some(INSTITUTIONAL_CAPITAL_MINIMUM_PCT),
-        false,
-        "Regulatory minimum institutional capital to assets",
-        &[],
-        Some("Regulatory constant."),
-    );
-    add(
-        &mut o,
-        "capital",
-        "percent",
-        "institutional_capital_excess_pct",
-        cap_ratio.map(|v| v - INSTITUTIONAL_CAPITAL_MINIMUM_PCT),
-        false,
-        "Ratio - minimum (negative = deficiency)",
-        &[],
-        None,
-    );
-    add(
-        &mut o,
-        "capital",
-        "currency",
-        "total_equity",
-        d.total_equity,
-        !i.has("total_equity"),
-        "Total equity",
-        &["total_equity"],
-        Some("Derived as assets - liabilities when not entered."),
-    );
-    add(
-        &mut o,
-        "capital",
-        "currency",
-        "share_capital",
-        i.has("share_capital").then_some(i.share_capital),
-        false,
-        "Total share capital",
-        &["total_share_capital"],
-        None,
-    );
-    add(
-        &mut o,
-        "capital",
-        "currency",
-        "retained_earnings",
-        i.has("retained_earnings").then_some(i.retained_earnings),
-        false,
-        "Retained earnings",
-        &["retained_earnings"],
-        None,
-    );
-    add(
-        &mut o,
-        "capital",
-        "currency",
-        "statutory_reserves",
-        i.has("statutory_reserves").then_some(i.statutory_reserves),
-        false,
-        "Accumulated statutory reserves",
-        &["accumulated_statutory_reserves"],
-        None,
-    );
-
-    // ── profitability ──
-    add(
-        &mut o,
-        "profitability",
-        "currency",
-        "total_income",
-        i.has("income").then_some(i.income),
-        false,
-        "Current year total income",
-        &["current_total_income"],
-        None,
-    );
-    add(
-        &mut o,
-        "profitability",
-        "currency",
-        "total_expenditure",
-        i.has("expenditure").then_some(i.expenditure),
-        false,
-        "Current year total expenditure",
-        &["current_total_expenditure"],
-        None,
-    );
-    add(
-        &mut o,
-        "profitability",
-        "currency",
-        "net_income",
-        d.net_income,
-        false,
-        "Net income (or income - expenditure)",
-        &[
-            "current_net_income",
-            "current_total_income",
-            "current_total_expenditure",
-        ],
-        None,
-    );
-    add(
-        &mut o,
-        "profitability",
-        "percent",
-        "return_on_assets_pct",
-        ratio_pct(d.net_income, d.total_assets),
-        false,
-        "Net income / total assets x 100",
-        &[
-            "current_net_income",
-            "non_current_assets",
-            "total_current_assets",
-        ],
-        None,
-    );
-    add(
-        &mut o,
-        "profitability",
-        "percent",
-        "operating_expense_ratio_pct",
-        ratio_pct(
-            i.has("expenditure").then_some(i.expenditure),
-            i.has("income").then_some(i.income),
-        ),
-        false,
-        "Expenditure / income x 100",
-        &["current_total_expenditure", "current_total_income"],
-        None,
-    );
-
-    // ── governance ──
+    // ── B. democratic governance (indicators 05-07) ──
     let women = |f: f64, m: f64, k: &[&'static str]| -> Option<f64> {
         i.has_any(k)
             .then(|| ratio_pct(Some(f), Some(f + m)))
@@ -812,30 +148,8 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "board_women_pct",
         women(i.board_f, i.board_m, &["board_m", "board_f"]),
         false,
-        "Female board members / board",
+        "Female board / management committee members / all members x 100",
         &["board_male", "board_female"],
-        None,
-    );
-    add(
-        &mut o,
-        "governance",
-        "percent",
-        "executive_women_pct",
-        women(i.exec_f, i.exec_m, &["exec_m", "exec_f"]),
-        false,
-        "Female executive members / executive",
-        &["exec_male", "exec_female"],
-        None,
-    );
-    add(
-        &mut o,
-        "governance",
-        "percent",
-        "credit_committee_women_pct",
-        women(i.credit_f, i.credit_m, &["credit_m", "credit_f"]),
-        false,
-        "Female credit committee members / committee",
-        &["credit_committee_male", "credit_committee_female"],
         None,
     );
     let agm = i.has_any(&["agm_m", "agm_f"]).then_some(i.agm_m + i.agm_f);
@@ -846,7 +160,7 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "agm_attendance_pct",
         ratio_pct(agm, registered),
         false,
-        "Last AGM attendance / registered members x 100",
+        "Members who attended the last AGM / registered members x 100",
         &["agm_attendance_male", "agm_attendance_female"],
         None,
     );
@@ -862,16 +176,30 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         Some("The selected meeting-frequency category is not treated as proof meetings took place."),
     );
 
-    // ── training coverage ──
+    // ── C. training coverage (indicators 08-10) ──
+    let staff_base = i
+        .has_any(&["staff_total_m", "staff_total_f"])
+        .then_some(i.staff_total_m + i.staff_total_f);
+    add(
+        &mut o,
+        "training",
+        "percent",
+        "staff_training_coverage_pct",
+        ratio_unless_zero(i.has("staff_trained").then_some(i.staff_trained), staff_base),
+        false,
+        "Staff trained last year / total staff x 100",
+        &["staff_trained_last_year", "staff_manager_male", "staff_manager_female"],
+        Some("Total staff comes from the staff table (Q16)."),
+    );
     add(
         &mut o,
         "training",
         "percent",
         "member_training_coverage_pct",
-        ratio_pct(i.has("members_trained").then_some(i.members_trained), registered),
+        ratio_unless_zero(i.has("members_trained").then_some(i.members_trained), registered),
         false,
         "Members trained last year / registered members x 100",
-        &["members_trained_last_year"],
+        &["members_trained_last_year", "total_registered_male", "total_registered_female"],
         None,
     );
     let leaders_base = i
@@ -882,44 +210,27 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "training",
         "percent",
         "leadership_training_coverage_pct",
-        ratio_pct(i.has("leaders_trained").then_some(i.leaders_trained), leaders_base),
+        ratio_unless_zero(i.has("leaders_trained").then_some(i.leaders_trained), leaders_base),
         false,
         "Leaders trained last year / management committee members x 100",
         &["leaders_trained_last_year", "board_male", "board_female"],
-        None,
-    );
-    let staff_base = i
-        .has_any(&["staff_total_m", "staff_total_f"])
-        .then_some(i.staff_total_m + i.staff_total_f);
-    add(
-        &mut o,
-        "training",
-        "percent",
-        "staff_training_coverage_pct",
-        ratio_pct(i.has("staff_trained").then_some(i.staff_trained), staff_base),
-        false,
-        "Staff trained last year / total staff x 100",
-        &["staff_trained_last_year"],
-        Some("Needs the staff composition table (Staff by Sex/Type)."),
+        Some("Uses the management committee as the leadership body, consistently across periods."),
     );
 
-    // ── activity performance (Q25/26/46) ──
+    // ── D. operational and economic performance (indicators 11-13) ──
     let main_income = i
         .has_any(&["main_act_1_income", "main_act_2_income"])
         .then_some(i.main_act_1_income + i.main_act_2_income);
     let main_expenses = i
         .has_any(&["main_act_1_expenses", "main_act_2_expenses"])
         .then_some(i.main_act_1_expenses + i.main_act_2_expenses);
-    let main_surplus = match (main_income, main_expenses) {
-        (Some(inc), Some(exp)) => Some(inc - exp),
-        _ => None,
-    };
+    let main_surplus = main_income.zip(main_expenses).map(|(inc, exp)| inc - exp);
     add(
         &mut o,
         "profitability",
         "percent",
         "main_activity_operating_margin_pct",
-        ratio_pct(main_surplus, main_income),
+        ratio_unless_zero(main_surplus, main_income),
         false,
         "(Main activity income - main activity expenses) / main activity income x 100",
         &[
@@ -928,18 +239,31 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
             "main_activity_2_income",
             "main_activity_2_expenses",
         ],
-        None,
+        Some("Q25 main activities 1 and 2 are taken together."),
     );
+
+    // Q46 totals are reported excluding donations; fall back to Q25 + Q26.
+    let q46 = i.has("income") && i.has("expenditure");
+    let other_income = i.has("other_income").then_some(i.other_income);
+    let other_expenses = i.has("other_expenditure").then_some(i.other_expenditure);
+    let (op_income, op_surplus, op_approx) = if q46 {
+        (Some(i.income), Some(i.income - i.expenditure), false)
+    } else if let (Some(mi), Some(me)) = (main_income, main_expenses) {
+        let income = mi + other_income.unwrap_or(0.0);
+        (Some(income), Some(income - me - other_expenses.unwrap_or(0.0)), true)
+    } else {
+        (None, None, false)
+    };
     add(
         &mut o,
         "profitability",
         "percent",
         "total_operating_margin_pct",
-        ratio_pct(d.net_income, i.has("income").then_some(i.income)),
-        false,
-        "(Total income - total expenditure) / total income x 100 (income is reported net of donations)",
+        ratio_unless_zero(op_surplus, op_income),
+        op_approx,
+        "(Total operating income - total operating expenditure) / total operating income x 100",
         &["current_total_income", "current_total_expenditure"],
-        None,
+        Some("Income excludes donations (Q46). Falls back to Q25 + Q26 when Q46 is empty."),
     );
     let main_distrib = i
         .has_any(&["main_act_1_distrib", "main_act_2_distrib"])
@@ -950,32 +274,143 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "percent",
         "member_economic_benefit_ratio_pct",
         only_if(
-            main_surplus.map(|s| s > 0.0).unwrap_or(false),
+            main_surplus.is_some_and(|s| s > 0.0),
             ratio_pct(main_distrib, main_surplus),
         ),
         false,
-        "Distributed to members / main activity net surplus x 100",
+        "Main activity surplus distributed to members / main activity net surplus x 100",
         &["main_activity_1_distrib_members", "main_activity_2_distrib_members"],
-        Some("Only calculated when main activity net surplus is positive — a distribution ratio, not an absolute benefit measure."),
+        Some("Only calculated when the main activity net surplus is positive."),
     );
 
-    // ── reserve coverage ──
+    // ── E. savings mobilisation (indicators 14-15) ──
+    let savings_accounts = i
+        .has_any(&["sav_acc_m", "sav_acc_f"])
+        .then_some(i.sav_acc_m + i.sav_acc_f);
+    add(
+        &mut o,
+        "savings",
+        "percent",
+        "savings_account_penetration_pct",
+        ratio_unless_zero(savings_accounts, registered),
+        false,
+        "Savings accounts / registered members x 100",
+        &["savings_accounts_male", "savings_accounts_female"],
+        Some("Account penetration: one member may hold several accounts."),
+    );
+    let avg = |value: Option<f64>, accounts: Option<f64>| -> Option<f64> {
+        accounts.filter(|n| *n > 0.0).zip(value).map(|(n, v)| v / n)
+    };
+    add(
+        &mut o,
+        "savings",
+        "currency",
+        "avg_savings_per_depositor",
+        avg(d.deposits, d.deposit_accounts),
+        false,
+        "Total net savings value / number of savings accounts",
+        &["savings_value_male", "savings_value_female", "savings_accounts_male", "savings_accounts_female"],
+        None,
+    );
+    add(
+        &mut o,
+        "savings",
+        "currency",
+        "avg_savings_per_depositor_male",
+        avg(
+            i.has("sav_val_m").then_some(i.sav_val_m),
+            i.has("sav_acc_m").then_some(i.sav_acc_m),
+        ),
+        false,
+        "Male net savings value / male savings accounts",
+        &["savings_value_male", "savings_accounts_male"],
+        None,
+    );
+    add(
+        &mut o,
+        "savings",
+        "currency",
+        "avg_savings_per_depositor_female",
+        avg(
+            i.has("sav_val_f").then_some(i.sav_val_f),
+            i.has("sav_acc_f").then_some(i.sav_acc_f),
+        ),
+        false,
+        "Female net savings value / female savings accounts",
+        &["savings_value_female", "savings_accounts_female"],
+        None,
+    );
+
+    // ── F. loan portfolio quality (indicators 16-18) ──
+    add(
+        &mut o,
+        "risk",
+        "percent",
+        "par_gt_30_pct",
+        d.par_pct(d.overdue_gt_30),
+        !exact,
+        "Outstanding balance of loans overdue more than 30 days / total outstanding loan portfolio x 100",
+        &[
+            "par_31_90_value",
+            "par_91_180_value",
+            "par_181_360_value",
+            "par_over_360_value",
+            "loans_outstanding_value_male",
+            "loans_outstanding_value_female",
+        ],
+        Some("Approximate when only the 31-365 day delinquency total is available."),
+    );
+    add(
+        &mut o,
+        "risk",
+        "percent",
+        "delinquent_loan_account_rate_pct",
+        ratio_unless_zero(
+            i.has("loans_arrears_count").then_some(i.loans_arrears_count),
+            i.has("loans_out_count").then_some(i.loans_out_count),
+        ),
+        false,
+        "Delinquent loan accounts / outstanding loan accounts x 100",
+        &[
+            "loans_delinquent_accounts_male",
+            "loans_delinquent_accounts_female",
+            "loans_outstanding_accounts_male",
+            "loans_outstanding_accounts_female",
+        ],
+        Some("Account-based measure, not the same as PAR."),
+    );
+    add(
+        &mut o,
+        "risk",
+        "percent",
+        "loan_recovery_rate_pct",
+        ratio_unless_zero(
+            i.has("recovered").then_some(i.recovered),
+            i.has("written_off").then_some(i.written_off),
+        ),
+        false,
+        "Loans recovered in the last 12 months / written-off loans x 100",
+        &["recovered_loans_last_12mo", "written_off_loans_value"],
+        Some("Not applicable when the written-off balance is zero."),
+    );
+
+    // ── G. institutional resilience (indicator 19) ──
     add(
         &mut o,
         "capital",
         "percent",
         "monetary_reserve_coverage_pct",
         only_if(
-            i.statutory_reserves > 0.0,
+            i.has("statutory_reserves") && i.statutory_reserves > 0.0,
             ratio_pct(
                 i.has("actual_reserves_bank").then_some(i.actual_reserves_bank),
-                i.has("statutory_reserves").then_some(i.statutory_reserves),
+                Some(i.statutory_reserves),
             ),
         ),
         false,
-        "Actual monetary reserves in the bank / accumulated statutory reserves x 100",
-        &["actual_monetary_reserves_bank", "accumulated_statutory_reserves", "accumulated_book_reserves"],
-        Some("Only calculated when accumulated reserves are positive, for the same reporting date — not a liquidity or solvency ratio."),
+        "Actual monetary reserves in the bank / accumulated book reserves x 100",
+        &["actual_monetary_reserves_bank", "accumulated_book_reserves"],
+        Some("Only calculated when accumulated reserves are positive, for the same reporting date."),
     );
 
     o

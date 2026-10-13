@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 import { ChartCard } from "@/components/analytics/basic/chart-shared";
 import {
@@ -15,28 +16,29 @@ import {
   CHART_COLORS,
   percentFormatters,
   TOOLTIP_STYLE,
-  useChartText,
 } from "@/components/analytics/basic/chart-config";
-import { hasSeriesData, seriesToChartData } from "@/lib/basic-dashboard";
-import type { SeriesPoint } from "@/types/basic-dashboard";
+import { hasSeriesData, humanizeKey, seriesToChartData } from "@/lib/basic-dashboard";
+import type { IndicatorGroup, SeriesPoint } from "@/types/basic-dashboard";
 
-const KEYS = ["par_gt_30_pct", "par_gt_90_pct", "portfolio_at_risk_pct"];
-const LABELS: Record<string, string> = {
-  par_gt_30_pct: "par30",
-  par_gt_90_pct: "par90",
-  portfolio_at_risk_pct: "portfolioAtRisk",
-};
+interface GroupTrendChartProps {
+  group: IndicatorGroup;
+  keys: string[];
+  points: SeriesPoint[] | undefined;
+}
 
-export function ParTrendChart({ points }: { points: SeriesPoint[] | undefined }) {
-  const text = useChartText("parTrend");
-  const data = seriesToChartData(points, KEYS);
+/** Percentage indicators of one group across reporting periods. */
+export function GroupTrendChart({ group, keys, points }: GroupTrendChartProps) {
+  const { t } = useTranslation();
+  const data = seriesToChartData(points, keys);
+  const label = (key: string) =>
+    t(`basicDashboard.indicators.${key}`, { defaultValue: humanizeKey(key) });
 
   return (
     <ChartCard
-      title={text.title}
-      subtitle={text.subtitle}
-      info={text.info}
-      hasData={hasSeriesData(points, KEYS)}
+      title={t(`basicDashboard.groups.${group}`)}
+      subtitle={t("basicDashboard.charts.groupTrend.subtitle")}
+      info={t("basicDashboard.charts.groupTrend.info")}
+      hasData={hasSeriesData(points, keys)}
     >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 16, right: 12, left: 0, bottom: 0 }}>
@@ -47,16 +49,16 @@ export function ParTrendChart({ points }: { points: SeriesPoint[] | undefined })
             contentStyle={TOOLTIP_STYLE}
             formatter={(value: number, name: string) => [
               percentFormatters.tooltip(value),
-              text.series(LABELS[name] ?? name),
+              label(name),
             ]}
           />
-          <Legend formatter={(name: string) => text.series(LABELS[name] ?? name)} />
-          {KEYS.map((key, index) => (
+          <Legend formatter={(name: string) => label(name)} />
+          {keys.map((key, index) => (
             <Line
               key={key}
               type="monotone"
               dataKey={key}
-              stroke={CHART_COLORS[index]}
+              stroke={CHART_COLORS[index % CHART_COLORS.length]}
               strokeWidth={2}
               dot
               connectNulls

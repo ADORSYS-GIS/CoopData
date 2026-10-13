@@ -82,16 +82,15 @@ pub struct QuestionnaireNarrativeContext {
     pub trends: Vec<QuestionnaireTrend>,
 }
 
-/// (series key, value name) pairs summarised for the narrative.
-const TREND_LINES: [(&str, &str); 8] = [
-    ("asset_evolution", "total_assets"),
-    ("savings_trend", "total_deposits"),
-    ("loan_portfolio", "gross_loans"),
-    ("par_trend", "par_gt_30_pct"),
-    ("liquidity", "maintained_pct"),
-    ("financial_structure", "earning_asset_ratio"),
-    ("profitability", "net_income"),
-    ("institutional_capital", "ratio_pct"),
+/// (series key = indicator group, indicator key) pairs summarised for the narrative.
+const TREND_LINES: [(&str, &str); 7] = [
+    ("membership", "active_members_pct"),
+    ("savings", "savings_account_penetration_pct"),
+    ("risk", "par_gt_30_pct"),
+    ("capital", "monetary_reserve_coverage_pct"),
+    ("profitability", "total_operating_margin_pct"),
+    ("governance", "agm_attendance_pct"),
+    ("coa", "net_profit_margin_pct"),
 ];
 
 /// Cooperative details the narrative needs.
@@ -286,16 +285,15 @@ fn prompt(
     )
 }
 
-const ALL_GROUPS: [&str; 9] = [
+const ALL_GROUPS: [&str; 8] = [
     "membership",
     "savings",
-    "loans",
     "risk",
-    "liquidity",
-    "structure",
     "capital",
     "profitability",
     "governance",
+    "training",
+    "coa",
 ];
 
 pub fn executive_summary_prompt(ctx: &QuestionnaireNarrativeContext) -> String {
@@ -303,18 +301,18 @@ pub fn executive_summary_prompt(ctx: &QuestionnaireNarrativeContext) -> String {
         ctx,
         "Write the executive summary of the cooperative's periodic performance report.",
         &ALL_GROUPS,
-        "Write exactly THREE paragraphs: (1) overall assessment of size, growth and soundness; (2) key strengths with specific values; (3) main risks and vulnerabilities with specific values.",
+        "Write exactly THREE paragraphs: (1) overall assessment of membership, governance and financial soundness; (2) key strengths with specific values; (3) main risks and vulnerabilities with specific values.",
         "executive_summary",
-        true,
+        false,
     )
 }
 
 pub fn membership_governance_prompt(ctx: &QuestionnaireNarrativeContext) -> String {
     prompt(
         ctx,
-        "Analyse membership and governance.",
-        &["membership", "governance"],
-        "Write ONE paragraph on membership size, activity, women and youth participation, and the gender balance of board, executive and credit committee.",
+        "Analyse membership, governance and training.",
+        &["membership", "governance", "training"],
+        "Write ONE paragraph on active, female and youth membership, female board representation, AGM participation, meetings held, and member, leader and staff training coverage.",
         "membership_governance",
         false,
     )
@@ -323,9 +321,9 @@ pub fn membership_governance_prompt(ctx: &QuestionnaireNarrativeContext) -> Stri
 pub fn portfolio_quality_prompt(ctx: &QuestionnaireNarrativeContext) -> String {
     prompt(
         ctx,
-        "Analyse the savings and loan portfolios and their quality.",
-        &["savings", "loans", "risk"],
-        "Write ONE paragraph on the loan and savings portfolios, portfolio at risk (PAR) across the overdue buckets, value at risk, interest in suspense and the trend across periods.",
+        "Analyse savings mobilisation and loan portfolio quality.",
+        &["savings", "risk"],
+        "Write ONE paragraph on savings account penetration, average savings per depositor (male and female), PAR over 30 days, the delinquent loan account rate, the loan recovery rate and the trend across periods.",
         "portfolio_quality",
         false,
     )
@@ -334,20 +332,20 @@ pub fn portfolio_quality_prompt(ctx: &QuestionnaireNarrativeContext) -> String {
 pub fn liquidity_capital_prompt(ctx: &QuestionnaireNarrativeContext) -> String {
     prompt(
         ctx,
-        "Analyse liquidity and institutional capital against the regulatory minimums.",
-        &["liquidity", "capital"],
-        "Write ONE paragraph on liquidity to member savings versus its minimum, and institutional capital to assets versus its minimum, with the size of any shortfall or excess.",
+        "Analyse institutional resilience and liquidity.",
+        &["capital", "coa"],
+        "Write ONE paragraph on monetary reserve coverage and, where reported, the current ratio, working capital, cash liquidity coverage and debt-to-equity ratio.",
         "liquidity_capital",
-        true,
+        false,
     )
 }
 
 pub fn financial_structure_profitability_prompt(ctx: &QuestionnaireNarrativeContext) -> String {
     prompt(
         ctx,
-        "Analyse the financial structure and profitability.",
-        &["structure", "profitability"],
-        "Write ONE paragraph on the earning asset, member savings, member share and borrowed funds ratios, and on income, expenditure, net income and return on assets.",
+        "Analyse operational and economic performance.",
+        &["profitability", "coa"],
+        "Write ONE paragraph on main activity and total operating margins, the member economic benefit ratio and, where reported, the profit margins, return on assets and equity, and activity concentration.",
         "financial_structure_profitability",
         false,
     )
@@ -360,7 +358,7 @@ pub fn outlook_recommendations_prompt(ctx: &QuestionnaireNarrativeContext) -> St
         &ALL_GROUPS,
         "Write ONE paragraph with 3 concrete recommendations for the cooperative and its supervisors, each tied to a specific indicator value, and one sentence on data gaps (indicators not reported).",
         "outlook_recommendations",
-        true,
+        false,
     )
 }
 
@@ -522,26 +520,26 @@ mod tests {
         };
         let mut series = HashMap::new();
         series.insert(
-            "asset_evolution".to_string(),
+            "membership".to_string(),
             vec![
                 SeriesPoint {
                     period_label: "Q1 2025".into(),
                     reporting_year: 2025,
                     period_type: "QUARTERLY".into(),
                     period_value: "Q1".into(),
-                    values: HashMap::from([("total_assets".to_string(), 100.0)]),
+                    values: HashMap::from([("active_members_pct".to_string(), 80.0)]),
                 },
                 SeriesPoint {
                     period_label: "Q2 2025".into(),
                     reporting_year: 2025,
                     period_type: "QUARTERLY".into(),
                     period_value: "Q2".into(),
-                    values: HashMap::from([("total_assets".to_string(), 120.0)]),
+                    values: HashMap::from([("active_members_pct".to_string(), 90.0)]),
                 },
             ],
         );
         series.insert(
-            "par_trend".to_string(),
+            "risk".to_string(),
             vec![SeriesPoint {
                 period_label: "Q2 2025".into(),
                 reporting_year: 2025,
@@ -569,19 +567,19 @@ mod tests {
             },
             indicators: vec![
                 IndicatorValue {
-                    key: "total_assets".into(),
-                    group: "structure".into(),
-                    value: Some(120.0),
-                    unit: "currency".into(),
+                    key: "active_members_pct".into(),
+                    group: "membership".into(),
+                    value: Some(90.0),
+                    unit: "percent".into(),
                     status: "computed".into(),
-                    previous: Some(100.0),
-                    change_pct: Some(20.0),
+                    previous: Some(80.0),
+                    change_pct: Some(10.0),
                     formula: String::new(),
                     sources: vec![],
                     note: None,
                 },
                 IndicatorValue {
-                    key: "par_gt_90_pct".into(),
+                    key: "par_gt_30_pct".into(),
                     group: "risk".into(),
                     value: None,
                     unit: "percent".into(),
@@ -594,7 +592,6 @@ mod tests {
                 },
             ],
             series,
-            market_share: None,
             demographics: Demographics {
                 registered: gender(),
                 active: gender(),
@@ -640,8 +637,8 @@ mod tests {
                 })
                 .collect(),
             trends: vec![QuestionnaireTrend {
-                name: "total_assets".into(),
-                points: vec![("Q1 2025".into(), 100.0), ("Q2 2025".into(), 120.0)],
+                name: "active_members_pct".into(),
+                points: vec![("Q1 2025".into(), 80.0), ("Q2 2025".into(), 90.0)],
             }],
         }
     }
@@ -681,18 +678,16 @@ mod tests {
 
     #[test]
     fn indicator_table_marks_missing_values_and_changes() {
-        let table = fmt_indicator_table(&context(), &["structure", "risk"]);
-        assert!(table.contains("| total_assets | SZL 120 | SZL 100 | +20.0% | computed |"));
-        assert!(table.contains("| par_gt_90_pct | not reported | - | - | not_reported |"));
+        let table = fmt_indicator_table(&context(), &["membership", "risk"]);
+        assert!(table.contains("| active_members_pct | 90.00% | 80.00% | +10.00 pts | computed |"));
+        assert!(table.contains("| par_gt_30_pct | not reported | - | - | not_reported |"));
     }
 
     #[test]
-    fn prompts_carry_thresholds_only_where_relevant() {
+    fn prompts_name_their_output_field() {
         let ctx = context();
-        assert!(liquidity_capital_prompt(&ctx).contains("Liquidity to member savings: 15%"));
-        assert!(executive_summary_prompt(&ctx).contains("Institutional capital to assets: 8%"));
-        assert!(!membership_governance_prompt(&ctx).contains("REGULATORY MINIMUMS"));
         assert!(portfolio_quality_prompt(&ctx).contains("\"portfolio_quality\":\"...\""));
+        assert!(!membership_governance_prompt(&ctx).contains("REGULATORY MINIMUMS"));
     }
 
     #[test]
@@ -708,8 +703,8 @@ mod tests {
         assert_eq!(ctx.coop_name, "Fixture SACCO");
         assert_eq!(ctx.period_label, "Q2 2025");
         assert_eq!(ctx.trends.len(), 1);
-        assert_eq!(ctx.trends[0].name, "total_assets");
+        assert_eq!(ctx.trends[0].name, "active_members_pct");
         assert_eq!(ctx.indicators.len(), 2);
-        assert_eq!(indicator_map(&dashboard())["par_gt_90_pct"], None);
+        assert_eq!(indicator_map(&dashboard())["par_gt_30_pct"], None);
     }
 }
