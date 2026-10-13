@@ -158,8 +158,8 @@ const FieldInput: React.FC<{
 
 // ─── Chart-of-Accounts Grid Renderer ───────────────────────────────────────────
 // Renders a field.type === "account_grid" field: a fixed table of standard
-// accounts (field.rows), where the respondent fills their own account
-// code/name plus opening/closing balance and annual movement per row. The
+// accounts (field.rows), where the respondent fills opening/closing
+// balance and annual movement (plus an activity code on tagged rows). The
 // whole table's values live under one answers[field.key], keyed by account
 // code — same flat answers model as every other field type.
 const cellInputClass =

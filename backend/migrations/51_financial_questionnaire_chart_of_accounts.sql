@@ -19,7 +19,7 @@
 -- (Assets, Liabilities, Equity, Revenue, Direct Costs, Operating Expenses,
 -- Finance & Other Costs) holding one "account_grid" field: a fixed table of
 -- Level-2/Level-3 standard accounts (from the xlsx), each row capturing the
--- MPC's own account name/code, opening balance, closing balance and annual
+-- optional activity code, opening balance, closing balance and annual
 -- movement. Rows marked "mandatory": false are conditional — only relevant
 -- to some MPCs (e.g. member deposits, financial income, borrowing).
 
@@ -48,7 +48,7 @@ BEGIN
     "id": "assets",
     "title": "Assets",
     "icon": "🏦",
-    "description": "Map your MPC's own accounts to the standard assets categories. Enter data only for accounts relevant to your cooperative.",
+    "description": "Enter the opening balance, closing balance and annual movement for each standard assets account relevant to your cooperative.",
     "fields": [
       {
         "key": "coa_assets",
@@ -118,7 +118,7 @@ BEGIN
     "id": "liabilities",
     "title": "Liabilities",
     "icon": "📑",
-    "description": "Map your MPC's own accounts to the standard liabilities categories. Enter data only for accounts relevant to your cooperative.",
+    "description": "Enter the opening balance, closing balance and annual movement for each standard liabilities account relevant to your cooperative.",
     "fields": [
       {
         "key": "coa_liabilities",
@@ -171,7 +171,7 @@ BEGIN
     "id": "equity",
     "title": "Equity",
     "icon": "🧾",
-    "description": "Map your MPC's own accounts to the standard equity categories. Enter data only for accounts relevant to your cooperative.",
+    "description": "Enter the opening balance, closing balance and annual movement for each standard equity account relevant to your cooperative.",
     "fields": [
       {
         "key": "coa_equity",
@@ -217,7 +217,7 @@ BEGIN
     "id": "revenue",
     "title": "Revenue",
     "icon": "💵",
-    "description": "Map your MPC's own accounts to the standard revenue categories. Enter data only for accounts relevant to your cooperative.",
+    "description": "Enter the opening balance, closing balance and annual movement for each standard revenue account relevant to your cooperative.",
     "fields": [
       {
         "key": "coa_revenue",
@@ -290,7 +290,7 @@ BEGIN
     "id": "direct_costs",
     "title": "Direct Costs",
     "icon": "📦",
-    "description": "Map your MPC's own accounts to the standard direct costs categories. Enter data only for accounts relevant to your cooperative.",
+    "description": "Enter the opening balance, closing balance and annual movement for each standard direct costs account relevant to your cooperative.",
     "fields": [
       {
         "key": "coa_direct_costs",
@@ -327,7 +327,7 @@ BEGIN
     "id": "operating_expenses",
     "title": "Operating Expenses",
     "icon": "🧮",
-    "description": "Map your MPC's own accounts to the standard operating expenses categories. Enter data only for accounts relevant to your cooperative.",
+    "description": "Enter the opening balance, closing balance and annual movement for each standard operating expenses account relevant to your cooperative.",
     "fields": [
       {
         "key": "coa_operating_expenses",
@@ -393,7 +393,7 @@ BEGIN
     "id": "finance_costs",
     "title": "Finance & Other Costs",
     "icon": "🏛️",
-    "description": "Map your MPC's own accounts to the standard finance & other costs categories. Enter data only for accounts relevant to your cooperative.",
+    "description": "Enter the opening balance, closing balance and annual movement for each standard finance & other costs account relevant to your cooperative.",
     "fields": [
       {
         "key": "coa_finance_costs",
