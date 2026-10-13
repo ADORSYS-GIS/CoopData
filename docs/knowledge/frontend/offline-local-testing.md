@@ -111,14 +111,14 @@ frontend-pwa:
 
 ### Automated offline tests (Playwright)
 
-18 end-to-end checks run against the PWA build on `:5174`:
+21 end-to-end checks run against the PWA build on `:5174`:
 
 | File                                         | Covers                                                                                                                                                                 |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `frontend/e2e/specs/offline.spec.ts`         | App opens offline; no crash on uncached submissions (A); pre-downloaded data found offline (G); pages refresh on reconnect (H); page snapshot saves without errors (I) |
 | `frontend/e2e/specs/offline-actions.spec.ts` | Online-only actions disabled offline and drafts allowed (B, apex drafts); honest offline invitation message (D-3)                                                      |
 | `frontend/e2e/specs/offline-sync.spec.ts`    | Outbox sends after an offline start (C); same correlation id on every attempt (D); "already exists" reported as failed (E); "Not saved" panel (F)                      |
-| `frontend/e2e/specs/offline-logout.spec.ts`  | Logout warns first offline; drafts and unsent changes survive logout (D-5)                                                                                             |
+| `frontend/e2e/specs/offline-logout.spec.ts`  | Logout warns first offline; drafts and unsent changes survive logout (D-5); saved login follows Keycloak's deadline, with a warning (J)                                |
 
 ```bash
 cd frontend && npm run test:e2e:offline

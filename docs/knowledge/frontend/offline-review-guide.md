@@ -41,6 +41,7 @@
 | **D-3**         | Offline invitations said "Invitation sent"                                                       | Say _"saved on this device, sent when you're back online"_                                          | `caaaddc` |
 | **#10**         | On a shared device, one user could see another user's saved data                                 | Only the current user's data (plus truly global data)                                               | `2fd60ff` |
 | **D-5**         | Idle logout deleted half-filled forms; logout could silently fail                                | Forms and unsent changes kept; warning before logout; logout race fixed                             | `5d74205` |
+| **J**           | The app counted 30 days from the last online use; Keycloak counts from the password sign-in      | The app follows Keycloak's real deadline, warns 3 days before, and logs out when it passes          | `b831a2e` |
 
 ---
 
@@ -145,15 +146,43 @@ Covered by an automated test (`offlineCache.test.ts`). It only happens on a shar
 3. **Drafts survive:** online, start the manual-entry wizard on a draft and fill part of it. Log out, sign in again, reopen the wizard. ✅ Your answers are still there. ❌ old: deleted at logout.
 4. **Logout really logs out:** online → Logout. ✅ You land on the start page and stay signed out. ❌ old: you were sometimes signed straight back in.
 
+### J — The saved login follows Keycloak's deadline
+
+The deadline is 30 days after the password sign-in. To try it without waiting 30 days, move it in DevTools:
+
+1. Sign in as any user (online).
+2. Console:
+   ```js
+   const r = indexedDB.open("keyval-store");
+   r.onsuccess = () => {
+     const s = r.result
+       .transaction("keyval", "readwrite")
+       .objectStore("keyval");
+     const g = s.get("coopdata_tokens");
+     g.onsuccess = () =>
+       s.put(
+         { ...g.result, refreshTokenExpiry: Date.now() + 2.5 * 864e5 },
+         "coopdata_tokens",
+       );
+   };
+   ```
+3. Network → **Offline** → **F5**.
+
+✅ The pill shows **"Sign-in ends in 2 days"**. Tap it for the explanation.
+
+4. Repeat step 2 with `Date.now() - 60000` (deadline already passed), then **F5** while offline.
+
+✅ _"Please connect to the internet to sign in."_ ❌ old: the app opened, because it only counted 30 days from the last online use.
+
 ---
 
 ## 3. Automated Tests
 
-| Command                                   | What it covers                                                                                                                                                                                                  |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cd frontend && npm run test:unit`        | All unit tests (≈890), including every fix above                                                                                                                                                                |
-| `cd frontend && npm run test:e2e:offline` | 18 end-to-end checks on the real app (`:5174`) in 4 files: `offline.spec.ts` (A, G, H, I), `offline-actions.spec.ts` (B, apex drafts, D-3), `offline-sync.spec.ts` (C, D, E, F), `offline-logout.spec.ts` (D-5) |
-| `cd backend && cargo test`                | Backend tests, including the apex create endpoint accepting a client id                                                                                                                                         |
+| Command                                   | What it covers                                                                                                                                                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cd frontend && npm run test:unit`        | All unit tests (≈890), including every fix above                                                                                                                                                                   |
+| `cd frontend && npm run test:e2e:offline` | 21 end-to-end checks on the real app (`:5174`) in 4 files: `offline.spec.ts` (A, G, H, I), `offline-actions.spec.ts` (B, apex drafts, D-3), `offline-sync.spec.ts` (C, D, E, F), `offline-logout.spec.ts` (D-5, J) |
+| `cd backend && cargo test`                | Backend tests, including the apex create endpoint accepting a client id                                                                                                                                            |
 
 Each e2e check was confirmed to **fail on the code before its fix** and pass after. One check (_"submitting a draft needs a connection"_) skips when no cooperative account holds an editable draft.
 

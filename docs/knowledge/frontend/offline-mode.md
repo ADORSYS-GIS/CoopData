@@ -12,7 +12,7 @@
 | The user wants to…                | What makes it work                                                                                                                     |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **Open the app** without internet | A **service worker** saves the app's files on the first online visit                                                                   |
-| **Sign in** without internet      | A **saved login** from the last online sign-in, valid 30 days, unless they logged out                                                  |
+| **Stay signed in** offline        | A **saved login** from the last password sign-in (online), valid 30 days from that sign-in, unless they log out. No sign-in offline    |
 | **See data** without internet     | Copies saved on the device: pages save what they load, and a **background download** (the "seeder") fetches the rest right after login |
 | **Save changes** without internet | Changes go into an **outbox** on the device and are sent automatically when the connection returns                                     |
 | **Know what didn't save**         | A red **"Not saved: N"** badge opens a list of refused changes with **Retry** and **Dismiss**                                          |
@@ -95,14 +95,16 @@ created ──► pending ──► syncing ──► done
 
 ## 6. Signing In and Out Offline
 
-| Situation                                               | What happens                                                                                                                                                     |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sign in **online**                                      | Keycloak sign-in (`offline_access` scope). The login is saved on the device for 30 days                                                                          |
-| Open the app **offline**                                | Uses the saved login ("offline mode"). Signing in for the first time offline is impossible                                                                       |
-| Connection **returns** after starting offline           | `restoreOnlineSession()` completes the skipped Keycloak start-up, leaves offline mode, sends the outbox and reloads data. No page reload needed                  |
-| **Idle 10 minutes**                                     | Logs out automatically. Saved copies and the saved login are removed. **The outbox and the user's drafts are kept** and resume at their next online sign-in      |
-| Click **Log out** while offline, or with unsent changes | A warning first: offline you can't sign in again until you have internet, and unsent changes stay on the device. **Log out anyway** offline opens the start page |
-| Another user signs in on the same device                | They never see the previous user's drafts or queued changes. Those wait for their owner                                                                          |
+| Situation                                               | What happens                                                                                                                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sign in **online**                                      | Keycloak sign-in (`offline_access` scope). The login is saved on the device until **Keycloak's deadline: 30 days after this password sign-in**                     |
+| Open the app **offline**                                | Uses the saved login ("offline mode"). Signing in offline (first time, after a logout, or after the deadline) is impossible: no one can check the password         |
+| The **deadline** approaches                             | Using the app does **not** extend it. In the last 3 days the status pill shows **"Sign-in ends in N days"** (tap for details)                                      |
+| The **deadline** passes                                 | The app logs out by itself, even if it stays open (checked every minute). Drafts and the outbox are kept. Signing in again needs internet and starts a new 30 days |
+| Connection **returns** after starting offline           | `restoreOnlineSession()` completes the skipped Keycloak start-up, leaves offline mode, sends the outbox and reloads data. No page reload needed                    |
+| **Idle 10 minutes**                                     | Logs out automatically. Saved copies and the saved login are removed. **The outbox and the user's drafts are kept** and resume at their next online sign-in        |
+| Click **Log out** while offline, or with unsent changes | A warning first: offline you can't sign in again until you have internet, and unsent changes stay on the device. **Log out anyway** offline opens the start page   |
+| Another user signs in on the same device                | They never see the previous user's drafts or queued changes. Those wait for their owner                                                                            |
 
 **Limitation:** if Keycloak was unreachable **at startup while the browser was online**, the session can't be restored without a page reload (keycloak-js can only initialise once per page load).
 
