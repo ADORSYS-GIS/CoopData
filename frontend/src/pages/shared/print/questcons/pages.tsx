@@ -164,7 +164,7 @@ export const cooperativePages = (a: QuestAnalysis, no: string): PageSpec[] => {
   const rows = dashboard.cooperatives;
   const pages = chunk(rows, ROWS_PER_PAGE);
   if (pages.length === 0) return [];
-  const pct = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)}%`);
+  const pct = (v: number | null | undefined) => (v == null ? "—" : `${v.toFixed(1)}%`);
   return pages.map((part, index): PageSpec => ({
     toc: index === 0 ? { no, title: "Cooperative Overview" } : undefined,
     render: () => (

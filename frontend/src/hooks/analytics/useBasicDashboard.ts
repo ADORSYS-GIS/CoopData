@@ -36,9 +36,9 @@ export const useBasicDashboard = (
   tokenOverride?: string,
 ) =>
   useOfflineQuery<BasicDashboardResponse>({
-    queryKey: ["basic-dashboard", "v1", params],
+    queryKey: ["basic-dashboard", "v2", params],
     cacheTable: "analytics",
-    cacheKey: `basic-dashboard-v1-${JSON.stringify(params)}`,
+    cacheKey: `basic-dashboard-v2-${JSON.stringify(params)}`,
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

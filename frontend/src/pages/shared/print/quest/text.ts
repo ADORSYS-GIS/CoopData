@@ -9,8 +9,8 @@ export const checksOf = (a: QuestAnalysis): Checks => ({
   par30: parTone(a.num("par_gt_30_pct")),
 });
 
-const pct = (value: number | null): string =>
-  value === null ? "not reported" : `${value.toFixed(1)}%`;
+const pct = (value: number | null | undefined): string =>
+  value == null ? "not reported" : `${value.toFixed(1)}%`;
 
 export const verdictOf = (a: QuestAnalysis): { verdict: string; body: string } => {
   const c = checksOf(a);

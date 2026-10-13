@@ -27,7 +27,8 @@ const COLUMNS: Column[] = [
   { key: "monetary_reserve_coverage_pct", labelKey: "reserveCoverage", numeric: true },
 ];
 
-const pct = (value: number | null): string => (value === null ? "—" : `${value.toFixed(2)}%`);
+const pct = (value: number | null | undefined): string =>
+  value == null ? "—" : `${value.toFixed(2)}%`;
 
 export function CooperativeRankingTable({ rows }: CooperativeRankingTableProps) {
   const { t } = useTranslation();
