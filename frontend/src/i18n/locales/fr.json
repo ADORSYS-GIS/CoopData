@@ -5072,12 +5072,13 @@
       "avg_savings_per_depositor_male": "Épargne moyenne par déposant (hommes)",
       "avg_savings_per_depositor_female": "Épargne moyenne par déposante (femmes)",
       "delinquent_loan_account_rate_pct": "Taux de comptes de prêt en défaut (%)",
-      "loan_recovery_rate_pct": "Taux de recouvrement des prêts (%)"
+      "loan_recovery_rate_pct": "Taux de recouvrement des prêts (%)",
+      "receivables_risk_ratio_pct": "Ratio de risque des créances (%)"
     },
     "status": {
       "approximate": "Approximatif",
-      "notReported": "Non renseigné",
-      "notReportedHint": "Ce chiffre ne peut pas être calculé car les champs du questionnaire nécessaires n'ont pas été remplis.",
+      "notReported": "Données insuffisantes",
+      "notReportedHint": "Données insuffisantes pour calculer cet indicateur.",
       "approximateHint": "Estimé à partir des champs du questionnaire les plus proches."
     },
     "tooltip": {
@@ -5231,7 +5232,8 @@
       "avg_savings_per_depositor_male": "Solde moyen par compte d'épargne des hommes. Formule : épargne nette des hommes divisée par leurs comptes.",
       "avg_savings_per_depositor_female": "Solde moyen par compte d'épargne des femmes. Formule : épargne nette des femmes divisée par leurs comptes.",
       "delinquent_loan_account_rate_pct": "Part des comptes de prêt en cours qui sont en défaut. Compte les comptes, pas les soldes (différent du PAR). Formule : comptes en défaut divisés par comptes de prêt en cours, en pourcentage.",
-      "loan_recovery_rate_pct": "Prêts recouvrés sur 12 mois rapportés aux prêts passés en perte. Non affiché si rien n'a été passé en perte. Formule : prêts recouvrés divisés par prêts passés en perte, en pourcentage."
+      "loan_recovery_rate_pct": "Prêts recouvrés sur 12 mois rapportés aux prêts passés en perte. Non affiché si rien n'a été passé en perte. Formule : prêts recouvrés divisés par prêts passés en perte, en pourcentage.",
+      "receivables_risk_ratio_pct": "Part des créances commerciales en retard de plus de 90 jours. Nécessite le chiffre des créances de plus de 90 jours de la section flux de trésorerie. Formule : créances de plus de 90 jours divisées par créances totales, en pourcentage."
     }
   },
   "questionnaireReport": {

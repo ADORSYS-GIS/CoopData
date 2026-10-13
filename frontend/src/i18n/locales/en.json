@@ -5097,12 +5097,13 @@
       "avg_savings_per_depositor_male": "Average savings per male depositor",
       "avg_savings_per_depositor_female": "Average savings per female depositor",
       "delinquent_loan_account_rate_pct": "Delinquent loan account rate (%)",
-      "loan_recovery_rate_pct": "Loan recovery rate (%)"
+      "loan_recovery_rate_pct": "Loan recovery rate (%)",
+      "receivables_risk_ratio_pct": "Receivables risk ratio (%)"
     },
     "status": {
       "approximate": "Approximate",
-      "notReported": "Not reported",
-      "notReportedHint": "This figure cannot be computed because the questionnaire fields it needs were not answered.",
+      "notReported": "Not enough data",
+      "notReportedHint": "Not enough data available to generate this indicator.",
       "approximateHint": "Estimated from the closest available questionnaire fields."
     },
     "tooltip": {
@@ -5278,7 +5279,8 @@
       "avg_savings_per_depositor_male": "The average balance held in each savings account of male depositors. Formula: male net savings value divided by male savings accounts.",
       "avg_savings_per_depositor_female": "The average balance held in each savings account of female depositors. Formula: female net savings value divided by female savings accounts.",
       "delinquent_loan_account_rate_pct": "The share of outstanding loan accounts that are delinquent. It counts accounts, so it is not the same as PAR, which uses loan balances. Formula: delinquent loan accounts divided by outstanding loan accounts, as a percentage.",
-      "loan_recovery_rate_pct": "Loans recovered over the last 12 months compared with loans written off. It is a reference ratio, not a collection efficiency ratio. It is not shown when nothing was written off. Formula: recovered loans divided by written-off loans, as a percentage."
+      "loan_recovery_rate_pct": "Loans recovered over the last 12 months compared with loans written off. It is a reference ratio, not a collection efficiency ratio. It is not shown when nothing was written off. Formula: recovered loans divided by written-off loans, as a percentage.",
+      "receivables_risk_ratio_pct": "Share of trade receivables overdue by more than 90 days. A high value means debtors are slow to pay. Needs the \"receivables overdue more than 90 days\" figure from the cash-flow section. Formula: receivables over 90 days divided by total receivables, as a percentage."
     }
   },
   "questionnaireReport": {

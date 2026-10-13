@@ -19,7 +19,7 @@ fn empty_answers_report_every_indicator_as_not_reported() {
     let b = CoaBalances::from_answers(&json!({}));
     assert!(!b.has_any());
     let list = build(&b);
-    assert_eq!(list.len(), 14);
+    assert_eq!(list.len(), 15);
     assert!(list.iter().all(|i| i.status == "not_reported" && i.value.is_none()));
 }
 
@@ -96,31 +96,61 @@ fn debt_to_equity_and_interest_coverage() {
 }
 
 #[test]
-fn dscr_estimates_principal_repaid_from_falling_borrowings() {
+fn cash_flow_kpis_use_the_reported_cash_flow_figures() {
     let answers = json!({
-        "coa_liabilities": { "2300": cell(5000.0, 3000.0, 0.0) }, // repaid 2000
-        "coa_equity": { "3500": cell(0.0, 1000.0, 0.0) },
+        "coa_assets": {
+            "1100": cell(0.0, 600.0, 0.0), "1200": cell(0.0, 400.0, 0.0),
+            "1400": cell(1000.0, 3000.0, 0.0)
+        },
+        "coa_liabilities": { "2100": cell(0.0, 2000.0, 0.0) },
         "coa_finance_costs": { "7100": cell(0.0, 0.0, 500.0) },
+        "cf_operating_cash_flow": 3000,
+        "cf_principal_repayments": 1500,
+        "cf_credit_sales": 10000,
+        "cf_cash_operating_expenses": 6000,
+        "cf_receivables_over_90": 600
     });
-    let b = CoaBalances::from_answers(&answers);
-    let list = build(&b);
-    // est operating cash flow = net surplus 1000 + depreciation 0 = 1000
-    // debt service = 2000 repaid + 500 interest = 2500
-    assert_eq!(value(&list, "dscr"), Some(0.4));
-    assert_eq!(status(&list, "dscr"), "approximate");
+    let list = build(&CoaBalances::from_answers(&answers));
+    assert_eq!(value(&list, "operating_cash_flow_ratio"), Some(1.5));
+    assert_eq!(value(&list, "dscr"), Some(1.5));
+    // (1000 + 3000) / 2 / 10000 * 365
+    assert_eq!(value(&list, "days_sales_outstanding"), Some(73.0));
+    // 1000 / (6000 / 12)
+    assert_eq!(value(&list, "cash_liquidity_coverage"), Some(2.0));
+    // 600 / 3000
+    assert_eq!(value(&list, "receivables_risk_ratio_pct"), Some(20.0));
+    assert_eq!(status(&list, "dscr"), "computed");
 }
 
 #[test]
-fn borrowings_growth_means_no_estimated_repayment() {
+fn cash_flow_kpis_are_not_generated_without_the_cash_flow_section() {
     let answers = json!({
-        "coa_liabilities": { "2300": cell(1000.0, 3000.0, 0.0) }, // grew, nothing repaid
-        "coa_equity": { "3500": cell(0.0, 500.0, 0.0) },
-        "coa_finance_costs": { "7100": cell(0.0, 0.0, 100.0) },
+        "coa_assets": { "1100": cell(0.0, 600.0, 0.0), "1400": cell(0.0, 3000.0, 0.0) },
+        "coa_liabilities": { "2100": cell(0.0, 2000.0, 0.0) },
+        "coa_finance_costs": { "7100": cell(0.0, 0.0, 500.0) },
+        "coa_equity": { "3500": cell(0.0, 1000.0, 0.0) },
     });
-    let b = CoaBalances::from_answers(&answers);
-    let list = build(&b);
-    // debt service = 0 repaid + 100 interest = 100; cash flow = 500
-    assert_eq!(value(&list, "dscr"), Some(5.0));
+    let list = build(&CoaBalances::from_answers(&answers));
+    for key in [
+        "operating_cash_flow_ratio",
+        "dscr",
+        "days_sales_outstanding",
+        "cash_liquidity_coverage",
+        "receivables_risk_ratio_pct",
+    ] {
+        assert_eq!(value(&list, key), None, "{key}");
+        assert_eq!(status(&list, key), "not_reported", "{key}");
+    }
+}
+
+#[test]
+fn dscr_needs_both_operating_cash_flow_and_principal_repayments() {
+    let answers = json!({
+        "coa_finance_costs": { "7100": cell(0.0, 0.0, 500.0) },
+        "cf_operating_cash_flow": 3000
+    });
+    let list = build(&CoaBalances::from_answers(&answers));
+    assert_eq!(value(&list, "dscr"), None);
 }
 
 #[test]

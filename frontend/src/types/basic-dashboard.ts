@@ -158,6 +158,7 @@ export const INDICATOR_KEYS: Record<IndicatorGroup, string[]> = {
     "activity_concentration_risk_pct",
     "dscr",
     "cash_liquidity_coverage",
+    "receivables_risk_ratio_pct",
     "interest_coverage",
   ],
 };

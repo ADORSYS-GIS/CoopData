@@ -39,7 +39,6 @@ const ACTIVITY_REVENUE: &[&str] = &["4100", "4200", "4300", "4400"];
 const DIRECT_COSTS: &[&str] = &["5100", "5200", "5300"];
 const OPEX: &[&str] = &["6100", "6200", "6300", "6400", "6500", "6600", "6700", "6800"];
 const FINANCE_COSTS: &[&str] = &["7100", "7200", "7300"];
-const BORROWINGS: &[&str] = &["2300", "2500"];
 
 #[derive(Debug, Clone, Copy, Default)]
 struct AccountFigure {
@@ -49,9 +48,21 @@ struct AccountFigure {
     reported: bool,
 }
 
+/// Optional cash-flow and receivables figures of the "cashflow" section.
+/// Absent keys mean the cooperative did not provide them: the KPIs that need
+/// them are then not generated.
+const EXTRA_KEYS: &[&str] = &[
+    "cf_operating_cash_flow",
+    "cf_principal_repayments",
+    "cf_credit_sales",
+    "cf_cash_operating_expenses",
+    "cf_receivables_over_90",
+];
+
 #[derive(Debug, Clone, Default)]
 pub struct CoaBalances {
     by_code: HashMap<String, AccountFigure>,
+    extras: HashMap<&'static str, f64>,
 }
 
 fn number(v: &Value) -> Option<f64> {
@@ -90,11 +101,21 @@ impl CoaBalances {
                 );
             }
         }
-        Self { by_code }
+        let mut extras = HashMap::new();
+        for key in EXTRA_KEYS {
+            if let Some(v) = answers.get(*key).and_then(number) {
+                extras.insert(*key, v);
+            }
+        }
+        Self { by_code, extras }
     }
 
     pub fn has_any(&self) -> bool {
         !self.by_code.is_empty()
+    }
+
+    fn extra(&self, key: &str) -> Option<f64> {
+        self.extras.get(key).copied()
     }
 
     pub fn add(&mut self, other: &Self) {
@@ -104,6 +125,9 @@ impl CoaBalances {
             entry.closing += fig.closing;
             entry.movement += fig.movement;
             entry.reported = entry.reported || fig.reported;
+        }
+        for (key, v) in &other.extras {
+            *self.extras.entry(key).or_insert(0.0) += v;
         }
     }
 
@@ -166,11 +190,11 @@ fn push(
     });
 }
 
-/// Builds the chart-of-accounts KPI set. Always returns all 13 rows — value
+/// Builds the chart-of-accounts KPI set. Always returns all 15 rows — value
 /// is `None` ("not_reported") for any ratio whose accounts were never filled
 /// in, same convention as the rest of the questionnaire KPI engine.
 pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
-    let mut o = Vec::with_capacity(13);
+    let mut o = Vec::with_capacity(15);
 
     let current_assets = b.sum_closing(CURRENT_ASSETS);
     let avg_total_assets = b.avg_balance(CURRENT_ASSETS) + b.avg_balance(NONCURRENT_ASSETS);
@@ -281,19 +305,19 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         None,
     );
 
-    // 8. Days Sales Outstanding
+    // 8. Days Sales Outstanding (needs credit sales)
     let avg_receivables = b.avg_balance(&["1400"]);
     push(
         &mut o,
         "ratio",
         "days_sales_outstanding",
-        has_op_revenue
-            .then(|| ratio(avg_receivables, op_revenue).map(|r| r * 365.0))
-            .flatten(),
-        true,
-        "Average trade receivables / operating revenue x 365",
-        &["coa_assets", "coa_revenue"],
-        Some("Operating revenue is used as a proxy for credit sales; the questionnaire does not separate cash and credit sales."),
+        b.extra("cf_credit_sales")
+            .filter(|_| b.any_reported(&["1400"]))
+            .and_then(|credit_sales| ratio(avg_receivables, credit_sales).map(|r| r * 365.0)),
+        false,
+        "Average trade receivables / credit sales x 365",
+        &["coa_assets", "cf_credit_sales"],
+        Some("Needs credit sales for the year (cash-flow section); not generated without it."),
     );
 
     // 9. Inventory Turnover
@@ -312,20 +336,19 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         None,
     );
 
-    // 10. Operating Cash Flow Ratio (approximate: net surplus + depreciation add-back)
-    let depreciation = b.sum_movement(&["6700"]);
-    let est_operating_cash_flow = net_surplus + depreciation;
+    // 10. Operating Cash Flow Ratio (needs reported operating cash flow)
+    let operating_cash_flow = b.extra("cf_operating_cash_flow");
     push(
         &mut o,
         "ratio",
         "operating_cash_flow_ratio",
-        (has_3500 && b.any_reported(CURRENT_LIABILITIES))
-            .then(|| ratio(est_operating_cash_flow, current_liabilities))
-            .flatten(),
-        true,
-        "(Net surplus + depreciation) / current liabilities",
-        &["coa_equity", "coa_operating_expenses", "coa_liabilities"],
-        Some("No cash-flow statement is captured; operating cash flow is estimated as net surplus plus the depreciation add-back."),
+        operating_cash_flow
+            .filter(|_| b.any_reported(CURRENT_LIABILITIES))
+            .and_then(|ocf| ratio(ocf, current_liabilities)),
+        false,
+        "Operating cash flow / current liabilities",
+        &["cf_operating_cash_flow", "coa_liabilities"],
+        Some("Needs net cash from operating activities (cash-flow section); not generated without it."),
     );
 
     // 11. Activity Concentration Risk
@@ -346,39 +369,35 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         None,
     );
 
-    // 12. DSCR (principal repayments estimated from the change in borrowings)
-    let borrowings_opening = b.sum_opening(BORROWINGS);
-    let borrowings_closing = b.sum_closing(BORROWINGS);
-    let est_principal_repaid = (borrowings_opening - borrowings_closing).max(0.0);
+    // 12. DSCR (needs reported operating cash flow and principal repayments)
     let interest_expense = b.sum_movement(&["7100"]);
-    let debt_service = est_principal_repaid + interest_expense;
     push(
         &mut o,
         "ratio",
         "dscr",
-        (has_3500 && b.any_reported(&["7100"]))
-            .then(|| ratio(est_operating_cash_flow, debt_service))
-            .flatten(),
-        true,
-        "(Net surplus + depreciation) / (estimated principal repaid + interest expense)",
-        &["coa_equity", "coa_liabilities", "coa_finance_costs"],
-        Some("Principal repaid is estimated from the fall in short- and long-term borrowings between opening and closing balance; not a reported figure."),
+        operating_cash_flow
+            .zip(b.extra("cf_principal_repayments"))
+            .filter(|_| b.any_reported(&["7100"]))
+            .and_then(|(ocf, principal)| ratio(ocf, principal + interest_expense)),
+        false,
+        "Operating cash flow / (principal repayments + interest payments)",
+        &["cf_operating_cash_flow", "cf_principal_repayments", "coa_finance_costs"],
+        Some("Needs operating cash flow and principal repayments (cash-flow section); not generated without them."),
     );
 
-    // 13. Cash Liquidity Coverage
+    // 13. Cash Liquidity Coverage (needs cash operating expenses)
     let cash_and_bank = b.sum_closing(&["1100", "1200"]);
-    let avg_monthly_opex = opex / 12.0;
     push(
         &mut o,
         "ratio",
         "cash_liquidity_coverage",
-        b.any_reported(OPEX)
-            .then(|| ratio(cash_and_bank, avg_monthly_opex))
-            .flatten(),
+        b.extra("cf_cash_operating_expenses")
+            .filter(|_| b.any_reported(&["1100", "1200"]))
+            .and_then(|cash_opex| ratio(cash_and_bank, cash_opex / 12.0)),
         false,
         "(Cash + bank) / average monthly cash operating expenses",
-        &["coa_assets", "coa_operating_expenses"],
-        None,
+        &["coa_assets", "cf_cash_operating_expenses"],
+        Some("Needs cash operating expenses for the year (cash-flow section); not generated without it."),
     );
 
     // 14. Interest Coverage
@@ -393,6 +412,20 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         "Operating profit / interest and finance costs",
         &["coa_revenue", "coa_direct_costs", "coa_operating_expenses", "coa_finance_costs"],
         None,
+    );
+
+    // 15. Receivables Risk Ratio (needs the over-90-day receivables)
+    push(
+        &mut o,
+        "percent",
+        "receivables_risk_ratio_pct",
+        b.extra("cf_receivables_over_90")
+            .filter(|_| b.any_reported(&["1400"]))
+            .and_then(|over_90| pct(over_90, b.sum_closing(&["1400"]))),
+        false,
+        ">90-day receivables / total receivables x 100",
+        &["cf_receivables_over_90", "coa_assets"],
+        Some("Needs receivables over 90 days (cash-flow section); not generated without it."),
     );
 
     o

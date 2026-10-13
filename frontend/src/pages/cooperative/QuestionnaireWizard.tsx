@@ -422,6 +422,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   const findMissingFields = (fields: TemplateField[]): { key: string; label: string }[] => {
     const missing: { key: string; label: string }[] = [];
     fields.forEach((field: TemplateField) => {
+      if (field.type !== "account_grid" && field.required === false) return;
       const filled =
         field.type === "account_grid"
           ? isGridComplete(field, answers[field.key])
@@ -699,12 +700,20 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                 )}
                 <p className="text-xs font-medium text-destructive/80 mt-1.5">
                   *{" "}
-                  {section.fields?.some((f: TemplateField) => f.type === "account_grid")
+                  {section.fields?.length &&
+                  section.fields.every(
+                    (f: TemplateField) => f.type !== "account_grid" && f.required === false,
+                  )
                     ? t(
-                        "questionnaire.coaRequiredLegend",
-                        "Accounts marked Required must be filled in. Optional accounts only apply to some cooperatives — leave them blank if they do not apply.",
+                        "questionnaire.allFieldsOptional",
+                        "All fields in this section are optional. Leave a field empty if you do not have the figure; the indicators that need it are then not generated.",
                       )
-                    : t("questionnaire.allFieldsRequired")}
+                    : section.fields?.some((f: TemplateField) => f.type === "account_grid")
+                      ? t(
+                          "questionnaire.coaRequiredLegend",
+                          "Accounts marked Required must be filled in. Optional accounts only apply to some cooperatives — leave them blank if they do not apply.",
+                        )
+                      : t("questionnaire.allFieldsRequired")}
                 </p>
               </div>
             </div>
@@ -739,7 +748,13 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                       className="text-sm font-medium text-foreground/80 mb-0.5"
                     >
                       {field.label}
-                      <span className="text-destructive ml-0.5">*</span>
+                      {field.required === false ? (
+                        <span className="text-muted-foreground ml-1 text-xs font-normal">
+                          ({t("questionnaire.optional", "optional")})
+                        </span>
+                      ) : (
+                        <span className="text-destructive ml-0.5">*</span>
+                      )}
                     </label>
                     {field.description && (
                       <span className="text-xs text-muted-foreground -mt-1 mb-1 leading-relaxed">
