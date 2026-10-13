@@ -63,6 +63,10 @@ const EXTRA_KEYS: &[&str] = &[
 pub struct CoaBalances {
     by_code: HashMap<String, AccountFigure>,
     extras: HashMap<&'static str, f64>,
+    /// Cooperatives that filled in each extra figure.
+    extras_count: HashMap<&'static str, u32>,
+    /// Cooperatives that contributed to these balances.
+    cooperatives: u32,
 }
 
 fn number(v: &Value) -> Option<f64> {
@@ -102,12 +106,20 @@ impl CoaBalances {
             }
         }
         let mut extras = HashMap::new();
+        let mut extras_count = HashMap::new();
         for key in EXTRA_KEYS {
             if let Some(v) = answers.get(*key).and_then(number) {
                 extras.insert(*key, v);
+                extras_count.insert(*key, 1);
             }
         }
-        Self { by_code, extras }
+        let cooperatives = u32::from(!by_code.is_empty() || !extras.is_empty());
+        Self {
+            by_code,
+            extras,
+            extras_count,
+            cooperatives,
+        }
     }
 
     pub fn has_any(&self) -> bool {
@@ -128,6 +140,24 @@ impl CoaBalances {
         }
         for (key, v) in &other.extras {
             *self.extras.entry(key).or_insert(0.0) += v;
+        }
+        for (key, n) in &other.extras_count {
+            *self.extras_count.entry(key).or_insert(0) += n;
+        }
+        self.cooperatives += other.cooperatives;
+    }
+
+    /// Caveat for a KPI built from an optional figure, when some of the
+    /// cooperatives in a consolidated view did not provide it.
+    fn coverage_note(&self, key: &str, base: &str) -> String {
+        let provided = self.extras_count.get(key).copied().unwrap_or(0);
+        if self.cooperatives > 1 && provided < self.cooperatives {
+            format!(
+                "{base} Some cooperatives did not provide this data, so the value may be incomplete ({provided} of {} provided it).",
+                self.cooperatives
+            )
+        } else {
+            base.to_string()
         }
     }
 
@@ -317,7 +347,7 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         false,
         "Average trade receivables / credit sales x 365",
         &["coa_assets", "cf_credit_sales"],
-        Some("Needs credit sales for the year (cash-flow section); not generated without it."),
+        Some(&b.coverage_note("cf_credit_sales", "Needs credit sales for the year (cash-flow section); not generated without it.")),
     );
 
     // 9. Inventory Turnover
@@ -348,7 +378,7 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         false,
         "Operating cash flow / current liabilities",
         &["cf_operating_cash_flow", "coa_liabilities"],
-        Some("Needs net cash from operating activities (cash-flow section); not generated without it."),
+        Some(&b.coverage_note("cf_operating_cash_flow", "Needs net cash from operating activities (cash-flow section); not generated without it.")),
     );
 
     // 11. Activity Concentration Risk
@@ -382,7 +412,7 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         false,
         "Operating cash flow / (principal repayments + interest payments)",
         &["cf_operating_cash_flow", "cf_principal_repayments", "coa_finance_costs"],
-        Some("Needs operating cash flow and principal repayments (cash-flow section); not generated without them."),
+        Some(&b.coverage_note("cf_principal_repayments", "Needs operating cash flow and principal repayments (cash-flow section); not generated without them.")),
     );
 
     // 13. Cash Liquidity Coverage (needs cash operating expenses)
@@ -397,7 +427,7 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         false,
         "(Cash + bank) / average monthly cash operating expenses",
         &["coa_assets", "cf_cash_operating_expenses"],
-        Some("Needs cash operating expenses for the year (cash-flow section); not generated without it."),
+        Some(&b.coverage_note("cf_cash_operating_expenses", "Needs cash operating expenses for the year (cash-flow section); not generated without it.")),
     );
 
     // 14. Interest Coverage
@@ -425,7 +455,7 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         false,
         ">90-day receivables / total receivables x 100",
         &["cf_receivables_over_90", "coa_assets"],
-        Some("Needs receivables over 90 days (cash-flow section); not generated without it."),
+        Some(&b.coverage_note("cf_receivables_over_90", "Needs receivables over 90 days (cash-flow section); not generated without it.")),
     );
 
     o

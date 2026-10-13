@@ -185,3 +185,25 @@ fn activity_concentration_picks_the_largest_single_activity() {
     // operating revenue = 7000+2000+1000=10000; largest activity = 7000 -> 70%
     assert_eq!(value(&list, "activity_concentration_risk_pct"), Some(70.0));
 }
+
+#[test]
+fn consolidated_cash_flow_kpi_says_when_some_cooperatives_lack_the_data() {
+    let with = CoaBalances::from_answers(&json!({
+        "coa_assets": { "1100": cell(0.0, 600.0, 0.0), "1200": cell(0.0, 400.0, 0.0) },
+        "cf_cash_operating_expenses": 6000
+    }));
+    let without = CoaBalances::from_answers(&json!({
+        "coa_assets": { "1100": cell(0.0, 100.0, 0.0) },
+    }));
+    let mut total = CoaBalances::default();
+    total.add(&with);
+    total.add(&without);
+    let list = build(&total);
+    let kpi = list.iter().find(|i| i.key == "cash_liquidity_coverage").unwrap();
+    assert!(kpi.value.is_some());
+    assert!(kpi.note.as_deref().unwrap().contains("1 of 2 provided it"));
+
+    let single = build(&with);
+    let kpi = single.iter().find(|i| i.key == "cash_liquidity_coverage").unwrap();
+    assert!(!kpi.note.as_deref().unwrap().contains("Some cooperatives"));
+}
