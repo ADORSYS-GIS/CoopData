@@ -80,6 +80,8 @@ const defaultPreview: DeletePreviewData = {
   members: 42,
 };
 
+type VerifyIdentity = React.ComponentProps<typeof DeleteConfirmationDialog>["onVerifyIdentity"];
+
 function makeOnVerifyIdentity(
   response: MockResponse = { ok: true, verification_token: "tok", requires_otp: false },
 ) {
@@ -365,7 +367,7 @@ describe("DeleteConfirmationDialog", () => {
       const onVerifyIdentity = vi.fn<VerifyIdentity>().mockImplementation(async () => {
         return { ok: true, verification_token: "tok-otp", requires_otp: true };
       });
-      const onConfirmDelete = vi.fn<ConfirmDelete>().mockImplementation(async () => {
+      const onConfirmDelete = vi.fn().mockImplementation(async () => {
         return undefined;
       });
 
@@ -383,7 +385,7 @@ describe("DeleteConfirmationDialog", () => {
 
     it("should reveal OTP field when backend returns OTP challenge (ok=false, requires_otp=true)", async () => {
       const onVerifyIdentity = vi
-        .fn()
+        .fn<VerifyIdentity>()
         .mockResolvedValueOnce({ ok: false, requires_otp: true })
         .mockResolvedValueOnce({ ok: true, verification_token: "tok-2", requires_otp: true });
       const onConfirmDelete = vi.fn<ConfirmDelete>().mockResolvedValue(undefined);

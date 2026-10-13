@@ -70,6 +70,12 @@ export interface SyncQueueItem {
   createdAt: number;
   retryCount: number;
   lastError?: string;
+  /** HTTP status of the last refusal (absent for network errors). */
+  lastStatus?: number;
+  /** Earliest time (ms) of the next automatic retry. */
+  nextAttemptAt?: number;
+  /** When the current send started; used to rescue items stuck in "syncing". */
+  syncStartedAt?: number;
   status: "pending" | "syncing" | "failed" | "done";
   optimisticData?: unknown;
   verificationToken?: string;
@@ -82,6 +88,8 @@ export interface OfflineMeta {
 
 export interface ManualEntryDraft {
   key: string;
+  /** Owner: drafts survive logout, so only this user may load them. */
+  userId: string;
   submissionId: string;
   mode: "financial" | "non_financial";
   data: unknown;
@@ -159,6 +167,30 @@ export class CoopDataOfflineDB extends Dexie {
         // Additive-only migration: adds the `drafts` table; existing tables are
         // unchanged, so no data transformation is required.
         console.log("[offlineDb] Schema upgraded to version 3 (drafts table)");
+      });
+
+    // Version 4 — drafts are owned by a user (they now survive logout, so another
+    // user on the same device must not load them). Older drafts have no owner and
+    // can't be attributed safely, so they are removed.
+    this.version(4)
+      .stores({
+        submissions: "&id, userId, role, isDirty, cachedAt",
+        analytics: "&key, userId, cachedAt",
+        federations: "&id, userId, cachedAt",
+        apexes: "&id, userId, cachedAt",
+        users: "&id, userId, cachedAt",
+        cooperatives: "&id, userId, cachedAt",
+        formTemplates: "&id, userId, cachedAt",
+        reports: "&id, userId, cachedAt",
+        syncQueue: "++id, userId, status, correlationId, createdAt",
+        meta: "&key",
+        drafts: "&key, userId, submissionId, mode, updatedAt",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("drafts")
+          .filter((draft: { userId?: string }) => !draft.userId)
+          .delete();
       });
   }
 }

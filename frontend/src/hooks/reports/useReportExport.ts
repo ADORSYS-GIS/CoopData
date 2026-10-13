@@ -7,6 +7,7 @@ import {
   type ReportRef,
   type ReportStatus,
 } from "@/services/reports/reportExportApi";
+import { assertOnline } from "@/services/shared/networkGuard";
 
 export type { ReportRef, ReportStatus };
 
@@ -34,6 +35,7 @@ export const usePrepareReport = (ref: ReportRef | null) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ lang, regenerate = false }: { lang: string; regenerate?: boolean }) => {
+      assertOnline();
       if (!ref) throw new Error("no_report_selected");
       return prepareReport(ref, lang, regenerate);
     },
@@ -46,6 +48,7 @@ export const usePrepareReport = (ref: ReportRef | null) => {
 export const useDownloadReport = (ref: ReportRef | null) =>
   useMutation({
     mutationFn: ({ lang, filename }: { lang: string; filename: string }) => {
+      assertOnline();
       if (!ref) throw new Error("no_report_selected");
       return downloadReport(ref, lang, filename);
     },

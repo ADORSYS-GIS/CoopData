@@ -1,15 +1,24 @@
-import { WifiOff, Wifi } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { WifiOff, Wifi, AlertTriangle, Clock } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/shared/useNetworkStatus";
+import { useSessionDeadline } from "@/hooks/shared/useSessionDeadline";
+import { useFailedSyncItems } from "@/hooks/shared/useFailedSyncItems";
 import { useTranslation } from "react-i18next";
+import { SyncProblemsDialog } from "./SyncProblemsDialog";
 
 /**
  * Small, unobtrusive network-status indicator shown in the bottom-right corner.
  * Displays a compact pill with a status dot — online or offline — plus a
- * pending-sync badge when there are queued offline changes.
+ * pending-sync badge when there are queued offline changes, and a red badge
+ * opening the list of changes the server didn't accept.
  */
 export function OfflineStatusBanner() {
   const { isOnline, wasOffline, pendingSyncCount } = useNetworkStatus();
-  const { t } = useTranslation();
+  const failed = useFailedSyncItems();
+  const [problemsOpen, setProblemsOpen] = useState(false);
+  const deadline = useSessionDeadline();
+  const { t, i18n } = useTranslation();
 
   // Always show a subtle indicator so the user knows their connectivity state.
   return (
@@ -62,6 +71,45 @@ export function OfflineStatusBanner() {
           {pendingSyncCount}
         </span>
       )}
+
+      {deadline.warn && deadline.expiresAt !== null && (
+        <button
+          type="button"
+          onClick={() =>
+            toast.info(
+              t("sessionDeadline.hint", {
+                date: new Date(deadline.expiresAt ?? 0).toLocaleString(i18n.language),
+              }),
+            )
+          }
+          className="ml-1 inline-flex items-center gap-1 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-warning-foreground hover:bg-warning/90"
+        >
+          <Clock className="size-3" aria-hidden="true" />
+          {deadline.daysLeft === 0
+            ? t("sessionDeadline.badgeToday")
+            : t("sessionDeadline.badge", { count: deadline.daysLeft ?? 0 })}
+        </button>
+      )}
+
+      {failed.items.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setProblemsOpen(true)}
+          className="ml-1 inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground hover:bg-destructive/90"
+        >
+          <AlertTriangle className="size-3" aria-hidden="true" />
+          {t("sync.failedBadge", { count: failed.items.length })}
+        </button>
+      )}
+
+      <SyncProblemsDialog
+        open={problemsOpen}
+        onOpenChange={setProblemsOpen}
+        items={failed.items}
+        onRetry={(id) => void failed.retry(id)}
+        onDismiss={(id) => void failed.dismiss(id)}
+        onRetryAll={() => void failed.retryAll()}
+      />
     </div>
   );
 }

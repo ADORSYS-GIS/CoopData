@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { fetchWithAuth } from "@/services/shared/authService";
 import { runMutation } from "@/services/shared/syncQueueService";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 const TEMPLATE_LIST_KEY = "questionnaire-templates";
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -38,8 +39,7 @@ export interface QuestionnaireTemplate {
 export const useQuestionnaireTemplates = () =>
   useOfflineQuery({
     queryKey: [TEMPLATE_LIST_KEY],
-    cacheTable: "formTemplates",
-    cacheKey: "questionnaire-templates",
+    ...offlineCacheKeys.questionnaireTemplates(),
     queryFn: async () => {
       const res = await fetchWithAuth(`${BASE}/api/v1/ministry/questionnaire-templates`);
       if (!res.ok) {

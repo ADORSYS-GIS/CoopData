@@ -10,6 +10,7 @@ import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import { runMutation } from "@/services/shared/syncQueueService";
 import type { components } from "@/openapi-client/api";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 const APEXES_KEY = "apexes";
 
@@ -39,8 +40,7 @@ const normalizeArray = <T>(value: unknown): T[] => {
 export const useApexes = (enabled = true) =>
   useOfflineQuery({
     queryKey: [APEXES_KEY],
-    cacheTable: "apexes",
-    cacheKey: "apexes-list",
+    ...offlineCacheKeys.apexesList(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/federation/apexes");

@@ -1,15 +1,18 @@
 import { get, set, del } from "idb-keyval";
-import { keycloak } from "./keycloakConfig";
+import { KEYCLOAK_CONFIG, keycloak } from "./keycloakConfig";
 import type { UserProfile, CustomKeycloakToken } from "@/types/auth";
 import type { Role } from "@/constants/roles";
 import { mapKeycloakRolesToRole } from "@/constants/roles";
 
 const TOKEN_CACHE_KEY = "coopdata_tokens";
 const REFRESH_THRESHOLD_SECONDS = 30;
-// 30-day offline token validity window
+const REACHABILITY_TIMEOUT_MS = 5000;
+// Fallback offline window, used only when the offline token carries no expiry
 const OFFLINE_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 let keycloakInitialized = false;
+// keycloak-js allows init() only once; it is skipped when the app starts offline.
+let keycloakInitAttempted = false;
 let isLoggingOut = false;
 let keycloakInitPromise: Promise<boolean> | null = null;
 let keycloakReadyResolvers: ((value: boolean) => void)[] = [];
@@ -88,6 +91,7 @@ async function doInitKeycloak(): Promise<boolean> {
   }
 
   try {
+    keycloakInitAttempted = true;
     const authenticated = await keycloak.init({
       onLoad: "check-sso",
       pkceMethod: "S256",
@@ -179,6 +183,81 @@ async function doInitKeycloak(): Promise<boolean> {
   }
 }
 
+/** Outcome of reconnecting the saved login to Keycloak once the network is back. */
+export type RestoreResult =
+  /** A live session again: API calls and the outbox can run. */
+  | "restored"
+  /** Keycloak can't be reached yet (the network is often reported up before it works): try again later. */
+  | "unreachable"
+  /** Keycloak refused the saved login (logged out elsewhere, disabled, expired): sign in again. */
+  | "ended"
+  /** Keycloak's one-time start-up already failed on this page: only a reload can retry it. */
+  | "reload";
+
+/** True when Keycloak answers. Checked first so the one-time start-up isn't spent on a dead network. */
+async function isKeycloakReachable(): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}/.well-known/openid-configuration`,
+      { cache: "no-store", signal: AbortSignal.timeout(REACHABILITY_TIMEOUT_MS) },
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Leaves offline mode once the network is back. When the app started offline,
+ * Keycloak initialisation was skipped: complete it now with the cached tokens
+ * (refreshing them), so API calls and the sync queue use a live session again.
+ * keycloak-js allows that initialisation only once per page, so it is attempted
+ * only when Keycloak is reachable.
+ */
+export async function restoreOnlineSession(): Promise<RestoreResult> {
+  if (!navigator.onLine || isLoggingOut) return "unreachable";
+  if (!(await isKeycloakReachable())) return "unreachable";
+
+  if (keycloak.authenticated) {
+    try {
+      await keycloak.updateToken(REFRESH_THRESHOLD_SECONDS);
+      await persistTokens();
+      offlineModeActive = false;
+      return "restored";
+    } catch (error) {
+      console.warn("[auth] Token refresh failed while restoring the online session:", error);
+      return (await isKeycloakReachable()) ? "ended" : "unreachable";
+    }
+  }
+
+  if (keycloakInitAttempted) return "reload";
+
+  const cachedTokens = await loadCachedTokens();
+  if (!cachedTokens) return "ended";
+
+  keycloakInitAttempted = true;
+  try {
+    const authenticated = await keycloak.init({
+      pkceMethod: "S256",
+      enableLogging: import.meta.env.DEV,
+      checkLoginIframe: false,
+      token: cachedTokens.token,
+      refreshToken: cachedTokens.refreshToken,
+      idToken: cachedTokens.idToken || undefined,
+    });
+    if (!authenticated) return "ended";
+    await persistTokens();
+    offlineModeActive = false;
+    console.log("[auth] Online session restored after starting offline");
+    return "restored";
+  } catch (error) {
+    console.warn("[auth] Could not restore the online session:", error);
+    // keycloak-js rejects when Keycloak refuses the saved login, and also on a
+    // network failure; the start-up is spent either way.
+    return (await isKeycloakReachable()) ? "ended" : "reload";
+  }
+}
+
 // ─── Auth actions ─────────────────────────────────────────────────────────────
 
 export async function login(): Promise<void> {
@@ -192,16 +271,40 @@ export async function login(): Promise<void> {
   });
 }
 
+/**
+ * Ends the session on this device and in Keycloak, then leaves the app.
+ *
+ * Never resolves: the page is navigating away. Callers must not continue with
+ * code that redirects inside the app — a client-side jump to /login starts a
+ * Keycloak sign-in that cancels the logout navigation and silently signs the
+ * user back in.
+ */
 export async function logout(): Promise<void> {
   console.log("[auth] logout() called");
   isLoggingOut = true;
   offlineModeActive = false;
   await clearCachedTokens();
+  try {
+    localStorage.removeItem("coopdata_user_profile");
+  } catch {
+    // storage unavailable: nothing to remove
+  }
   keycloakInitialized = false;
-  await keycloak.logout({
-    redirectUri: window.location.origin + "/",
-  });
-  isLoggingOut = false;
+  if (navigator.onLine) {
+    try {
+      await keycloak.logout({ redirectUri: window.location.origin + "/" });
+    } catch (error) {
+      // keycloak-js was never started on this page (the app started offline):
+      // the server session is already gone or unreachable, end it locally.
+      console.warn("[auth] Keycloak logout unavailable, ending the session locally:", error);
+      window.location.replace(window.location.origin + "/");
+    }
+  } else {
+    // Keycloak can't be reached: end the local session and go to the start page
+    // instead of a browser error page.
+    window.location.replace(window.location.origin + "/");
+  }
+  return new Promise<void>(() => {});
 }
 
 export async function getAccessToken(): Promise<string> {
@@ -480,9 +583,26 @@ interface CachedTokens {
   offlineToken: boolean; // true when offline_access scope was granted
 }
 
-/** Checks whether the stored refresh token is still within the 30-day offline window. */
+/**
+ * When the saved login stops working. Keycloak fixes this deadline at the
+ * password sign-in and copies it unchanged into every refreshed offline token,
+ * so it does not move with refreshes. Tokens without an expiry fall back to
+ * 30 days after the last refresh.
+ */
+function offlineSessionExpiry(cached: CachedTokens): number {
+  return cached.refreshTokenExpiry > 0
+    ? cached.refreshTokenExpiry
+    : cached.timestamp + OFFLINE_TOKEN_MAX_AGE_MS;
+}
+
+/** Checks whether the stored offline token can still be used without a network. */
 function isOfflineTokenValid(cached: CachedTokens): boolean {
-  return cached.offlineToken && Date.now() - cached.timestamp < OFFLINE_TOKEN_MAX_AGE_MS;
+  return cached.offlineToken && Date.now() < offlineSessionExpiry(cached);
+}
+
+/** When the saved login on this device ends (Unix ms), or null when there is none. */
+export function getOfflineSessionExpiry(): number | null {
+  return lastCachedTokens ? offlineSessionExpiry(lastCachedTokens) : null;
 }
 
 /** Synchronously read the user profile from a localStorage mirror (fallback for offline). */
@@ -500,7 +620,7 @@ async function persistTokens(): Promise<void> {
 
   // Parse expiry from JWT claims
   let tokenExpiry = Date.now() + 5 * 60 * 1000; // default 5 min
-  let refreshTokenExpiry = Date.now() + OFFLINE_TOKEN_MAX_AGE_MS;
+  let refreshTokenExpiry = 0; // unknown: offlineSessionExpiry() falls back
   try {
     const [, tp] = keycloak.token.split(".");
     const claims = JSON.parse(atob(tp.replace(/-/g, "+").replace(/_/g, "/"))) as Record<
@@ -540,6 +660,7 @@ async function persistTokens(): Promise<void> {
 
   try {
     await set(TOKEN_CACHE_KEY, tokens);
+    lastCachedTokens = tokens;
     // Mirror profile to localStorage for synchronous offline reads
     if (profile) localStorage.setItem("coopdata_user_profile", JSON.stringify(profile));
   } catch {
@@ -550,10 +671,12 @@ async function persistTokens(): Promise<void> {
 async function loadCachedTokens(): Promise<CachedTokens | null> {
   try {
     const tokens = await get<CachedTokens>(TOKEN_CACHE_KEY);
-    lastCachedTokens = tokens ?? null;
-    if (!tokens) return null;
-    // Accept cached tokens within the 30-day offline window
-    if (Date.now() - tokens.timestamp < OFFLINE_TOKEN_MAX_AGE_MS) {
+    if (!tokens) {
+      lastCachedTokens = null;
+      return null;
+    }
+    if (Date.now() < offlineSessionExpiry(tokens)) {
+      lastCachedTokens = tokens;
       return tokens;
     }
     await clearCachedTokens();
@@ -564,6 +687,7 @@ async function loadCachedTokens(): Promise<CachedTokens | null> {
 }
 
 async function clearCachedTokens(): Promise<void> {
+  lastCachedTokens = null;
   try {
     await del(TOKEN_CACHE_KEY);
   } catch {

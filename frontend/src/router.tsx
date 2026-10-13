@@ -1,4 +1,4 @@
-import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, onlineManager } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { logout, isAuthenticated } from "@/services/shared/authService";
@@ -48,6 +48,14 @@ function handleAuthError(error: unknown) {
 }
 
 export const getRouter = () => {
+  // onlineManager assumes "online" at startup and only reacts to online/offline
+  // events. When the app boots offline no "offline" event ever fires, so the
+  // later "online" event looks like no change and queries never refetch on
+  // reconnect. Seed it with the real connection state.
+  if (typeof navigator !== "undefined") {
+    onlineManager.setOnline(navigator.onLine);
+  }
+
   const queryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: (error) => handleAuthError(error),

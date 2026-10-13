@@ -204,4 +204,24 @@ describe("offlineCache", () => {
     const val1 = await cacheGet<any>("submissions", "sub-1", "user-123");
     expect(val1).toBeNull();
   });
+
+  it("never returns another user's copy of personal data (shared device)", async () => {
+    await cacheSet("analytics", "national-overview-{}", "apex-north", { scope: "North" });
+
+    const val = await cacheGet<any>("analytics", "national-overview-{}", "apex-south");
+
+    expect(val).toBeNull();
+  });
+
+  it("still shares data that is the same for every user", async () => {
+    await cacheSet("analytics", "organization-labels-list", "user-a", [{ level: "apex" }]);
+    await cacheSet("submissions", "active-template-financial-fr", "user-a", { id: "tpl" });
+
+    expect(await cacheGet<any>("analytics", "organization-labels-list", "user-b")).toEqual([
+      { level: "apex" },
+    ]);
+    expect(await cacheGet<any>("submissions", "active-template-financial-fr", "user-b")).toEqual({
+      id: "tpl",
+    });
+  });
 });

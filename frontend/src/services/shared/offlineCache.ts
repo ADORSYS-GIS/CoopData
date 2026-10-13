@@ -14,10 +14,20 @@ interface CacheRow {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyTable = any;
 
+/** Labels whose data is the same for every user (global settings and catalogs). */
+const SHARED_ACROSS_USERS = [
+  /^organization-labels-list$/,
+  /^active-template-/,
+  /^indicator-catalog-/,
+];
+
+const isSharedAcrossUsers = (key: string) => SHARED_ACROSS_USERS.some((p) => p.test(key));
+
 /**
  * Reads a value from the offline cache.
  * When offline or offline mode is active, ignores TTL expiration so cached data is served.
- * Tries matching key + userId first, then falls back to key alone if userId differs.
+ * Tries matching key + userId first; only data shared by all users may fall back
+ * to another user's copy.
  */
 export async function cacheGet<T>(
   table: CacheTable,
@@ -36,8 +46,10 @@ export async function cacheGet<T>(
       .and((r: CacheRow) => r.userId === userId)
       .first()) as CacheRow | undefined;
 
-    // 2. Fall back to matching primary key alone (for global settings shared across users like organization-labels)
-    if (!row) {
+    // 2. Data that is identical for every user may be read from another user's
+    //    copy. Never for anything else: on a shared device that would show one
+    //    organisation's data to another.
+    if (!row && isSharedAcrossUsers(key)) {
       row = (await tbl.where(pk).equals(key).first()) as CacheRow | undefined;
     }
 

@@ -17,6 +17,15 @@ import {
   getUserProfile,
   isOfflineModeActive,
 } from "@/services/shared/authService";
+import { keepRestoringSession } from "@/services/shared/sessionRestore";
+import {
+  flushSyncQueue,
+  getFailedItems,
+  getPendingCount,
+} from "@/services/shared/syncQueueService";
+import { isAppOffline } from "@/services/shared/networkGuard";
+import { useSessionDeadline } from "@/hooks/shared/useSessionDeadline";
+import { LogoutConfirmDialog, type LogoutPrompt } from "@/components/shared/LogoutConfirmDialog";
 import { apiClient } from "@/openapi-client";
 import { mergeServerNames, type ServerProfileNames } from "@/services/shared/profileNames";
 import { seedOfflineCache } from "@/services/shared/offlineSeeder";
@@ -27,6 +36,18 @@ import { ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Changes still on this device; 0 if storage can't be read (never blocks logout). */
+async function countUnsentChanges(): Promise<number> {
+  try {
+    return (await getPendingCount()) + (await getFailedItems()).length;
+  } catch {
+    return 0;
+  }
+}
+
+/** Tables that survive logout: queued changes and per-user drafts. */
+const KEPT_ON_LOGOUT = new Set(["syncQueue", "drafts"]);
+
 export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +55,7 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isOfflineAuthenticated, setIsOfflineAuthenticated] = useState(false);
+  const [logoutPrompt, setLogoutPrompt] = useState<LogoutPrompt | null>(null);
   const { t } = useTranslation();
 
   // Ref to store logout function for use in inactivity timeout
@@ -41,18 +63,53 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
 
   // Track online/offline status and flush sync queue / trigger seeder when back online
   useEffect(() => {
-    const handleOnline = () => {
+    let cancelRestore: (() => void) | undefined;
+
+    const goOnline = () => {
       setIsOffline(false);
       void seedOfflineCache();
     };
-    const handleOffline = () => setIsOffline(true);
+
+    const handleOnline = () => {
+      if (!isOfflineModeActive()) {
+        goOnline();
+        return;
+      }
+      // Started offline: finish the skipped Keycloak start-up before anything
+      // talks to the server, otherwise the outbox stays blocked until a reload.
+      // Keycloak is often unreachable for a moment after the network returns,
+      // so this retries until it answers.
+      cancelRestore?.();
+      cancelRestore = keepRestoringSession((result) => {
+        if (result === "restored") {
+          setIsOfflineAuthenticated(false);
+          void getAccessToken().then(setAccessToken);
+          window.dispatchEvent(new CustomEvent("coopdata-session-restored"));
+          void flushSyncQueue();
+          goOnline();
+        } else if (result === "ended") {
+          // Keycloak no longer accepts the saved login: sign in again (work is kept).
+          void logoutRef.current();
+        } else {
+          toast.info(t("offline.reconnectNeedsReload"), {
+            duration: Infinity,
+            action: { label: t("offline.reload"), onClick: () => window.location.reload() },
+          });
+        }
+      });
+    };
+    const handleOffline = () => {
+      cancelRestore?.();
+      setIsOffline(true);
+    };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
+      cancelRestore?.();
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [t]);
 
   // T3: Inactivity timeout — logout after 10 minutes of no user activity
   // Uses requestAnimationFrame debouncing for performance (Option B)
@@ -207,11 +264,14 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     await keycloakLogin();
   }, []);
 
-  const logout = useCallback(async () => {
+  const performLogout = useCallback(async () => {
     console.log("[auth-context] logout() called — redirecting");
     try {
+      // Cached copies are cleared, but the outbox and the user's drafts are kept:
+      // an automatic idle logout must not lose work. Both are tied to this user and
+      // resume when they sign in again.
       await Promise.all(
-        offlineDb.tables.filter((t) => t.name !== "syncQueue").map((t) => t.clear()),
+        offlineDb.tables.filter((t) => !KEPT_ON_LOGOUT.has(t.name)).map((t) => t.clear()),
       );
       console.log("[auth-context] Offline database cache cleared on logout");
     } catch (e) {
@@ -223,10 +283,31 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
   }, []);
 
-  // Keep logoutRef in sync with logout callback
+  /** User-initiated logout: asks first if it would lock them out offline or leave changes unsent. */
+  const logout = useCallback(async () => {
+    const offline = isAppOffline();
+    if (!offline) await flushSyncQueue().catch(() => undefined);
+    const unsentCount = await countUnsentChanges();
+    if (offline || unsentCount > 0) {
+      setLogoutPrompt({ offline, unsentCount });
+      return;
+    }
+    await performLogout();
+  }, [performLogout]);
+
+  // The idle timeout logs out without asking: nobody is there to answer.
   useEffect(() => {
-    logoutRef.current = logout;
-  }, [logout]);
+    logoutRef.current = performLogout;
+  }, [performLogout]);
+
+  // Keycloak ends the saved login at a fixed deadline. Offline nobody else
+  // enforces it, so the app logs out itself (drafts and the outbox are kept).
+  useSessionDeadline(
+    useCallback(() => {
+      console.log("[auth-context] Saved login reached its deadline — logging out");
+      void logoutRef.current();
+    }, []),
+  );
 
   const hasRoleFn = useCallback(
     (role: Role) => {
@@ -265,7 +346,19 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
     isOfflineAuthenticated,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <LogoutConfirmDialog
+        prompt={logoutPrompt}
+        onStay={() => setLogoutPrompt(null)}
+        onLogout={() => {
+          setLogoutPrompt(null);
+          void performLogout();
+        }}
+      />
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

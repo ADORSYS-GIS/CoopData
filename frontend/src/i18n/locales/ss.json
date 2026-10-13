@@ -4979,7 +4979,14 @@
     "backOnline": "Ubuyile ku-inthanethi — uyavumelanisa",
     "online": "Kuxhumene",
     "noSessionTitle": "Akukho lusito lwe-inthanethi",
-    "noSessionDesc": "Sicela unxibelelanise ne-inthanethi ukuze ungene ngemvume okokuqala."
+    "noSessionDesc": "Sicela unxibelelanise ne-inthanethi kute ungene.",
+    "reconnectNeedsReload": "Kuxhumana sekubuyile, kodvwa luhlelo ludzinga kulayishwa kabusha kute lubuyisele kungena kwakho.",
+    "reload": "Layisha kabusha",
+    "dataUnavailable": "Lolwatiso alukatfolakali ngaphandle kwe-inthanethi. Luvule kanye uxhumeke ku-inthanethi kuze lutfolakale ngaphandle kwe-inthanethi.",
+    "actionRequiresConnection": "Lesento sidzinga kuxhumeka ku-inthanethi.",
+    "inviteQueued": "Simemo sigcinwe kulelithuluzi",
+    "resendQueued": "Kutfumela futsi kugcinwe kulelithuluzi",
+    "inviteQueuedDesc": "Awukho ku-inthanethi. Sitawutfunyelwa nawubuyela ku-inthanethi — umuntfu utawutfola i-imeyili ngaleso sikhatsi kuphela."
   },
   "basicBenchmarking": {
     "pageTitle": "Kuhlukaniswa Kwekusebenta Lokucala",
@@ -6536,5 +6543,63 @@
         "other": "Emalitiko"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Akugcinwanga: {{count}}",
+    "panelTitle": "Lushintjo lolungakagcinwa",
+    "panelDescription": "Lolushintjo lwentiwa kulelithuluzi kodvwa i-server ayilwemukelanga. Phindza uzame, noma ulususe.",
+    "empty": "Kute lokufanele kulungiswe — konkhe lokushintjile kugciniwe.",
+    "retry": "Phindza uzame",
+    "dismiss": "Susa",
+    "retryAll": "Phindza konkhe",
+    "madeAt": "Kwentiwe ngu-{{time}}",
+    "action": {
+      "create": "Kwakha",
+      "update": "Kubuyeketa",
+      "delete": "Kususa"
+    },
+    "subject": {
+      "section": "Sigaba sesicelo",
+      "questionnaire": "Timphendvulo temibuto",
+      "financialStatement": "Sitatimende setimali",
+      "indicators": "Tinkomba letingasito tetimali",
+      "narratives": "Tincazelo",
+      "members": "Imininingwane yemalunga",
+      "savings": "I-akhawunti yekonga",
+      "loans": "Imboleko",
+      "fixedDeposits": "Idiphozithi lengashintji",
+      "farmCoop": "Imininingwane yepulazi",
+      "submission": "Sicelo",
+      "invitation": "Simemo",
+      "user": "Umsebentisi",
+      "organization": "Inhlangano",
+      "federation": "I-federation",
+      "apex": "I-apex",
+      "cooperative": "Libhizinisi lekubambisana",
+      "customKpi": "I-KPI lehleliwe",
+      "questionnaireTemplate": "Sifanekiso semibuto",
+      "indicatorCatalog": "Inkomba",
+      "change": "Lushintjo"
+    },
+    "reason": {
+      "network": "I-server ayikatfolakali ngemuva kwemizamo leminyenti.",
+      "sessionExpired": "Sikhatsi sakho siphelelwe. Phindza ungene, bese uyazama.",
+      "forbidden": "Awusenayo imvume yaloku.",
+      "notFound": "Loku akusekho ku-server.",
+      "server": "I-server ayilwemukelanga lolushintjo."
+    }
+  },
+  "logoutPrompt": {
+    "title": "Uyaphuma?",
+    "offline": "Awukho ku-inthanethi. Nawuphuma nyalo, angeke ukhone kungena futsi uze ube ne-inthanethi.",
+    "unsent": "Une-{{count}} lushintjo lolungakatfunyelwa. Lutawuhlala kulelithuluzi futsi lutfunyelwe nawungena ne-inthanethi.",
+    "stay": "Hlala ungenile",
+    "confirm": "Phuma noma kunjalo"
+  },
+  "sessionDeadline": {
+    "badge_one": "Kungena kuphela ngelilanga lelilinye ({{count}})",
+    "badge_other": "Kungena kuphela emalangeni langu-{{count}}",
+    "badgeToday": "Kungena kuphela lamuhla",
+    "hint": "Kungena kwakho kulelithuluzi kuphela nga-{{date}}. Ngemuva kwaloko udzinga i-inthanethi kute ungene futsi ngephasiwedi yakho. Lushintjo lolungakatfunyelwa luyagcinwa."
   }
 }

@@ -4979,7 +4979,14 @@
     "backOnline": "Back online — syncing your changes",
     "online": "Online",
     "noSessionTitle": "No connection available",
-    "noSessionDesc": "Please connect to the internet to sign in for the first time."
+    "noSessionDesc": "Please connect to the internet to sign in.",
+    "reconnectNeedsReload": "Connection is back, but the app needs a reload to reconnect your session.",
+    "reload": "Reload",
+    "dataUnavailable": "This information isn't available offline yet. Open it once while online to make it available offline.",
+    "actionRequiresConnection": "This action needs an internet connection.",
+    "inviteQueued": "Invitation saved on this device",
+    "resendQueued": "Resend saved on this device",
+    "inviteQueuedDesc": "You're offline. It will be sent when you're back online — the person only receives the email then."
   },
   "basicBenchmarking": {
     "pageTitle": "Basic Benchmarking",
@@ -6536,5 +6543,63 @@
         "other": "Ministries"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Not saved: {{count}}",
+    "panelTitle": "Changes that couldn't be saved",
+    "panelDescription": "These changes were made on this device but the server didn't accept them. Retry them, or dismiss to discard them.",
+    "empty": "Nothing to fix — all your changes were saved.",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "retryAll": "Retry all",
+    "madeAt": "Made {{time}}",
+    "action": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete"
+    },
+    "subject": {
+      "section": "Submission section",
+      "questionnaire": "Questionnaire answers",
+      "financialStatement": "Financial statement",
+      "indicators": "Non-financial indicators",
+      "narratives": "Narratives",
+      "members": "Member data",
+      "savings": "Savings account",
+      "loans": "Loan",
+      "fixedDeposits": "Fixed deposit",
+      "farmCoop": "Farm data",
+      "submission": "Submission",
+      "invitation": "Invitation",
+      "user": "User",
+      "organization": "Organization",
+      "federation": "Federation",
+      "apex": "Apex",
+      "cooperative": "Cooperative",
+      "customKpi": "Custom KPI",
+      "questionnaireTemplate": "Questionnaire template",
+      "indicatorCatalog": "Indicator",
+      "change": "Change"
+    },
+    "reason": {
+      "network": "The server couldn't be reached after several attempts.",
+      "sessionExpired": "Your session expired. Sign in again, then retry.",
+      "forbidden": "You no longer have permission for this.",
+      "notFound": "This item no longer exists on the server.",
+      "server": "The server didn't accept this change."
+    }
+  },
+  "logoutPrompt": {
+    "title": "Log out?",
+    "offline": "You're offline. If you log out now, you won't be able to sign in again until you have an internet connection.",
+    "unsent": "You have {{count}} change(s) not sent yet. They stay on this device and will be sent the next time you sign in with internet.",
+    "stay": "Stay signed in",
+    "confirm": "Log out anyway"
+  },
+  "sessionDeadline": {
+    "badge_one": "Sign-in ends in {{count}} day",
+    "badge_other": "Sign-in ends in {{count}} days",
+    "badgeToday": "Sign-in ends today",
+    "hint": "Your sign-in on this device ends on {{date}}. After that you need internet to sign in again with your password. Unsent changes are kept."
   }
 }

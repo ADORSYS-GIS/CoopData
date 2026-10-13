@@ -152,7 +152,9 @@ function Sidebar({
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
+    // Resolves without redirecting when the user is asked to confirm first.
     await logout();
+    setIsLoggingOut(false);
   };
 
   const visibleGroups = ROLE_NAV[effectiveRole];
@@ -356,7 +358,9 @@ function Topbar({
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
+    // Resolves without redirecting when the user is asked to confirm first.
     await logout();
+    setIsLoggingOut(false);
   };
 
   const cycleTheme = () => {
