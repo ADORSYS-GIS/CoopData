@@ -15,7 +15,12 @@ const keycloak = vi.hoisted(() => ({
 const idb = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn(), del: vi.fn() }));
 
 vi.mock("idb-keyval", () => idb);
-vi.mock("./keycloakConfig", () => ({ keycloak }));
+vi.mock("./keycloakConfig", () => ({
+  keycloak,
+  KEYCLOAK_CONFIG: { url: "http://keycloak.test", realm: "coop-data", clientId: "app" },
+}));
+
+const fetchMock = vi.fn();
 
 const CACHED_TOKENS = {
   token: "cached-access",
@@ -43,6 +48,9 @@ describe("restoreOnlineSession", () => {
     Object.assign(keycloak, { authenticated: false, token: null, tokenParsed: null });
     idb.get.mockResolvedValue(CACHED_TOKENS);
     idb.set.mockResolvedValue(undefined);
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
   });
 
   it("completes the skipped Keycloak start-up after the app started offline", async () => {
@@ -61,7 +69,7 @@ describe("restoreOnlineSession", () => {
     });
     const restored = await auth.restoreOnlineSession();
 
-    expect(restored).toBe(true);
+    expect(restored).toBe("restored");
     expect(auth.isOfflineModeActive()).toBe(false);
     expect(keycloak.init).toHaveBeenCalledWith(
       expect.objectContaining({ token: "cached-access", refreshToken: "cached-refresh" }),
@@ -73,20 +81,33 @@ describe("restoreOnlineSession", () => {
     const auth = await freshAuthService();
     await auth.initKeycloak();
 
-    expect(await auth.restoreOnlineSession()).toBe(false);
+    expect(await auth.restoreOnlineSession()).toBe("unreachable");
     expect(auth.isOfflineModeActive()).toBe(true);
     expect(keycloak.init).not.toHaveBeenCalled();
   });
 
-  it("stays offline when the cached session can no longer be refreshed", async () => {
+  it("keeps its one-time Keycloak start-up while Keycloak doesn't answer yet", async () => {
     setOnline(false);
     const auth = await freshAuthService();
     await auth.initKeycloak();
 
     setOnline(true);
-    keycloak.init.mockResolvedValue(false);
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
 
-    expect(await auth.restoreOnlineSession()).toBe(false);
+    expect(await auth.restoreOnlineSession()).toBe("unreachable");
+    expect(keycloak.init).not.toHaveBeenCalled();
+    expect(auth.isOfflineModeActive()).toBe(true);
+  });
+
+  it("reports an ended session when Keycloak refuses the saved login", async () => {
+    setOnline(false);
+    const auth = await freshAuthService();
+    await auth.initKeycloak();
+
+    setOnline(true);
+    keycloak.init.mockRejectedValue({ error: "invalid_grant" });
+
+    expect(await auth.restoreOnlineSession()).toBe("ended");
     expect(auth.isOfflineModeActive()).toBe(true);
   });
 
@@ -98,7 +119,7 @@ describe("restoreOnlineSession", () => {
     expect(auth.isOfflineModeActive()).toBe(true);
     keycloak.init.mockClear();
 
-    expect(await auth.restoreOnlineSession()).toBe(false);
+    expect(await auth.restoreOnlineSession()).toBe("reload");
     expect(keycloak.init).not.toHaveBeenCalled();
   });
 });

@@ -4977,6 +4977,8 @@
     "online": "Online",
     "noSessionTitle": "Aucune connexion disponible",
     "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter.",
+    "reconnectNeedsReload": "La connexion est rétablie, mais l'application doit être rechargée pour reconnecter votre session.",
+    "reload": "Recharger",
     "dataUnavailable": "Ces informations ne sont pas encore disponibles hors ligne. Ouvrez-les une fois en ligne pour les rendre disponibles hors ligne.",
     "actionRequiresConnection": "Cette action nécessite une connexion Internet.",
     "inviteQueued": "Invitation enregistrée sur cet appareil",

@@ -4977,6 +4977,8 @@
     "online": "Online",
     "noSessionTitle": "Sem ligação disponível",
     "noSessionDesc": "Por favor, ligue-se à internet para iniciar sessão.",
+    "reconnectNeedsReload": "A ligação voltou, mas a aplicação precisa de ser recarregada para religar a sua sessão.",
+    "reload": "Recarregar",
     "dataUnavailable": "Esta informação ainda não está disponível offline. Abra-a uma vez enquanto estiver online para a tornar disponível offline.",
     "actionRequiresConnection": "Esta ação requer uma ligação à Internet.",
     "inviteQueued": "Convite guardado neste dispositivo",

@@ -18,6 +18,7 @@ import {
 
 const NOOP_ENDPOINT = "/api/v1/__e2e_noop";
 const OFFLINE_BANNER = "You're offline — showing cached data";
+const KEYCLOAK_REQUESTS = "http://localhost:8180/**";
 
 test.describe("Offline sync queue", () => {
   test.skip(!!process.env.CI, "Requires real backend + Keycloak + PWA build - skipped in CI");
@@ -49,6 +50,36 @@ test.describe("Offline sync queue", () => {
     });
     await expect
       .poll(async () => (await queueItems(page)).find((i) => i.tag === "C")?.retryCount ?? 0, {
+        timeout: 20_000,
+      })
+      .toBeGreaterThan(0);
+
+    await clearQueue(page);
+  });
+
+  test("C: reconnects even when Keycloak is briefly unreachable after the network returns", async ({
+    page,
+    context,
+  }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole("status").getByText(OFFLINE_BANNER)).toBeVisible();
+    await addQueueItem(page, { tag: "C2", endpoint: NOOP_ENDPOINT, method: "POST", body: {} });
+
+    // The network is back, but Keycloak doesn't answer for a few seconds.
+    await page.route(KEYCLOAK_REQUESTS, (route) => route.abort("internetdisconnected"));
+    await context.setOffline(false);
+    await page.waitForTimeout(3_000);
+    await page.unroute(KEYCLOAK_REQUESTS);
+
+    await expect(page.getByRole("status").getByText(OFFLINE_BANNER)).toHaveCount(0, {
+      timeout: 45_000,
+    });
+    await expect
+      .poll(async () => (await queueItems(page)).find((i) => i.tag === "C2")?.retryCount ?? 0, {
         timeout: 20_000,
       })
       .toBeGreaterThan(0);

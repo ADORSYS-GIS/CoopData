@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { UserProfile } from "@/types/auth";
@@ -33,9 +33,13 @@ vi.mock("@/services/shared/offlineSeeder", () => ({
   seedOfflineCache: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+const sonner = vi.hoisted(() => ({
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
+vi.mock("sonner", () => sonner);
+
+const sessionRestore = vi.hoisted(() => ({ keepRestoringSession: vi.fn() }));
+vi.mock("@/services/shared/sessionRestore", () => sessionRestore);
 
 import {
   initKeycloak,
@@ -43,6 +47,7 @@ import {
   logout,
   getAccessToken,
   getUserProfile,
+  isOfflineModeActive,
 } from "@/services/shared/authService";
 import {
   KeycloakAuthProvider,
@@ -321,6 +326,55 @@ describe("AuthContext", () => {
       });
 
       await waitFor(() => expect(result.current).toBe(false));
+    });
+  });
+
+  describe("when the connection returns after starting offline", () => {
+    type Settle = (result: "restored" | "ended" | "reload") => void;
+
+    async function goOnlineAndSettle(result: "restored" | "ended" | "reload") {
+      vi.mocked(isOfflineModeActive).mockReturnValue(true);
+      let settle: Settle = () => {};
+      sessionRestore.keepRestoringSession.mockImplementation((onSettled: Settle) => {
+        settle = onSettled;
+        return () => {};
+      });
+      renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(mockedInitKeycloak).toHaveBeenCalled());
+
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+      expect(sessionRestore.keepRestoringSession).toHaveBeenCalled();
+      await act(async () => settle(result));
+    }
+
+    afterEach(() => {
+      vi.mocked(isOfflineModeActive).mockReturnValue(false);
+    });
+
+    it("sends the outbox once the session is restored", async () => {
+      await goOnlineAndSettle("restored");
+
+      expect(syncQueue.flushSyncQueue).toHaveBeenCalled();
+      expect(mockedLogout).not.toHaveBeenCalled();
+    });
+
+    it("logs out when Keycloak no longer accepts the saved login", async () => {
+      await goOnlineAndSettle("ended");
+
+      await waitFor(() => expect(mockedLogout).toHaveBeenCalled());
+      expect(syncQueue.flushSyncQueue).not.toHaveBeenCalled();
+    });
+
+    it("offers a reload when the session can only reconnect after one", async () => {
+      await goOnlineAndSettle("reload");
+
+      expect(sonner.toast.info).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ action: expect.objectContaining({ label: expect.any(String) }) }),
+      );
+      expect(syncQueue.flushSyncQueue).not.toHaveBeenCalled();
     });
   });
 });

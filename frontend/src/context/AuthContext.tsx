@@ -16,8 +16,8 @@ import {
   getAccessToken,
   getUserProfile,
   isOfflineModeActive,
-  restoreOnlineSession,
 } from "@/services/shared/authService";
+import { keepRestoringSession } from "@/services/shared/sessionRestore";
 import {
   flushSyncQueue,
   getFailedItems,
@@ -63,28 +63,53 @@ export function KeycloakAuthProvider({ children }: { children: ReactNode }) {
 
   // Track online/offline status and flush sync queue / trigger seeder when back online
   useEffect(() => {
-    const handleOnline = async () => {
-      // Started offline: finish the skipped Keycloak start-up before anything
-      // talks to the server, otherwise the outbox stays blocked until a reload.
-      if (isOfflineModeActive()) {
-        const restored = await restoreOnlineSession();
-        if (!restored) return;
-        setIsOfflineAuthenticated(false);
-        setAccessToken(await getAccessToken());
-        window.dispatchEvent(new CustomEvent("coopdata-session-restored"));
-        void flushSyncQueue();
-      }
+    let cancelRestore: (() => void) | undefined;
+
+    const goOnline = () => {
       setIsOffline(false);
       void seedOfflineCache();
     };
-    const handleOffline = () => setIsOffline(true);
+
+    const handleOnline = () => {
+      if (!isOfflineModeActive()) {
+        goOnline();
+        return;
+      }
+      // Started offline: finish the skipped Keycloak start-up before anything
+      // talks to the server, otherwise the outbox stays blocked until a reload.
+      // Keycloak is often unreachable for a moment after the network returns,
+      // so this retries until it answers.
+      cancelRestore?.();
+      cancelRestore = keepRestoringSession((result) => {
+        if (result === "restored") {
+          setIsOfflineAuthenticated(false);
+          void getAccessToken().then(setAccessToken);
+          window.dispatchEvent(new CustomEvent("coopdata-session-restored"));
+          void flushSyncQueue();
+          goOnline();
+        } else if (result === "ended") {
+          // Keycloak no longer accepts the saved login: sign in again (work is kept).
+          void logoutRef.current();
+        } else {
+          toast.info(t("offline.reconnectNeedsReload"), {
+            duration: Infinity,
+            action: { label: t("offline.reload"), onClick: () => window.location.reload() },
+          });
+        }
+      });
+    };
+    const handleOffline = () => {
+      cancelRestore?.();
+      setIsOffline(true);
+    };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
+      cancelRestore?.();
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [t]);
 
   // T3: Inactivity timeout — logout after 10 minutes of no user activity
   // Uses requestAnimationFrame debouncing for performance (Option B)

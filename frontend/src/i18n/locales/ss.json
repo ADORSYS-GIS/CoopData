@@ -4977,6 +4977,8 @@
     "online": "Kuxhumene",
     "noSessionTitle": "Akukho lusito lwe-inthanethi",
     "noSessionDesc": "Sicela unxibelelanise ne-inthanethi kute ungene.",
+    "reconnectNeedsReload": "Kuxhumana sekubuyile, kodvwa luhlelo ludzinga kulayishwa kabusha kute lubuyisele kungena kwakho.",
+    "reload": "Layisha kabusha",
     "dataUnavailable": "Lolwatiso alukatfolakali ngaphandle kwe-inthanethi. Luvule kanye uxhumeke ku-inthanethi kuze lutfolakale ngaphandle kwe-inthanethi.",
     "actionRequiresConnection": "Lesento sidzinga kuxhumeka ku-inthanethi.",
     "inviteQueued": "Simemo sigcinwe kulelithuluzi",

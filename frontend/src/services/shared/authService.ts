@@ -1,11 +1,12 @@
 import { get, set, del } from "idb-keyval";
-import { keycloak } from "./keycloakConfig";
+import { KEYCLOAK_CONFIG, keycloak } from "./keycloakConfig";
 import type { UserProfile, CustomKeycloakToken } from "@/types/auth";
 import type { Role } from "@/constants/roles";
 import { mapKeycloakRolesToRole } from "@/constants/roles";
 
 const TOKEN_CACHE_KEY = "coopdata_tokens";
 const REFRESH_THRESHOLD_SECONDS = 30;
+const REACHABILITY_TIMEOUT_MS = 5000;
 // Fallback offline window, used only when the offline token carries no expiry
 const OFFLINE_TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -182,34 +183,57 @@ async function doInitKeycloak(): Promise<boolean> {
   }
 }
 
+/** Outcome of reconnecting the saved login to Keycloak once the network is back. */
+export type RestoreResult =
+  /** A live session again: API calls and the outbox can run. */
+  | "restored"
+  /** Keycloak can't be reached yet (the network is often reported up before it works): try again later. */
+  | "unreachable"
+  /** Keycloak refused the saved login (logged out elsewhere, disabled, expired): sign in again. */
+  | "ended"
+  /** Keycloak's one-time start-up already failed on this page: only a reload can retry it. */
+  | "reload";
+
+/** True when Keycloak answers. Checked first so the one-time start-up isn't spent on a dead network. */
+async function isKeycloakReachable(): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${KEYCLOAK_CONFIG.url}/realms/${KEYCLOAK_CONFIG.realm}/.well-known/openid-configuration`,
+      { cache: "no-store", signal: AbortSignal.timeout(REACHABILITY_TIMEOUT_MS) },
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Leaves offline mode once the network is back. When the app started offline,
  * Keycloak initialisation was skipped: complete it now with the cached tokens
  * (refreshing them), so API calls and the sync queue use a live session again.
- * Returns true when a live session is available.
- *
- * If initialisation already ran and failed (Keycloak unreachable at startup),
- * keycloak-js cannot be initialised again; a page reload is then required.
+ * keycloak-js allows that initialisation only once per page, so it is attempted
+ * only when Keycloak is reachable.
  */
-export async function restoreOnlineSession(): Promise<boolean> {
-  if (!navigator.onLine || isLoggingOut) return false;
+export async function restoreOnlineSession(): Promise<RestoreResult> {
+  if (!navigator.onLine || isLoggingOut) return "unreachable";
+  if (!(await isKeycloakReachable())) return "unreachable";
 
   if (keycloak.authenticated) {
     try {
       await keycloak.updateToken(REFRESH_THRESHOLD_SECONDS);
       await persistTokens();
       offlineModeActive = false;
-      return true;
+      return "restored";
     } catch (error) {
       console.warn("[auth] Token refresh failed while restoring the online session:", error);
-      return false;
+      return (await isKeycloakReachable()) ? "ended" : "unreachable";
     }
   }
 
-  if (keycloakInitAttempted) return false;
+  if (keycloakInitAttempted) return "reload";
 
   const cachedTokens = await loadCachedTokens();
-  if (!cachedTokens) return false;
+  if (!cachedTokens) return "ended";
 
   keycloakInitAttempted = true;
   try {
@@ -221,14 +245,16 @@ export async function restoreOnlineSession(): Promise<boolean> {
       refreshToken: cachedTokens.refreshToken,
       idToken: cachedTokens.idToken || undefined,
     });
-    if (!authenticated) return false;
+    if (!authenticated) return "ended";
     await persistTokens();
     offlineModeActive = false;
     console.log("[auth] Online session restored after starting offline");
-    return true;
+    return "restored";
   } catch (error) {
     console.warn("[auth] Could not restore the online session:", error);
-    return false;
+    // keycloak-js rejects when Keycloak refuses the saved login, and also on a
+    // network failure; the start-up is spent either way.
+    return (await isKeycloakReachable()) ? "ended" : "reload";
   }
 }
 
@@ -265,7 +291,14 @@ export async function logout(): Promise<void> {
   }
   keycloakInitialized = false;
   if (navigator.onLine) {
-    await keycloak.logout({ redirectUri: window.location.origin + "/" });
+    try {
+      await keycloak.logout({ redirectUri: window.location.origin + "/" });
+    } catch (error) {
+      // keycloak-js was never started on this page (the app started offline):
+      // the server session is already gone or unreachable, end it locally.
+      console.warn("[auth] Keycloak logout unavailable, ending the session locally:", error);
+      window.location.replace(window.location.origin + "/");
+    }
   } else {
     // Keycloak can't be reached: end the local session and go to the start page
     // instead of a browser error page.
