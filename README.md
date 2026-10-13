@@ -40,7 +40,7 @@ The backend follows a layered architecture: **Route → Handler → Repository �
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) 24.0+
-- [Docker Compose](https://docs.docker.com/compose/install/) V2
+- [Docker Compose](https://docs.docker.com/compose/install/) 2.24+ (`docker-compose.override.yml` uses the `!override` tag)
 - [Git](https://git-scm.com/)
 
 ### One-Command Start

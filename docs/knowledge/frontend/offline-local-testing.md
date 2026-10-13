@@ -100,7 +100,7 @@ frontend-pwa:
 
 ## 4. How to Test Offline
 
-1. Start the stack as usual: `docker compose up -d`. The first run builds the `frontend-pwa` image, which takes a few minutes.
+1. Start the stack as usual: `docker compose up -d`. This needs **Docker Compose 2.24 or newer** (`docker compose version`): `docker-compose.override.yml` uses the `!override` tag, which older versions reject with an "unknown tag" error. The first run builds the `frontend-pwa` image, which takes a few minutes.
 2. Open **`http://localhost:5174`** in a normal (non-incognito) window, with DevTools → Network set to **No throttling**.
 3. Log in and open a few pages. The offline seeder also pre-caches role data right after login.
 4. Check DevTools → **Application** → **Service workers**: `sw.js` should be **activated and is running**.
@@ -111,14 +111,14 @@ frontend-pwa:
 
 ### Automated offline tests (Playwright)
 
-21 end-to-end checks run against the PWA build on `:5174`:
+22 end-to-end checks run against the PWA build on `:5174`:
 
-| File                                         | Covers                                                                                                                                                                 |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frontend/e2e/specs/offline.spec.ts`         | App opens offline; no crash on uncached submissions (A); pre-downloaded data found offline (G); pages refresh on reconnect (H); page snapshot saves without errors (I) |
-| `frontend/e2e/specs/offline-actions.spec.ts` | Online-only actions disabled offline and drafts allowed (B, apex drafts); honest offline invitation message (D-3)                                                      |
-| `frontend/e2e/specs/offline-sync.spec.ts`    | Outbox sends after an offline start (C); same correlation id on every attempt (D); "already exists" reported as failed (E); "Not saved" panel (F)                      |
-| `frontend/e2e/specs/offline-logout.spec.ts`  | Logout warns first offline; drafts and unsent changes survive logout (D-5); saved login follows Keycloak's deadline, with a warning (J)                                |
+| File                                         | Covers                                                                                                                                                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frontend/e2e/specs/offline.spec.ts`         | App opens offline; no crash on uncached submissions (A); pre-downloaded data found offline (G); pages refresh on reconnect (H); page snapshot saves without errors (I)                   |
+| `frontend/e2e/specs/offline-actions.spec.ts` | Online-only actions disabled offline and drafts allowed (B, apex drafts); honest offline invitation message (D-3)                                                                        |
+| `frontend/e2e/specs/offline-sync.spec.ts`    | Outbox sends after an offline start (C), even when Keycloak answers late (C-2); same correlation id on every attempt (D); "already exists" reported as failed (E); "Not saved" panel (F) |
+| `frontend/e2e/specs/offline-logout.spec.ts`  | Logout warns first offline; drafts and unsent changes survive logout (D-5); saved login follows Keycloak's deadline, with a warning (J)                                                  |
 
 ```bash
 cd frontend && npm run test:e2e:offline

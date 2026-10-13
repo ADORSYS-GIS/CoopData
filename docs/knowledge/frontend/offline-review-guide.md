@@ -26,22 +26,23 @@
 
 ## 1. Overview
 
-| ID              | The problem (before)                                                                             | Now                                                                                                 | Commit    |
-| --------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | --------- |
-| **A**           | Opening a submission offline could crash the page ("This page didn't load")                      | Shows _"This information isn't available offline yet"_ instead                                      | `f6b1b5a` |
-| **H**           | After reconnecting, pages kept showing wrong offline data (e.g. "0 members") for up to 5 minutes | Pages reload by themselves when the connection returns                                              | `f6b1b5a` |
-| **G**           | Data downloaded in advance was saved under wrong labels and never shown offline                  | One shared list of labels. Members, ministry stats and cooperatives show offline, in every language | `438c826` |
-| **B**           | Submit/approve/return could be clicked offline and were applied hours later                      | Disabled offline with _"This action needs an internet connection."_ Drafts still work offline       | `95318c8` |
-| **Apex drafts** | Apexes couldn't create submissions offline                                                       | They can now, like cooperatives (submit stays online-only)                                          | `95318c8` |
-| **C**           | After opening the app offline, nothing was sent when the connection returned (until a reload)    | Sent automatically when the connection returns                                                      | `ffd3a07` |
-| **D**           | A save could be applied twice if the server's reply was lost                                     | Every attempt carries the same tracking id. The server ignores replays                              | `a752f11` |
-| **E**           | "Already exists" answers were counted as **saved**                                               | Counted as **failed**, with the server's message                                                    | `e1d621c` |
-| **F**           | Failed changes were invisible and retried pointlessly                                            | **"Not saved: N"** badge and panel with Retry/Dismiss. Smarter retries                              | `fdbedd7` |
-| **I**           | The saved page snapshot kept failing (`DataCloneError`)                                          | Saves correctly                                                                                     | `816f920` |
-| **D-3**         | Offline invitations said "Invitation sent"                                                       | Say _"saved on this device, sent when you're back online"_                                          | `caaaddc` |
-| **#10**         | On a shared device, one user could see another user's saved data                                 | Only the current user's data (plus truly global data)                                               | `2fd60ff` |
-| **D-5**         | Idle logout deleted half-filled forms; logout could silently fail                                | Forms and unsent changes kept; warning before logout; logout race fixed                             | `5d74205` |
-| **J**           | The app counted 30 days from the last online use; Keycloak counts from the password sign-in      | The app follows Keycloak's real deadline, warns 3 days before, and logs out when it passes          | `b831a2e` |
+| ID              | The problem (before)                                                                                | Now                                                                                                 | Commit    |
+| --------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------- |
+| **A**           | Opening a submission offline could crash the page ("This page didn't load")                         | Shows _"This information isn't available offline yet"_ instead                                      | `f6b1b5a` |
+| **H**           | After reconnecting, pages kept showing wrong offline data (e.g. "0 members") for up to 5 minutes    | Pages reload by themselves when the connection returns                                              | `f6b1b5a` |
+| **G**           | Data downloaded in advance was saved under wrong labels and never shown offline                     | One shared list of labels. Members, ministry stats and cooperatives show offline, in every language | `438c826` |
+| **B**           | Submit/approve/return could be clicked offline and were applied hours later                         | Disabled offline with _"This action needs an internet connection."_ Drafts still work offline       | `95318c8` |
+| **Apex drafts** | Apexes couldn't create submissions offline                                                          | They can now, like cooperatives (submit stays online-only)                                          | `95318c8` |
+| **C**           | After opening the app offline, nothing was sent when the connection returned (until a reload)       | Sent automatically when the connection returns                                                      | `ffd3a07` |
+| **D**           | A save could be applied twice if the server's reply was lost                                        | Every attempt carries the same tracking id. The server ignores replays                              | `a752f11` |
+| **E**           | "Already exists" answers were counted as **saved**                                                  | Counted as **failed**, with the server's message                                                    | `e1d621c` |
+| **F**           | Failed changes were invisible and retried pointlessly                                               | **"Not saved: N"** badge and panel with Retry/Dismiss. Smarter retries                              | `fdbedd7` |
+| **I**           | The saved page snapshot kept failing (`DataCloneError`)                                             | Saves correctly                                                                                     | `816f920` |
+| **D-3**         | Offline invitations said "Invitation sent"                                                          | Say _"saved on this device, sent when you're back online"_                                          | `caaaddc` |
+| **#10**         | On a shared device, one user could see another user's saved data                                    | Only the current user's data (plus truly global data)                                               | `2fd60ff` |
+| **D-5**         | Idle logout deleted half-filled forms; logout could silently fail                                   | Forms and unsent changes kept; warning before logout; logout race fixed                             | `5d74205` |
+| **C-2**         | If Keycloak didn't answer right when the connection returned, the app stayed offline until a reload | Retries until Keycloak answers; logs out if the saved login was refused                             | `01a5b32` |
+| **J**           | The app counted 30 days from the last online use; Keycloak counts from the password sign-in         | The app follows Keycloak's real deadline, warns 3 days before, and logs out when it passes          | `b831a2e` |
 
 ---
 
@@ -98,6 +99,10 @@ Each check says what to do, and what you should see **now** (✅). Where useful,
 3. Network → **No throttling**. **Don't reload.**
 
 ✅ The pill switches to **Online** and the `syncQueue` item becomes `done` within seconds. ❌ old: stays `pending` until a reload.
+
+**C-2 — Keycloak answers late.** Same steps, but at step 3 also block Keycloak for a few seconds: DevTools → **Network** → right-click any request to Keycloak (`:8180` locally, `/realms/` in production) → **Block request domain**, switch to **No throttling**, wait 5 seconds, then remove the block (**Network request blocking** panel).
+
+✅ Within about 10 seconds of removing the block, the pill switches to **Online** and the outbox is sent. ❌ old: stuck offline until a reload.
 
 ### D — No duplicate saves
 
@@ -178,11 +183,11 @@ The deadline is 30 days after the password sign-in. To try it without waiting 30
 
 ## 3. Automated Tests
 
-| Command                                   | What it covers                                                                                                                                                                                                     |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `cd frontend && npm run test:unit`        | All unit tests (≈890), including every fix above                                                                                                                                                                   |
-| `cd frontend && npm run test:e2e:offline` | 21 end-to-end checks on the real app (`:5174`) in 4 files: `offline.spec.ts` (A, G, H, I), `offline-actions.spec.ts` (B, apex drafts, D-3), `offline-sync.spec.ts` (C, D, E, F), `offline-logout.spec.ts` (D-5, J) |
-| `cd backend && cargo test`                | Backend tests, including the apex create endpoint accepting a client id                                                                                                                                            |
+| Command                                   | What it covers                                                                                                                                                                                                          |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cd frontend && npm run test:unit`        | All unit tests (≈890), including every fix above                                                                                                                                                                        |
+| `cd frontend && npm run test:e2e:offline` | 22 end-to-end checks on the real app (`:5174`) in 4 files: `offline.spec.ts` (A, G, H, I), `offline-actions.spec.ts` (B, apex drafts, D-3), `offline-sync.spec.ts` (C, C-2, D, E, F), `offline-logout.spec.ts` (D-5, J) |
+| `cd backend && cargo test`                | Backend tests, including the apex create endpoint accepting a client id                                                                                                                                                 |
 
 Each e2e check was confirmed to **fail on the code before its fix** and pass after. One check (_"submitting a draft needs a connection"_) skips when no cooperative account holds an editable draft.
 
