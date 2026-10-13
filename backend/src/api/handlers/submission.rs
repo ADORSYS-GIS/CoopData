@@ -142,7 +142,8 @@ pub async fn create_submission(
     let institution_type = coop.institution_type.as_ref().map(|t| t.as_str());
     let submission_method_val = if coop.tier == "basic" {
         "questionnaire".to_string()
-    } else if let Some(forced) = crate::services::period_rules::forced_method_for_type(institution_type)
+    } else if let Some(forced) =
+        crate::services::period_rules::forced_method_for_type(institution_type)
     {
         forced.to_string()
     } else {
@@ -373,8 +374,10 @@ pub async fn get_submission(
     // Populate cooperative name from DB so frontend doesn't need a separate Keycloak-based call
     if let Ok(Some(coop)) = state.cooperative_repo.find_by_id(resp.cooperative_id).await {
         resp.cooperative_name = Some(coop.name);
-        resp.cooperative_institution_type =
-            coop.institution_type.as_ref().map(|t| t.as_str().to_string());
+        resp.cooperative_institution_type = coop
+            .institution_type
+            .as_ref()
+            .map(|t| t.as_str().to_string());
     }
 
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
@@ -2663,7 +2666,8 @@ pub async fn create_apex_submission(
     let institution_type = coop.institution_type.as_ref().map(|t| t.as_str());
     let submission_method_val = if coop.tier == "basic" {
         "questionnaire".to_string()
-    } else if let Some(forced) = crate::services::period_rules::forced_method_for_type(institution_type)
+    } else if let Some(forced) =
+        crate::services::period_rules::forced_method_for_type(institution_type)
     {
         forced.to_string()
     } else {

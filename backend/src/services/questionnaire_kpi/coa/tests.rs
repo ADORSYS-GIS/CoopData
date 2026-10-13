@@ -20,7 +20,9 @@ fn empty_answers_report_every_indicator_as_not_reported() {
     assert!(!b.has_any());
     let list = build(&b);
     assert_eq!(list.len(), 15);
-    assert!(list.iter().all(|i| i.status == "not_reported" && i.value.is_none()));
+    assert!(list
+        .iter()
+        .all(|i| i.status == "not_reported" && i.value.is_none()));
 }
 
 #[test]
@@ -199,11 +201,17 @@ fn consolidated_cash_flow_kpi_says_when_some_cooperatives_lack_the_data() {
     total.add(&with);
     total.add(&without);
     let list = build(&total);
-    let kpi = list.iter().find(|i| i.key == "cash_liquidity_coverage").unwrap();
+    let kpi = list
+        .iter()
+        .find(|i| i.key == "cash_liquidity_coverage")
+        .unwrap();
     assert!(kpi.value.is_some());
     assert!(kpi.note.as_deref().unwrap().contains("1 of 2 provided it"));
 
     let single = build(&with);
-    let kpi = single.iter().find(|i| i.key == "cash_liquidity_coverage").unwrap();
+    let kpi = single
+        .iter()
+        .find(|i| i.key == "cash_liquidity_coverage")
+        .unwrap();
     assert!(!kpi.note.as_deref().unwrap().contains("Some cooperatives"));
 }

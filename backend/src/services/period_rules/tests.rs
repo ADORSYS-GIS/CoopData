@@ -147,7 +147,10 @@ fn locked_method_prefers_non_draft() {
 
 #[test]
 fn multipurpose_is_forced_to_questionnaire() {
-    assert_eq!(forced_method_for_type(Some("multipurpose")), Some("questionnaire"));
+    assert_eq!(
+        forced_method_for_type(Some("multipurpose")),
+        Some("questionnaire")
+    );
     assert_eq!(forced_method_for_type(Some("sacco")), None);
     assert_eq!(forced_method_for_type(None), None);
 }

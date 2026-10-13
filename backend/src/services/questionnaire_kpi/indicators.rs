@@ -77,7 +77,8 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
     let registered = have_members.then_some(d.registered);
     let exact = d.buckets_exact;
     let ratio_unless_zero = |n: Option<f64>, base: Option<f64>| -> Option<f64> {
-        base.filter(|b| *b > 0.0).and_then(|b| n.map(|v| v / b * 100.0))
+        base.filter(|b| *b > 0.0)
+            .and_then(|b| n.map(|v| v / b * 100.0))
     };
 
     // ── A. membership and inclusion (indicators 01-04) ──
@@ -92,7 +93,12 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         ),
         false,
         "Active members / registered members x 100",
-        &["total_active_male", "total_active_female", "total_registered_male", "total_registered_female"],
+        &[
+            "total_active_male",
+            "total_active_female",
+            "total_registered_male",
+            "total_registered_female",
+        ],
         None,
     );
     add(
@@ -117,7 +123,12 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         ratio_pct(youth, registered),
         false,
         "Members aged 18-35 (18-25 + 26-35, both sexes) / registered members x 100",
-        &["age_18_25_male", "age_18_25_female", "age_26_35_male", "age_26_35_female"],
+        &[
+            "age_18_25_male",
+            "age_18_25_female",
+            "age_26_35_male",
+            "age_26_35_female",
+        ],
         None,
     );
     add(
@@ -173,7 +184,9 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         false,
         "Actual number of management committee meetings held in the last 12 months",
         &["meetings_held_count"],
-        Some("The selected meeting-frequency category is not treated as proof meetings took place."),
+        Some(
+            "The selected meeting-frequency category is not treated as proof meetings took place.",
+        ),
     );
 
     // ── C. training coverage (indicators 08-10) ──
@@ -185,10 +198,17 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "training",
         "percent",
         "staff_training_coverage_pct",
-        ratio_unless_zero(i.has("staff_trained").then_some(i.staff_trained), staff_base),
+        ratio_unless_zero(
+            i.has("staff_trained").then_some(i.staff_trained),
+            staff_base,
+        ),
         false,
         "Staff trained last year / total staff x 100",
-        &["staff_trained_last_year", "staff_manager_male", "staff_manager_female"],
+        &[
+            "staff_trained_last_year",
+            "staff_manager_male",
+            "staff_manager_female",
+        ],
         Some("Total staff comes from the staff table (Q16)."),
     );
     add(
@@ -196,10 +216,17 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "training",
         "percent",
         "member_training_coverage_pct",
-        ratio_unless_zero(i.has("members_trained").then_some(i.members_trained), registered),
+        ratio_unless_zero(
+            i.has("members_trained").then_some(i.members_trained),
+            registered,
+        ),
         false,
         "Members trained last year / registered members x 100",
-        &["members_trained_last_year", "total_registered_male", "total_registered_female"],
+        &[
+            "members_trained_last_year",
+            "total_registered_male",
+            "total_registered_female",
+        ],
         None,
     );
     let leaders_base = i
@@ -210,7 +237,10 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "training",
         "percent",
         "leadership_training_coverage_pct",
-        ratio_unless_zero(i.has("leaders_trained").then_some(i.leaders_trained), leaders_base),
+        ratio_unless_zero(
+            i.has("leaders_trained").then_some(i.leaders_trained),
+            leaders_base,
+        ),
         false,
         "Leaders trained last year / management committee members x 100",
         &["leaders_trained_last_year", "board_male", "board_female"],
@@ -250,7 +280,11 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         (Some(i.income), Some(i.income - i.expenditure), false)
     } else if let (Some(mi), Some(me)) = (main_income, main_expenses) {
         let income = mi + other_income.unwrap_or(0.0);
-        (Some(income), Some(income - me - other_expenses.unwrap_or(0.0)), true)
+        (
+            Some(income),
+            Some(income - me - other_expenses.unwrap_or(0.0)),
+            true,
+        )
     } else {
         (None, None, false)
     };
@@ -279,7 +313,10 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         ),
         false,
         "Main activity surplus distributed to members / main activity net surplus x 100",
-        &["main_activity_1_distrib_members", "main_activity_2_distrib_members"],
+        &[
+            "main_activity_1_distrib_members",
+            "main_activity_2_distrib_members",
+        ],
         Some("Only calculated when the main activity net surplus is positive."),
     );
 
@@ -309,7 +346,12 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         avg(d.deposits, d.deposit_accounts),
         false,
         "Total net savings value / number of savings accounts",
-        &["savings_value_male", "savings_value_female", "savings_accounts_male", "savings_accounts_female"],
+        &[
+            "savings_value_male",
+            "savings_value_female",
+            "savings_accounts_male",
+            "savings_accounts_female",
+        ],
         None,
     );
     add(
@@ -366,7 +408,8 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         "percent",
         "delinquent_loan_account_rate_pct",
         ratio_unless_zero(
-            i.has("loans_arrears_count").then_some(i.loans_arrears_count),
+            i.has("loans_arrears_count")
+                .then_some(i.loans_arrears_count),
             i.has("loans_out_count").then_some(i.loans_out_count),
         ),
         false,
@@ -403,14 +446,17 @@ pub fn build(i: &Inputs, d: &Derived) -> Vec<IndicatorValue> {
         only_if(
             i.has("statutory_reserves") && i.statutory_reserves > 0.0,
             ratio_pct(
-                i.has("actual_reserves_bank").then_some(i.actual_reserves_bank),
+                i.has("actual_reserves_bank")
+                    .then_some(i.actual_reserves_bank),
                 Some(i.statutory_reserves),
             ),
         ),
         false,
         "Actual monetary reserves in the bank / accumulated book reserves x 100",
         &["actual_monetary_reserves_bank", "accumulated_book_reserves"],
-        Some("Only calculated when accumulated reserves are positive, for the same reporting date."),
+        Some(
+            "Only calculated when accumulated reserves are positive, for the same reporting date.",
+        ),
     );
 
     o

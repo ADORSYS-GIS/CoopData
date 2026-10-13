@@ -41,13 +41,26 @@ fn age_band_does_not_add_the_aggregate_to_the_split() {
 fn only_the_nineteen_core_indicators_are_produced() {
     let keys: Vec<String> = compute(json!({})).into_iter().map(|i| i.key).collect();
     let expected = [
-        "active_members_pct", "women_members_pct", "youth_members_pct", "female_active_members_pct",
-        "board_women_pct", "agm_attendance_pct", "meetings_held_count",
-        "staff_training_coverage_pct", "member_training_coverage_pct", "leadership_training_coverage_pct",
-        "main_activity_operating_margin_pct", "total_operating_margin_pct", "member_economic_benefit_ratio_pct",
-        "savings_account_penetration_pct", "avg_savings_per_depositor",
-        "avg_savings_per_depositor_male", "avg_savings_per_depositor_female",
-        "par_gt_30_pct", "delinquent_loan_account_rate_pct", "loan_recovery_rate_pct",
+        "active_members_pct",
+        "women_members_pct",
+        "youth_members_pct",
+        "female_active_members_pct",
+        "board_women_pct",
+        "agm_attendance_pct",
+        "meetings_held_count",
+        "staff_training_coverage_pct",
+        "member_training_coverage_pct",
+        "leadership_training_coverage_pct",
+        "main_activity_operating_margin_pct",
+        "total_operating_margin_pct",
+        "member_economic_benefit_ratio_pct",
+        "savings_account_penetration_pct",
+        "avg_savings_per_depositor",
+        "avg_savings_per_depositor_male",
+        "avg_savings_per_depositor_female",
+        "par_gt_30_pct",
+        "delinquent_loan_account_rate_pct",
+        "loan_recovery_rate_pct",
         "monetary_reserve_coverage_pct",
     ];
     assert_eq!(keys, expected);
@@ -105,10 +118,16 @@ fn main_activity_margin_total_margin_and_member_benefit() {
         "main_activity_1_distrib_members": 100,
         "current_total_income": 2000, "current_total_expenditure": 1500
     }));
-    assert_eq!(value(&list, "main_activity_operating_margin_pct"), Some(40.0));
+    assert_eq!(
+        value(&list, "main_activity_operating_margin_pct"),
+        Some(40.0)
+    );
     assert_eq!(value(&list, "total_operating_margin_pct"), Some(25.0));
     assert_eq!(status(&list, "total_operating_margin_pct"), "computed");
-    assert_eq!(value(&list, "member_economic_benefit_ratio_pct"), Some(25.0));
+    assert_eq!(
+        value(&list, "member_economic_benefit_ratio_pct"),
+        Some(25.0)
+    );
 }
 
 #[test]
@@ -140,7 +159,10 @@ fn savings_penetration_and_average_balance_by_sex() {
     assert_eq!(value(&list, "savings_account_penetration_pct"), Some(50.0));
     assert_eq!(value(&list, "avg_savings_per_depositor"), Some(140.0));
     assert_eq!(value(&list, "avg_savings_per_depositor_male"), Some(100.0));
-    assert_eq!(value(&list, "avg_savings_per_depositor_female"), Some(200.0));
+    assert_eq!(
+        value(&list, "avg_savings_per_depositor_female"),
+        Some(200.0)
+    );
 }
 
 #[test]

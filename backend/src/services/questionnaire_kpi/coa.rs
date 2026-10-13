@@ -37,7 +37,9 @@ const EQUITY: &[&str] = &["3100", "3200", "3300", "3400", "3500"];
 const OPERATING_REVENUE: &[&str] = &["4100", "4200", "4300", "4400", "4500", "4600"];
 const ACTIVITY_REVENUE: &[&str] = &["4100", "4200", "4300", "4400"];
 const DIRECT_COSTS: &[&str] = &["5100", "5200", "5300"];
-const OPEX: &[&str] = &["6100", "6200", "6300", "6400", "6500", "6600", "6700", "6800"];
+const OPEX: &[&str] = &[
+    "6100", "6200", "6300", "6400", "6500", "6600", "6700", "6800",
+];
 const FINANCE_COSTS: &[&str] = &["7100", "7200", "7300"];
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -70,8 +72,10 @@ pub struct CoaBalances {
 }
 
 fn number(v: &Value) -> Option<f64> {
-    v.as_f64()
-        .or_else(|| v.as_str().and_then(|s| s.trim().replace(',', "").parse().ok()))
+    v.as_f64().or_else(|| {
+        v.as_str()
+            .and_then(|s| s.trim().replace(',', "").parse().ok())
+    })
 }
 
 impl CoaBalances {
@@ -162,19 +166,33 @@ impl CoaBalances {
     }
 
     fn any_reported(&self, codes: &[&str]) -> bool {
-        codes.iter().any(|c| self.by_code.get(*c).is_some_and(|f| f.reported))
+        codes
+            .iter()
+            .any(|c| self.by_code.get(*c).is_some_and(|f| f.reported))
     }
 
     fn sum_closing(&self, codes: &[&str]) -> f64 {
-        codes.iter().filter_map(|c| self.by_code.get(*c)).map(|f| f.closing).sum()
+        codes
+            .iter()
+            .filter_map(|c| self.by_code.get(*c))
+            .map(|f| f.closing)
+            .sum()
     }
 
     fn sum_opening(&self, codes: &[&str]) -> f64 {
-        codes.iter().filter_map(|c| self.by_code.get(*c)).map(|f| f.opening).sum()
+        codes
+            .iter()
+            .filter_map(|c| self.by_code.get(*c))
+            .map(|f| f.opening)
+            .sum()
     }
 
     fn sum_movement(&self, codes: &[&str]) -> f64 {
-        codes.iter().filter_map(|c| self.by_code.get(*c)).map(|f| f.movement).sum()
+        codes
+            .iter()
+            .filter_map(|c| self.by_code.get(*c))
+            .map(|f| f.movement)
+            .sum()
     }
 
     fn avg_balance(&self, codes: &[&str]) -> f64 {
@@ -275,7 +293,9 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         &mut o,
         "percent",
         "coa_return_on_assets_pct",
-        has_3500.then(|| pct(net_surplus, avg_total_assets)).flatten(),
+        has_3500
+            .then(|| pct(net_surplus, avg_total_assets))
+            .flatten(),
         false,
         "Net surplus / average total assets x 100",
         &["coa_equity", "coa_assets"],
@@ -347,7 +367,10 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         false,
         "Average trade receivables / credit sales x 365",
         &["coa_assets", "cf_credit_sales"],
-        Some(&b.coverage_note("cf_credit_sales", "Needs credit sales for the year (cash-flow section); not generated without it.")),
+        Some(&b.coverage_note(
+            "cf_credit_sales",
+            "Needs credit sales for the year (cash-flow section); not generated without it.",
+        )),
     );
 
     // 9. Inventory Turnover
@@ -440,7 +463,12 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
             .flatten(),
         false,
         "Operating profit / interest and finance costs",
-        &["coa_revenue", "coa_direct_costs", "coa_operating_expenses", "coa_finance_costs"],
+        &[
+            "coa_revenue",
+            "coa_direct_costs",
+            "coa_operating_expenses",
+            "coa_finance_costs",
+        ],
         None,
     );
 
@@ -455,7 +483,10 @@ pub fn build(b: &CoaBalances) -> Vec<IndicatorValue> {
         false,
         ">90-day receivables / total receivables x 100",
         &["cf_receivables_over_90", "coa_assets"],
-        Some(&b.coverage_note("cf_receivables_over_90", "Needs receivables over 90 days (cash-flow section); not generated without it.")),
+        Some(&b.coverage_note(
+            "cf_receivables_over_90",
+            "Needs receivables over 90 days (cash-flow section); not generated without it.",
+        )),
     );
 
     o

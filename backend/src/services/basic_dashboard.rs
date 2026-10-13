@@ -13,8 +13,8 @@ use crate::entities::enums::SubmissionStatus;
 use crate::entities::{cooperative, questionnaire_response, submission};
 use crate::error::AppResult;
 use crate::services::questionnaire_kpi::{
-    build_coa_indicators, build_indicators, merge_answers, with_previous,
-    CoaBalances, Derived, Inputs, INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
+    build_coa_indicators, build_indicators, merge_answers, with_previous, CoaBalances, Derived,
+    Inputs, INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
 };
 use crate::AppState;
 
@@ -292,11 +292,7 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         for c in &current {
             let d = Derived::from_inputs(&c.inputs);
             let kpis = build_indicators(&c.inputs, &d);
-            let kpi = |key: &str| {
-                kpis.iter()
-                    .find(|k| k.key == key)
-                    .and_then(|k| k.value)
-            };
+            let kpi = |key: &str| kpis.iter().find(|k| k.key == key).and_then(|k| k.value);
             rows.push(CooperativeRow {
                 cooperative_id: c.coop.id,
                 name: c.coop.display_name.clone(),

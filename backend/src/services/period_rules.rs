@@ -52,7 +52,10 @@ pub fn forced_method_for_type(institution_type: Option<&str>) -> Option<&'static
 /// questionnaire; multipurpose cooperatives are forced to the questionnaire
 /// by `forced_method_for_type` before this ever runs. Cooperatives with no
 /// recognised type keep the pre-existing, unrestricted behaviour.
-pub fn check_method_allowed_for_type(institution_type: Option<&str>, method: &str) -> Result<(), String> {
+pub fn check_method_allowed_for_type(
+    institution_type: Option<&str>,
+    method: &str,
+) -> Result<(), String> {
     match institution_type {
         Some("sacco") if method == "questionnaire" => Err(
             "SACCO cooperatives report through upload or manual entry; the questionnaire method is only available to multipurpose cooperatives.".to_string(),
