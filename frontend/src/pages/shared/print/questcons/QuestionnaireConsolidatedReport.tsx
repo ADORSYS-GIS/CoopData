@@ -67,6 +67,7 @@ export const QuestionnaireConsolidatedReport: FC<Props> = ({
     savingsLoanQualityPage(a, next()),
     resiliencePage(a, next()),
     performancePage(a, next()),
+    ...optional((no) => mpcFinancialRatiosPage(a, no)),
   ];
   const overview = cooperativePages(a, String(n + 1));
   if (overview.length > 0) {
