@@ -1880,7 +1880,7 @@ pub async fn list_submission_sections(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let sections = state.section_repo.find_by_submission(id).await?;
+    let sections = state.section_repo.ensure_all(id).await?;
     let resps: Vec<SubmissionSectionResponse> = sections
         .into_iter()
         .map(SubmissionSectionResponse::from)
@@ -1965,6 +1965,7 @@ pub async fn update_submission_section(
         )));
     }
 
+    state.section_repo.ensure_all(id).await?;
     let section_model = state
         .section_repo
         .find_by_submission_and_section(id, &section)

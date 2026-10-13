@@ -77,6 +77,25 @@ impl SubmissionSectionRepository {
         Ok(results)
     }
 
+    pub async fn ensure_all(
+        &self,
+        submission_id: Uuid,
+    ) -> AppResult<Vec<submission_section::Model>> {
+        let existing = self.find_by_submission(submission_id).await?;
+        let missing: Vec<ActiveModel> = Self::new_section_models(submission_id, "")
+            .into_iter()
+            .filter(|m| {
+                let name = m.section.as_ref();
+                !existing.iter().any(|e| &e.section == name)
+            })
+            .collect();
+        if missing.is_empty() {
+            return Ok(existing);
+        }
+        self.create_many(missing).await?;
+        self.find_by_submission(submission_id).await
+    }
+
     pub async fn update_status(
         &self,
         id: Uuid,
@@ -114,19 +133,15 @@ impl SubmissionSectionRepository {
     }
 
     pub fn new_section_models(submission_id: Uuid, submission_method: &str) -> Vec<ActiveModel> {
-        let sections: Vec<String> = if submission_method == "questionnaire" {
-            vec!["questionnaire".to_string()]
-        } else {
-            SECTIONS.iter().map(|s| s.to_string()).collect()
-        };
-        sections
+        let _ = submission_method;
+        SECTIONS
             .iter()
             .map(|s| {
                 let initial_status = "pending";
                 ActiveModel {
                     id: Set(Uuid::new_v4()),
                     submission_id: Set(submission_id),
-                    section: Set(s.to_string()),
+                    section: Set((*s).to_string()),
                     status: Set(initial_status.to_string()),
                     created_at: Set(chrono::Utc::now()),
                     updated_at: Set(chrono::Utc::now()),
