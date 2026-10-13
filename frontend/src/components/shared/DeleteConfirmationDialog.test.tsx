@@ -80,8 +80,6 @@ const defaultPreview: DeletePreviewData = {
   members: 42,
 };
 
-type VerifyIdentity = React.ComponentProps<typeof DeleteConfirmationDialog>["onVerifyIdentity"];
-
 function makeOnVerifyIdentity(
   response: MockResponse = { ok: true, verification_token: "tok", requires_otp: false },
 ) {

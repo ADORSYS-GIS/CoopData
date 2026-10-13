@@ -10023,6 +10023,12 @@
             "format": "int32",
             "description": "Month (1-12) in which the fiscal year / Q1 begins. Defaults to 1 (January)."
           },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Client-generated id, so a draft created offline keeps the id that\nqueued follow-up edits already reference.",
+            "nullable": true
+          },
           "period_type": {
             "type": "string",
             "nullable": true
