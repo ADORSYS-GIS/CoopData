@@ -423,11 +423,12 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
       const pVal = periodType === "YEARLY" ? String(year) : periodValue;
       const sub = await createApexSubmission.mutateAsync({
         cooperative_id: selectedCoopId,
+        cooperative_name: selectedCoop?.display_name ?? selectedCoop?.name,
         reporting_year: year,
         period_type: periodType,
         period_value: pVal,
         fiscal_start_month: fiscalStartMonth,
-      } as unknown as CreateApexSubmissionRequest);
+      } as unknown as CreateApexSubmissionRequest & { cooperative_name?: string });
       toast.success(t("submissions.submissionCreated", { year }));
       onClose();
       navigate({ to: "/app/submissions/$id", params: { id: sub.id } });

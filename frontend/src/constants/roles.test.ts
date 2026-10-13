@@ -46,8 +46,8 @@ describe("roles constants", () => {
       );
     });
 
-    it("should not give cooperative access to system group", () => {
-      expect(ROLE_NAV.cooperative).not.toContain("system");
+    it("gives cooperatives only their own privacy and profile pages under system", () => {
+      expect(ROLE_NAV_ITEMS.cooperative.system).toEqual(["/app/data-privacy", "/app/profile"]);
     });
   });
 

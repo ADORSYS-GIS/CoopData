@@ -5,6 +5,7 @@ import { runMutation } from "@/services/shared/syncQueueService";
 import { cacheDelete, cacheGet, cacheSet } from "@/services/shared/offlineCache";
 import i18n from "@/i18n";
 import type { QuestionnaireSection } from "@/hooks/admin/useQuestionnaireTemplates";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 const QUESTIONNAIRE_KEY = "questionnaire-response";
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -25,8 +26,7 @@ export interface QuestionnaireResponseData {
 export const useQuestionnaire = (submissionId: string, questionnaireType?: string) =>
   useOfflineQuery({
     queryKey: [QUESTIONNAIRE_KEY, submissionId, questionnaireType],
-    cacheTable: "submissions",
-    cacheKey: `questionnaire-${submissionId}-${questionnaireType}`,
+    ...offlineCacheKeys.questionnaire(submissionId, questionnaireType),
     queryFn: async () => {
       const url = questionnaireType
         ? `${BASE}/api/v1/cooperative/submissions/${submissionId}/questionnaire?questionnaire_type=${questionnaireType}`
@@ -195,8 +195,7 @@ export const useActiveTemplate = (type: string) => {
   const lang = i18n.language?.split("-")[0] || "en";
   return useOfflineQuery({
     queryKey: ["active-questionnaire-template", type, lang],
-    cacheTable: "submissions",
-    cacheKey: `active-template-${type}-${lang}`,
+    ...offlineCacheKeys.activeTemplate(type, lang),
     queryFn: async () => {
       const res = await fetchWithAuth(
         `${BASE}/api/v1/cooperative/questionnaire-templates/active?questionnaire_type=${type}&lang=${encodeURIComponent(lang)}`,
@@ -278,8 +277,7 @@ export const useQuestionnaireAnalytics = (filters: {
 
   return useOfflineQuery({
     queryKey: ["questionnaire-analytics", filters],
-    cacheTable: "submissions",
-    cacheKey: `questionnaire-analytics-${JSON.stringify(filters)}`,
+    ...offlineCacheKeys.questionnaireAnalytics(filters),
     queryFn: async () => {
       const res = await fetchWithAuth(
         `${BASE}/api/v1/analytics/questionnaire?${queryParams.toString()}`,

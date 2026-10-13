@@ -709,7 +709,8 @@ export const FinancialStatementEditor: React.FC<{
                 {!isReadOnly && (
                   <button
                     onClick={() => setIsDeleteDialogOpen(true)}
-                    disabled={deleteFs.isPending}
+                    disabled={deleteFs.isPending || !isOnline}
+                    title={!isOnline ? t("offline.actionRequiresConnection") : undefined}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/25 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50 transition-colors cursor-pointer"
                   >
                     {deleteFs.isPending ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}

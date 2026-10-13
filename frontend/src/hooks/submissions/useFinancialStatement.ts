@@ -6,6 +6,8 @@ import { getUserProfile } from "@/services/shared/authService";
 import { cacheGet, cacheSet } from "@/services/shared/offlineCache";
 import type { SubmissionResponse } from "./useSubmissions";
 import type { components } from "@/openapi-client/api";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
+import { assertOnline } from "@/services/shared/networkGuard";
 
 export type FinancialStatementResponse = components["schemas"]["FinancialStatementResponse"] & {
   start_month?: number;
@@ -27,8 +29,7 @@ function extractErrorMessage(err: unknown): string {
 export const useFinancialStatement = (id: string | null | undefined) =>
   useOfflineQuery({
     queryKey: ["financial-statement", id],
-    cacheTable: "submissions",
-    cacheKey: `financial-statement-${id}`,
+    ...offlineCacheKeys.financialStatement(id),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/financial-statements/{id}", {
         params: { path: { id: id! } },
@@ -42,8 +43,7 @@ export const useFinancialStatement = (id: string | null | undefined) =>
 export const useLineItems = (financialStatementId: string | null) =>
   useOfflineQuery({
     queryKey: ["line-items", financialStatementId],
-    cacheTable: "submissions",
-    cacheKey: `line-items-${financialStatementId}`,
+    ...offlineCacheKeys.lineItems(financialStatementId),
     queryFn: async () => {
       const { data, error } = await apiClient.GET(
         "/api/v1/cooperative/financial-statements/{id}/line-items",
@@ -89,10 +89,12 @@ export const useValidateExtraction = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
+      assertOnline();
       return runMutation<unknown>(
         "/api/v1/cooperative/submissions/{id}/validate-extraction",
         "POST",
         {
+          requiresConnection: true,
           pathParams: { id: submissionId },
           optimisticData: undefined,
           online: async () => {
@@ -118,6 +120,7 @@ export const useSubmitSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
+      assertOnline();
       const userId = getUserProfile()?.id ?? "anon";
 
       // 1. Update single submission detail cache in IndexedDB
@@ -173,6 +176,7 @@ export const useSubmitSubmission = () => {
           : "/api/v1/cooperative/submissions/{id}/submit";
 
       return runMutation<unknown>(basePath, "POST", {
+        requiresConnection: true,
         pathParams: { id: submissionId },
         optimisticData: { id: submissionId, status: "submitted", current_tier: "apex" },
         online: async () => {

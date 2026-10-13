@@ -96,6 +96,43 @@ pub fn shared_routes() -> Router<AppState> {
             "/settings/organization-labels/{key}",
             put(crate::api::handlers::organization_label::update_organization_label),
         )
+        // Legal & Consent Management
+        .route(
+            "/consents",
+            post(crate::api::handlers::consent::record_consent),
+        )
+        .route(
+            "/consents/me",
+            get(crate::api::handlers::consent::get_my_consents),
+        )
+        .route(
+            "/consents/status",
+            get(crate::api::handlers::consent::get_consent_status),
+        )
+        .route(
+            "/privacy/requests",
+            post(crate::api::handlers::consent::submit_privacy_request),
+        )
+        .route(
+            "/privacy/requests/me",
+            get(crate::api::handlers::consent::get_my_privacy_requests),
+        )
+}
+
+/// Admin-only privacy management routes (role-guarded in `create_app`). They
+/// resolve users' privacy requests, so they are separated from the shared routes.
+/// Legal policies are not edited through the API: they are published from the
+/// Markdown files with `scripts/publish-legal.py`.
+pub fn legal_admin_routes() -> Router<AppState> {
+    Router::new()
+        .route(
+            "/privacy/requests",
+            get(crate::api::handlers::consent::list_all_privacy_requests),
+        )
+        .route(
+            "/privacy/requests/{request_id}",
+            put(crate::api::handlers::consent::update_privacy_request_status),
+        )
 }
 
 /// Sensitive auth-adjacent routes that are rate-limited by client IP to

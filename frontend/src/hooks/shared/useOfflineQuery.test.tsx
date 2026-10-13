@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useOfflineQuery } from "./useOfflineQuery";
+import { OfflineDataUnavailableError, useOfflineQuery } from "./useOfflineQuery";
 import * as offlineCache from "@/services/shared/offlineCache";
 import * as authService from "@/services/shared/authService";
 
@@ -108,7 +108,7 @@ describe("useOfflineQuery", () => {
     expect(result.current.data).toEqual(mockData);
   });
 
-  it("returns default fallback (empty array) when offline with no cache", async () => {
+  it("errors with OfflineDataUnavailableError when offline with no cache", async () => {
     Object.defineProperty(navigator, "onLine", { value: false, writable: true });
     vi.mocked(offlineCache.cacheGet).mockResolvedValue(null);
 
@@ -123,13 +123,35 @@ describe("useOfflineQuery", () => {
       { wrapper: createWrapper() },
     );
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual([]);
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.error).toBeInstanceOf(OfflineDataUnavailableError);
   });
 
-  it("returns default fallback (empty object) when offline with no cache for non-list keys", async () => {
-    Object.defineProperty(navigator, "onLine", { value: false, writable: true });
+  it("surfaces the original error when the fetch fails and nothing is cached", async () => {
     vi.mocked(offlineCache.cacheGet).mockResolvedValue(null);
+    const failure = new Error("Server unavailable");
+
+    const { result } = renderHook(
+      () =>
+        useOfflineQuery({
+          queryKey: ["test"],
+          queryFn: vi.fn().mockRejectedValue(failure),
+          cacheTable: "submissions",
+          cacheKey: "test:single",
+          retry: false,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.error).toBe(failure);
+  });
+
+  it("marks data served from the offline cache as stale so it refetches on reconnect", async () => {
+    Object.defineProperty(navigator, "onLine", { value: false, writable: true });
+    vi.mocked(offlineCache.cacheGet).mockResolvedValue({ id: "1", name: "Cached" });
 
     const { result } = renderHook(
       () =>
@@ -137,13 +159,31 @@ describe("useOfflineQuery", () => {
           queryKey: ["test"],
           queryFn: vi.fn().mockResolvedValue({ id: "fresh" }),
           cacheTable: "submissions",
-          cacheKey: "test:single",
+          cacheKey: "test:1",
+          staleTime: 60_000,
         }),
       { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({});
+    expect(result.current.isStale).toBe(true);
+  });
+
+  it("keeps the configured staleTime for fresh server data", async () => {
+    const { result } = renderHook(
+      () =>
+        useOfflineQuery({
+          queryKey: ["test"],
+          queryFn: vi.fn().mockResolvedValue({ id: "fresh" }),
+          cacheTable: "submissions",
+          cacheKey: "test:1",
+          staleTime: 60_000,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.isStale).toBe(false);
   });
 
   it("uses custom fallbackData when provided", async () => {
@@ -242,7 +282,7 @@ describe("useOfflineQuery", () => {
       { wrapper: createWrapper() },
     );
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.isError).toBe(true));
     expect(queryFn).not.toHaveBeenCalled();
   });
 });

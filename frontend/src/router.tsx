@@ -1,7 +1,7 @@
-import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, onlineManager } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
-import { logout } from "@/services/shared/authService";
+import { logout, isAuthenticated } from "@/services/shared/authService";
 
 const SEVEN_DAYS_MS = 1000 * 60 * 60 * 24 * 7;
 const FIVE_MINUTES_MS = 1000 * 60 * 5;
@@ -22,6 +22,10 @@ function isAuthError(error: unknown): boolean {
 let isLoggingOut = false;
 function handleAuthError(error: unknown) {
   if (!isAuthError(error)) return;
+  // Only treat a 401 as a session-expiry when the user is actually logged in.
+  // Public visitors hitting protected endpoints legitimately get 401s and must
+  // NOT be force-redirected to login (e.g. browsing the public legal center).
+  if (!isAuthenticated()) return;
   if (isLoggingOut) return;
   // If the user is on an authenticated /app or /print route, do NOT trigger full logout on background query failure.
   // Instead, allow useOfflineQuery / cached fallbacks to handle it gracefully without refreshing the app.
@@ -44,6 +48,14 @@ function handleAuthError(error: unknown) {
 }
 
 export const getRouter = () => {
+  // onlineManager assumes "online" at startup and only reacts to online/offline
+  // events. When the app boots offline no "offline" event ever fires, so the
+  // later "online" event looks like no change and queries never refetch on
+  // reconnect. Seed it with the real connection state.
+  if (typeof navigator !== "undefined") {
+    onlineManager.setOnline(navigator.onLine);
+  }
+
   const queryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: (error) => handleAuthError(error),

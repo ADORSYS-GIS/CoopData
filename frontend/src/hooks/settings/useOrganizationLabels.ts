@@ -3,6 +3,7 @@ import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
 import { runMutation } from "@/services/shared/syncQueueService";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 const LABELS_KEY = "organization-labels";
 
@@ -80,8 +81,7 @@ export const DEFAULT_ORGANIZATION_LABELS = [
 export const useOrganizationLabels = (enabled = true) =>
   useOfflineQuery({
     queryKey: [LABELS_KEY],
-    cacheTable: "analytics",
-    cacheKey: "organization-labels-list",
+    ...offlineCacheKeys.organizationLabels(),
     // Terminology changes made by ministry must reach other users immediately on login.
     // Setting staleTime to 0 ensures fresh labels are always fetched on mount when online.
     staleTime: 0,

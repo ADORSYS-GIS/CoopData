@@ -5,6 +5,7 @@ import { runMutation } from "@/services/shared/syncQueueService";
 import type { components } from "@/openapi-client/api";
 import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
 import { getUserProfile } from "@/services/shared/authService";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 const COOP_PROFILES_KEY = "cooperative-profiles";
 
@@ -26,8 +27,7 @@ export type { CooperativeProfile, CreateCooperativeProfileInput, UpdateCooperati
 export const useCooperativeProfiles = () =>
   useOfflineQuery({
     queryKey: [COOP_PROFILES_KEY],
-    cacheTable: "cooperatives",
-    cacheKey: "cooperative-profiles",
+    ...offlineCacheKeys.cooperativeProfiles(),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/coop-profiles");
       if (error) throw new Error(extractErrorMessage(error));
@@ -38,8 +38,7 @@ export const useCooperativeProfiles = () =>
 export const useCooperativeProfile = (id: string, tokenOverride?: string) =>
   useOfflineQuery({
     queryKey: [COOP_PROFILES_KEY, id],
-    cacheTable: "cooperatives",
-    cacheKey: `cooperative-profile-${id}`,
+    ...offlineCacheKeys.cooperativeProfile(id),
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/apex/coop-profiles/{id}", {

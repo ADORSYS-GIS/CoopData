@@ -6,13 +6,14 @@ use coop_data_backend::services::{cache::CacheService, CalamineNfParser, ObjectS
 use coop_data_backend::{
     AbnormalityFlagRepository, AccountAliasRepository, ApexRepository, AppConfig, AppState,
     AuditLogRepository, AuditService, BalanceSheetLineItemRepository, ChartOfAccountsRepository,
-    CooperativeRepository, CustomKpiRepository, ExtractionJobRepository, FarmCoopRepository,
-    FederationRepository, FinancialStatementRepository, FixedDepositRepository, KeycloakService,
-    KpiRecordRepository, LoanRepository, MemberRepository, NonFinancialIndicatorCatalogRepository,
-    NonFinancialIndicatorEntryRepository, OrganizationLabelRepository, OrganizationRepository,
-    QuestionnaireRepository, QuestionnaireTemplateRepository, SavingsAccountRepository,
-    SubmissionRepository, SubmissionReviewRepository, SubmissionSectionRepository,
-    UploadedFileRepository, UserRepository,
+    ConsentRepository, CooperativeRepository, CustomKpiRepository, ExtractionJobRepository,
+    FarmCoopRepository, FederationRepository, FinancialStatementRepository, FixedDepositRepository,
+    KeycloakService, KpiRecordRepository, LegalPolicyRepository, LoanRepository, MemberRepository,
+    NonFinancialIndicatorCatalogRepository, NonFinancialIndicatorEntryRepository,
+    OrganizationLabelRepository, OrganizationRepository, QuestionnaireRepository,
+    QuestionnaireTemplateRepository, SavingsAccountRepository, SubmissionRepository,
+    SubmissionReviewRepository, SubmissionSectionRepository, UploadedFileRepository,
+    UserRepository,
 };
 use sea_orm::DatabaseConnection as SeaConnection;
 
@@ -100,6 +101,8 @@ impl TestApp {
             coop_data_backend::repositories::ReportNarrativeStore::new(db.clone());
         let questionnaire_repo = QuestionnaireRepository::new(db.clone());
         let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
+        let consent_repo = ConsentRepository::new(db.clone());
+        let legal_policy_repo = LegalPolicyRepository::new(db.clone());
 
         let state = AppState {
             db,
@@ -142,6 +145,8 @@ impl TestApp {
             narrative_generator,
             nf_excel_parser,
             ministry_narratives_repo,
+            consent_repo,
+            legal_policy_repo,
             report_export_repo,
             narrative_store,
         };

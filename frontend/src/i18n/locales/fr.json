@@ -22,7 +22,8 @@
     "usersAndRoles": "Utilisateurs et rôles",
     "configureRoles": "Configurer les niveaux",
     "settings": "Paramètres",
-    "profile": "Profil"
+    "profile": "Profil",
+    "dataPrivacy": "Confidentialité et consentements"
   },
   "common": {
     "logout": "Déconnexion",
@@ -462,7 +463,9 @@
         "privacyPolicy": "Politique de confidentialité",
         "termsOfUse": "Conditions d'utilisation",
         "accessibilityStatement": "Déclaration d'accessibilité",
-        "contact": "Contact"
+        "contact": "Contact",
+        "cookiePolicy": "Politique de cookies",
+        "acceptableUse": "Utilisation acceptable"
       }
     }
   },
@@ -4976,7 +4979,14 @@
     "backOnline": "Connexion rétablie — synchronisation de vos modifications",
     "online": "Online",
     "noSessionTitle": "Aucune connexion disponible",
-    "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter pour la première fois."
+    "noSessionDesc": "Veuillez vous connecter à Internet pour vous connecter.",
+    "reconnectNeedsReload": "La connexion est rétablie, mais l'application doit être rechargée pour reconnecter votre session.",
+    "reload": "Recharger",
+    "dataUnavailable": "Ces informations ne sont pas encore disponibles hors ligne. Ouvrez-les une fois en ligne pour les rendre disponibles hors ligne.",
+    "actionRequiresConnection": "Cette action nécessite une connexion Internet.",
+    "inviteQueued": "Invitation enregistrée sur cet appareil",
+    "resendQueued": "Renvoi enregistré sur cet appareil",
+    "inviteQueuedDesc": "Vous êtes hors ligne. Elle sera envoyée dès votre retour en ligne — la personne ne recevra l'e-mail qu'à ce moment-là."
   },
   "basicBenchmarking": {
     "pageTitle": "Analyse comparative de base",
@@ -5387,6 +5397,100 @@
     },
     "lockedFrequency": "{{year}} est déjà fixée sur une déclaration {{frequency}}.",
     "lockedFrequencyDrafts": "{{year}} est fixée sur une déclaration {{frequency}}. Supprimez vos brouillons de cette année pour la modifier."
+  },
+  "legal": {
+    "termsOfService": "Conditions d’utilisation",
+    "privacyPolicy": "Politique de confidentialité",
+    "cookiePolicy": "Politique relative aux cookies",
+    "acceptableUse": "Utilisation acceptable",
+    "securityProtection": "Sécurité et protection des données",
+    "dataRetention": "Conservation des données",
+    "dataUse": "Utilisation et agrégation des données",
+    "dataProcessing": "Rôles dans le traitement des données",
+    "accept": "Accepter",
+    "accepted": "Accepté",
+    "actionNeeded": "Action requise",
+    "consentGiven": "Donné",
+    "consentNotGiven": "Non donné",
+    "giveConsent": "Donner mon consentement",
+    "acknowledged": "Pris connaissance",
+    "notAcknowledged": "Non lu",
+    "acknowledge": "J’en ai pris connaissance",
+    "consentRecorded": "Votre choix a été enregistré.",
+    "consentFailed": "Votre choix n’a pas pu être enregistré. Veuillez réessayer.",
+    "versionLabel": "Version {{version}}",
+    "viewDoc": "Voir le document",
+    "cookiePreferences": "Préférences en matière de cookies",
+    "cookieChoiceAll": "Toutes les technologies autorisées",
+    "cookieChoiceEssential": "Essentiels uniquement",
+    "cookieChoiceNone": "Aucun choix effectué",
+    "changeCookies": "Modifier",
+    "requiredSection": "Requis pour utiliser CoopData",
+    "optionalSection": "Facultatif",
+    "document": "Document",
+    "version": "Version",
+    "acceptedAt": "Accepté le",
+    "ipAddress": "Adresse IP",
+    "allRightsReserved": "Tous droits réservés.",
+    "cookieSettings": "Paramètres des cookies",
+    "acceptRequiredToast": "Veuillez accepter les Conditions d’utilisation et prendre connaissance de la Politique de confidentialité pour continuer.",
+    "consentRecordedSuccess": "Merci, votre acceptation a été enregistrée.",
+    "mandatoryConsentTitle": "Veuillez accepter nos conditions",
+    "mandatoryConsentDesc": "Pour continuer à utiliser CoopData, veuillez lire et accepter nos Conditions d’utilisation et notre Politique de confidentialité, qui sont obligatoires.",
+    "readFullTerms": "Lire les Conditions d’utilisation",
+    "readFullPrivacy": "Lire la Politique de confidentialité",
+    "termsAcceptPrompt": "J’ai lu et j’accepte les Conditions d’utilisation de CoopData.",
+    "privacyAcceptPrompt": "Je reconnais avoir lu la Politique de confidentialité de CoopData.",
+    "dataUseConsent": "Facultatif : j’accepte que les données éligibles de mon organisation soient utilisées pour des rapports sectoriels agrégés et désidentifiés.",
+    "readDataUse": "Lire l’avis",
+    "acceptAndProceed": "Accepter et continuer",
+    "center": {
+      "title": "Centre juridique CoopData",
+      "subtitle": "Les conditions, politiques et avis qui encadrent l’utilisation de CoopData.",
+      "documents": "Documents juridiques",
+      "language": "Langue du document",
+      "publishedVersions": "Versions publiées",
+      "questionsTitle": "Des questions ?",
+      "questionsBody": "Pour toute question sur ces documents ou toute demande concernant vos données, contactez-nous :",
+      "officialPolicy": "Politique officielle de CoopData",
+      "published": "Publié le",
+      "contents": "Sommaire",
+      "loading": "Chargement du document…"
+    }
+  },
+  "cookie": {
+    "title": "Nous respectons votre vie privée",
+    "body": "CoopData utilise uniquement des cookies essentiels et le stockage du navigateur pour vous garder connecté, en sécurité et capable de travailler hors ligne. Nous n’utilisons pas de cookies d’analyse ni de publicité. Vous pouvez choisir dès maintenant d’autoriser ou non des technologies facultatives, si elles devaient être ajoutées.",
+    "readPolicy": "Lire notre politique relative aux cookies",
+    "reject": "Essentiels uniquement",
+    "accept": "Tout accepter",
+    "close": "Fermer"
+  },
+  "privacy": {
+    "consentStatusTitle": "Vos accords juridiques",
+    "consentStatusSub": "Chaque acceptation est enregistrée avec sa version et son horodatage",
+    "requestsTitle": "Demande concernant vos données",
+    "requestsSub": "Demandez une copie de vos données, une rectification ou la suppression de votre compte",
+    "requestTypeLabel": "Type de demande",
+    "typeExport": "Exporter mes données",
+    "typeExportDesc": "Recevoir une copie de vos données",
+    "typeCorrect": "Rectifier mes données",
+    "typeCorrectDesc": "Demander la mise à jour d’informations inexactes",
+    "typeDelete": "Supprimer mon compte",
+    "typeDeleteDesc": "Demander la suppression ou l’anonymisation de votre compte",
+    "detailsLabel": "Précisions (facultatif)",
+    "detailsPlaceholder": "Décrivez votre besoin…",
+    "deleteWarning": "Certains enregistrements doivent être conservés pour des raisons juridiques, d’audit ou de sécurité, comme le prévoit le Calendrier de conservation et d’effacement des données (par exemple les registres financiers et d’audit jusqu’à 7 ans). Si la suppression est limitée, nous vous en expliquerons la raison.",
+    "submitButton": "Envoyer la demande",
+    "requestSubmitted": "Votre demande a été envoyée et sera examinée.",
+    "requestFailed": "Votre demande n’a pas pu être envoyée. Veuillez réessayer.",
+    "auditHistoryTitle": "Historique des consentements",
+    "auditHistorySub": "Toutes les acceptations enregistrées pour votre compte",
+    "noHistory": "Aucune acceptation enregistrée pour le moment.",
+    "pageSubtitle": "Vos accords juridiques, vos droits en matière de protection des données et votre historique de consentements",
+    "bannerTitle": "Votre vie privée et vos droits sur vos données",
+    "bannerDesc": "CoopData protège les données personnelles conformément à la loi eswatinienne de 2022 sur la protection des données. Consultez ci-dessous ce que vous avez accepté et faites vos demandes concernant vos données.",
+    "openLegalCenter": "Ouvrir le centre juridique"
   },
   "pdf": {
     "common": {
@@ -6364,5 +6468,63 @@
         "other": "Ministères"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Non enregistré : {{count}}",
+    "panelTitle": "Modifications non enregistrées",
+    "panelDescription": "Ces modifications ont été faites sur cet appareil mais le serveur ne les a pas acceptées. Réessayez, ou ignorez-les pour les abandonner.",
+    "empty": "Rien à corriger — toutes vos modifications ont été enregistrées.",
+    "retry": "Réessayer",
+    "dismiss": "Ignorer",
+    "retryAll": "Tout réessayer",
+    "madeAt": "Faite le {{time}}",
+    "action": {
+      "create": "Création",
+      "update": "Modification",
+      "delete": "Suppression"
+    },
+    "subject": {
+      "section": "Section de la soumission",
+      "questionnaire": "Réponses au questionnaire",
+      "financialStatement": "État financier",
+      "indicators": "Indicateurs non financiers",
+      "narratives": "Commentaires",
+      "members": "Données des membres",
+      "savings": "Compte d'épargne",
+      "loans": "Prêt",
+      "fixedDeposits": "Dépôt à terme",
+      "farmCoop": "Données agricoles",
+      "submission": "Soumission",
+      "invitation": "Invitation",
+      "user": "Utilisateur",
+      "organization": "Organisation",
+      "federation": "Fédération",
+      "apex": "Apex",
+      "cooperative": "Coopérative",
+      "customKpi": "KPI personnalisé",
+      "questionnaireTemplate": "Modèle de questionnaire",
+      "indicatorCatalog": "Indicateur",
+      "change": "Modification"
+    },
+    "reason": {
+      "network": "Le serveur est resté injoignable après plusieurs tentatives.",
+      "sessionExpired": "Votre session a expiré. Reconnectez-vous, puis réessayez.",
+      "forbidden": "Vous n'avez plus l'autorisation pour cela.",
+      "notFound": "Cet élément n'existe plus sur le serveur.",
+      "server": "Le serveur n'a pas accepté cette modification."
+    }
+  },
+  "logoutPrompt": {
+    "title": "Se déconnecter ?",
+    "offline": "Vous êtes hors ligne. Si vous vous déconnectez maintenant, vous ne pourrez pas vous reconnecter avant d'avoir une connexion Internet.",
+    "unsent": "Vous avez {{count}} modification(s) pas encore envoyée(s). Elles restent sur cet appareil et seront envoyées à votre prochaine connexion avec Internet.",
+    "stay": "Rester connecté",
+    "confirm": "Se déconnecter quand même"
+  },
+  "sessionDeadline": {
+    "badge_one": "Connexion valable encore {{count}} jour",
+    "badge_other": "Connexion valable encore {{count}} jours",
+    "badgeToday": "La connexion expire aujourd'hui",
+    "hint": "Votre connexion sur cet appareil expire le {{date}}. Ensuite, il faudra Internet pour vous reconnecter avec votre mot de passe. Les modifications non envoyées sont conservées."
   }
 }

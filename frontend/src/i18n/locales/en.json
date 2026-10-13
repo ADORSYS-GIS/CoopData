@@ -22,7 +22,8 @@
     "usersAndRoles": "Users & Roles",
     "configureRoles": "Configure Levels",
     "settings": "Settings",
-    "profile": "Profile"
+    "profile": "Profile",
+    "dataPrivacy": "Data privacy & consents"
   },
   "common": {
     "logout": "Logout",
@@ -462,7 +463,9 @@
         "privacyPolicy": "Privacy Policy",
         "termsOfUse": "Terms of Use",
         "accessibilityStatement": "Accessibility Statement",
-        "contact": "Contact"
+        "contact": "Contact",
+        "cookiePolicy": "Cookie Policy",
+        "acceptableUse": "Acceptable Use"
       }
     }
   },
@@ -4977,7 +4980,14 @@
     "backOnline": "Back online — syncing your changes",
     "online": "Online",
     "noSessionTitle": "No connection available",
-    "noSessionDesc": "Please connect to the internet to sign in for the first time."
+    "noSessionDesc": "Please connect to the internet to sign in.",
+    "reconnectNeedsReload": "Connection is back, but the app needs a reload to reconnect your session.",
+    "reload": "Reload",
+    "dataUnavailable": "This information isn't available offline yet. Open it once while online to make it available offline.",
+    "actionRequiresConnection": "This action needs an internet connection.",
+    "inviteQueued": "Invitation saved on this device",
+    "resendQueued": "Resend saved on this device",
+    "inviteQueuedDesc": "You're offline. It will be sent when you're back online — the person only receives the email then."
   },
   "basicBenchmarking": {
     "pageTitle": "Basic Benchmarking",
@@ -5434,6 +5444,100 @@
     },
     "lockedFrequency": "{{year}} is already set to {{frequency}} reporting.",
     "lockedFrequencyDrafts": "{{year}} is set to {{frequency}} reporting. Delete your draft submissions for that year to change it."
+  },
+  "legal": {
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "cookiePolicy": "Cookie Policy",
+    "acceptableUse": "Acceptable Use",
+    "securityProtection": "Security & Data Protection",
+    "dataRetention": "Data Retention",
+    "dataUse": "Data Use & Aggregation",
+    "dataProcessing": "Data Processing Roles",
+    "accept": "Accept",
+    "accepted": "Accepted",
+    "actionNeeded": "Action needed",
+    "consentGiven": "Given",
+    "consentNotGiven": "Not given",
+    "giveConsent": "Give consent",
+    "acknowledged": "Acknowledged",
+    "notAcknowledged": "Not acknowledged",
+    "acknowledge": "I have read it",
+    "consentRecorded": "Your choice has been recorded.",
+    "consentFailed": "Your choice could not be recorded. Please try again.",
+    "versionLabel": "Version {{version}}",
+    "viewDoc": "View document",
+    "cookiePreferences": "Cookie preferences",
+    "cookieChoiceAll": "All technologies allowed",
+    "cookieChoiceEssential": "Essential only",
+    "cookieChoiceNone": "No choice made yet",
+    "changeCookies": "Change",
+    "requiredSection": "Required to use CoopData",
+    "optionalSection": "Optional",
+    "document": "Document",
+    "version": "Version",
+    "acceptedAt": "Accepted on",
+    "ipAddress": "IP address",
+    "allRightsReserved": "All rights reserved.",
+    "cookieSettings": "Cookie settings",
+    "acceptRequiredToast": "Please accept the Terms of Service and acknowledge the Privacy Policy to continue.",
+    "consentRecordedSuccess": "Thank you, your acceptance has been recorded.",
+    "mandatoryConsentTitle": "Please accept our legal terms",
+    "mandatoryConsentDesc": "To continue using CoopData, please review and accept our mandatory Terms of Service and Privacy Policy.",
+    "readFullTerms": "Read the Terms of Service",
+    "readFullPrivacy": "Read the Privacy Policy",
+    "termsAcceptPrompt": "I have read and agree to the CoopData Terms of Service.",
+    "privacyAcceptPrompt": "I acknowledge that I have read the CoopData Privacy Policy.",
+    "dataUseConsent": "Optional: I agree that eligible data from my organization may be used for aggregated, de-identified sector reporting.",
+    "readDataUse": "Read the notice",
+    "acceptAndProceed": "Accept and continue",
+    "center": {
+      "title": "CoopData Legal Centre",
+      "subtitle": "The terms, policies and notices that govern the use of CoopData.",
+      "documents": "Legal documents",
+      "language": "Document language",
+      "publishedVersions": "Published versions",
+      "questionsTitle": "Questions?",
+      "questionsBody": "For questions about these documents or requests about your data, contact us:",
+      "officialPolicy": "CoopData official policy",
+      "published": "Published",
+      "contents": "Contents",
+      "loading": "Loading the document…"
+    }
+  },
+  "cookie": {
+    "title": "We value your privacy",
+    "body": "CoopData only uses essential cookies and browser storage to keep you signed in, secure and able to work offline. We do not use analytics or advertising cookies. You can choose now whether to allow optional technologies, should any be added later.",
+    "readPolicy": "Read our Cookie Policy",
+    "reject": "Essential only",
+    "accept": "Accept all",
+    "close": "Close"
+  },
+  "privacy": {
+    "consentStatusTitle": "Your legal agreements",
+    "consentStatusSub": "Each acceptance is recorded with its version and time",
+    "requestsTitle": "Request about your data",
+    "requestsSub": "Ask for a copy of your data, a correction, or the deletion of your account",
+    "requestTypeLabel": "Request type",
+    "typeExport": "Export my data",
+    "typeExportDesc": "Receive a copy of your records",
+    "typeCorrect": "Correct my data",
+    "typeCorrectDesc": "Ask for inaccurate information to be updated",
+    "typeDelete": "Delete my account",
+    "typeDeleteDesc": "Ask for your account to be deleted or anonymized",
+    "detailsLabel": "Details (optional)",
+    "detailsPlaceholder": "Describe what you need…",
+    "deleteWarning": "Some records must be kept for legal, audit or security reasons, as set out in the Data Retention & Erasure Schedule (for example financial and audit records for up to 7 years). Where deletion is limited, we will explain why.",
+    "submitButton": "Submit request",
+    "requestSubmitted": "Your request has been submitted and will be reviewed.",
+    "requestFailed": "Your request could not be submitted. Please try again.",
+    "auditHistoryTitle": "Consent history",
+    "auditHistorySub": "Every acceptance recorded for your account",
+    "noHistory": "No acceptances recorded yet.",
+    "pageSubtitle": "Your legal agreements, data protection rights and consent history",
+    "bannerTitle": "Your privacy and data rights",
+    "bannerDesc": "CoopData protects personal data in line with the Eswatini Data Protection Act, 2022. Review what you have accepted and make requests about your data below.",
+    "openLegalCenter": "Open the legal centre"
   },
   "pdf": {
     "common": {
@@ -6401,5 +6505,63 @@
         "other": "Ministries"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Not saved: {{count}}",
+    "panelTitle": "Changes that couldn't be saved",
+    "panelDescription": "These changes were made on this device but the server didn't accept them. Retry them, or dismiss to discard them.",
+    "empty": "Nothing to fix — all your changes were saved.",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "retryAll": "Retry all",
+    "madeAt": "Made {{time}}",
+    "action": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete"
+    },
+    "subject": {
+      "section": "Submission section",
+      "questionnaire": "Questionnaire answers",
+      "financialStatement": "Financial statement",
+      "indicators": "Non-financial indicators",
+      "narratives": "Narratives",
+      "members": "Member data",
+      "savings": "Savings account",
+      "loans": "Loan",
+      "fixedDeposits": "Fixed deposit",
+      "farmCoop": "Farm data",
+      "submission": "Submission",
+      "invitation": "Invitation",
+      "user": "User",
+      "organization": "Organization",
+      "federation": "Federation",
+      "apex": "Apex",
+      "cooperative": "Cooperative",
+      "customKpi": "Custom KPI",
+      "questionnaireTemplate": "Questionnaire template",
+      "indicatorCatalog": "Indicator",
+      "change": "Change"
+    },
+    "reason": {
+      "network": "The server couldn't be reached after several attempts.",
+      "sessionExpired": "Your session expired. Sign in again, then retry.",
+      "forbidden": "You no longer have permission for this.",
+      "notFound": "This item no longer exists on the server.",
+      "server": "The server didn't accept this change."
+    }
+  },
+  "logoutPrompt": {
+    "title": "Log out?",
+    "offline": "You're offline. If you log out now, you won't be able to sign in again until you have an internet connection.",
+    "unsent": "You have {{count}} change(s) not sent yet. They stay on this device and will be sent the next time you sign in with internet.",
+    "stay": "Stay signed in",
+    "confirm": "Log out anyway"
+  },
+  "sessionDeadline": {
+    "badge_one": "Sign-in ends in {{count}} day",
+    "badge_other": "Sign-in ends in {{count}} days",
+    "badgeToday": "Sign-in ends today",
+    "hint": "Your sign-in on this device ends on {{date}}. After that you need internet to sign in again with your password. Unsent changes are kept."
   }
 }

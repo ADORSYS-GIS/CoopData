@@ -22,7 +22,8 @@
     "usersAndRoles": "Basebentisi Netindzima",
     "configureRoles": "Kuhlela Ematfuba",
     "settings": "Tinhlelo",
-    "profile": "Iphrofayili"
+    "profile": "Iphrofayili",
+    "dataPrivacy": "Bumfihlo bemininingwane netimvume"
   },
   "common": {
     "logout": "Phuma",
@@ -462,7 +463,9 @@
         "privacyPolicy": "Inqubomgomo Yekuvikeleka",
         "termsOfUse": "Imigomo Yekusebentisa",
         "accessibilityStatement": "Sitatimende Sekufinyelela",
-        "contact": "Xhumana"
+        "contact": "Xhumana",
+        "cookiePolicy": "Inqubomgomo Yemakhukhi",
+        "acceptableUse": "Kusetjentiswa Lokwemukelekako"
       }
     }
   },
@@ -4976,7 +4979,14 @@
     "backOnline": "Ubuyile ku-inthanethi — uyavumelanisa",
     "online": "Kuxhumene",
     "noSessionTitle": "Akukho lusito lwe-inthanethi",
-    "noSessionDesc": "Sicela unxibelelanise ne-inthanethi ukuze ungene ngemvume okokuqala."
+    "noSessionDesc": "Sicela unxibelelanise ne-inthanethi kute ungene.",
+    "reconnectNeedsReload": "Kuxhumana sekubuyile, kodvwa luhlelo ludzinga kulayishwa kabusha kute lubuyisele kungena kwakho.",
+    "reload": "Layisha kabusha",
+    "dataUnavailable": "Lolwatiso alukatfolakali ngaphandle kwe-inthanethi. Luvule kanye uxhumeke ku-inthanethi kuze lutfolakale ngaphandle kwe-inthanethi.",
+    "actionRequiresConnection": "Lesento sidzinga kuxhumeka ku-inthanethi.",
+    "inviteQueued": "Simemo sigcinwe kulelithuluzi",
+    "resendQueued": "Kutfumela futsi kugcinwe kulelithuluzi",
+    "inviteQueuedDesc": "Awukho ku-inthanethi. Sitawutfunyelwa nawubuyela ku-inthanethi — umuntfu utawutfola i-imeyili ngaleso sikhatsi kuphela."
   },
   "basicBenchmarking": {
     "pageTitle": "Kuhlukaniswa Kwekusebenta Lokucala",
@@ -5363,6 +5373,100 @@
     },
     "lockedFrequency": "{{year}} sekuhleliwe kubika nge-{{frequency}}.",
     "lockedFrequencyDrafts": "{{year}} kuhleliwe kubika nge-{{frequency}}. Susa emadrafti akho embiko waloyo nyaka kuze uguqule."
+  },
+  "legal": {
+    "termsOfService": "Imigomo Yekusebentisa",
+    "privacyPolicy": "Inchubomgomo Yebumfihlo",
+    "cookiePolicy": "Inchubomgomo Yemakhukhi",
+    "acceptableUse": "Kusebentisa Lokwemukelekako",
+    "securityProtection": "Kuvikeleka Nekuvikelwa Kwemininingwane",
+    "dataRetention": "Kugcinwa Kwemininingwane",
+    "dataUse": "Kusetjentiswa Nekuhlanganiswa Kwemininingwane",
+    "dataProcessing": "Imisebenti Ekucubungulweni Kwemininingwane",
+    "accept": "Vuma",
+    "accepted": "Kwemukelwe",
+    "actionNeeded": "Kudzingeka sento",
+    "consentGiven": "Inikiwe",
+    "consentNotGiven": "Ayikanikwa",
+    "giveConsent": "Nika imvume",
+    "acknowledged": "Kwatiwe",
+    "notAcknowledged": "Akukatiwa",
+    "acknowledge": "Ngiyifundzile",
+    "consentRecorded": "Kukhetsa kwakho kurekhodiwe.",
+    "consentFailed": "Kukhetsa kwakho akukhonanga kurekhodwa. Sicela uphindze.",
+    "versionLabel": "Inguculo {{version}}",
+    "viewDoc": "Buka umbhalo",
+    "cookiePreferences": "Kukhetsa kwemakhukhi",
+    "cookieChoiceAll": "Tonkhe tindlela tivunyelwe",
+    "cookieChoiceEssential": "Lokubalulekile kuphela",
+    "cookieChoiceNone": "Kute lokukhetsiwe okwanyalo",
+    "changeCookies": "Shintja",
+    "requiredSection": "Kudzingekela kusebentisa i-CoopData",
+    "optionalSection": "Lokungasiso sibopho",
+    "document": "Umbhalo",
+    "version": "Inguculo",
+    "acceptedAt": "Kwemukelwe nga",
+    "ipAddress": "Likheli le-IP",
+    "allRightsReserved": "Onkhe emalungelo agodliwe.",
+    "cookieSettings": "Tilungiselelo temakhukhi",
+    "acceptRequiredToast": "Sicela wemukele Imigomo Yekusebentisa futsi uvume kutsi uyifundzile Inchubomgomo Yebumfihlo kute uchubeke.",
+    "consentRecordedSuccess": "Siyabonga, kwemukela kwakho kurekhodiwe.",
+    "mandatoryConsentTitle": "Sicela wemukele imigomo yetfu yemtsetfo",
+    "mandatoryConsentDesc": "Kute uchubeke usebentisa i-CoopData, sicela ubuyekete futsi wemukele Imigomo Yekusebentisa kanye neNchubomgomo Yebumfihlo letisibopho.",
+    "readFullTerms": "Fundza Imigomo Yekusebentisa",
+    "readFullPrivacy": "Fundza Inchubomgomo Yebumfihlo",
+    "termsAcceptPrompt": "Ngiyifundzile futsi ngiyavumelana neMigomo Yekusebentisa ye-CoopData.",
+    "privacyAcceptPrompt": "Ngiyavuma kutsi ngiyifundzile Inchubomgomo Yebumfihlo ye-CoopData.",
+    "dataUseConsent": "Lokungasiso sibopho: ngiyavuma kutsi imininingwane lefanelekile yenhlangano yami ingasetjentiselwa kubika ngemkhakha lokuhlanganisiwe nalokususiwe bunjalo bemuntu.",
+    "readDataUse": "Fundza satiso",
+    "acceptAndProceed": "Vuma futsi uchubeke",
+    "center": {
+      "title": "Sikhungo Setemtsetfo se-CoopData",
+      "subtitle": "Imigomo, tinchubomgomo netatiso letilawula kusetjentiswa kwe-CoopData.",
+      "documents": "Imibhalo yemtsetfo",
+      "language": "Lulwimi lwembhalo",
+      "publishedVersions": "Tinguculo letishicilelwe",
+      "questionsTitle": "Unemibuto?",
+      "questionsBody": "Ngemibuto mayelana nalemibhalo noma ticelo mayelana nemininingwane yakho, tsintsana natsi:",
+      "officialPolicy": "Inchubomgomo lesemtsetfweni ye-CoopData",
+      "published": "Kushicilelwe",
+      "contents": "Lokucuketfwe",
+      "loading": "Kulayishwa umbhalo…"
+    }
+  },
+  "cookie": {
+    "title": "Siyabuhlonipha bumfihlo bakho",
+    "body": "I-CoopData isebentisa kuphela emakhukhi labalulekile nekugcinwa ku-browser kute ihlale ungenile, uphephile futsi ukhone kusebenta ngaphandle kwe-inthanethi. Asisebentisi makhukhi ekuhlatiya noma ekukhangisa. Ungakhetsa nyalo kutsi uyativumela yini tindlela letingasiso sibopho, uma kungenteka tengetwe.",
+    "readPolicy": "Fundza Inchubomgomo yetfu Yemakhukhi",
+    "reject": "Lokubalulekile kuphela",
+    "accept": "Vuma konkhe",
+    "close": "Vala"
+  },
+  "privacy": {
+    "consentStatusTitle": "Tivumelwano takho temtsetfo",
+    "consentStatusSub": "Kwemukela ngakunye kurekhodwa nenguculo yako nesikhatsi",
+    "requestsTitle": "Sicelo mayelana nemininingwane yakho",
+    "requestsSub": "Cela ikhophi yemininingwane yakho, kulungiswa, noma kucishwa kwe-akhawunti yakho",
+    "requestTypeLabel": "Luhlobo lwesicelo",
+    "typeExport": "Khipha imininingwane yami",
+    "typeExportDesc": "Tfola ikhophi yemarekhodi akho",
+    "typeCorrect": "Lungisa imininingwane yami",
+    "typeCorrectDesc": "Cela kutsi imininingwane lengasilo liciniso ibuyeketwe",
+    "typeDelete": "Cisha i-akhawunti yami",
+    "typeDeleteDesc": "Cela kutsi i-akhawunti yakho icishwe noma isuswe bunjalo",
+    "detailsLabel": "Imininingwane (akusiso sibopho)",
+    "detailsPlaceholder": "Chaza loko lokudzingako…",
+    "deleteWarning": "Lamanye emarekhodi kufanele agcinwe ngetizatfu temtsetfo, tekuhlolwa noma tekuvikeleka, njengobe kubekiwe ku-Luhlelo Lwekugcinwa Nekucishwa Kwemininingwane (sibonelo emarekhodi etimali nekuhlolwa kufika eminyakeni lesi-7). Lapho kucisha kukhawulelwe, sitakuchazela kutsi kungani.",
+    "submitButton": "Tfumela sicelo",
+    "requestSubmitted": "Sicelo sakho sitfunyelwe futsi sitawubuyeketwa.",
+    "requestFailed": "Sicelo sakho asikhonanga kutfunyelwa. Sicela uphindze.",
+    "auditHistoryTitle": "Umlandvo wetimvume",
+    "auditHistorySub": "Konkhe kwemukela lokurekhodwe ku-akhawunti yakho",
+    "noHistory": "Kute kwemukela lokurekhodiwe okwanyalo.",
+    "pageSubtitle": "Tivumelwano takho temtsetfo, emalungelo ekuvikelwa kwemininingwane kanye nemlandvo wetimvume",
+    "bannerTitle": "Bumfihlo bakho nemalungelo akho emininingwane",
+    "bannerDesc": "I-CoopData ivikela imininingwane yemuntu ngekuvumelana neMtsetfo Wekuvikelwa Kwemininingwane weSwatini wa-2022. Buka ngentasi loko lokwemukele futsi wente ticelo mayelana nemininingwane yakho.",
+    "openLegalCenter": "Vula sikhungo setemtsetfo"
   },
   "pdf": {
     "common": {
@@ -6330,5 +6434,63 @@
         "other": "Emalitiko"
       }
     }
+  },
+  "sync": {
+    "failedBadge": "Akugcinwanga: {{count}}",
+    "panelTitle": "Lushintjo lolungakagcinwa",
+    "panelDescription": "Lolushintjo lwentiwa kulelithuluzi kodvwa i-server ayilwemukelanga. Phindza uzame, noma ulususe.",
+    "empty": "Kute lokufanele kulungiswe — konkhe lokushintjile kugciniwe.",
+    "retry": "Phindza uzame",
+    "dismiss": "Susa",
+    "retryAll": "Phindza konkhe",
+    "madeAt": "Kwentiwe ngu-{{time}}",
+    "action": {
+      "create": "Kwakha",
+      "update": "Kubuyeketa",
+      "delete": "Kususa"
+    },
+    "subject": {
+      "section": "Sigaba sesicelo",
+      "questionnaire": "Timphendvulo temibuto",
+      "financialStatement": "Sitatimende setimali",
+      "indicators": "Tinkomba letingasito tetimali",
+      "narratives": "Tincazelo",
+      "members": "Imininingwane yemalunga",
+      "savings": "I-akhawunti yekonga",
+      "loans": "Imboleko",
+      "fixedDeposits": "Idiphozithi lengashintji",
+      "farmCoop": "Imininingwane yepulazi",
+      "submission": "Sicelo",
+      "invitation": "Simemo",
+      "user": "Umsebentisi",
+      "organization": "Inhlangano",
+      "federation": "I-federation",
+      "apex": "I-apex",
+      "cooperative": "Libhizinisi lekubambisana",
+      "customKpi": "I-KPI lehleliwe",
+      "questionnaireTemplate": "Sifanekiso semibuto",
+      "indicatorCatalog": "Inkomba",
+      "change": "Lushintjo"
+    },
+    "reason": {
+      "network": "I-server ayikatfolakali ngemuva kwemizamo leminyenti.",
+      "sessionExpired": "Sikhatsi sakho siphelelwe. Phindza ungene, bese uyazama.",
+      "forbidden": "Awusenayo imvume yaloku.",
+      "notFound": "Loku akusekho ku-server.",
+      "server": "I-server ayilwemukelanga lolushintjo."
+    }
+  },
+  "logoutPrompt": {
+    "title": "Uyaphuma?",
+    "offline": "Awukho ku-inthanethi. Nawuphuma nyalo, angeke ukhone kungena futsi uze ube ne-inthanethi.",
+    "unsent": "Une-{{count}} lushintjo lolungakatfunyelwa. Lutawuhlala kulelithuluzi futsi lutfunyelwe nawungena ne-inthanethi.",
+    "stay": "Hlala ungenile",
+    "confirm": "Phuma noma kunjalo"
+  },
+  "sessionDeadline": {
+    "badge_one": "Kungena kuphela ngelilanga lelilinye ({{count}})",
+    "badge_other": "Kungena kuphela emalangeni langu-{{count}}",
+    "badgeToday": "Kungena kuphela lamuhla",
+    "hint": "Kungena kwakho kulelithuluzi kuphela nga-{{date}}. Ngemuva kwaloko udzinga i-inthanethi kute ungene futsi ngephasiwedi yakho. Lushintjo lolungakatfunyelwa luyagcinwa."
   }
 }
