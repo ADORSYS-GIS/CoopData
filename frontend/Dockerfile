@@ -24,7 +24,9 @@ RUN npm run build
 
 FROM nginx:alpine AS runner
 
-RUN apk upgrade --no-cache
+# Changes on every CI run so the upgrade layer is not served from the build cache
+ARG APK_CACHE_BUST=0
+RUN echo "$APK_CACHE_BUST" >/dev/null && apk upgrade --no-cache
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
