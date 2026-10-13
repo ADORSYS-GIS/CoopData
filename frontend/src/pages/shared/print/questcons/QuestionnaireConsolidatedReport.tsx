@@ -4,7 +4,12 @@ import { rateNote } from "@/lib/basic-dashboard";
 import { analyseQuestionnaire } from "@/pages/shared/print/quest/data";
 import { membershipPage } from "@/pages/shared/print/quest/pages1";
 import { resiliencePage, savingsLoanQualityPage } from "@/pages/shared/print/quest/pages2";
-import { annexAPages, annexBPages, performancePage } from "@/pages/shared/print/quest/pages3";
+import {
+  annexAPages,
+  annexBPages,
+  mpcFinancialRatiosPage,
+  performancePage,
+} from "@/pages/shared/print/quest/pages3";
 import {
   cooperativePages,
   coveragePage,
