@@ -28,13 +28,13 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
+      # Save only: restoring here would copy an older node_modules over the fresh
+      # install whenever the lockfile changes, and save that mix for every job.
       - name: Cache node modules
-        uses: actions/cache@v4
+        uses: actions/cache/save@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          key: ${{ runner.os }}-node-modules-v2-${{ hashFiles('frontend/package-lock.json') }}
 
   frontend_lint:
     name: Frontend Lint
@@ -51,9 +51,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          key: ${{ runner.os }}-node-modules-v2-${{ hashFiles('frontend/package-lock.json') }}
+          fail-on-cache-miss: true
 
       - name: ESLint
         working-directory: ./frontend
@@ -74,9 +73,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          key: ${{ runner.os }}-node-modules-v2-${{ hashFiles('frontend/package-lock.json') }}
+          fail-on-cache-miss: true
 
       - name: Prettier
         working-directory: ./frontend
@@ -97,9 +95,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          key: ${{ runner.os }}-node-modules-v2-${{ hashFiles('frontend/package-lock.json') }}
+          fail-on-cache-miss: true
 
       - name: Generate OpenAPI client
         working-directory: ./frontend
@@ -124,9 +121,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          key: ${{ runner.os }}-node-modules-v2-${{ hashFiles('frontend/package-lock.json') }}
+          fail-on-cache-miss: true
 
       - name: Unit tests with coverage
         working-directory: ./frontend
@@ -155,9 +151,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          key: ${{ runner.os }}-node-modules-v2-${{ hashFiles('frontend/package-lock.json') }}
+          fail-on-cache-miss: true
 
       - name: Generate OpenAPI client
         working-directory: ./frontend
@@ -182,9 +177,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: frontend/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          key: ${{ runner.os }}-node-modules-v2-${{ hashFiles('frontend/package-lock.json') }}
+          fail-on-cache-miss: true
 
       - name: Install Playwright browsers
         working-directory: ./frontend
