@@ -12,6 +12,7 @@ import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { StructureFigures } from "@/pages/shared/print/coop/pages5";
 import { Fn, Figure } from "@/pages/shared/print/tpl/TplParts";
+import { percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
 const ROWS_PER_PAGE = 28;
 const FIGURE_ROOM = 22;
@@ -51,12 +52,12 @@ function StatementTable({ rows, a, shareLabel, base }: TableProps) {
       <thead>
         <tr>
           <th style={{ width: "14mm" }} className="code">
-            Code
+            {tr("coop.statement.code")}
           </th>
-          <th>Account</th>
-          <th className="num">FY {a.year}</th>
-          <th className="num">FY {a.year - 1}</th>
-          <th className="num">Change</th>
+          <th>{tr("coop.statement.account")}</th>
+          <th className="num">{tr("common.fy", { year: a.year })}</th>
+          <th className="num">{tr("common.fy", { year: a.year - 1 })}</th>
+          <th className="num">{tr("common.change")}</th>
           <th className="num">{shareLabel}</th>
         </tr>
       </thead>
@@ -108,38 +109,38 @@ const paginate = (rows: Row[]): Row[][] => chunk(rows, ROWS_PER_PAGE);
 export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
   const s = a.statement;
   const rows: Row[] = [
-    { kind: "grp", name: "Assets" },
+    { kind: "grp", name: tr("coop.statement.assets") },
     ...linesOf(s.assets),
     {
       kind: "total",
       code: 1999,
-      name: "Total assets",
+      name: tr("coop.statement.total_assets"),
       current: s.totals.assets.current,
       prior: s.totals.assets.prior,
       note: "assets",
     },
-    { kind: "grp", name: "Liabilities" },
+    { kind: "grp", name: tr("coop.statement.liabilities") },
     ...linesOf(s.liabilities),
     {
       kind: "total",
       code: 2999,
-      name: "Total liabilities",
+      name: tr("coop.statement.total_liabilities"),
       current: s.totals.liabilities.current,
       prior: s.totals.liabilities.prior,
     },
-    { kind: "grp", name: "Equity" },
+    { kind: "grp", name: tr("coop.statement.equity") },
     ...linesOf(s.equity),
     {
       kind: "total",
       code: 3999,
-      name: "Total equity",
+      name: tr("coop.statement.total_equity"),
       current: s.totals.equity.current,
       prior: s.totals.equity.prior,
       note: "equity",
     },
     {
       kind: "grand",
-      name: "Total liabilities & equity",
+      name: tr("coop.statement.total_liabilities_equity"),
       current: s.totals.liabilities.current + s.totals.equity.current,
       prior: s.totals.liabilities.prior + s.totals.equity.prior,
     },
@@ -162,33 +163,38 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
       <Figure
         caption={
           <>
-            <b>Figure 1.</b> Balance-sheet structure, FY {a.year - 1} vs FY {a.year} (million).
+            <b>{tr("coop.statement.fig_1")}</b>{" "}
+            {tr("coop.statement.fig_1_caption", { prior: a.year - 1, year: a.year })}
           </>
         }
       >
         <HBarPairs
-          unit="million"
-          priorLabel={`FY ${a.year - 1}`}
-          currentLabel={`FY ${a.year}`}
+          unit={tr("common.million")}
+          priorLabel={tr("common.fy", { year: a.year - 1 })}
+          currentLabel={tr("common.fy", { year: a.year })}
           rows={[
-            { label: "Total assets", prior: m(assets.prior), current: m(assets.current) ?? 0 },
             {
-              label: "Net loan portfolio",
+              label: tr("coop.statement.total_assets"),
+              prior: m(assets.prior),
+              current: m(assets.current) ?? 0,
+            },
+            {
+              label: tr("coop.statement.net_loan_portfolio"),
               prior: m(priorOf("net_loan_portfolio")),
               current: m(netLoans) ?? 0,
             },
             {
-              label: "Member savings",
+              label: tr("coop.statement.member_savings"),
               prior: m(priorOf("total_member_deposits")),
               current: m(savings) ?? 0,
             },
             {
-              label: "Total liabilities",
+              label: tr("coop.statement.total_liabilities"),
               prior: m(s.totals.liabilities.prior),
               current: m(s.totals.liabilities.current) ?? 0,
             },
             {
-              label: "Total equity",
+              label: tr("coop.statement.total_equity"),
               prior: m(s.totals.equity.prior),
               current: m(s.totals.equity.current) ?? 0,
             },
@@ -202,25 +208,37 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
   const intro = (
     <p>
       {growth === null
-        ? "The statement below lists the accounts as reported."
-        : `Total assets ${growth >= 0 ? "increased" : "decreased"} by ${Math.abs(growth).toFixed(1)}% to ${fmtInt(assets.current)}.`}{" "}
-      Equity is{" "}
-      {fmtPct(assets.current > 0 ? (s.totals.equity.current / assets.current) * 100 : null)} of
-      total assets.
+        ? tr("coop.statement.position_as_reported")
+        : tr(growth >= 0 ? "coop.statement.assets_increased" : "coop.statement.assets_decreased", {
+            change: percentText(Math.abs(growth)),
+            value: fmtInt(assets.current),
+          })}{" "}
+      {tr("coop.statement.equity_share", {
+        share: fmtPct(assets.current > 0 ? (s.totals.equity.current / assets.current) * 100 : null),
+      })}
     </p>
   );
 
   const result = pages.map((pageRows, index): PageSpec => ({
-    toc: index === 0 ? { no, title: "Statement of Financial Position" } : undefined,
+    toc: index === 0 ? { no, title: tr("coop.statement.position_title") } : undefined,
     render: () => (
       <>
         <Sec
           no={index === 0 ? no : undefined}
-          title="Statement of Financial Position"
-          sub={pages.length > 1 ? `Part ${index + 1} of ${pages.length}` : `As at 31 December`}
+          title={tr("coop.statement.position_title")}
+          sub={
+            pages.length > 1
+              ? tr("common.part_of", { part: index + 1, parts: pages.length })
+              : tr("common.as_at_31_december")
+          }
         />
         {index === 0 && intro}
-        <StatementTable rows={pageRows} a={a} shareLabel="% of assets" base={assets} />
+        <StatementTable
+          rows={pageRows}
+          a={a}
+          shareLabel={tr("coop.statement.pct_assets")}
+          base={assets}
+        />
         {index === pages.length - 1 && figureOnLast && figure}
       </>
     ),
@@ -229,7 +247,7 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
     result.push({
       render: () => (
         <>
-          <Sec title="Statement of Financial Position" sub="Structure" />
+          <Sec title={tr("coop.statement.position_title")} sub={tr("coop.statement.structure")} />
           {figure}
         </>
       ),
@@ -241,16 +259,16 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
 export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
   const s = a.statement;
   const rows: Row[] = [
-    { kind: "grp", name: "Income" },
+    { kind: "grp", name: tr("coop.statement.income") },
     ...linesOf(s.income),
     {
       kind: "total",
-      name: "Total income",
+      name: tr("coop.statement.total_income"),
       code: 4999,
       current: s.totals.income.current,
       prior: s.totals.income.prior,
     },
-    { kind: "grp", name: "Expenditure" },
+    { kind: "grp", name: tr("coop.statement.expenditure") },
     ...s.expenses.map((l): Row => ({
       kind: "line",
       code: l.code,
@@ -261,7 +279,7 @@ export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
     })),
     {
       kind: "total",
-      name: "Total expenditure",
+      name: tr("coop.statement.total_expenditure"),
       code: 5999,
       current: Math.abs(s.totals.expenses.current),
       prior: Math.abs(s.totals.expenses.prior),
@@ -269,7 +287,7 @@ export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
     },
     {
       kind: "grand",
-      name: "Net surplus for the year",
+      name: tr("coop.statement.net_surplus_year"),
       code: 6999,
       current: s.totals.surplus.current,
       prior: s.totals.surplus.prior,
@@ -290,22 +308,31 @@ export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
     <Figure
       caption={
         <>
-          <b>Figure 2.</b> Income, expenditure and surplus, FY {a.year - 1} vs FY {a.year}{" "}
-          (million).
+          <b>{tr("coop.statement.fig_2")}</b>{" "}
+          {tr("coop.statement.fig_2_caption", { prior: a.year - 1, year: a.year })}
         </>
       }
     >
       <VBarGroups
-        unit="million"
+        unit={tr("common.million")}
         series={[
-          { name: `FY ${a.year - 1}`, color: LIGHT },
-          { name: `FY ${a.year} income / surplus`, color: TEAL },
-          { name: `FY ${a.year} expenditure`, color: RED },
+          { name: tr("common.fy", { year: a.year - 1 }), color: LIGHT },
+          { name: tr("coop.statement.series_income", { year: a.year }), color: TEAL },
+          { name: tr("coop.statement.series_expenditure", { year: a.year }), color: RED },
         ]}
         data={[
-          { label: "Total income", values: [m(inc.prior), m(inc.current), null] },
-          { label: "Total expenditure", values: [m(exp.prior), null, m(exp.current)] },
-          { label: "Net surplus", values: [m(sur.prior), m(sur.current), null] },
+          {
+            label: tr("coop.statement.total_income"),
+            values: [m(inc.prior), m(inc.current), null],
+          },
+          {
+            label: tr("coop.statement.total_expenditure"),
+            values: [m(exp.prior), null, m(exp.current)],
+          },
+          {
+            label: tr("coop.statement.net_surplus"),
+            values: [m(sur.prior), m(sur.current), null],
+          },
         ]}
       />
     </Figure>
@@ -314,23 +341,39 @@ export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
   const intro = (
     <p>
       {growth === null
-        ? "The statement below lists income and expenditure as reported."
-        : `Total income ${growth >= 0 ? "rose" : "fell"} ${Math.abs(growth).toFixed(1)}% to ${fmtInt(inc.current)}.`}{" "}
-      The net surplus is {fmtInt(sur.current)}
-      {sur.prior ? `, against ${fmtInt(sur.prior)} in the prior year` : ""}.
+        ? tr("coop.statement.performance_as_reported")
+        : tr(growth >= 0 ? "coop.statement.income_rose" : "coop.statement.income_fell", {
+            change: percentText(Math.abs(growth)),
+            value: fmtInt(inc.current),
+          })}{" "}
+      {sur.prior
+        ? tr("coop.statement.surplus_with_prior", {
+            value: fmtInt(sur.current),
+            prior: fmtInt(sur.prior),
+          })
+        : tr("coop.statement.surplus", { value: fmtInt(sur.current) })}
     </p>
   );
   const result = pages.map((pageRows, index): PageSpec => ({
-    toc: index === 0 ? { no, title: "Statement of Financial Performance" } : undefined,
+    toc: index === 0 ? { no, title: tr("coop.statement.performance_title") } : undefined,
     render: () => (
       <>
         <Sec
           no={index === 0 ? no : undefined}
-          title="Statement of Financial Performance"
-          sub={pages.length > 1 ? `Part ${index + 1} of ${pages.length}` : "Year ended 31 December"}
+          title={tr("coop.statement.performance_title")}
+          sub={
+            pages.length > 1
+              ? tr("common.part_of", { part: index + 1, parts: pages.length })
+              : tr("common.year_ended_31_december")
+          }
         />
         {index === 0 && intro}
-        <StatementTable rows={pageRows} a={a} shareLabel="% of income" base={inc} />
+        <StatementTable
+          rows={pageRows}
+          a={a}
+          shareLabel={tr("coop.statement.pct_income")}
+          base={inc}
+        />
         {index === pages.length - 1 && figureOnLast && figure}
       </>
     ),
@@ -339,7 +382,10 @@ export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
     result.push({
       render: () => (
         <>
-          <Sec title="Statement of Financial Performance" sub="Income & surplus" />
+          <Sec
+            title={tr("coop.statement.performance_title")}
+            sub={tr("coop.statement.income_surplus")}
+          />
           {figure}
         </>
       ),

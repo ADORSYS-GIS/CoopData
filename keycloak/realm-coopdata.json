@@ -1861,6 +1861,7 @@
     "ssl": "false"
   },
   "loginTheme": "coopdata",
+  "emailTheme": "coopdata",
   "eventsEnabled": false,
   "eventsListeners": [
     "jboss-logging"

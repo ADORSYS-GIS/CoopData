@@ -71,6 +71,12 @@ export function generateMockFinancialGrid(): Record<number, Record<number, numbe
     data[5301][m] = 300;
   }
 
+  // A yearly return is entered in a single "Annual Total" column stored under month 0;
+  // it holds the year-end (December) figures, which balance.
+  for (const code of activeCodes) {
+    data[code][0] = data[code][12];
+  }
+
   return data;
 }
 

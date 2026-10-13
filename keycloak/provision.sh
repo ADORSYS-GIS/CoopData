@@ -201,7 +201,8 @@ echo "[provision] Granting coopdata-backend service account roles..."
 echo "[provision] Setting login theme..."
 ./kcadm.sh update "realms/${REALM}" \
   --server "${KEYCLOAK_SERVER}" \
-  -s "loginTheme=coopdata" 2>&1 || echo "[provision] Note: Could not set theme"
+  -s "loginTheme=coopdata" \
+  -s "emailTheme=coopdata" 2>&1 || echo "[provision] Note: Could not set theme"
 
 # ─── Password policy ─────────────────────────────────────────────────────────
 # Enforces strong passwords at the realm level (single source of truth).

@@ -178,6 +178,9 @@ export const useSubmission = (id: string, role?: string, tokenOverride?: string)
       return data as SubmissionResponse;
     },
     enabled: !!id,
+    // A draft can change hands (delegation, reclaim) while it is open: keep it fresh.
+    refetchInterval: (query) => (query.state.data?.status === "draft" ? 15_000 : false),
+    refetchOnWindowFocus: true,
   });
 
 export const useCreateSubmission = () => {
@@ -521,6 +524,7 @@ export interface SubmissionReviewResponse {
   reviewer_id: string | null;
   action: string;
   comment: string | null;
+  target_tier?: string | null;
   created_at: string;
 }
 

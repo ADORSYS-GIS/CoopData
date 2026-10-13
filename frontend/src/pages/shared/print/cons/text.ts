@@ -1,81 +1,108 @@
 import type { Analysis, RatioRow } from "@/pages/shared/print/cons/analysis";
 import { integer, money, percent, sumMembers } from "@/pages/shared/print/consolidated/stats";
+import { listText, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
-const AREA: Record<string, string> = {
-  par30: "asset quality",
-  capital_adequacy_ratio: "capital",
-  roa: "earnings",
-  roe: "earnings",
-  operating_expense_ratio: "efficiency",
-  loan_loss_coverage: "provisioning",
-};
-
-const OWNER_BY_TIER = {
-  Apex: "Cooperatives",
-  Federation: "Apexes",
-  Ministry: "Ministry supervisors",
-} as const;
+const AREA_KEYS = new Set([
+  "par30",
+  "capital_adequacy_ratio",
+  "roa",
+  "roe",
+  "operating_expense_ratio",
+  "loan_loss_coverage",
+]);
 
 const unique = <T>(items: T[]): T[] => [...new Set(items)];
 
 const breaches = (ratios: RatioRow[]): RatioRow[] => ratios.filter((r) => r.tone === "bad");
 
-const areaList = (rows: RatioRow[]): string => {
-  const names = unique(rows.map((r) => AREA[r.key] ?? r.label.toLowerCase()));
-  if (names.length <= 1) return names[0] ?? "";
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-};
+const areaList = (rows: RatioRow[]): string =>
+  listText(
+    unique(
+      rows.map((r) => (AREA_KEYS.has(r.key) ? tr(`cons.areas.${r.key}`) : r.label.toLowerCase())),
+    ),
+  );
 
 export const verdictOf = (a: Analysis): { verdict: string; body: string } => {
   const { filing, ratios, changes, now } = a;
   if (filing.filed === 0) {
     return {
-      verdict: "No returns have been filed for this period.",
-      body: `None of the ${filing.total} cooperatives in scope has an approved return, so no consolidated figure can be reported.`,
+      verdict: tr("cons.text.none_filed_verdict"),
+      body: tr("cons.text.none_filed_body", { total: filing.total }),
     };
   }
   const filingText =
     filing.rate >= 100
-      ? "Full filing compliance"
+      ? tr("cons.text.filing_full")
       : filing.rate >= 75
-        ? "Good filing compliance"
-        : "Low filing compliance";
+        ? tr("cons.text.filing_good")
+        : tr("cons.text.filing_low");
   const growth = changes.assets
     ? changes.assets.tone === "up"
-      ? "balance-sheet growth"
-      : "a shrinking balance sheet"
-    : "no prior-year comparison";
-  const bad = breaches(ratios.filter((r) => r.avgNow !== null));
+      ? tr("cons.text.growth_up")
+      : tr("cons.text.growth_down")
+    : tr("cons.text.growth_none");
+  const reported = ratios.filter((r) => r.avgNow !== null);
+  const bad = breaches(reported);
   const tail =
-    bad.length > 0
-      ? `, but the sector breaches the benchmarks for ${areaList(bad)}`
-      : ", and the prudential benchmarks are met";
+    bad.length > 0 ? tr("cons.text.breaches", { areas: areaList(bad) }) : tr("cons.text.all_met");
   const body =
-    `${filing.filed} of ${filing.total} cooperatives (${filing.rate.toFixed(0)}%) filed. ` +
-    `Total assets stand at ${money(now.assets)}${changes.assets ? ` (${changes.assets.text} on the prior year)` : ""} ` +
-    `and members number ${integer(now.members)}. ` +
+    tr("cons.text.filed", {
+      filed: filing.filed,
+      total: filing.total,
+      rate: percentText(filing.rate, 0),
+    }) +
+    (changes.assets
+      ? tr("cons.text.assets_change", { value: money(now.assets), change: changes.assets.text })
+      : tr("cons.text.assets", { value: money(now.assets) })) +
+    tr("cons.text.members", { value: integer(now.members) }) +
     (bad.length > 0
-      ? `${bad.length} of ${ratios.filter((r) => r.avgNow !== null).length} reported average ratios are outside the prudential benchmark. `
-      : "All reported average ratios are within the prudential benchmark. ") +
-    "Ratios are simple averages of the cooperatives' ratios; aggregate ratios are shown beside them in Section 2.";
-  return { verdict: `${filingText} and ${growth}${tail}.`, body };
+      ? tr("cons.text.ratios_out", { count: bad.length, total: reported.length })
+      : tr("cons.text.ratios_in")) +
+    tr("cons.text.averages_note");
+  return { verdict: tr("cons.text.verdict", { filing: filingText, growth, tail }), body };
 };
 
 export const strengthsOf = (a: Analysis): string[] => {
   const out: string[] = [];
   const { filing, changes, ratios, now } = a;
   if (filing.total > 0 && filing.rate >= 90)
-    out.push(`${filing.filed} of ${filing.total} cooperatives filed (${filing.rate.toFixed(0)}%).`);
+    out.push(
+      tr("cons.text.strength_filed", {
+        filed: filing.filed,
+        total: filing.total,
+        rate: percentText(filing.rate, 0),
+      }),
+    );
   if (changes.assets?.tone === "up")
-    out.push(`Total assets grew ${changes.assets.text} to ${money(now.assets)}.`);
+    out.push(
+      tr("cons.text.strength_assets", { change: changes.assets.text, value: money(now.assets) }),
+    );
   if (changes.loans?.tone === "up")
-    out.push(`The gross loan portfolio grew ${changes.loans.text} to ${money(now.loans)}.`);
+    out.push(
+      tr("cons.text.strength_loans", { change: changes.loans.text, value: money(now.loans) }),
+    );
   if (changes.deposits?.tone === "up")
-    out.push(`Member deposits rose ${changes.deposits.text} to ${money(now.deposits)}.`);
+    out.push(
+      tr("cons.text.strength_deposits", {
+        change: changes.deposits.text,
+        value: money(now.deposits),
+      }),
+    );
   if (changes.members?.tone === "up")
-    out.push(`Membership grew ${changes.members.text} to ${integer(now.members)} members.`);
+    out.push(
+      tr("cons.text.strength_members", {
+        change: changes.members.text,
+        value: integer(now.members),
+      }),
+    );
   for (const row of ratios.filter((r) => r.tone === "ok")) {
-    out.push(`${row.label} averages ${percent(row.avgNow)}, within the benchmark (${row.bench}).`);
+    out.push(
+      tr("cons.text.strength_ratio", {
+        label: row.label,
+        value: percent(row.avgNow),
+        bench: row.bench,
+      }),
+    );
   }
   return out.slice(0, 5);
 };
@@ -84,65 +111,55 @@ export const concernsOf = (a: Analysis): string[] => {
   const out: string[] = [];
   const { filing, changes, ratios, now } = a;
   for (const row of breaches(ratios)) {
-    out.push(`${row.label} averages ${percent(row.avgNow)} against a benchmark of ${row.bench}.`);
+    out.push(
+      tr("cons.text.concern_ratio", {
+        label: row.label,
+        value: percent(row.avgNow),
+        bench: row.bench,
+      }),
+    );
   }
-  if (filing.notFiled > 0)
-    out.push(
-      `${filing.notFiled} cooperative${filing.notFiled === 1 ? "" : "s"} did not file and ${filing.notFiled === 1 ? "is" : "are"} excluded from every total.`,
-    );
+  if (filing.notFiled > 0) out.push(tr("cons.text.concern_not_filed", { count: filing.notFiled }));
   if (changes.equity?.tone === "down")
-    out.push(`Total equity fell ${changes.equity.text.replace("-", "")} to ${money(now.equity)}.`);
-  if (changes.surplus?.tone === "down")
-    out.push(`Net surplus fell ${changes.surplus.text.replace("-", "")} to ${money(now.surplus)}.`);
-  if (now.surplus < 0)
-    out.push(`The combined result is a loss of ${money(Math.abs(now.surplus))}.`);
-  const unreported = ratios.filter((r) => r.avgNow === null).length;
-  if (unreported > 0)
     out.push(
-      `${unreported} indicator${unreported === 1 ? " has" : "s have"} no reported figure and cannot be assessed.`,
+      tr("cons.text.concern_equity", {
+        change: changes.equity.text.replace("-", ""),
+        value: money(now.equity),
+      }),
     );
+  if (changes.surplus?.tone === "down")
+    out.push(
+      tr("cons.text.concern_surplus", {
+        change: changes.surplus.text.replace("-", ""),
+        value: money(now.surplus),
+      }),
+    );
+  if (now.surplus < 0)
+    out.push(tr("cons.text.concern_loss", { value: money(Math.abs(now.surplus)) }));
+  const unreported = ratios.filter((r) => r.avgNow === null).length;
+  if (unreported > 0) out.push(tr("cons.text.concern_unreported", { count: unreported }));
   return out.slice(0, 5);
 };
+
+export type Priority = "High" | "Medium" | "Standard";
 
 export interface Recommendation {
   lead: string;
   text: string;
-  priority: "High" | "Medium" | "Standard";
+  priority: Priority;
   owner: string;
 }
 
-const ACTION: Record<string, [string, string]> = {
-  par30: [
-    "Portfolio quality.",
-    "Require remedial plans for cooperatives above 5% PAR >30 days and report progress at the next review.",
-  ],
-  capital_adequacy_ratio: [
-    "Capital restoration.",
-    "Require capital-building plans from cooperatives below the 10% capital-to-assets minimum, with quarterly reporting.",
-  ],
-  roa: [
-    "Profitability.",
-    "Review lending rates and cost structures so that return on assets moves towards 3%.",
-  ],
-  roe: [
-    "Returns to members.",
-    "Review surplus allocation and cost structures so that return on equity moves towards 8%.",
-  ],
-  operating_expense_ratio: [
-    "Efficiency.",
-    "Ask cooperatives above the 5% operating-expense benchmark for cost-reduction plans.",
-  ],
-  loan_loss_coverage: [
-    "Provisioning.",
-    "Establish loan-loss provisions in line with prudential standards (general 1–2%; specific 100% for loans >90 days).",
-  ],
-};
+const ACTION_KEYS = new Set(AREA_KEYS);
 
 export const recommendationsOf = (a: Analysis): Recommendation[] => {
-  const owner = OWNER_BY_TIER[a.input.tier];
+  const tier = a.input.tier;
+  const owner = tr(`cons.owners.${tier}`);
   const out: Recommendation[] = breaches(a.ratios).map((row) => ({
-    lead: ACTION[row.key]?.[0] ?? row.label,
-    text: ACTION[row.key]?.[1] ?? `Bring ${row.label.toLowerCase()} within ${row.bench}.`,
+    lead: ACTION_KEYS.has(row.key) ? tr(`cons.actions.${row.key}.lead`) : row.label,
+    text: ACTION_KEYS.has(row.key)
+      ? tr(`cons.actions.${row.key}.text`)
+      : tr("cons.actions.generic", { label: row.label.toLowerCase(), bench: row.bench }),
     priority:
       row.key === "par30" ||
       row.key === "capital_adequacy_ratio" ||
@@ -153,17 +170,15 @@ export const recommendationsOf = (a: Analysis): Recommendation[] => {
   }));
   if (a.filing.notFiled > 0) {
     out.push({
-      lead: "Complete reporting.",
-      text: `Require the ${a.filing.notFiled} cooperative${a.filing.notFiled === 1 ? "" : "s"} that did not file to submit an approved return.`,
+      lead: tr("cons.actions.reporting_lead"),
+      text: tr("cons.actions.reporting", { count: a.filing.notFiled }),
       priority: "Medium",
-      owner: a.input.tier === "Apex" ? "Cooperatives" : "Apexes",
+      owner: tr(tier === "Apex" ? "cons.owners.Apex" : "cons.owners.Federation"),
     });
   }
   out.push({
-    lead: "Inclusion.",
-    text:
-      "Set targets for credit to women, young people and rural members and report progress by " +
-      (a.input.tier === "Apex" ? "cooperative." : "apex."),
+    lead: tr("cons.actions.inclusion_lead"),
+    text: tr(tier === "Apex" ? "cons.actions.inclusion_apex" : "cons.actions.inclusion"),
     priority: "Standard",
     owner,
   });
@@ -192,10 +207,12 @@ export const validationOf = (a: Analysis): ValidationItem[] => {
       .map((c) => `"${c.name}"`)
       .join(", ");
     add({
-      item: "Test entities",
+      item: tr("cons.validation.test_entities"),
       system: names,
-      used: tests.some((c) => c.has_data) ? "Included" : "Not filed",
-      note: "Names suggest test records. If they are not real cooperatives, their figures overstate the totals and averages and they should be removed before the report is relied upon.",
+      used: tests.some((c) => c.has_data)
+        ? tr("cons.validation.included")
+        : tr("cons.validation.not_filed"),
+      note: tr("cons.validation.test_note"),
     });
   }
   const same =
@@ -205,28 +222,28 @@ export const validationOf = (a: Analysis): ValidationItem[] => {
     );
   if (same) {
     add({
-      item: "PAR >30 and NPL ratio",
-      system: "Identical for every cooperative",
-      used: "Reported as submitted",
-      note: "The two ratios measure different overdue ranges and are not normally equal. The arrears bucket mapping should be checked.",
+      item: tr("cons.validation.par_npl"),
+      system: tr("cons.validation.identical"),
+      used: tr("cons.validation.as_submitted"),
+      note: tr("cons.validation.par_npl_note"),
     });
   }
   const zeroAssets = a.filed.filter((c) => !(c.kpis?.total_assets?.value > 0));
   if (zeroAssets.length > 0) {
     add({
-      item: "Filed without total assets",
-      system: `${zeroAssets.length} cooperative${zeroAssets.length === 1 ? "" : "s"}`,
-      used: "Ratios not reported",
-      note: "The return is marked filed but has no total assets, so ratios cannot be computed for these cooperatives.",
+      item: tr("cons.validation.no_assets"),
+      system: tr("cons.validation.no_assets_count", { count: zeroAssets.length }),
+      used: tr("cons.validation.ratios_not_reported"),
+      note: tr("cons.validation.no_assets_note"),
     });
   }
   const members = sumMembers(a.filed);
   if (a.filed.length > 0 && members === 0) {
     add({
-      item: "Membership",
-      system: "0 members",
-      used: "Not reported",
-      note: "No membership figures were submitted, so per-member measures are not shown.",
+      item: tr("cons.validation.membership"),
+      system: tr("cons.validation.zero_members"),
+      used: tr("cons.validation.not_reported"),
+      note: tr("cons.validation.membership_note"),
     });
   }
   return items;
