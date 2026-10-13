@@ -35,7 +35,7 @@ Feature-specific design documents. Each covers a single feature's design, data m
 | [`basic-benchmarking.md`](features/basic-benchmarking.md) | Basic benchmarking implementation |
 | [`dynamic-localization.md`](features/dynamic-localization.md) | Dynamic content localization |
 | [`high-stakes-deletion.md`](features/high-stakes-deletion.md) | Cascade delete with verification tokens |
-| [`offline-first-architecture.md`](features/offline-first-architecture.md) | Offline-first sync architecture |
+| [`offline-first-architecture.md`](features/offline-first-architecture.md) | ⚠️ Original offline design (outdated; see `knowledge/frontend/offline-mode.md`) |
 | [`period-types.md`](features/period-types.md) | Reporting period types |
 | [`report-export.md`](features/report-export.md) | Report export subsystem (PDF/Excel/CSV) |
 | [`kpi-database-mapping.md`](features/kpi-database-mapping.md) | KPI ↔ database field mapping |
@@ -109,8 +109,10 @@ Reference documentation for developers. Organized by technology.
 | [`security.md`](knowledge/frontend/security.md) | Security best practices |
 | [`testing.md`](knowledge/frontend/testing.md) | Frontend testing strategy |
 | [`rbac-smoke-testing.md`](knowledge/frontend/rbac-smoke-testing.md) | RBAC smoke testing patterns |
-| [`sync-manager.md`](knowledge/frontend/sync-manager.md) | Sync manager patterns |
-| [`offline-sync-conflict.md`](knowledge/frontend/offline-sync-conflict.md) | Offline sync conflict resolution |
+| [`sync-manager.md`](knowledge/frontend/sync-manager.md) | ⚠️ Original sync-manager plan (outdated) |
+| [`offline-mode.md`](knowledge/frontend/offline-mode.md) | **How offline mode works today** (start here) |
+| [`offline-review-guide.md`](knowledge/frontend/offline-review-guide.md) | Every offline fix explained, with step-by-step checks |
+| [`offline-sync-conflict.md`](knowledge/frontend/offline-sync-conflict.md) | ⚠️ Original conflict-resolution plan (outdated) |
 | [`offline-local-testing.md`](knowledge/frontend/offline-local-testing.md) | Testing offline mode locally (why :5173 can't, use :5174) |
 | [`offline-known-issues.md`](knowledge/frontend/offline-known-issues.md) | Offline bugs found, reproduction results, fix tracker |
 | [`e2e-smoke-tests-mock-auth.md`](knowledge/frontend/e2e-smoke-tests-mock-auth.md) | E2E smoke tests mock auth setup |

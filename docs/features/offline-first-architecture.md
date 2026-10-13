@@ -1,7 +1,9 @@
 # CoopData — Offline-First Architecture Design
 
+> ⚠️ **Outdated — original plan, not the current code.** This document was written before offline mode was implemented and describes pieces that were never built as written (for example a `useOfflineMutation` hook, `/api/v1/sync/push` and `/sync/pull` endpoints, and a custom service-worker sync handler). For how offline mode actually works, read [`offline-mode.md`](../knowledge/frontend/offline-mode.md).
+
 > **Branch:** `72-offline-support-implementation`
-> **Status:** DESIGN — Pending Implementation
+> **Status:** Original design (August 2026). Implemented differently — see the warning above.
 > **Last Updated:** 2026-08-12
 
 ---

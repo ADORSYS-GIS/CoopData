@@ -71,7 +71,7 @@ This script will:
 | PostgreSQL | localhost:5432 | coopdata / password |
 | Redis | localhost:6379 | — |
 
-> **Testing offline mode?** Use **:5174**. The dev server on :5173 has no service worker, so the app cannot load there offline. After frontend changes, rebuild with `docker compose up -d --build frontend-pwa`. See [docs/knowledge/frontend/offline-local-testing.md](docs/knowledge/frontend/offline-local-testing.md).
+> **Testing offline mode?** Use **:5174**. The dev server on :5173 has no service worker, so the app cannot load there offline. After frontend changes, rebuild with `docker compose up -d --build frontend-pwa`. See [offline-local-testing.md](docs/knowledge/frontend/offline-local-testing.md). How offline mode works: [offline-mode.md](docs/knowledge/frontend/offline-mode.md).
 
 ### Test Users (Keycloak)
 

@@ -106,12 +106,19 @@ frontend-pwa:
 4. Check DevTools → **Application** → **Service workers**: `sw.js` should be **activated and is running**.
 5. Check **Application** → **IndexedDB** → `CoopDataOfflineDB`: the tables should contain rows.
 6. Switch Network to **Offline** and reload. The app loads, the offline banner shows, and cached data is displayed.
-7. While offline, save something (for example, add a member). It appears in IndexedDB → `syncQueue` with `status: "pending"`.
-8. Switch back to **No throttling**. Within a few seconds the item changes to `status: "done"`.
+7. While offline, save something allowed offline (for example, add a member to a draft you hold). It appears in IndexedDB → `syncQueue` with `status: "pending"`. Actions that need the server (submit, approve, delete…) are disabled offline.
+8. Switch back to **No throttling**. Within a few seconds the item changes to `status: "done"`. If the server refuses it, a red **"Not saved"** badge appears on the network pill.
 
 ### Automated offline tests (Playwright)
 
-`frontend/e2e/specs/offline.spec.ts` checks the offline fixes end to end against the PWA build: the app opens offline; uncached submissions show the "not available offline" message instead of crashing (A); data downloaded by the seeder is found offline (G); pages refetch by themselves when the connection returns (H).
+18 end-to-end checks run against the PWA build on `:5174`:
+
+| File                                         | Covers                                                                                                                                                                 |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frontend/e2e/specs/offline.spec.ts`         | App opens offline; no crash on uncached submissions (A); pre-downloaded data found offline (G); pages refresh on reconnect (H); page snapshot saves without errors (I) |
+| `frontend/e2e/specs/offline-actions.spec.ts` | Online-only actions disabled offline and drafts allowed (B, apex drafts); honest offline invitation message (D-3)                                                      |
+| `frontend/e2e/specs/offline-sync.spec.ts`    | Outbox sends after an offline start (C); same correlation id on every attempt (D); "already exists" reported as failed (E); "Not saved" panel (F)                      |
+| `frontend/e2e/specs/offline-logout.spec.ts`  | Logout warns first offline; drafts and unsent changes survive logout (D-5)                                                                                             |
 
 ```bash
 cd frontend && npm run test:e2e:offline
@@ -122,7 +129,9 @@ Requirements:
 - the stack is running (`docker compose up -d`), with `frontend-pwa` built from your current code
 - the `E2E_*` accounts in `frontend/.env`. The apex account needs a cooperative with members; the ministry account needs at least one submission. Tests skip with a reason when data is missing.
 
-The spec runs with one worker (parallel logins overload the local backend and make the seeder drop requests). It's skipped in CI and when `:5174` isn't reachable. Use `npm run test:e2e:offline:headed` to watch it. Each test was verified to **fail on the code before the fixes** and pass after.
+Runs with one worker (parallel logins overload the local backend), takes about 1.5 minutes, and is skipped in CI and when `:5174` isn't reachable. Use `npm run test:e2e:offline:headed` to watch it. No test changes server data: outbox items point at a non-existent endpoint, and anything queued for real is removed before reconnecting.
+
+To check the fixes **by hand**, follow [`offline-review-guide.md`](offline-review-guide.md).
 
 ### After changing frontend code
 
@@ -172,7 +181,9 @@ Production always runs the built app over HTTPS, so the service worker has alway
 
 ## 6. Related Docs
 
-- [`offline-known-issues.md`](offline-known-issues.md): known offline bugs, how they were reproduced, fix status
+- [`offline-mode.md`](offline-mode.md): how offline mode works today
+- [`offline-review-guide.md`](offline-review-guide.md): step-by-step checks of every offline fix
+- [`offline-known-issues.md`](offline-known-issues.md): issue tracker (what was found, decided and fixed)
 
 - [`offline-first-architecture.md`](../../features/offline-first-architecture.md): overall offline design (IndexedDB, sync queue, offline auth)
 - [`sync-manager.md`](sync-manager.md): sync queue patterns
