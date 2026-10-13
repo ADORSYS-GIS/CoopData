@@ -3,7 +3,7 @@
 //! `account_grid` answers, one key per Level-1 category
 //! (`coa_assets`, `coa_liabilities`, `coa_equity`, `coa_revenue`,
 //! `coa_direct_costs`, `coa_operating_expenses`, `coa_finance_costs`), each a
-//! map of CoopData account code -> `{mpcCode, mpcName, openingBalance,
+//! map of CoopData account code -> `{activityCode, openingBalance,
 //! closingBalance, annualMovement}`, and computes the KPI set from "MPC
 //! FINANCE QUESTIONNAIRE.xlsx" (KPI Data Mapping sheet).
 //!

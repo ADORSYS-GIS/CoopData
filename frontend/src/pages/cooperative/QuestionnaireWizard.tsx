@@ -37,8 +37,7 @@ export interface AccountGridRow {
 
 /** One row's entered values for an "account_grid" field, keyed by account code. */
 export interface AccountGridValue {
-  mpcCode?: string;
-  mpcName?: string;
+  activityCode?: string;
   openingBalance?: number | "";
   closingBalance?: number | "";
   annualMovement?: number | "";
@@ -204,10 +203,7 @@ const AccountGridInput: React.FC<{
               {t("questionnaire.coaAccount", "Standard account")}
             </th>
             <th className="px-3 py-2 text-left font-semibold text-foreground/80">
-              {t("questionnaire.coaOwnCode", "Your account code")}
-            </th>
-            <th className="px-3 py-2 text-left font-semibold text-foreground/80">
-              {t("questionnaire.coaOwnName", "Your account name")}
+              {t("questionnaire.coaActivityCode", "Activity code")}
             </th>
             <th className="px-3 py-2 text-left font-semibold text-foreground/80">
               {t("questionnaire.coaOpening", "Opening balance")}
@@ -233,23 +229,19 @@ const AccountGridInput: React.FC<{
                   <div className="text-muted-foreground/80 italic mt-0.5">{row.note}</div>
                 )}
               </td>
-              <td className="px-3 py-2 align-top w-32">
-                <input
-                  type="text"
-                  id={`field-${field.key}-${row.code}-mpcCode`}
-                  className={cellInputClass}
-                  value={gridValue[row.code]?.mpcCode ?? ""}
-                  onChange={(e) => updateRow(row.code, { mpcCode: e.target.value })}
-                />
-              </td>
-              <td className="px-3 py-2 align-top min-w-[10rem]">
-                <input
-                  type="text"
-                  id={`field-${field.key}-${row.code}-mpcName`}
-                  className={cellInputClass}
-                  value={gridValue[row.code]?.mpcName ?? ""}
-                  onChange={(e) => updateRow(row.code, { mpcName: e.target.value })}
-                />
+              <td className="px-3 py-2 align-top w-36">
+                {row.activityCode ? (
+                  <input
+                    type="text"
+                    id={`field-${field.key}-${row.code}-activityCode`}
+                    className={cellInputClass}
+                    placeholder={row.activityCode}
+                    value={gridValue[row.code]?.activityCode ?? ""}
+                    onChange={(e) => updateRow(row.code, { activityCode: e.target.value })}
+                  />
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </td>
               <td className="px-3 py-2 align-top w-28">{numberCell(row.code, "openingBalance")}</td>
               <td className="px-3 py-2 align-top w-28">{numberCell(row.code, "closingBalance")}</td>
@@ -354,7 +346,7 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
             const opening = (Math.floor(Math.random() * 90) + 10) * 100;
             const movement = (Math.floor(Math.random() * 30) - 10) * 100;
             gridValue[row.code] = {
-              mpcName: row.level3,
+              ...(row.activityCode ? { activityCode: row.activityCode } : {}),
               openingBalance: opening,
               closingBalance: opening + movement,
               annualMovement: movement,

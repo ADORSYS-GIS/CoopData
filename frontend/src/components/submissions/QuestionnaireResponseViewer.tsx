@@ -123,7 +123,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
                 {t("questionnaire.coaAccount", "Standard account")}
               </th>
               <th className="px-3 py-2 text-left font-semibold text-foreground/80">
-                {t("questionnaire.coaOwnName", "Your account name")}
+                {t("questionnaire.coaActivityCode", "Activity code")}
               </th>
               <th className="px-3 py-2 text-right font-semibold text-foreground/80">
                 {t("questionnaire.coaOpening", "Opening balance")}
@@ -147,7 +147,7 @@ export const QuestionnaireResponseViewer: React.FC<QuestionnaireResponseViewerPr
                       {row.level2} · {row.code}
                     </div>
                   </td>
-                  <td className="px-3 py-2 align-top">{cell.mpcName || "—"}</td>
+                  <td className="px-3 py-2 align-top">{cell.activityCode || "—"}</td>
                   <td className="px-3 py-2 align-top text-right font-mono">
                     {cell.openingBalance !== undefined && cell.openingBalance !== ""
                       ? Number(cell.openingBalance).toLocaleString()
