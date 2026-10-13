@@ -173,6 +173,7 @@ const AccountGridInput: React.FC<{
   const { t } = useTranslation();
   const rows = field.rows ?? [];
   const gridValue = (value as Record<string, AccountGridValue> | undefined) ?? {};
+  const hasActivity = rows.some((row) => row.activityCode);
 
   const updateRow = (code: string, patch: Partial<AccountGridValue>) => {
     onChange(field.key, { ...gridValue, [code]: { ...gridValue[code], ...patch } });
@@ -202,9 +203,11 @@ const AccountGridInput: React.FC<{
             <th className="px-3 py-2 text-left font-semibold text-foreground/80">
               {t("questionnaire.coaAccount", "Standard account")}
             </th>
-            <th className="px-3 py-2 text-left font-semibold text-foreground/80">
-              {t("questionnaire.coaActivityCode", "Activity code")}
-            </th>
+            {hasActivity && (
+              <th className="px-3 py-2 text-left font-semibold text-foreground/80">
+                {t("questionnaire.coaActivityCode", "Activity code")}
+              </th>
+            )}
             <th className="px-3 py-2 text-left font-semibold text-foreground/80">
               {t("questionnaire.coaOpening", "Opening balance")}
             </th>
@@ -223,26 +226,36 @@ const AccountGridInput: React.FC<{
                 <div className="font-medium text-foreground">{row.level3}</div>
                 <div className="text-muted-foreground mt-0.5">
                   {row.level2} · {row.code}
-                  {!row.mandatory && ` · ${t("questionnaire.coaConditional", "conditional")}`}
+                </div>
+                <div
+                  className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    row.mandatory ? "text-destructive/80" : "text-muted-foreground"
+                  }`}
+                >
+                  {row.mandatory
+                    ? t("questionnaire.coaRequired", "Required")
+                    : t("questionnaire.coaOptional", "Optional")}
                 </div>
                 {row.note && (
                   <div className="text-muted-foreground/80 italic mt-0.5">{row.note}</div>
                 )}
               </td>
-              <td className="px-3 py-2 align-top w-36">
-                {row.activityCode ? (
-                  <input
-                    type="text"
-                    id={`field-${field.key}-${row.code}-activityCode`}
-                    className={cellInputClass}
-                    placeholder={row.activityCode}
-                    value={gridValue[row.code]?.activityCode ?? ""}
-                    onChange={(e) => updateRow(row.code, { activityCode: e.target.value })}
-                  />
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </td>
+              {hasActivity && (
+                <td className="px-3 py-2 align-top w-36">
+                  {row.activityCode ? (
+                    <input
+                      type="text"
+                      id={`field-${field.key}-${row.code}-activityCode`}
+                      className={cellInputClass}
+                      placeholder={row.activityCode}
+                      value={gridValue[row.code]?.activityCode ?? ""}
+                      onChange={(e) => updateRow(row.code, { activityCode: e.target.value })}
+                    />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+              )}
               <td className="px-3 py-2 align-top w-28">{numberCell(row.code, "openingBalance")}</td>
               <td className="px-3 py-2 align-top w-28">{numberCell(row.code, "closingBalance")}</td>
               <td className="px-3 py-2 align-top w-28">{numberCell(row.code, "annualMovement")}</td>
@@ -685,7 +698,13 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                   <p className="text-sm text-muted-foreground mt-0.5">{section.description}</p>
                 )}
                 <p className="text-xs font-medium text-destructive/80 mt-1.5">
-                  * {t("questionnaire.allFieldsRequired")}
+                  *{" "}
+                  {section.fields?.some((f: TemplateField) => f.type === "account_grid")
+                    ? t(
+                        "questionnaire.coaRequiredLegend",
+                        "Accounts marked Required must be filled in. Optional accounts only apply to some cooperatives — leave them blank if they do not apply.",
+                      )
+                    : t("questionnaire.allFieldsRequired")}
                 </p>
               </div>
             </div>
