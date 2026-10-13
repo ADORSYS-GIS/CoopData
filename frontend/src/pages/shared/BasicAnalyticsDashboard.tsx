@@ -169,7 +169,7 @@ export function BasicAnalyticsDashboard() {
           state={filters}
           onChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
           onClear={() => setFilters(DEFAULT_FILTERS)}
-          availablePeriods={data?.scope.available_periods ?? []}
+          availablePeriods={data?.scope?.available_periods ?? []}
           cooperatives={cooperativeOptions}
           regions={REGIONS}
           sectors={SECTORS}
@@ -184,7 +184,7 @@ export function BasicAnalyticsDashboard() {
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
             {t("basicDashboard.loadError", { error: String(error) })}
           </div>
-        ) : data ? (
+        ) : data?.scope ? (
           <DashboardBody data={data} query={query} />
         ) : (
           <div className="py-16 text-center text-sm text-muted-foreground">
