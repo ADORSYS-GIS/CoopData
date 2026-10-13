@@ -15,6 +15,7 @@ pub mod federation;
 pub mod financial_statement;
 pub mod fixed_deposit;
 pub mod kpi_record;
+pub mod legal_policy;
 pub mod loan;
 pub mod member;
 pub mod ministry_report_narratives;
@@ -22,6 +23,7 @@ pub mod non_financial_indicator_catalog;
 pub mod non_financial_indicator_entry;
 pub mod organization;
 pub mod organization_label;
+pub mod privacy_requests;
 pub mod questionnaire_response;
 pub mod questionnaire_template;
 pub mod report_export;
@@ -31,6 +33,17 @@ pub mod submission_review;
 pub mod submission_section;
 pub mod uploaded_file;
 pub mod user;
+pub mod user_consents;
+
+pub use legal_policy::{
+    Column as LegalPolicyColumn, Entity as LegalPolicyEntity, Model as LegalPolicyModel,
+};
+pub use privacy_requests::{
+    Column as PrivacyRequestsColumn, Entity as PrivacyRequestsEntity, Model as PrivacyRequestsModel,
+};
+pub use user_consents::{
+    Column as UserConsentsColumn, Entity as UserConsentsEntity, Model as UserConsentsModel,
+};
 
 pub use apex::{Column as ApexColumn, Entity as ApexEntity, Model as ApexModel};
 pub use assessment::{

@@ -5,6 +5,11 @@ import {
   type DeletePreviewData,
 } from "@/components/shared/DeleteConfirmationDialog";
 
+type DialogProps = React.ComponentProps<typeof DeleteConfirmationDialog>;
+type VerifyIdentity = DialogProps["onVerifyIdentity"];
+type ConfirmDelete = DialogProps["onConfirmDelete"];
+type OpenChange = DialogProps["onOpenChange"];
+
 vi.mock("lucide-react", () => ({
   AlertTriangle: () => <span data-testid="alert-triangle" />,
   Shield: () => <span data-testid="shield" />,
@@ -75,8 +80,6 @@ const defaultPreview: DeletePreviewData = {
   members: 42,
 };
 
-type VerifyIdentity = React.ComponentProps<typeof DeleteConfirmationDialog>["onVerifyIdentity"];
-
 function makeOnVerifyIdentity(
   response: MockResponse = { ok: true, verification_token: "tok", requires_otp: false },
 ) {
@@ -88,14 +91,14 @@ function renderDialog(
 ) {
   const props = {
     open: true,
-    onOpenChange: vi.fn(),
+    onOpenChange: vi.fn<OpenChange>(),
     entityName: "Pilot Federation",
     entityType: "federation" as const,
     entityId: "fed-123",
     previewData: defaultPreview,
     previewLoading: false,
     onVerifyIdentity: makeOnVerifyIdentity(),
-    onConfirmDelete: vi.fn().mockResolvedValue(undefined),
+    onConfirmDelete: vi.fn<ConfirmDelete>().mockResolvedValue(undefined),
     ...overrides,
   };
   return { props, ...render(<DeleteConfirmationDialog {...props} />) };
@@ -153,7 +156,7 @@ describe("DeleteConfirmationDialog", () => {
     });
 
     it("should call onOpenChange(false) when Cancel is clicked", () => {
-      const onOpenChange = vi.fn();
+      const onOpenChange = vi.fn<OpenChange>();
       renderDialog({ onOpenChange });
 
       clickButton("outline");
@@ -224,7 +227,7 @@ describe("DeleteConfirmationDialog", () => {
 
     it("should call onVerifyIdentity with password on Verify click", async () => {
       const onVerifyIdentity = makeOnVerifyIdentity();
-      const onConfirmDelete = vi.fn().mockResolvedValue(undefined);
+      const onConfirmDelete = vi.fn<ConfirmDelete>().mockResolvedValue(undefined);
       renderDialog({ onVerifyIdentity, onConfirmDelete });
 
       typeInInput(screen.getByTestId("input"), "Pilot Federation");
@@ -281,7 +284,7 @@ describe("DeleteConfirmationDialog", () => {
         verification_token: "tok-123",
         requires_otp: false,
       });
-      const onConfirmDelete = vi.fn().mockResolvedValue(undefined);
+      const onConfirmDelete = vi.fn<ConfirmDelete>().mockResolvedValue(undefined);
       renderDialog({ onVerifyIdentity, onConfirmDelete });
 
       typeInInput(screen.getByTestId("input"), "Pilot Federation");
@@ -305,7 +308,7 @@ describe("DeleteConfirmationDialog", () => {
         verification_token: "tok-xyz",
         requires_otp: false,
       });
-      const onConfirmDelete = vi.fn().mockResolvedValue(undefined);
+      const onConfirmDelete = vi.fn<ConfirmDelete>().mockResolvedValue(undefined);
       renderDialog({ onVerifyIdentity, onConfirmDelete });
 
       typeInInput(screen.getByTestId("input"), "Pilot Federation");
@@ -321,8 +324,8 @@ describe("DeleteConfirmationDialog", () => {
     });
 
     it("should close dialog after successful delete", async () => {
-      const onConfirmDelete = vi.fn().mockResolvedValue(undefined);
-      const onOpenChange = vi.fn();
+      const onConfirmDelete = vi.fn<ConfirmDelete>().mockResolvedValue(undefined);
+      const onOpenChange = vi.fn<OpenChange>();
       renderDialog({ onConfirmDelete, onOpenChange });
 
       typeInInput(screen.getByTestId("input"), "Pilot Federation");
@@ -338,7 +341,7 @@ describe("DeleteConfirmationDialog", () => {
     });
 
     it("should show error and return to verify step when delete fails", async () => {
-      const onConfirmDelete = vi.fn().mockRejectedValue(new Error("Delete failed"));
+      const onConfirmDelete = vi.fn<ConfirmDelete>().mockRejectedValue(new Error("Delete failed"));
       renderDialog({ onConfirmDelete });
 
       typeInInput(screen.getByTestId("input"), "Pilot Federation");
@@ -383,7 +386,7 @@ describe("DeleteConfirmationDialog", () => {
         .fn<VerifyIdentity>()
         .mockResolvedValueOnce({ ok: false, requires_otp: true })
         .mockResolvedValueOnce({ ok: true, verification_token: "tok-2", requires_otp: true });
-      const onConfirmDelete = vi.fn().mockResolvedValue(undefined);
+      const onConfirmDelete = vi.fn<ConfirmDelete>().mockResolvedValue(undefined);
 
       renderDialog({ onVerifyIdentity, onConfirmDelete });
 
@@ -426,13 +429,13 @@ describe("DeleteConfirmationDialog", () => {
       rerender(
         <DeleteConfirmationDialog
           open={true}
-          onOpenChange={vi.fn()}
+          onOpenChange={vi.fn<OpenChange>()}
           entityName="Pilot Federation"
           entityType="federation"
           entityId="fed-123"
           previewData={defaultPreview}
           onVerifyIdentity={makeOnVerifyIdentity()}
-          onConfirmDelete={vi.fn().mockResolvedValue(undefined)}
+          onConfirmDelete={vi.fn<ConfirmDelete>().mockResolvedValue(undefined)}
         />,
       );
 

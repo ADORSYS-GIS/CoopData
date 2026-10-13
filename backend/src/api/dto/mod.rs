@@ -3,12 +3,14 @@ pub mod audit;
 pub mod basic_benchmark;
 pub mod basic_dashboard;
 pub mod common;
+pub mod consent;
 pub mod cooperative;
 pub mod custom_kpi;
 pub mod extraction;
 pub mod federation;
 pub mod financial;
 pub mod invitation;
+pub mod legal_policy;
 pub mod member;
 pub mod national_overview;
 pub mod non_financial;
@@ -26,10 +28,12 @@ pub use apex::*;
 pub use audit::*;
 pub use basic_benchmark::*;
 pub use common::*;
+pub use consent::*;
 pub use cooperative::*;
 pub use custom_kpi::*;
 pub use federation::*;
 pub use invitation::*;
+pub use legal_policy::*;
 pub use member::{
     AddMemberRequest, ChangePasswordRequest, ChangePasswordResponse,
     MemberResponse as KeycloakMemberResponse, UpdateMemberRequest as UpdateKeycloakMemberRequest,
