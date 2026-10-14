@@ -182,6 +182,27 @@ $COMPOSE_CMD pull 2>/dev/null || true
 info "Building containers..."
 $COMPOSE_CMD build
 
+# Postgres first: migrations must be applied before the backend starts, because
+# the docker-entrypoint-initdb.d mount only runs on a fresh data volume.
+info "Starting PostgreSQL..."
+$COMPOSE_CMD up -d postgres
+
+info "Waiting for PostgreSQL to become healthy..."
+PG_WAIT=0
+until $COMPOSE_CMD ps postgres 2>/dev/null | grep -q "healthy"; do
+    if (( PG_WAIT >= 90 )); then
+        error "PostgreSQL did not become healthy within 90s. Check: $COMPOSE_CMD logs postgres"
+    fi
+    sleep 2
+    PG_WAIT=$((PG_WAIT + 2))
+done
+ok "PostgreSQL is healthy"
+
+info "Applying pending database migrations..."
+if ! "$SCRIPT_DIR/scripts/migrate-db.sh"; then
+    error "Database migration failed. Fix the error above, then run ./start.sh again."
+fi
+
 info "Starting CoopData stack..."
 $COMPOSE_CMD up -d
 

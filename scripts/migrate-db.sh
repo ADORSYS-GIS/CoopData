@@ -34,11 +34,23 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 MIGRATIONS_DIR="${PROJECT_DIR}/backend/migrations"
 LOG_PREFIX="[migrate]"
 
-# ── Source .env for DB credentials ───────────────────────────────────────────
+# ── Read DB credentials from .env ────────────────────────────────────────────
+# The file is parsed, not sourced: values with spaces (e.g. an app password in
+# SMTP_PASSWORD) are legal in a dotenv file but would be executed by the shell.
 ENV_FILE="${PROJECT_DIR}/.env"
-if [[ -f "$ENV_FILE" ]]; then
-    set -a; source "$ENV_FILE"; set +a
-fi
+env_value() {
+    local key="$1" line
+    [[ -f "$ENV_FILE" ]] || return 0
+    line="$(grep -E "^[[:space:]]*${key}=" "$ENV_FILE" | tail -1 || true)"
+    line="${line#*=}"
+    line="${line%$'\r'}"
+    line="${line#\"}"; line="${line%\"}"
+    line="${line#\'}"; line="${line%\'}"
+    printf '%s' "$line"
+}
+POSTGRES_USER="${POSTGRES_USER:-$(env_value POSTGRES_USER)}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(env_value POSTGRES_PASSWORD)}"
+POSTGRES_DB="${POSTGRES_DB:-$(env_value POSTGRES_DB)}"
 
 PG_CONTAINER="${PG_CONTAINER:-coopdata-postgres}"
 PG_USER="${POSTGRES_USER:?POSTGRES_USER is required in .env}"
