@@ -7,15 +7,14 @@ use uuid::Uuid;
 
 use crate::api::dto::basic_dashboard::{
     AgeBands, BasicDashboardParams, BasicDashboardResponse, CooperativeRow, DashboardScope,
-    DashboardThresholds, Demographics, GenderCount, MarketShare, PeriodOption, SeriesPoint,
-    ShareRow,
+    DashboardThresholds, Demographics, GenderCount, PeriodOption, SeriesPoint,
 };
 use crate::entities::enums::SubmissionStatus;
 use crate::entities::{cooperative, questionnaire_response, submission};
 use crate::error::AppResult;
 use crate::services::questionnaire_kpi::{
-    build_indicators, merge_answers, ratio_pct, series_values, with_previous, Derived, Inputs,
-    INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
+    build_coa_indicators, build_indicators, merge_answers, with_previous, CoaBalances, Derived,
+    Inputs, INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
 };
 use crate::AppState;
 
@@ -84,6 +83,7 @@ fn active_filter(value: Option<&str>) -> Option<&str> {
 struct CoopPeriod {
     coop: cooperative::Model,
     inputs: Inputs,
+    coa: CoaBalances,
 }
 
 pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDashboardResponse> {
@@ -162,9 +162,14 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
                 let (fin, nf) = fin_nf;
                 let coop = coop_by_id.get(coop_id)?;
                 let inputs = Inputs::from_answers(&merge_answers(fin.as_ref(), nf.as_ref()));
+                let coa = fin
+                    .as_ref()
+                    .map(CoaBalances::from_answers)
+                    .unwrap_or_default();
                 Some(CoopPeriod {
                     coop: (*coop).clone(),
                     inputs,
+                    coa,
                 })
             })
             .collect()
@@ -173,6 +178,13 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         let mut total = Inputs::default();
         for c in list {
             total.add(&c.inputs);
+        }
+        total
+    };
+    let consolidate_coa = |list: &[CoopPeriod]| -> CoaBalances {
+        let mut total = CoaBalances::default();
+        for c in list {
+            total.add(&c.coa);
         }
         total
     };
@@ -218,6 +230,10 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
     let total_inputs = consolidate(&current);
     let derived = Derived::from_inputs(&total_inputs);
     let mut indicators = build_indicators(&total_inputs, &derived);
+    let total_coa = consolidate_coa(&current);
+    if total_coa.has_any() {
+        indicators.extend(build_coa_indicators(&total_coa));
+    }
 
     let same_type: Vec<&PeriodKey> = selected
         .as_ref()
@@ -229,60 +245,69 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         .unwrap_or_default();
     if same_type.len() >= 2 {
         let prev_key = same_type[same_type.len() - 2];
-        let prev_inputs = consolidate(&period_inputs(prev_key));
-        let prev = build_indicators(&prev_inputs, &Derived::from_inputs(&prev_inputs));
+        let prev_period = period_inputs(prev_key);
+        let prev_inputs = consolidate(&prev_period);
+        let mut prev = build_indicators(&prev_inputs, &Derived::from_inputs(&prev_inputs));
+        let prev_coa = consolidate_coa(&prev_period);
+        if prev_coa.has_any() {
+            prev.extend(build_coa_indicators(&prev_coa));
+        }
         with_previous(&mut indicators, &prev);
     }
 
-    // ── series ──
+    // ── series: one point per period and indicator group ──
     let mut series: HashMap<String, Vec<SeriesPoint>> = HashMap::new();
     let start = same_type.len().saturating_sub(MAX_SERIES_POINTS);
     for key in &same_type[start..] {
-        let inputs = consolidate(&period_inputs(key));
-        let d = Derived::from_inputs(&inputs);
-        for (name, values) in series_values(&inputs, &d) {
-            series
-                .entry(name.to_string())
-                .or_default()
-                .push(SeriesPoint {
-                    period_label: period_label(key),
-                    reporting_year: key.year,
-                    period_type: key.period_type.clone(),
-                    period_value: key.period_value.clone(),
-                    values: values
-                        .into_iter()
-                        .map(|(k, v)| (k.to_string(), v))
-                        .collect(),
-                });
+        let period = period_inputs(key);
+        let inputs = consolidate(&period);
+        let mut list = build_indicators(&inputs, &Derived::from_inputs(&inputs));
+        let coa = consolidate_coa(&period);
+        if coa.has_any() {
+            list.extend(build_coa_indicators(&coa));
+        }
+        let mut by_group: HashMap<String, HashMap<String, f64>> = HashMap::new();
+        for indicator in list {
+            if let Some(v) = indicator.value {
+                by_group
+                    .entry(indicator.group)
+                    .or_default()
+                    .insert(indicator.key, v);
+            }
+        }
+        for (group, values) in by_group {
+            series.entry(group).or_default().push(SeriesPoint {
+                period_label: period_label(key),
+                reporting_year: key.year,
+                period_type: key.period_type.clone(),
+                period_value: key.period_value.clone(),
+                values,
+            });
         }
     }
 
-    // ── per-cooperative rows and market share (administrators) ──
+    // ── per-cooperative rows (administrators) ──
     let mut rows: Vec<CooperativeRow> = Vec::new();
     if req.admin_view {
         for c in &current {
             let d = Derived::from_inputs(&c.inputs);
+            let kpis = build_indicators(&c.inputs, &d);
+            let kpi = |key: &str| kpis.iter().find(|k| k.key == key).and_then(|k| k.value);
             rows.push(CooperativeRow {
                 cooperative_id: c.coop.id,
                 name: c.coop.display_name.clone(),
                 region: c.coop.region.as_ref().map(|r| r.as_str().to_string()),
                 sector: c.coop.sector.as_ref().map(|s| s.as_str().to_string()),
                 total_members: d.registered,
-                total_assets: d.total_assets,
-                total_deposits: d.deposits,
-                gross_loans: d.gross_loans,
-                par_gt_30_pct: d.par_pct(d.overdue_gt_30),
-                liquidity_ratio_pct: d.liquidity_ratio_pct(),
-                institutional_capital_ratio_pct: d.institutional_capital_ratio_pct(),
-                net_income: d.net_income,
+                active_members_pct: kpi("active_members_pct"),
+                women_members_pct: kpi("women_members_pct"),
+                par_gt_30_pct: kpi("par_gt_30_pct"),
+                total_operating_margin_pct: kpi("total_operating_margin_pct"),
+                monetary_reserve_coverage_pct: kpi("monetary_reserve_coverage_pct"),
             });
         }
         rows.sort_by(|a, b| a.name.cmp(&b.name));
     }
-    let market_share = (req.admin_view && rows.len() > 1).then(|| MarketShare {
-        by_assets: shares(&rows, |r| r.total_assets.unwrap_or(0.0)),
-        by_loans: shares(&rows, |r| r.gross_loans.unwrap_or(0.0)),
-    });
 
     let i = &total_inputs;
     let gender = |m: f64, f: f64| GenderCount { male: m, female: f };
@@ -327,26 +352,9 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         },
         indicators,
         series,
-        market_share,
         demographics,
         cooperatives: rows,
     })
-}
-
-fn shares(rows: &[CooperativeRow], value: impl Fn(&CooperativeRow) -> f64) -> Vec<ShareRow> {
-    let total: f64 = rows.iter().map(&value).filter(|v| *v > 0.0).sum();
-    let mut out: Vec<ShareRow> = rows
-        .iter()
-        .filter(|r| value(r) > 0.0)
-        .map(|r| ShareRow {
-            cooperative_id: r.cooperative_id,
-            name: r.name.clone(),
-            value: value(r),
-            share_pct: ratio_pct(Some(value(r)), Some(total)).unwrap_or(0.0),
-        })
-        .collect();
-    out.sort_by(|a, b| b.value.total_cmp(&a.value));
-    out
 }
 
 #[cfg(test)]

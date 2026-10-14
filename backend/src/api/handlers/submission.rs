@@ -138,11 +138,19 @@ pub async fn create_submission(
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
+    let institution_type = coop.institution_type.as_ref().map(|t| t.as_str());
     let submission_method_val = if coop.tier == "basic" {
         "questionnaire".to_string()
+    } else if let Some(forced) =
+        crate::services::period_rules::forced_method_for_type(institution_type)
+    {
+        forced.to_string()
     } else {
-        crate::services::period_rules::locked_method(&year_submissions)
-            .unwrap_or_else(|| body.submission_method.clone())
+        let candidate = crate::services::period_rules::locked_method(&year_submissions)
+            .unwrap_or_else(|| body.submission_method.clone());
+        crate::services::period_rules::check_method_allowed_for_type(institution_type, &candidate)
+            .map_err(AppError::BadRequest)?;
+        candidate
     };
 
     let creator_name = claims
@@ -365,6 +373,10 @@ pub async fn get_submission(
     // Populate cooperative name from DB so frontend doesn't need a separate Keycloak-based call
     if let Ok(Some(coop)) = state.cooperative_repo.find_by_id(resp.cooperative_id).await {
         resp.cooperative_name = Some(coop.name);
+        resp.cooperative_institution_type = coop
+            .institution_type
+            .as_ref()
+            .map(|t| t.as_str().to_string());
     }
 
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
@@ -1680,7 +1692,7 @@ pub async fn list_submission_sections(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let sections = state.section_repo.find_by_submission(id).await?;
+    let sections = state.section_repo.ensure_all(id).await?;
     let resps: Vec<SubmissionSectionResponse> = sections
         .into_iter()
         .map(SubmissionSectionResponse::from)
@@ -1758,6 +1770,7 @@ pub async fn update_submission_section(
         )));
     }
 
+    state.section_repo.ensure_all(id).await?;
     let section_model = state
         .section_repo
         .find_by_submission_and_section(id, &section)
@@ -2269,14 +2282,22 @@ pub async fn update_submission_method(
             crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)
                 .await?;
         let cooperatives = state.cooperative_repo.find_by_apex_id(apex_db_id).await?;
-        let belongs = cooperatives
+        let coop = cooperatives
             .iter()
-            .any(|c| c.id == submission.cooperative_id);
-        if !belongs {
-            return Err(AppError::Forbidden(
-                "Access denied: submission does not belong to your apex".into(),
+            .find(|c| c.id == submission.cooperative_id)
+            .ok_or_else(|| {
+                AppError::Forbidden("Access denied: submission does not belong to your apex".into())
+            })?;
+        if coop.tier == "basic" {
+            return Err(AppError::BadRequest(
+                "Basic cooperatives are restricted to the questionnaire method".into(),
             ));
         }
+        crate::services::period_rules::check_method_allowed_for_type(
+            coop.institution_type.as_ref().map(|t| t.as_str()),
+            &method,
+        )
+        .map_err(AppError::BadRequest)?;
     } else {
         let coop =
             crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
@@ -2288,6 +2309,11 @@ pub async fn update_submission_method(
                 "Basic cooperatives are restricted to the questionnaire method".into(),
             ));
         }
+        crate::services::period_rules::check_method_allowed_for_type(
+            coop.institution_type.as_ref().map(|t| t.as_str()),
+            &method,
+        )
+        .map_err(AppError::BadRequest)?;
     }
 
     // Enforce exclusive editor
@@ -2432,11 +2458,19 @@ pub async fn create_apex_submission(
         .clone()
         .or_else(|| claims.preferred_username.clone());
 
+    let institution_type = coop.institution_type.as_ref().map(|t| t.as_str());
     let submission_method_val = if coop.tier == "basic" {
         "questionnaire".to_string()
+    } else if let Some(forced) =
+        crate::services::period_rules::forced_method_for_type(institution_type)
+    {
+        forced.to_string()
     } else {
-        crate::services::period_rules::locked_method(&year_submissions)
-            .unwrap_or_else(|| body.submission_method.clone())
+        let candidate = crate::services::period_rules::locked_method(&year_submissions)
+            .unwrap_or_else(|| body.submission_method.clone());
+        crate::services::period_rules::check_method_allowed_for_type(institution_type, &candidate)
+            .map_err(AppError::BadRequest)?;
+        candidate
     };
 
     let mut model = ActiveModel {

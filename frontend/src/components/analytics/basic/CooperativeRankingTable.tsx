@@ -4,20 +4,11 @@ import { useTranslation } from "react-i18next";
 
 import { Card } from "@/components/app-shell";
 import { useChartText } from "@/components/analytics/basic/chart-config";
-import {
-  formatMoneyValue,
-  minimumTone,
-  parTone,
-  sortRows,
-  toneClass,
-  type RankingKey,
-} from "@/lib/basic-dashboard";
-import type { CooperativeRow, DashboardThresholds } from "@/types/basic-dashboard";
+import { parTone, sortRows, toneClass, type RankingKey } from "@/lib/basic-dashboard";
+import type { CooperativeRow } from "@/types/basic-dashboard";
 
 interface CooperativeRankingTableProps {
   rows: CooperativeRow[];
-  currency: string;
-  thresholds: DashboardThresholds;
 }
 
 interface Column {
@@ -29,25 +20,20 @@ interface Column {
 const COLUMNS: Column[] = [
   { key: "name", labelKey: "cooperative", numeric: false },
   { key: "total_members", labelKey: "members", numeric: true },
-  { key: "total_assets", labelKey: "assets", numeric: true },
-  { key: "total_deposits", labelKey: "deposits", numeric: true },
-  { key: "gross_loans", labelKey: "loans", numeric: true },
+  { key: "active_members_pct", labelKey: "activeMembers", numeric: true },
+  { key: "women_members_pct", labelKey: "womenMembers", numeric: true },
   { key: "par_gt_30_pct", labelKey: "par30", numeric: true },
-  { key: "liquidity_ratio_pct", labelKey: "liquidity", numeric: true },
-  { key: "institutional_capital_ratio_pct", labelKey: "capital", numeric: true },
-  { key: "net_income", labelKey: "netIncome", numeric: true },
+  { key: "total_operating_margin_pct", labelKey: "operatingMargin", numeric: true },
+  { key: "monetary_reserve_coverage_pct", labelKey: "reserveCoverage", numeric: true },
 ];
 
-const pct = (value: number | null): string => (value === null ? "—" : `${value.toFixed(2)}%`);
+const pct = (value: number | null | undefined): string =>
+  value == null ? "—" : `${value.toFixed(2)}%`;
 
-export function CooperativeRankingTable({
-  rows,
-  currency,
-  thresholds,
-}: CooperativeRankingTableProps) {
+export function CooperativeRankingTable({ rows }: CooperativeRankingTableProps) {
   const { t } = useTranslation();
   const text = useChartText("ranking");
-  const [sortKey, setSortKey] = useState<RankingKey>("total_assets");
+  const [sortKey, setSortKey] = useState<RankingKey>("total_members");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
 
   const sorted = useMemo(() => sortRows(rows, sortKey, direction), [rows, sortKey, direction]);
@@ -60,8 +46,6 @@ export function CooperativeRankingTable({
       setDirection(key === "name" ? "asc" : "desc");
     }
   };
-  const money = (value: number | null) =>
-    value === null ? "—" : formatMoneyValue(value, currency);
 
   return (
     <Card
@@ -103,38 +87,15 @@ export function CooperativeRankingTable({
                 <td className="px-3 py-2 text-right">
                   {Math.round(row.total_members).toLocaleString()}
                 </td>
-                <td className="px-3 py-2 text-right">{money(row.total_assets)}</td>
-                <td className="px-3 py-2 text-right">{money(row.total_deposits)}</td>
-                <td className="px-3 py-2 text-right">{money(row.gross_loans)}</td>
+                <td className="px-3 py-2 text-right">{pct(row.active_members_pct)}</td>
+                <td className="px-3 py-2 text-right">{pct(row.women_members_pct)}</td>
                 <td
                   className={`px-3 py-2 text-right font-semibold ${toneClass(parTone(row.par_gt_30_pct))}`}
                 >
                   {pct(row.par_gt_30_pct)}
                 </td>
-                <td
-                  className={`px-3 py-2 text-right font-semibold ${toneClass(
-                    minimumTone(row.liquidity_ratio_pct, thresholds.liquidity_minimum_pct),
-                  )}`}
-                >
-                  {pct(row.liquidity_ratio_pct)}
-                </td>
-                <td
-                  className={`px-3 py-2 text-right font-semibold ${toneClass(
-                    minimumTone(
-                      row.institutional_capital_ratio_pct,
-                      thresholds.institutional_capital_minimum_pct,
-                    ),
-                  )}`}
-                >
-                  {pct(row.institutional_capital_ratio_pct)}
-                </td>
-                <td
-                  className={`px-3 py-2 text-right font-semibold ${
-                    (row.net_income ?? 0) < 0 ? "text-destructive" : "text-foreground"
-                  }`}
-                >
-                  {money(row.net_income)}
-                </td>
+                <td className="px-3 py-2 text-right">{pct(row.total_operating_margin_pct)}</td>
+                <td className="px-3 py-2 text-right">{pct(row.monetary_reserve_coverage_pct)}</td>
               </tr>
             ))}
           </tbody>

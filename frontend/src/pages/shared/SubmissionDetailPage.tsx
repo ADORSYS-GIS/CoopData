@@ -1393,6 +1393,7 @@ export const SubmissionDetailPage: React.FC = () => {
         open={methodModalOpen}
         submissionId={id ?? ""}
         currentMethod={submissionMethod}
+        cooperativeType={submission?.cooperative_institution_type}
         hasExistingData={
           fsLineItems.length > 0 ||
           (membersData?.total ?? 0) > 0 ||

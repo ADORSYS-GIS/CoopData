@@ -9059,7 +9059,7 @@
       },
       "BasicDashboardResponse": {
         "type": "object",
-        "description": "Response of `GET /api/v1/analytics/basic-dashboard`.\n\n`series` keys (each a chronological list of points, `values` keys in brackets):\n- `asset_evolution` (total_assets)\n- `savings_trend` (total_deposits)\n- `loan_portfolio` (gross_loans)\n- `par_trend` (par_gt_30_pct, par_gt_90_pct, portfolio_at_risk_pct)\n- `liquidity` (maintained_pct, minimum_pct, gap_pct)\n- `financial_structure` (earning_asset_ratio, member_savings_ratio, member_share_ratio, borrowed_funds_ratio)\n- `profitability` (net_income)\n- `institutional_capital` (ratio_pct, minimum_pct, excess_pct)",
+        "description": "Response of `GET /api/v1/analytics/basic-dashboard`.\n\n`series` has one key per indicator group (membership, savings, risk,\ncapital, profitability, governance, training, coa); each is a chronological\nlist of points whose `values` map indicator keys to their value.",
         "required": [
           "scope",
           "thresholds",
@@ -9084,14 +9084,6 @@
             "items": {
               "$ref": "#/components/schemas/IndicatorValue"
             }
-          },
-          "market_share": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/MarketShare"
-              }
-            ],
-            "nullable": true
           },
           "scope": {
             "$ref": "#/components/schemas/DashboardScope"
@@ -9850,32 +9842,22 @@
           "total_members"
         ],
         "properties": {
+          "active_members_pct": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
           "cooperative_id": {
             "type": "string",
             "format": "uuid"
           },
-          "gross_loans": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "institutional_capital_ratio_pct": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "liquidity_ratio_pct": {
+          "monetary_reserve_coverage_pct": {
             "type": "number",
             "format": "double",
             "nullable": true
           },
           "name": {
             "type": "string"
-          },
-          "net_income": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
           },
           "par_gt_30_pct": {
             "type": "number",
@@ -9890,19 +9872,19 @@
             "type": "string",
             "nullable": true
           },
-          "total_assets": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "total_deposits": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
           "total_members": {
             "type": "number",
             "format": "double"
+          },
+          "total_operating_margin_pct": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "women_members_pct": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         }
       },
@@ -9984,12 +9966,7 @@
         "type": "string",
         "enum": [
           "Sacco",
-          "Multipurpose",
-          "Farm",
-          "Housing",
-          "Transport",
-          "Finance",
-          "Other"
+          "Multipurpose"
         ]
       },
       "CreateApexRequest": {
@@ -11830,7 +11807,7 @@
           },
           "group": {
             "type": "string",
-            "description": "membership | savings | loans | risk | liquidity | structure | capital | profitability | governance"
+            "description": "membership | savings | risk | capital | profitability | governance | training | coa"
           },
           "key": {
             "type": "string"
@@ -12918,27 +12895,6 @@
           },
           "zero_balance_flag": {
             "type": "boolean"
-          }
-        }
-      },
-      "MarketShare": {
-        "type": "object",
-        "required": [
-          "by_assets",
-          "by_loans"
-        ],
-        "properties": {
-          "by_assets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ShareRow"
-            }
-          },
-          "by_loans": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ShareRow"
-            }
           }
         }
       },
@@ -15446,32 +15402,6 @@
           }
         }
       },
-      "ShareRow": {
-        "type": "object",
-        "required": [
-          "cooperative_id",
-          "name",
-          "value",
-          "share_pct"
-        ],
-        "properties": {
-          "cooperative_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "share_pct": {
-            "type": "number",
-            "format": "double"
-          },
-          "value": {
-            "type": "number",
-            "format": "double"
-          }
-        }
-      },
       "SubmissionActivityPoint": {
         "type": "object",
         "required": [
@@ -15631,6 +15561,11 @@
           "cooperative_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "cooperative_institution_type": {
+            "type": "string",
+            "description": "Cooperative type (\"sacco\" or \"multipurpose\"), used by the frontend to\ngate which submission methods are offered.",
+            "nullable": true
           },
           "cooperative_name": {
             "type": "string",

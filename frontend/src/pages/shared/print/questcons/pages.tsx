@@ -1,4 +1,3 @@
-import { formatMoneyValue } from "@/lib/basic-dashboard";
 import { chunk } from "@/pages/shared/print/consolidated/stats";
 import {
   PAR30_LIMIT,
@@ -12,7 +11,6 @@ import { verdictOf } from "@/pages/shared/print/quest/text";
 import {
   complianceOf,
   coverageOf,
-  marketSlices,
   parBandSlices,
   type TestCount,
 } from "@/pages/shared/print/questcons/stats";
@@ -24,14 +22,14 @@ import { Donut } from "@/pages/shared/print/tpl/TplTrend";
 import type { CooperativeRow } from "@/types/basic-dashboard";
 
 const SUMMARY: readonly [string, string][] = [
-  ["registered_members", "Registered members"],
-  ["total_assets", "Total assets"],
-  ["total_deposits", "Member deposits"],
-  ["gross_loan_portfolio", "Gross loans"],
+  ["active_members_pct", "Active members"],
+  ["women_members_pct", "Women members"],
+  ["savings_account_penetration_pct", "Savings account penetration"],
   ["par_gt_30_pct", "PAR over 30 days"],
-  ["liquidity_ratio_pct", "Liquidity ratio"],
-  ["institutional_capital_ratio_pct", "Institutional capital"],
-  ["female_borrowers_pct", "Female borrowers"],
+  ["delinquent_loan_account_rate_pct", "Delinquent loan accounts"],
+  ["agm_attendance_pct", "AGM participation"],
+  ["total_operating_margin_pct", "Total operating margin"],
+  ["monetary_reserve_coverage_pct", "Monetary reserve coverage"],
 ];
 
 const count = (n: number): string => n.toLocaleString("en-US");
@@ -43,19 +41,10 @@ export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
     const { verdict, body } = verdictOf(a);
     const cover = coverageOf(dashboard);
     const c = complianceOf(dashboard);
-    const { thresholds } = dashboard;
     const rows: { label: string; limit: string; test: TestCount }[] = [
       { label: "PAR over 30 days", limit: `≤ ${PAR30_LIMIT}%`, test: c.par30 },
-      {
-        label: "Liquidity ratio",
-        limit: `≥ ${thresholds.liquidity_minimum_pct}%`,
-        test: c.liquidity,
-      },
-      {
-        label: "Institutional capital",
-        limit: `≥ ${thresholds.institutional_capital_minimum_pct}%`,
-        test: c.capital,
-      },
+      { label: "Total operating margin", limit: "≥ 0%", test: c.operatingMargin },
+      { label: "Monetary reserve coverage", limit: "≥ 100%", test: c.reserveCoverage },
     ];
     return (
       <>
@@ -71,7 +60,7 @@ export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
             down: isDown(a.ind(key)),
           }))}
         />
-        <h3>Cooperatives against the regulatory limits</h3>
+        <h3>Cooperatives against the supervisory limits</h3>
         <table className="tbl compact">
           <thead>
             <tr>
@@ -117,51 +106,24 @@ export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
 });
 
 export const coveragePage = (a: QuestAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Coverage & Portfolio Structure" },
+  toc: { no, title: "Coverage & Portfolio Quality" },
   render: () => {
     const { dashboard } = a.props;
     const cover = coverageOf(dashboard);
-    const market = marketSlices(dashboard);
     const compliance = complianceOf(dashboard);
-    const money = (v: number) => a.money(v);
     return (
       <>
-        <Sec no={no} title="Coverage & Portfolio Structure" sub={a.period} />
+        <Sec no={no} title="Coverage & Portfolio Quality" sub={a.period} />
         <p>
           {count(cover.reporting)} of {count(cover.inScope)} cooperatives in scope filed a
-          questionnaire. The charts show who holds the assets and the loans, and how the reporting
-          cooperatives compare on PAR over 30 days. The six largest are named; the rest are grouped
-          as Other.
+          questionnaire. The charts show the filing coverage and how the reporting cooperatives
+          compare on PAR over 30 days.
         </p>
-        <div className="two">
-          {market.assets.length > 0 && (
-            <Figure
-              caption={
-                <>
-                  <b>Figure P1.</b> Share of total assets by cooperative.
-                </>
-              }
-            >
-              <Donut slices={market.assets} format={money} />
-            </Figure>
-          )}
-          {market.loans.length > 0 && (
-            <Figure
-              caption={
-                <>
-                  <b>Figure P2.</b> Share of gross loans by cooperative.
-                </>
-              }
-            >
-              <Donut slices={market.loans} format={money} />
-            </Figure>
-          )}
-        </div>
         <div className="two">
           <Figure
             caption={
               <>
-                <b>Figure P3.</b> Questionnaire coverage.
+                <b>Figure P1.</b> Questionnaire coverage.
               </>
             }
           >
@@ -176,7 +138,7 @@ export const coveragePage = (a: QuestAnalysis, no: string): PageSpec => ({
           <Figure
             caption={
               <>
-                <b>Figure P4.</b> Cooperatives by PAR over 30 days.
+                <b>Figure P2.</b> Cooperatives by PAR over 30 days.
               </>
             }
           >
@@ -198,12 +160,11 @@ const cell = (tone: string): string => `num ${tone === "bad" || tone === "warn" 
 
 export const cooperativePages = (a: QuestAnalysis, no: string): PageSpec[] => {
   const { dashboard } = a.props;
-  const { scope, thresholds } = dashboard;
+  const { scope } = dashboard;
   const rows = dashboard.cooperatives;
   const pages = chunk(rows, ROWS_PER_PAGE);
   if (pages.length === 0) return [];
-  const money = (v: number | null) => (v === null ? "—" : formatMoneyValue(v, scope.currency));
-  const pct = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)}%`);
+  const pct = (v: number | null | undefined) => (v == null ? "—" : `${v.toFixed(1)}%`);
   return pages.map((part, index): PageSpec => ({
     toc: index === 0 ? { no, title: "Cooperative Overview" } : undefined,
     render: () => (
@@ -216,8 +177,7 @@ export const cooperativePages = (a: QuestAnalysis, no: string): PageSpec[] => {
         {index === 0 && (
           <p>
             Each cooperative that filed, with its key figures. Values in red are outside the limit:
-            PAR over {PAR30_LIMIT}%, liquidity below {thresholds.liquidity_minimum_pct}%,
-            institutional capital below {thresholds.institutional_capital_minimum_pct}%.
+            PAR over {PAR30_LIMIT}%, a negative operating margin, or reserves below 100% backed.
           </p>
         )}
         <table className="tbl compact">
@@ -225,11 +185,11 @@ export const cooperativePages = (a: QuestAnalysis, no: string): PageSpec[] => {
             <tr>
               <th>Cooperative</th>
               <th className="num">Members</th>
-              <th className="num">Assets</th>
-              <th className="num">Loans</th>
+              <th className="num">Active</th>
+              <th className="num">Women</th>
               <th className="num">PAR &gt;30</th>
-              <th className="num">Liquidity</th>
-              <th className="num">Capital</th>
+              <th className="num">Op. margin</th>
+              <th className="num">Reserves</th>
             </tr>
           </thead>
           <tbody>
@@ -237,25 +197,14 @@ export const cooperativePages = (a: QuestAnalysis, no: string): PageSpec[] => {
               <tr key={row.cooperative_id}>
                 <td>{row.name}</td>
                 <td className="num">{count(row.total_members)}</td>
-                <td className="num">{money(row.total_assets)}</td>
-                <td className="num">{money(row.gross_loans)}</td>
+                <td className="num">{pct(row.active_members_pct)}</td>
+                <td className="num">{pct(row.women_members_pct)}</td>
                 <td className={cell(parTone(row.par_gt_30_pct))}>{pct(row.par_gt_30_pct)}</td>
-                <td
-                  className={cell(
-                    minimumTone(row.liquidity_ratio_pct, thresholds.liquidity_minimum_pct),
-                  )}
-                >
-                  {pct(row.liquidity_ratio_pct)}
+                <td className={cell(minimumTone(row.total_operating_margin_pct, 0))}>
+                  {pct(row.total_operating_margin_pct)}
                 </td>
-                <td
-                  className={cell(
-                    minimumTone(
-                      row.institutional_capital_ratio_pct,
-                      thresholds.institutional_capital_minimum_pct,
-                    ),
-                  )}
-                >
-                  {pct(row.institutional_capital_ratio_pct)}
+                <td className={cell(minimumTone(row.monetary_reserve_coverage_pct, 100))}>
+                  {pct(row.monetary_reserve_coverage_pct)}
                 </td>
               </tr>
             ))}

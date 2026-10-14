@@ -8,19 +8,18 @@ export const concernsOf = (a: QuestAnalysis): string[] => {
   const { dashboard } = a.props;
   const c = complianceOf(dashboard);
   const cover = coverageOf(dashboard);
-  const { thresholds } = dashboard;
   const out: string[] = [];
   if (c.par30.below > 0)
     out.push(
       `${plural(c.par30.below, "cooperative has", "cooperatives have")} PAR over 30 days above ${PAR30_LIMIT}%.`,
     );
-  if (c.liquidity.below > 0)
+  if (c.operatingMargin.below > 0)
     out.push(
-      `${plural(c.liquidity.below, "cooperative is", "cooperatives are")} below the ${thresholds.liquidity_minimum_pct}% liquidity minimum.`,
+      `${plural(c.operatingMargin.below, "cooperative has", "cooperatives have")} a negative total operating margin.`,
     );
-  if (c.capital.below > 0)
+  if (c.reserveCoverage.below > 0)
     out.push(
-      `${plural(c.capital.below, "cooperative is", "cooperatives are")} below the ${thresholds.institutional_capital_minimum_pct}% institutional capital minimum.`,
+      `${plural(c.reserveCoverage.below, "cooperative holds", "cooperatives hold")} less than its accumulated reserves in the bank.`,
     );
   if (cover.missing > 0)
     out.push(
@@ -49,13 +48,13 @@ export const strengthsOf = (a: QuestAnalysis): string[] => {
     out.push(
       `${plural(c.par30.meets, "cooperative keeps", "cooperatives keep")} PAR over 30 days within ${PAR30_LIMIT}%.`,
     );
-  if (c.liquidity.meets > 0)
+  if (c.operatingMargin.meets > 0)
     out.push(
-      `${plural(c.liquidity.meets, "cooperative meets", "cooperatives meet")} the liquidity minimum.`,
+      `${plural(c.operatingMargin.meets, "cooperative reports", "cooperatives report")} a non-negative total operating margin.`,
     );
-  if (c.capital.meets > 0)
+  if (c.reserveCoverage.meets > 0)
     out.push(
-      `${plural(c.capital.meets, "cooperative meets", "cooperatives meet")} the institutional capital minimum.`,
+      `${plural(c.reserveCoverage.meets, "cooperative has", "cooperatives have")} its reserves fully backed in the bank.`,
     );
   return out.slice(0, 5);
 };
@@ -72,19 +71,19 @@ export const recommendationsOf = (a: QuestAnalysis): Recommendation[] => {
       priority: "High",
       timeline: "Within 30 days",
     });
-  if (c.liquidity.below > 0)
+  if (c.operatingMargin.below > 0)
     out.push({
-      lead: "Liquidity.",
-      text: `Agree liquidity-building plans with the ${plural(c.liquidity.below, "cooperative", "cooperatives")} below ${dashboard.thresholds.liquidity_minimum_pct}%.`,
+      lead: "Operating performance.",
+      text: `Agree recovery plans with the ${plural(c.operatingMargin.below, "cooperative", "cooperatives")} running an operating deficit.`,
       priority: "High",
       timeline: "Within 30 days",
     });
-  if (c.capital.below > 0)
+  if (c.reserveCoverage.below > 0)
     out.push({
-      lead: "Capital.",
-      text: `Agree capital-building plans with the ${plural(c.capital.below, "cooperative", "cooperatives")} below ${dashboard.thresholds.institutional_capital_minimum_pct}%.`,
-      priority: "High",
-      timeline: "Within 30 days",
+      lead: "Reserves.",
+      text: `Ask the ${plural(c.reserveCoverage.below, "cooperative", "cooperatives")} with unbacked reserves to move them into the bank.`,
+      priority: "Medium",
+      timeline: "Next quarter",
     });
   if (cover.missing > 0)
     out.push({

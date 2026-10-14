@@ -1,7 +1,12 @@
 import { narrativeText } from "@/lib/questionnaire-report";
 import { womenSharePct } from "@/lib/basic-dashboard";
 import { IndicatorTable } from "@/pages/shared/print/quest/IndicatorTable";
-import { changeNote, isDown, type QuestAnalysis } from "@/pages/shared/print/quest/data";
+import {
+  PAR30_LIMIT,
+  changeNote,
+  isDown,
+  type QuestAnalysis,
+} from "@/pages/shared/print/quest/data";
 import { checksOf, concernsOf, strengthsOf, verdictOf } from "@/pages/shared/print/quest/text";
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
@@ -10,35 +15,28 @@ import { BarChart, Donut } from "@/pages/shared/print/tpl/TplTrend";
 import { INDICATOR_KEYS } from "@/types/basic-dashboard";
 
 const SUMMARY: readonly [string, string][] = [
-  ["registered_members", "Registered members"],
   ["active_members_pct", "Active members"],
-  ["total_assets", "Total assets"],
-  ["total_deposits", "Member deposits"],
-  ["gross_loan_portfolio", "Gross loans"],
+  ["women_members_pct", "Women members"],
+  ["savings_account_penetration_pct", "Savings account penetration"],
   ["par_gt_30_pct", "PAR over 30 days"],
-  ["liquidity_ratio_pct", "Liquidity ratio"],
-  ["institutional_capital_ratio_pct", "Institutional capital"],
+  ["delinquent_loan_account_rate_pct", "Delinquent loan accounts"],
+  ["agm_attendance_pct", "AGM participation"],
+  ["total_operating_margin_pct", "Total operating margin"],
+  ["monetary_reserve_coverage_pct", "Monetary reserve coverage"],
 ];
 
 export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
   toc: { no, title: "Executive Summary" },
   render: () => {
     const { verdict, body } = verdictOf(a);
-    const { thresholds } = a.props.dashboard;
     const checks = checksOf(a);
     const narrative = narrativeText(a.props.narratives, "executive_summary");
     const rows = [
       {
-        label: "Liquidity ratio",
-        key: "liquidity_ratio_pct",
-        min: thresholds.liquidity_minimum_pct,
-        tone: checks.liquidity,
-      },
-      {
-        label: "Institutional capital ratio",
-        key: "institutional_capital_ratio_pct",
-        min: thresholds.institutional_capital_minimum_pct,
-        tone: checks.capital,
+        label: "PAR over 30 days",
+        key: "par_gt_30_pct",
+        limit: `max ${PAR30_LIMIT}%`,
+        tone: checks.par30,
       },
     ];
     return (
@@ -55,13 +53,13 @@ export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
             down: isDown(a.ind(key)),
           }))}
         />
-        <h3>Regulatory minimums</h3>
+        <h3>Supervisory limits</h3>
         <table className="tbl compact">
           <thead>
             <tr>
               <th>Measure</th>
-              <th className="num">Maintained</th>
-              <th className="num">Minimum</th>
+              <th className="num">Reported</th>
+              <th className="num">Limit</th>
               <th>Result</th>
             </tr>
           </thead>
@@ -70,7 +68,7 @@ export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
               <tr key={row.key}>
                 <td>{row.label}</td>
                 <td className="num">{a.text(row.key)}</td>
-                <td className="num">{row.min.toFixed(0)}%</td>
+                <td className="num">{row.limit}</td>
                 <td>
                   <Pill tone={row.tone} />
                 </td>
@@ -122,9 +120,9 @@ export const membershipPage = (a: QuestAnalysis, no: string): PageSpec => ({
       <>
         <Sec no={no} title="Membership, Governance & Inclusion" sub={a.period} />
         <p>
-          {a.text("registered_members")} members are registered, of whom{" "}
-          {a.text("active_members_pct")} are active. Women are {a.text("women_members_pct")} of
-          members and youth {a.text("youth_members_pct")}.
+          {(d.registered.male + d.registered.female).toLocaleString("en-US")} members are
+          registered, of whom {a.text("active_members_pct")} are active. Women are{" "}
+          {a.text("women_members_pct")} of members and youth {a.text("youth_members_pct")}.
         </p>
         {narrative && (
           <div className="opinion keep">
@@ -191,6 +189,12 @@ export const membershipPage = (a: QuestAnalysis, no: string): PageSpec => ({
         </table>
         <h3>Membership indicators</h3>
         <IndicatorTable a={a} keys={[...INDICATOR_KEYS.membership, ...INDICATOR_KEYS.governance]} />
+        {INDICATOR_KEYS.training.some((key) => a.num(key) !== null) && (
+          <>
+            <h3>Training coverage</h3>
+            <IndicatorTable a={a} keys={INDICATOR_KEYS.training} />
+          </>
+        )}
       </>
     );
   },

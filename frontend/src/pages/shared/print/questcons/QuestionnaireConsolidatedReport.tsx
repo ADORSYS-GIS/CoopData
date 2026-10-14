@@ -3,12 +3,12 @@ import type { FC } from "react";
 import { rateNote } from "@/lib/basic-dashboard";
 import { analyseQuestionnaire } from "@/pages/shared/print/quest/data";
 import { membershipPage } from "@/pages/shared/print/quest/pages1";
-import { liquidityCapitalPage, portfolioPage, riskPage } from "@/pages/shared/print/quest/pages2";
+import { resiliencePage, savingsLoanQualityPage } from "@/pages/shared/print/quest/pages2";
 import {
   annexAPages,
   annexBPages,
-  assetTrendPage,
-  structurePage,
+  mpcFinancialRatiosPage,
+  performancePage,
 } from "@/pages/shared/print/quest/pages3";
 import {
   cooperativePages,
@@ -69,11 +69,10 @@ export const QuestionnaireConsolidatedReport: FC<Props> = ({
     executivePage(a, next()),
     coveragePage(a, next()),
     membershipPage(a, next()),
-    portfolioPage(a, next()),
-    riskPage(a, next()),
-    liquidityCapitalPage(a, next()),
-    structurePage(a, next()),
-    ...optional((no) => assetTrendPage(a, no)),
+    savingsLoanQualityPage(a, next()),
+    resiliencePage(a, next()),
+    performancePage(a, next()),
+    ...optional((no) => mpcFinancialRatiosPage(a, no)),
   ];
   const overview = cooperativePages(a, String(n + 1));
   if (overview.length > 0) {

@@ -4,13 +4,12 @@ export type IndicatorStatus = "computed" | "approximate" | "not_reported";
 export type IndicatorGroup =
   | "membership"
   | "savings"
-  | "loans"
   | "risk"
-  | "liquidity"
-  | "structure"
   | "capital"
   | "profitability"
-  | "governance";
+  | "governance"
+  | "training"
+  | "coa";
 
 export interface PeriodOption {
   reporting_year: number;
@@ -59,27 +58,8 @@ export interface SeriesPoint {
   values: Record<string, number>;
 }
 
-export type SeriesKey =
-  | "asset_evolution"
-  | "savings_trend"
-  | "loan_portfolio"
-  | "par_trend"
-  | "liquidity"
-  | "financial_structure"
-  | "profitability"
-  | "institutional_capital";
-
-export interface ShareRow {
-  cooperative_id: string;
-  name: string;
-  value: number;
-  share_pct: number;
-}
-
-export interface MarketShare {
-  by_assets: ShareRow[];
-  by_loans: ShareRow[];
-}
+/** Series are keyed by indicator group; each point maps indicator keys to values. */
+export type SeriesKey = IndicatorGroup;
 
 export interface GenderCount {
   male: number;
@@ -110,13 +90,11 @@ export interface CooperativeRow {
   region: string | null;
   sector: string | null;
   total_members: number;
-  total_assets: number | null;
-  total_deposits: number | null;
-  gross_loans: number | null;
+  active_members_pct: number | null;
+  women_members_pct: number | null;
   par_gt_30_pct: number | null;
-  liquidity_ratio_pct: number | null;
-  institutional_capital_ratio_pct: number | null;
-  net_income: number | null;
+  total_operating_margin_pct: number | null;
+  monetary_reserve_coverage_pct: number | null;
 }
 
 export interface BasicDashboardResponse {
@@ -124,7 +102,6 @@ export interface BasicDashboardResponse {
   thresholds: DashboardThresholds;
   indicators: IndicatorValue[];
   series: Partial<Record<SeriesKey, SeriesPoint[]>>;
-  market_share: MarketShare | null;
   demographics: Demographics;
   cooperatives: CooperativeRow[];
 }
@@ -143,71 +120,45 @@ export interface BasicDashboardParams {
 /** Every indicator key the backend can return, in display order per group. */
 export const INDICATOR_KEYS: Record<IndicatorGroup, string[]> = {
   membership: [
-    "registered_members",
-    "active_members",
-    "inactive_members",
     "active_members_pct",
     "women_members_pct",
     "youth_members_pct",
-    "number_of_groups",
+    "female_active_members_pct",
   ],
-  savings: ["total_deposits", "deposit_accounts", "avg_savings_per_account"],
-  loans: [
-    "gross_loan_portfolio",
-    "loans_outstanding_count",
-    "avg_loan_balance",
-    "total_disbursed_active",
-    "loans_awaiting_approval",
-    "loans_in_arrears_count",
-    "projected_interest_earnings",
-    "female_borrowers_pct",
-    "total_overdrafts",
-  ],
-  risk: [
-    "par_gt_7_pct",
-    "par_gt_30_pct",
-    "par_gt_90_pct",
-    "par_30_90_pct",
-    "par_180_360_pct",
-    "portfolio_at_risk_pct",
-    "value_at_risk",
-    "var_gt_7",
-    "var_gt_30",
-    "var_gt_90",
-    "interest_in_suspense",
-    "interest_payable",
-    "written_off_loans",
-  ],
-  liquidity: ["liquid_assets", "liquidity_ratio_pct", "liquidity_minimum_pct", "liquidity_gap_pct"],
-  structure: [
-    "total_assets",
-    "earning_asset_ratio",
-    "member_savings_ratio",
-    "member_share_ratio",
-    "borrowed_funds_ratio",
-    "loans_to_savings_ratio",
-  ],
-  capital: [
-    "institutional_capital",
-    "institutional_capital_ratio_pct",
-    "institutional_capital_minimum_pct",
-    "institutional_capital_excess_pct",
-    "total_equity",
-    "share_capital",
-    "retained_earnings",
-    "statutory_reserves",
+  governance: ["board_women_pct", "agm_attendance_pct", "meetings_held_count"],
+  training: [
+    "staff_training_coverage_pct",
+    "member_training_coverage_pct",
+    "leadership_training_coverage_pct",
   ],
   profitability: [
-    "total_income",
-    "total_expenditure",
-    "net_income",
-    "return_on_assets_pct",
-    "operating_expense_ratio_pct",
+    "main_activity_operating_margin_pct",
+    "total_operating_margin_pct",
+    "member_economic_benefit_ratio_pct",
   ],
-  governance: [
-    "board_women_pct",
-    "executive_women_pct",
-    "credit_committee_women_pct",
-    "agm_attendance_pct",
+  savings: [
+    "savings_account_penetration_pct",
+    "avg_savings_per_depositor",
+    "avg_savings_per_depositor_male",
+    "avg_savings_per_depositor_female",
+  ],
+  risk: ["par_gt_30_pct", "delinquent_loan_account_rate_pct", "loan_recovery_rate_pct"],
+  capital: ["monetary_reserve_coverage_pct"],
+  coa: [
+    "operating_profit_margin_pct",
+    "net_profit_margin_pct",
+    "coa_return_on_assets_pct",
+    "coa_return_on_equity_pct",
+    "current_ratio",
+    "debt_to_equity_ratio",
+    "working_capital",
+    "days_sales_outstanding",
+    "inventory_turnover",
+    "operating_cash_flow_ratio",
+    "activity_concentration_risk_pct",
+    "dscr",
+    "cash_liquidity_coverage",
+    "receivables_risk_ratio_pct",
+    "interest_coverage",
   ],
 };

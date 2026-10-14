@@ -21,6 +21,9 @@ interface SubmissionMethodModalProps {
   submissionId: string;
   currentMethod?: SubmissionMethod | null;
   hasExistingData?: boolean;
+  /** "sacco" | "multipurpose" — gates which methods are offered. SACCO chooses
+   * upload/manual (no questionnaire); multipurpose is questionnaire-only. */
+  cooperativeType?: string | null;
   onClose: () => void;
   onMethodSelected?: () => void;
 }
@@ -40,6 +43,7 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
   submissionId,
   currentMethod,
   hasExistingData = false,
+  cooperativeType,
   onClose,
   onMethodSelected,
 }) => {
@@ -49,7 +53,7 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
   const [pendingTargetMethod, setPendingTargetMethod] = useState<SubmissionMethod | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  const options: MethodOption[] = [
+  const allOptions: MethodOption[] = [
     {
       value: "upload",
       icon: <Upload className="size-6 text-primary" />,
@@ -91,6 +95,11 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
         "border-success/30/20 bg-success/100/5 hover:border-success/30/40 hover:bg-success/100/10",
     },
   ];
+  const options = allOptions.filter((opt) => {
+    if (cooperativeType === "sacco") return opt.value !== "questionnaire";
+    if (cooperativeType === "multipurpose") return opt.value === "questionnaire";
+    return true;
+  });
 
   const handleClose = () => {
     setPendingTargetMethod(null);
@@ -169,9 +178,16 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
 
   const targetOption = options.find((o) => o.value === pendingTargetMethod);
 
+  // Tailwind needs static class names, so the width/column count per option
+  // count is a lookup rather than a template string — keeps a 2-option modal
+  // (e.g. SACCO: upload/manual) from leaving an empty third column.
+  const DIALOG_WIDTH = { 1: "max-w-md", 2: "max-w-2xl", 3: "max-w-3xl" } as const;
+  const GRID_COLS = { 1: "sm:grid-cols-1", 2: "sm:grid-cols-2", 3: "sm:grid-cols-3" } as const;
+  const optionCount = Math.min(Math.max(options.length, 1), 3) as 1 | 2 | 3;
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden">
+      <DialogContent className={`${DIALOG_WIDTH[optionCount]} p-0 overflow-hidden`}>
         {pendingTargetMethod ? (
           /* Reset Confirmation View */
           <div className="p-6 space-y-6">
@@ -247,10 +263,15 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
                   </DialogTitle>
                 </div>
                 <DialogDescription className="text-sm text-muted-foreground">
-                  {t(
-                    "submissions.methodModal.subtitle",
-                    "Select how your cooperative will complete both financial and non-financial information for this submission.",
-                  )}
+                  {optionCount > 1
+                    ? t(
+                        "submissions.methodModal.subtitle",
+                        "Select how your cooperative will complete both financial and non-financial information for this submission.",
+                      )
+                    : t(
+                        "submissions.methodModal.subtitleSingle",
+                        "This is how your cooperative will complete both financial and non-financial information for this submission.",
+                      )}
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -268,7 +289,7 @@ export const SubmissionMethodModal: React.FC<SubmissionMethodModalProps> = ({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className={`grid grid-cols-1 ${GRID_COLS[optionCount]} gap-4`}>
                 {options.map((opt) => {
                   const IconWrap = opt.icon;
                   const isCurrent = currentMethod === opt.value;

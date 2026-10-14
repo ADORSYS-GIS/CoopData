@@ -121,7 +121,7 @@ async fn section_update_status_missing_row_maps_to_not_found() {
 }
 
 #[tokio::test]
-async fn section_new_section_models_questionnaire_creates_single_section() {
+async fn section_new_section_models_questionnaire_creates_the_six_standard_sections() {
     use sea_orm::ActiveValue;
 
     let sub_id = Uuid::new_v4();
@@ -130,12 +130,24 @@ async fn section_new_section_models_questionnaire_creates_single_section() {
         "questionnaire",
     );
 
-    assert_eq!(models.len(), 1, "questionnaire method = one section only");
-    if let ActiveValue::Set(ref name) = models[0].section {
-        assert_eq!(name, "questionnaire");
-    } else {
-        panic!("section field should be Set");
-    }
+    let names: Vec<String> = models
+        .iter()
+        .map(|m| match m.section {
+            ActiveValue::Set(ref name) => name.clone(),
+            _ => panic!("section field should be Set"),
+        })
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "financial",
+            "members",
+            "savings",
+            "loans",
+            "fixed_deposits",
+            "farm_coop"
+        ]
+    );
 }
 
 #[tokio::test]

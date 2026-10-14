@@ -4,110 +4,65 @@ import { IndicatorTable } from "@/pages/shared/print/quest/IndicatorTable";
 import { labelOf, type QuestAnalysis } from "@/pages/shared/print/quest/data";
 import { recommendationsOf } from "@/pages/shared/print/quest/text";
 import { chunk } from "@/pages/shared/print/consolidated/stats";
-import { VBarGroups } from "@/pages/shared/print/tpl/TplCharts";
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { EndOfReport, Figure, SignOff } from "@/pages/shared/print/tpl/TplParts";
-import { Donut, LineChart } from "@/pages/shared/print/tpl/TplTrend";
+import { LineChart } from "@/pages/shared/print/tpl/TplTrend";
 import { INDICATOR_KEYS, type IndicatorGroup } from "@/types/basic-dashboard";
 
-export const structurePage = (a: QuestAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Financial Structure & Profitability" },
+export const performancePage = (a: QuestAnalysis, no: string): PageSpec => ({
+  toc: { no, title: "Operational & Economic Performance" },
   render: () => {
     const narrative = narrativeText(a.props.narratives, "financial_structure_profitability");
-    const savings = a.num("member_savings_ratio");
-    const shares = a.num("member_share_ratio");
-    const borrowed = a.num("borrowed_funds_ratio");
-    const known = (savings ?? 0) + (shares ?? 0) + (borrowed ?? 0);
-    const funding = [
-      { label: "Member savings", value: savings ?? 0 },
-      { label: "Member shares", value: shares ?? 0 },
-      { label: "Borrowed funds", value: borrowed ?? 0 },
-      { label: "Other funding", value: Math.max(100 - known, 0) },
-    ];
-    const hasFunding = savings !== null || shares !== null || borrowed !== null;
-    const income = a.line("profitability", "net_income");
+    const margin = a.line("profitability", "total_operating_margin_pct");
     return (
       <>
-        <Sec no={no} title="Financial Structure & Profitability" sub={a.period} />
+        <Sec no={no} title="Operational & Economic Performance" sub={a.period} />
         <p>
-          Loans and investments are {a.text("earning_asset_ratio")} of total assets. Member savings
-          fund {a.text("member_savings_ratio")} of assets and borrowed funds{" "}
-          {a.text("borrowed_funds_ratio")}. Net income is {a.text("net_income")}.
+          The main activity margin is {a.text("main_activity_operating_margin_pct")} and the total
+          operating margin is {a.text("total_operating_margin_pct")}. Of the main activity surplus,{" "}
+          {a.text("member_economic_benefit_ratio_pct")} is distributed to members.
         </p>
         {narrative && (
           <div className="opinion keep">
-            <div className="lbl">Structure and profitability insights</div>
+            <div className="lbl">Performance insights</div>
             <p style={{ margin: 0 }}>{narrative}</p>
           </div>
         )}
-        {(hasFunding || income.labels.length > 1) && (
-          <div className="two">
-            {hasFunding ? (
-              <Figure
-                caption={
-                  <>
-                    <b>Figure F1.</b> Funding of total assets (%). Other funding is the remainder.
-                  </>
-                }
-              >
-                <Donut slices={funding} format={(v) => `${v.toFixed(1)}%`} />
-              </Figure>
-            ) : (
-              <div />
-            )}
-            {income.labels.length > 1 && (
-              <Figure
-                caption={
-                  <>
-                    <b>Figure F2.</b> Net income by period ({a.props.dashboard.scope.currency}).
-                  </>
-                }
-              >
-                <LineChart
-                  labels={income.labels}
-                  values={income.values}
-                  unit={a.props.dashboard.scope.currency}
-                  format={(v) => a.money(v).replace(/^SZL /, "")}
-                />
-              </Figure>
-            )}
-          </div>
+        {margin.labels.length > 1 && (
+          <Figure
+            caption={
+              <>
+                <b>Figure F1.</b> Total operating margin by period (%).
+              </>
+            }
+          >
+            <LineChart labels={margin.labels} values={margin.values} unit="% of operating income" />
+          </Figure>
         )}
-        <h3>Structure</h3>
-        <IndicatorTable a={a} keys={INDICATOR_KEYS.structure} />
-        <h3>Profitability</h3>
         <IndicatorTable a={a} keys={INDICATOR_KEYS.profitability} />
       </>
     );
   },
 });
 
-export const assetTrendPage = (a: QuestAnalysis, no: string): PageSpec | null => {
-  const assets = a.line("asset_evolution", "total_assets");
-  if (assets.labels.length < 2 || assets.values.every((v) => v === null)) return null;
+/** Only rendered for multipurpose cooperatives that filled in the
+ * chart-of-accounts financial questionnaire — null for everyone else (SACCO
+ * cooperatives no longer use the questionnaire at all; a coop that hasn't
+ * filled in the chart of accounts has nothing to show here). */
+export const mpcFinancialRatiosPage = (a: QuestAnalysis, no: string): PageSpec | null => {
+  const hasData = INDICATOR_KEYS.coa.some((key) => a.num(key) !== null);
+  if (!hasData) return null;
   return {
-    toc: { no, title: "Asset Trend" },
+    toc: { no, title: "MPC Financial Ratios" },
     render: () => (
       <>
-        <Sec no={no} title="Asset Trend" sub={`${assets.labels.length} periods`} />
+        <Sec no={no} title="MPC Financial Ratios" sub={a.period} />
         <p>
-          Total assets are {a.text("total_assets")} at {a.period}.
+          Ratios computed from the cooperative's own chart-of-accounts mapping (opening/closing
+          balances and annual movements by standard account).
         </p>
-        <Figure
-          caption={
-            <>
-              <b>Figure T1.</b> Total assets by period ({a.props.dashboard.scope.currency}).
-            </>
-          }
-        >
-          <VBarGroups
-            unit={a.props.dashboard.scope.currency}
-            format={(v) => a.money(v).replace(/^SZL /, "")}
-            series={[{ name: "Total assets", color: "#1F4E62" }]}
-            data={assets.labels.map((label, i) => ({ label, values: [assets.values[i] ?? null] }))}
-          />
-        </Figure>
+        <IndicatorTable a={a} keys={INDICATOR_KEYS.coa} />
       </>
     ),
   };
@@ -224,14 +179,13 @@ export const annexAPages = (a: QuestAnalysis, no: string): PageSpec[] => {
 
 const GROUP_TITLE: Record<IndicatorGroup, string> = {
   membership: "Membership",
-  savings: "Savings",
-  loans: "Loans",
-  risk: "Risk",
-  liquidity: "Liquidity",
-  structure: "Structure",
-  capital: "Capital",
-  profitability: "Profitability",
   governance: "Governance",
+  training: "Training",
+  profitability: "Performance",
+  savings: "Savings",
+  risk: "Loan quality",
+  capital: "Resilience",
+  coa: "Financial Ratios (Chart of Accounts)",
 };
 
 export const annexBPages = (a: QuestAnalysis, no: string): PageSpec[] => {

@@ -1017,15 +1017,7 @@ pub async fn get_apex_profile(
 
 // ─── Cooperative Profile CRUD (US2.1) ─────────────────────────────────────────
 
-const VALID_COOP_TYPES: &[&str] = &[
-    "sacco",
-    "multipurpose",
-    "farm",
-    "housing",
-    "transport",
-    "finance",
-    "other",
-];
+const VALID_COOP_TYPES: &[&str] = &["sacco", "multipurpose"];
 const VALID_GEO_CLASSIF: &[&str] = &["Urban", "Rural"];
 const VALID_COOP_STATUS: &[&str] = &["Active", "Inactive", "Suspended"];
 const VALID_ACCOUNTING_YEAR: &[&str] = &["calendar", "fiscal"];

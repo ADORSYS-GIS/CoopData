@@ -38,123 +38,201 @@ fn age_band_does_not_add_the_aggregate_to_the_split() {
 }
 
 #[test]
-fn age_band_falls_back_to_the_aggregate() {
-    let i = inputs(json!({ "registered_members_36_60": 40 }));
-    assert_eq!(i.age_36_60, 40.0);
-    assert!(i.has("age_36_60"));
+fn only_the_nineteen_core_indicators_are_produced() {
+    let keys: Vec<String> = compute(json!({})).into_iter().map(|i| i.key).collect();
+    let expected = [
+        "active_members_pct",
+        "women_members_pct",
+        "youth_members_pct",
+        "female_active_members_pct",
+        "board_women_pct",
+        "agm_attendance_pct",
+        "meetings_held_count",
+        "staff_training_coverage_pct",
+        "member_training_coverage_pct",
+        "leadership_training_coverage_pct",
+        "main_activity_operating_margin_pct",
+        "total_operating_margin_pct",
+        "member_economic_benefit_ratio_pct",
+        "savings_account_penetration_pct",
+        "avg_savings_per_depositor",
+        "avg_savings_per_depositor_male",
+        "avg_savings_per_depositor_female",
+        "par_gt_30_pct",
+        "delinquent_loan_account_rate_pct",
+        "loan_recovery_rate_pct",
+        "monetary_reserve_coverage_pct",
+    ];
+    assert_eq!(keys, expected);
 }
 
 #[test]
-fn zero_is_reported_but_missing_is_not() {
-    let list = compute(json!({ "savings_value_male": 0, "savings_value_female": 0 }));
-    assert_eq!(value(&list, "total_deposits"), Some(0.0));
-    assert_eq!(status(&list, "total_deposits"), "computed");
-    assert_eq!(value(&list, "gross_loan_portfolio"), None);
-    assert_eq!(status(&list, "gross_loan_portfolio"), "not_reported");
-}
-
-#[test]
-fn structure_ratios_use_total_assets() {
+fn membership_rates_follow_the_questionnaire_definitions() {
     let list = compute(json!({
-        "non_current_assets": 300, "total_current_assets": 700,
-        "savings_value_male": 400, "savings_value_female": 300,
-        "total_share_capital": 60, "borrowed_funds_total": 5,
-        "outstanding_value_male": 500, "outstanding_value_female": 300,
-        "bank_investment": 50, "share_investment": 20, "other_investments": 30
+        "total_registered_male": 60, "total_registered_female": 40,
+        "total_active_male": 30, "total_active_female": 20,
+        "age_18_25_male": 5, "age_18_25_female": 5, "age_26_35_male": 10, "age_26_35_female": 10
     }));
-    assert_eq!(value(&list, "total_assets"), Some(1000.0));
-    assert_eq!(value(&list, "member_savings_ratio"), Some(70.0));
-    assert_eq!(value(&list, "member_share_ratio"), Some(6.0));
-    assert_eq!(value(&list, "borrowed_funds_ratio"), Some(0.5));
-    assert_eq!(value(&list, "earning_asset_ratio"), Some(90.0));
+    assert_eq!(value(&list, "active_members_pct"), Some(50.0));
+    assert_eq!(value(&list, "women_members_pct"), Some(40.0));
+    assert_eq!(value(&list, "youth_members_pct"), Some(30.0));
+    assert_eq!(value(&list, "female_active_members_pct"), Some(40.0));
 }
 
 #[test]
-fn par_buckets_produce_exact_ratios() {
+fn governance_indicators() {
     let list = compute(json!({
-        "outstanding_value_male": 600, "outstanding_value_female": 400,
-        "par_1_7_value": 10, "par_8_30_value": 20, "par_31_90_value": 30,
-        "par_91_180_value": 15, "par_181_360_value": 5, "par_over_360_value": 0
+        "total_registered_male": 60, "total_registered_female": 40,
+        "board_male": 6, "board_female": 4,
+        "agm_attendance_male": 25, "agm_attendance_female": 15,
+        "meetings_held_count": 11
     }));
-    assert_eq!(value(&list, "par_gt_30_pct"), Some(5.0));
-    assert_eq!(value(&list, "par_gt_90_pct"), Some(2.0));
-    assert_eq!(value(&list, "par_30_90_pct"), Some(3.0));
-    assert_eq!(value(&list, "par_180_360_pct"), Some(0.5));
-    assert_eq!(value(&list, "portfolio_at_risk_pct"), Some(8.0));
-    assert_eq!(value(&list, "var_gt_7"), Some(70.0));
+    assert_eq!(value(&list, "board_women_pct"), Some(40.0));
+    assert_eq!(value(&list, "agm_attendance_pct"), Some(40.0));
+    assert_eq!(value(&list, "meetings_held_count"), Some(11.0));
+}
+
+#[test]
+fn training_coverage_divides_trained_by_the_right_base() {
+    let list = compute(json!({
+        "total_registered_male": 60, "total_registered_female": 40,
+        "board_male": 6, "board_female": 4,
+        "staff_manager_male": 1, "staff_other_support_female": 3,
+        "members_trained_last_year": 20, "leaders_trained_last_year": 5, "staff_trained_last_year": 2
+    }));
+    assert_eq!(value(&list, "member_training_coverage_pct"), Some(20.0));
+    assert_eq!(value(&list, "leadership_training_coverage_pct"), Some(50.0));
+    assert_eq!(value(&list, "staff_training_coverage_pct"), Some(50.0));
+}
+
+#[test]
+fn staff_training_is_not_reported_without_the_staff_table() {
+    let list = compute(json!({ "staff_trained_last_year": 2 }));
+    assert_eq!(value(&list, "staff_training_coverage_pct"), None);
+}
+
+#[test]
+fn main_activity_margin_total_margin_and_member_benefit() {
+    let list = compute(json!({
+        "main_activity_1_income": 1000, "main_activity_1_expenses": 600,
+        "main_activity_1_distrib_members": 100,
+        "current_total_income": 2000, "current_total_expenditure": 1500
+    }));
+    assert_eq!(
+        value(&list, "main_activity_operating_margin_pct"),
+        Some(40.0)
+    );
+    assert_eq!(value(&list, "total_operating_margin_pct"), Some(25.0));
+    assert_eq!(status(&list, "total_operating_margin_pct"), "computed");
+    assert_eq!(
+        value(&list, "member_economic_benefit_ratio_pct"),
+        Some(25.0)
+    );
+}
+
+#[test]
+fn total_margin_falls_back_to_activities_and_is_flagged_approximate() {
+    let list = compute(json!({
+        "main_activity_1_income": 1000, "main_activity_1_expenses": 600,
+        "other_activities_income": 500, "other_activities_expenditure": 400
+    }));
+    assert!((value(&list, "total_operating_margin_pct").unwrap() - 100.0 / 3.0).abs() < 1e-9);
+    assert_eq!(status(&list, "total_operating_margin_pct"), "approximate");
+}
+
+#[test]
+fn member_benefit_ratio_is_not_reported_when_main_activity_runs_a_deficit() {
+    let list = compute(json!({
+        "main_activity_1_income": 100, "main_activity_1_expenses": 300,
+        "main_activity_1_distrib_members": 10
+    }));
+    assert_eq!(value(&list, "member_economic_benefit_ratio_pct"), None);
+}
+
+#[test]
+fn savings_penetration_and_average_balance_by_sex() {
+    let list = compute(json!({
+        "total_registered_male": 60, "total_registered_female": 40,
+        "savings_accounts_male": 30, "savings_accounts_female": 20,
+        "savings_value_male": 3000, "savings_value_female": 4000
+    }));
+    assert_eq!(value(&list, "savings_account_penetration_pct"), Some(50.0));
+    assert_eq!(value(&list, "avg_savings_per_depositor"), Some(140.0));
+    assert_eq!(value(&list, "avg_savings_per_depositor_male"), Some(100.0));
+    assert_eq!(
+        value(&list, "avg_savings_per_depositor_female"),
+        Some(200.0)
+    );
+}
+
+#[test]
+fn par_30_uses_buckets_over_30_days_against_the_outstanding_portfolio() {
+    let list = compute(json!({
+        "loans_outstanding_value_male": 600, "loans_outstanding_value_female": 400,
+        "par_8_30_value": 90,
+        "par_31_90_value": 30, "par_91_180_value": 20, "par_181_360_value": 10, "par_over_360_value": 10
+    }));
+    assert!((value(&list, "par_gt_30_pct").unwrap() - 7.0).abs() < 1e-9);
     assert_eq!(status(&list, "par_gt_30_pct"), "computed");
 }
 
 #[test]
-fn legacy_delinquency_fields_give_approximate_par_only() {
+fn par_30_is_approximate_from_the_legacy_delinquency_total() {
     let list = compute(json!({
-        "outstanding_value_male": 500, "outstanding_value_female": 500,
-        "delinquent_value_0_30": 20, "delinquent_value_31_365": 40
+        "loans_outstanding_value_male": 1000, "delinquent_value_31_365": 50
     }));
-    assert_eq!(value(&list, "par_gt_30_pct"), Some(4.0));
+    assert_eq!(value(&list, "par_gt_30_pct"), Some(5.0));
     assert_eq!(status(&list, "par_gt_30_pct"), "approximate");
-    assert_eq!(value(&list, "portfolio_at_risk_pct"), Some(6.0));
-    assert_eq!(value(&list, "par_gt_90_pct"), None);
-    assert_eq!(status(&list, "par_gt_90_pct"), "not_reported");
 }
 
 #[test]
-fn members_owed_is_not_added_to_reported_loans() {
+fn delinquent_account_rate_is_account_based() {
     let list = compute(json!({
-        "outstanding_value_male": 100, "outstanding_value_female": 50,
-        "amount_owed_by_members": 999
+        "loans_outstanding_accounts_male": 60, "loans_outstanding_accounts_female": 40,
+        "loans_delinquent_accounts_male": 6, "loans_delinquent_accounts_female": 4
     }));
-    assert_eq!(value(&list, "gross_loan_portfolio"), Some(150.0));
-    let only_nf = compute(json!({ "amount_owed_by_members": 80 }));
-    assert_eq!(value(&only_nf, "gross_loan_portfolio"), Some(80.0));
-    assert_eq!(status(&only_nf, "gross_loan_portfolio"), "approximate");
+    assert_eq!(value(&list, "delinquent_loan_account_rate_pct"), Some(10.0));
 }
 
 #[test]
-fn liquidity_ratio_and_gap_follow_the_regulatory_minimum() {
-    let list = compute(json!({
-        "cash_on_hand": 10, "cash_at_bank_current": 20, "bank_investment": 30,
-        "savings_value_male": 300, "savings_value_female": 100
-    }));
-    assert_eq!(value(&list, "liquid_assets"), Some(60.0));
-    assert_eq!(value(&list, "liquidity_ratio_pct"), Some(15.0));
-    assert_eq!(value(&list, "liquidity_gap_pct"), Some(0.0));
-    let low = compute(json!({ "bank_investment": 20, "savings_value_male": 400 }));
-    assert_eq!(value(&low, "liquidity_gap_pct"), Some(10.0));
+fn recovery_rate_is_not_applicable_when_nothing_was_written_off() {
+    let list = compute(json!({ "written_off_loans_value": 200, "recovered_loans_last_12mo": 50 }));
+    assert_eq!(value(&list, "loan_recovery_rate_pct"), Some(25.0));
+    let none = compute(json!({ "written_off_loans_value": 0, "recovered_loans_last_12mo": 50 }));
+    assert_eq!(value(&none, "loan_recovery_rate_pct"), None);
 }
 
 #[test]
-fn institutional_capital_excludes_member_shares() {
+fn monetary_reserve_coverage_needs_positive_accumulated_reserves() {
     let list = compute(json!({
-        "non_current_assets": 400, "total_current_assets": 600,
-        "retained_earnings": 40, "accumulated_statutory_reserves": 60,
-        "donations_grants": 20, "total_share_capital": 500
+        "accumulated_book_reserves": 1000, "actual_monetary_reserves_bank": 800
     }));
-    assert_eq!(value(&list, "institutional_capital"), Some(120.0));
-    assert_eq!(value(&list, "institutional_capital_ratio_pct"), Some(12.0));
-    assert_eq!(value(&list, "institutional_capital_excess_pct"), Some(4.0));
+    assert_eq!(value(&list, "monetary_reserve_coverage_pct"), Some(80.0));
+    let zero = compute(json!({
+        "accumulated_book_reserves": 0, "actual_monetary_reserves_bank": 800
+    }));
+    assert_eq!(value(&zero, "monetary_reserve_coverage_pct"), None);
+}
+
+#[test]
+fn zero_is_reported_but_missing_is_not() {
+    let list = compute(json!({
+        "total_registered_male": 10, "total_registered_female": 0,
+        "total_active_male": 0, "total_active_female": 0
+    }));
+    assert_eq!(value(&list, "active_members_pct"), Some(0.0));
+    assert_eq!(status(&list, "active_members_pct"), "computed");
+    assert_eq!(value(&list, "board_women_pct"), None);
+    assert_eq!(status(&list, "board_women_pct"), "not_reported");
 }
 
 #[test]
 fn consolidated_ratio_is_weighted_by_totals_not_averaged() {
-    let mut a = inputs(json!({ "outstanding_value_male": 100, "par_31_90_value": 50 }));
-    let b = inputs(json!({ "outstanding_value_male": 900, "par_31_90_value": 0 }));
+    let mut a = inputs(json!({ "loans_outstanding_value_male": 100, "par_31_90_value": 50 }));
+    let b = inputs(json!({ "loans_outstanding_value_male": 900, "par_31_90_value": 0 }));
     a.add(&b);
     let list = build_indicators(&a, &Derived::from_inputs(&a));
     assert_eq!(value(&list, "par_gt_30_pct"), Some(5.0));
-}
-
-#[test]
-fn money_scaling_leaves_ratios_and_counts_unchanged() {
-    let mut i = inputs(json!({
-        "non_current_assets": 185, "total_current_assets": 185,
-        "savings_value_male": 111, "savings_accounts_male": 7
-    }));
-    i.scale_money(1.0 / 18.5);
-    let list = build_indicators(&i, &Derived::from_inputs(&i));
-    assert_eq!(value(&list, "total_assets"), Some(20.0));
-    assert_eq!(value(&list, "deposit_accounts"), Some(7.0));
-    assert_eq!(value(&list, "member_savings_ratio"), Some(30.0));
 }
 
 #[test]
@@ -168,48 +246,11 @@ fn financial_answers_override_non_financial_ones() {
 }
 
 #[test]
-fn previous_period_gives_relative_and_point_changes() {
-    let cur = compute(
-        json!({ "savings_value_male": 120, "non_current_assets": 300, "total_current_assets": 300 }),
-    );
-    let prev = compute(
-        json!({ "savings_value_male": 100, "non_current_assets": 200, "total_current_assets": 300 }),
-    );
-    let mut cur = cur;
+fn previous_period_gives_point_changes_for_percentages() {
+    let mut cur = compute(json!({ "total_registered_male": 100, "total_active_male": 60 }));
+    let prev = compute(json!({ "total_registered_male": 100, "total_active_male": 50 }));
     with_previous(&mut cur, &prev);
-    let deposits = cur.iter().find(|i| i.key == "total_deposits").unwrap();
-    assert_eq!(deposits.previous, Some(100.0));
-    assert!((deposits.change_pct.unwrap() - 20.0).abs() < 1e-9);
-    let ratio = cur
-        .iter()
-        .find(|i| i.key == "member_savings_ratio")
-        .unwrap();
-    assert!((ratio.change_pct.unwrap() - (20.0 - 20.0)).abs() < 1e-9);
-}
-
-#[test]
-fn projected_interest_is_an_estimate_with_method_factor() {
-    let flat = compute(json!({
-        "outstanding_value_male": 1000, "avg_interest_rate": 2, "avg_loan_term_months": 12
-    }));
-    assert_eq!(value(&flat, "projected_interest_earnings"), Some(240.0));
-    assert_eq!(status(&flat, "projected_interest_earnings"), "approximate");
-    let reducing = compute(json!({
-        "outstanding_value_male": 1000, "avg_interest_rate": 2, "avg_loan_term_months": 12,
-        "interest_rate_method": "Reducing balance"
-    }));
-    assert_eq!(value(&reducing, "projected_interest_earnings"), Some(120.0));
-}
-
-#[test]
-fn series_values_only_include_reported_measures() {
-    let i = inputs(json!({
-        "non_current_assets": 100, "total_current_assets": 100,
-        "savings_value_male": 50, "bank_investment": 10
-    }));
-    let s = series_values(&i, &Derived::from_inputs(&i));
-    assert_eq!(s["asset_evolution"]["total_assets"], 200.0);
-    assert_eq!(s["liquidity"]["maintained_pct"], 20.0);
-    assert!(!s.contains_key("profitability"));
-    assert!(!s.contains_key("par_trend"));
+    let active = cur.iter().find(|i| i.key == "active_members_pct").unwrap();
+    assert_eq!(active.previous, Some(50.0));
+    assert!((active.change_pct.unwrap() - 10.0).abs() < 1e-9);
 }

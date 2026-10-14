@@ -229,6 +229,10 @@ pub struct SubmissionResponse {
     /// Cooperative display name (populated by list handlers for apex/federation/ministry)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cooperative_name: Option<String>,
+    /// Cooperative type ("sacco" or "multipurpose"), used by the frontend to
+    /// gate which submission methods are offered.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cooperative_institution_type: Option<String>,
     /// Apex display name (populated by list handlers for federation/ministry)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apex_name: Option<String>,
@@ -281,6 +285,7 @@ impl From<SubmissionModel> for SubmissionResponse {
             file_id: None,
             sections: Vec::new(),
             cooperative_name: None,
+            cooperative_institution_type: None,
             apex_name: None,
             federation_name: None,
             apex_id: None,
@@ -314,6 +319,11 @@ impl SubmissionResponse {
 
     pub fn with_cooperative_name(mut self, name: Option<String>) -> Self {
         self.cooperative_name = name;
+        self
+    }
+
+    pub fn with_cooperative_institution_type(mut self, institution_type: Option<String>) -> Self {
+        self.cooperative_institution_type = institution_type;
         self
     }
 

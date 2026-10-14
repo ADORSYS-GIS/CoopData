@@ -140,11 +140,11 @@ inputs! {
     // loans
     loan_acc_m: first ["loans_issued_male"];
     loan_acc_f: first ["loans_issued_female"];
-    out_val_m: first ["outstanding_value_male", "loans_male"], money = true;
-    out_val_f: first ["outstanding_value_female", "loans_female"], money = true;
+    out_val_m: first ["outstanding_value_male", "loans_male", "loans_outstanding_value_male"], money = true;
+    out_val_f: first ["outstanding_value_female", "loans_female", "loans_outstanding_value_female"], money = true;
     owed_by_members: first ["amount_owed_by_members"], money = true;
-    loans_out_count: first ["loans_outstanding_count"];
-    loans_arrears_count: first ["loans_in_arrears_count"];
+    loans_out_count: split ["loans_outstanding_accounts_male", "loans_outstanding_accounts_female", "loans_outstanding_accounts_coops", "loans_outstanding_count"];
+    loans_arrears_count: split ["loans_delinquent_accounts_male", "loans_delinquent_accounts_female", "loans_delinquent_accounts_coops", "loans_in_arrears_count"];
     loans_awaiting: first ["loans_awaiting_approval"];
     female_borrowers: first ["female_borrowers_count"];
     total_disbursed: first ["total_disbursed_active"], money = true;
@@ -156,7 +156,8 @@ inputs! {
     b_over_360: first ["par_over_360_value"], money = true;
     delinq_0_30: first ["delinquent_value_0_30"], money = true;
     delinq_31_365: first ["delinquent_value_31_365"], money = true;
-    written_off: first ["written_off_loans"], money = true;
+    written_off: first ["written_off_loans", "written_off_loans_value"], money = true;
+    recovered: first ["recovered_loans_last_12mo"], money = true;
     interest_suspense: first ["interest_in_suspense"], money = true;
     interest_payable: first ["interest_payable"], money = true;
     overdrafts: first ["total_overdrafts"], money = true;
@@ -192,6 +193,26 @@ inputs! {
     credit_f: first ["credit_committee_female"];
     agm_m: first ["agm_attendance_male"];
     agm_f: first ["agm_attendance_female"];
+    meetings_held: first ["meetings_held_count"];
+    // reserves (actual monetary backing, vs the accumulated book value above)
+    actual_reserves_bank: first ["actual_monetary_reserves_bank"], money = true;
+    // training coverage
+    members_trained: first ["members_trained_last_year"];
+    leaders_trained: first ["leaders_trained_last_year"];
+    staff_trained: first ["staff_trained_last_year"];
+    staff_total_m: sum ["staff_manager_male", "staff_ass_manager_male", "staff_accountant_male", "staff_other_mgmt_male", "staff_other_support_male"];
+    staff_total_f: sum ["staff_manager_female", "staff_ass_manager_female", "staff_accountant_female", "staff_other_mgmt_female", "staff_other_support_female"];
+    // main activity performance (Q25) — income/expenses already drive the
+    // combined "income"/"expenditure" fields above via the Q46 totals; these
+    // per-activity figures back the activity-level margin and benefit ratio.
+    main_act_1_income: first ["main_activity_1_income"], money = true;
+    main_act_1_expenses: first ["main_activity_1_expenses"], money = true;
+    main_act_1_distrib: first ["main_activity_1_distrib_members"], money = true;
+    main_act_2_income: first ["main_activity_2_income"], money = true;
+    main_act_2_expenses: first ["main_activity_2_expenses"], money = true;
+    main_act_2_distrib: first ["main_activity_2_distrib_members"], money = true;
+    other_income: first ["other_activities_income"], money = true;
+    other_expenditure: first ["other_activities_expenditure"], money = true;
 }
 
 /// Financial answers win over non-financial ones for the same key.
