@@ -849,6 +849,14 @@ async fn with_cooperative_details(
             .institution_type
             .as_ref()
             .map(|t| t.as_str().to_string());
+        if let Ok(Some(apex)) = state.apex_repo.find_by_id(coop.apex_id).await {
+            resp.apex_id = Some(apex.id);
+            resp.apex_name = Some(if apex.display_name.is_empty() {
+                apex.organization_keycloak_id
+            } else {
+                apex.display_name
+            });
+        }
     }
     resp
 }
