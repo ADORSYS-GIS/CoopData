@@ -749,7 +749,11 @@
       "keyMetricsSubQuestionnaire": "Do seu questionário de {{year}} · {{status}}",
       "keyMetricsInfoQuestionnaire": "Valores financeiros calculados a partir das respostas ao seu questionário mais recente. Perguntas sem resposta aparecem como —. Estes valores não têm referência.",
       "par30Label": "Empréstimos em atraso > 30 dias",
-      "capitalRatioLabel": "Capital institucional"
+      "capitalRatioLabel": "Capital institucional",
+      "keyMetricsSubFallbackQuestionnaire": "Calculado a partir do seu questionário mais recente",
+      "noFinancialDataSubQuestionnaire": "Submeta um questionário para ver os seus dados aqui.",
+      "submitQuestionnaire": "Submeta um questionário para ver a qualidade dos seus empréstimos.",
+      "noSubmissions": "Ainda não há submissões"
     }
   },
   "users": {

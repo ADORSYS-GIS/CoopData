@@ -27,6 +27,7 @@ import { useBasicDashboard } from "@/hooks/analytics/useBasicDashboard";
 import { analyticsTrack } from "@/hooks/cooperatives/useAnalyticsTrackNav";
 import { dashboardSubmission } from "@/lib/dashboard-submission";
 import { questionnaireKpis } from "@/lib/questionnaire-kpis";
+import { loanQualityShares } from "@/lib/loan-quality";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCooperativeStats, useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
@@ -100,15 +101,14 @@ export function CooperativeDashboard() {
   ];
 
   // Build loan portfolio quality pie chart data
-  // Shares of one portfolio: keep them within 0–100% even if the reported overdue
-  // amounts exceed the loans outstanding.
-  const par30 = Math.min(100, Math.max(0, getKpi("par30")?.value ?? 0));
-  const par90 = Math.min(par30, Math.max(0, getKpi("par90")?.value ?? 0));
-  const loanPortfolio = [
-    { name: t("dashboard.coop.performing"), value: Math.max(0, 100 - par30) },
-    { name: t("dashboard.coop.watchList"), value: Math.max(0, par30 - par90) },
-    { name: t("dashboard.coop.nonPerforming"), value: par90 },
-  ].filter((s) => s.value > 0);
+  const shares = loanQualityShares(getKpi("par30")?.value, getKpi("par90")?.value);
+  const loanPortfolio = shares
+    ? [
+        { name: t("dashboard.coop.performing"), value: shares.performing },
+        { name: t("dashboard.coop.watchList"), value: shares.watchList },
+        { name: t("dashboard.coop.nonPerforming"), value: shares.nonPerforming },
+      ].filter((s) => s.value > 0)
+    : [];
 
   const isLoading = statsLoading || subsLoading || profileLoading || metricsLoading;
 
@@ -216,7 +216,11 @@ export function CooperativeDashboard() {
                         status: statusLabel(latestSubmission.status),
                       },
                     )
-                  : t("dashboard.coop.keyMetricsSubFallback")
+                  : t(
+                      isQuestionnaire
+                        ? "dashboard.coop.keyMetricsSubFallbackQuestionnaire"
+                        : "dashboard.coop.keyMetricsSubFallback",
+                    )
               }
               info={
                 isQuestionnaire
@@ -357,7 +361,13 @@ export function CooperativeDashboard() {
                 <BarChart3 className="size-10 opacity-30" />
                 <div>
                   <p className="text-sm font-semibold">{t("dashboard.coop.noFinancialData")}</p>
-                  <p className="text-xs mt-1">{t("dashboard.coop.noFinancialDataSub")}</p>
+                  <p className="text-xs mt-1">
+                    {t(
+                      isQuestionnaire
+                        ? "dashboard.coop.noFinancialDataSubQuestionnaire"
+                        : "dashboard.coop.noFinancialDataSub",
+                    )}
+                  </p>
                 </div>
               </div>
             )}
@@ -365,9 +375,7 @@ export function CooperativeDashboard() {
 
           <Card
             title={t("dashboard.coop.portfolioQuality")}
-            subtitle={
-              kpis && kpis.length > 0 ? t("dashboard.coop.derivedPar") : t("dashboard.coop.noData")
-            }
+            subtitle={shares ? t("dashboard.coop.derivedPar") : t("dashboard.coop.noData")}
             info={t("dashboard.coop.portfolioQualityInfo")}
           >
             {metricsLoading ? (
@@ -431,7 +439,13 @@ export function CooperativeDashboard() {
             ) : (
               <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
                 <BarChart3 className="size-8 opacity-30" />
-                <p className="text-xs">{t("dashboard.coop.submitFinancialStatement")}</p>
+                <p className="text-xs">
+                  {t(
+                    isQuestionnaire
+                      ? "dashboard.coop.submitQuestionnaire"
+                      : "dashboard.coop.submitFinancialStatement",
+                  )}
+                </p>
               </div>
             )}
           </Card>
@@ -514,7 +528,7 @@ export function CooperativeDashboard() {
                 ) : realSubmissions.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      <p className="text-sm font-semibold">{t("dashboard.apex.noSubmissions")}</p>
+                      <p className="text-sm font-semibold">{t("dashboard.coop.noSubmissions")}</p>
                       <p className="text-xs mt-1">{t("dashboard.coop.noSubmissionsSub")}</p>
                     </td>
                   </tr>

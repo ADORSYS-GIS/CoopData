@@ -749,7 +749,11 @@
       "keyMetricsSubQuestionnaire": "D'après votre questionnaire {{year}} · {{status}}",
       "keyMetricsInfoQuestionnaire": "Chiffres financiers calculés à partir des réponses à votre dernier questionnaire. Les questions sans réponse s'affichent —. Ces chiffres n'ont pas de références.",
       "par30Label": "Prêts en retard > 30 jours",
-      "capitalRatioLabel": "Capital institutionnel"
+      "capitalRatioLabel": "Capital institutionnel",
+      "keyMetricsSubFallbackQuestionnaire": "Calculé à partir de votre dernier questionnaire",
+      "noFinancialDataSubQuestionnaire": "Soumettez un questionnaire pour voir vos données ici.",
+      "submitQuestionnaire": "Soumettez un questionnaire pour voir la qualité de vos prêts.",
+      "noSubmissions": "Aucune soumission pour l'instant"
     }
   },
   "users": {

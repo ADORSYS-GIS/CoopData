@@ -749,7 +749,11 @@
       "keyMetricsSubQuestionnaire": "From your {{year}} questionnaire · {{status}}",
       "keyMetricsInfoQuestionnaire": "Financial figures calculated from your most recent questionnaire answers. Questions left blank show as —. Questionnaire figures have no benchmarks.",
       "par30Label": "Loans overdue > 30 days",
-      "capitalRatioLabel": "Institutional capital"
+      "capitalRatioLabel": "Institutional capital",
+      "keyMetricsSubFallbackQuestionnaire": "Calculated from your latest questionnaire",
+      "noFinancialDataSubQuestionnaire": "Submit a questionnaire to see your data here.",
+      "submitQuestionnaire": "Submit a questionnaire to see your loan quality.",
+      "noSubmissions": "No submissions yet"
     }
   },
   "users": {

@@ -749,7 +749,11 @@
       "keyMetricsSubQuestionnaire": "Kusuka eluhlwini lwakho lwemibuto lwa-{{year}} · {{status}}",
       "keyMetricsInfoQuestionnaire": "Tinombolo tetimali letibalwe ngetimphendvulo teluhlu lwakho lwemibuto lwakamuva. Imibuto lengaphendvulwanga ikhombisa —.",
       "par30Label": "Timali letibolekwe letidlule emalanga la-30",
-      "capitalRatioLabel": "Imali yesikhungo"
+      "capitalRatioLabel": "Imali yesikhungo",
+      "keyMetricsSubFallbackQuestionnaire": "Kubalwe ngeluhlu lwakho lwemibuto lwakamuva",
+      "noFinancialDataSubQuestionnaire": "Tfumela luhlu lwemibuto kute ubone luvo lwakho lapha.",
+      "submitQuestionnaire": "Tfumela luhlu lwemibuto kute ubone simo setimali letibolekwe.",
+      "noSubmissions": "Akukabi nekutfumela"
     }
   },
   "users": {
