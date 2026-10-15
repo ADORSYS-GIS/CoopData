@@ -1,7 +1,9 @@
+import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { ReportDataProps } from "@/pages/shared/print/components/types";
 import { analyseCoop } from "@/pages/shared/print/coop/analysis";
+import { positionPages } from "@/pages/shared/print/coop/pages2";
 import { verdictOf } from "@/pages/shared/print/coop/text";
 
 const row = (code: number, value: number) => ({
@@ -160,5 +162,18 @@ describe("verdictOf", () => {
 
   it("names the weak areas", () => {
     expect(verdictOf(analyseCoop(props())).verdict).toContain("provisioning");
+  });
+});
+
+describe("positionPages", () => {
+  it("leaves the prior-year totals empty when there is no prior year", () => {
+    const pages = positionPages(analyseCoop(props()), "3");
+    const { container } = render(<>{pages.map((p) => p.render())}</>);
+
+    const totalRow = [...container.querySelectorAll("tr")].find((tr) =>
+      tr.textContent?.includes("1999"),
+    );
+    const cells = [...(totalRow?.querySelectorAll("td") ?? [])].map((td) => td.textContent);
+    expect(cells[3]).toBe("—");
   });
 });
