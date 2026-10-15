@@ -368,16 +368,10 @@ pub async fn get_submission(
         ));
     }
 
-    let mut resp = SubmissionResponse::from(submission);
+    let resp = SubmissionResponse::from(submission);
 
     // Populate cooperative name from DB so frontend doesn't need a separate Keycloak-based call
-    if let Ok(Some(coop)) = state.cooperative_repo.find_by_id(resp.cooperative_id).await {
-        resp.cooperative_name = Some(coop.name);
-        resp.cooperative_institution_type = coop
-            .institution_type
-            .as_ref()
-            .map(|t| t.as_str().to_string());
-    }
+    let mut resp = with_cooperative_details(&state, resp).await;
 
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
         let job = state
@@ -843,6 +837,22 @@ pub async fn list_apex_submissions(
     Ok((StatusCode::OK, Json(subs)))
 }
 
+/// Adds the cooperative's name and type, which decide the submission methods the
+/// screens offer (SACCO: upload or manual entry, multipurpose: questionnaire).
+async fn with_cooperative_details(
+    state: &AppState,
+    mut resp: SubmissionResponse,
+) -> SubmissionResponse {
+    if let Ok(Some(coop)) = state.cooperative_repo.find_by_id(resp.cooperative_id).await {
+        resp.cooperative_name = Some(coop.name);
+        resp.cooperative_institution_type = coop
+            .institution_type
+            .as_ref()
+            .map(|t| t.as_str().to_string());
+    }
+    resp
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/apex/submissions/{id}",
@@ -879,7 +889,7 @@ pub async fn get_submission_as_apex(
         ));
     }
 
-    let mut resp = SubmissionResponse::from(submission);
+    let mut resp = with_cooperative_details(&state, SubmissionResponse::from(submission)).await;
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
         let job = state
             .extraction_job_repo
@@ -943,7 +953,7 @@ pub async fn get_submission_as_federation(
         ));
     }
 
-    let mut resp = SubmissionResponse::from(submission);
+    let mut resp = with_cooperative_details(&state, SubmissionResponse::from(submission)).await;
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
         let job = state
             .extraction_job_repo
@@ -986,7 +996,7 @@ pub async fn get_submission_as_ministry(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
-    let mut resp = SubmissionResponse::from(submission);
+    let mut resp = with_cooperative_details(&state, SubmissionResponse::from(submission)).await;
     if let Ok(Some(fs)) = state.financial_statement_repo.find_by_submission(id).await {
         let job = state
             .extraction_job_repo
