@@ -21,7 +21,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { HeadlineStrip } from "@/components/analytics/basic/HeadlineStrip";
+import { MetricBox } from "./MetricBox";
+import { QuestionnaireIndicatorBoxes } from "./QuestionnaireIndicatorBoxes";
 import { useBasicDashboard } from "@/hooks/analytics/useBasicDashboard";
 import { analyticsTrack } from "@/hooks/cooperatives/useAnalyticsTrackNav";
 import { dashboardSubmission } from "@/lib/dashboard-submission";
@@ -266,33 +267,19 @@ export function CooperativeDashboard() {
                             : "text-foreground";
 
                     return (
-                      <div
+                      <MetricBox
                         key={metric.label}
-                        className="rounded-xl border border-border bg-surface p-4 hover:shadow-sm transition-shadow"
-                      >
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                          {metric.label}
-                        </p>
-                        {kpi ? (
-                          <>
-                            <p className={`font-heading text-lg font-bold num ${statusColor}`}>
-                              {kpi.formatted}
-                            </p>
-                            {kpi.benchmark != null && (
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {t("common.benchmark")}:{" "}
-                                {kpi.unit === "percent"
-                                  ? `${kpi.benchmark}%`
-                                  : String(kpi.benchmark)}
-                              </p>
-                            )}
-                          </>
-                        ) : (
-                          <p className="font-heading text-lg font-bold text-muted-foreground num">
-                            —
-                          </p>
-                        )}
-                      </div>
+                        label={metric.label}
+                        value={kpi?.formatted}
+                        valueClassName={statusColor}
+                        footnote={
+                          kpi?.benchmark != null
+                            ? `${t("common.benchmark")}: ${
+                                kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)
+                              }`
+                            : undefined
+                        }
+                      />
                     );
                   })}
                 </div>
@@ -302,161 +289,153 @@ export function CooperativeDashboard() {
         </div>
 
         {/* ── Charts Row: Balance Breakdown & Portfolio Quality ── */}
-        {
-          <div className="grid lg:grid-cols-3 gap-6">
-            <Card
-              className="lg:col-span-2"
-              title={t("dashboard.coop.portfolioBalance")}
-              subtitle={t("dashboard.coop.portfolioBalanceSub")}
-              info={t("dashboard.coop.portfolioBalanceInfo")}
-            >
-              {metricsLoading ? (
-                <div className="h-72 flex items-center justify-center">
-                  <Skeleton className="h-48 w-full mx-6" />
+        <div className="grid lg:grid-cols-3 gap-6">
+          <Card
+            className="lg:col-span-2"
+            title={t("dashboard.coop.portfolioBalance")}
+            subtitle={t("dashboard.coop.portfolioBalanceSub")}
+            info={t("dashboard.coop.portfolioBalanceInfo")}
+          >
+            {metricsLoading ? (
+              <div className="h-72 flex items-center justify-center">
+                <Skeleton className="h-48 w-full mx-6" />
+              </div>
+            ) : kpis && kpis.length > 0 ? (
+              <div className="h-72 pt-4 pr-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={financialOverview}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                      tickFormatter={(val) => `SZL ${(val / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "var(--muted)", opacity: 0.2 }}
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        color: "var(--foreground)",
+                      }}
+                      formatter={(val: number) => [
+                        `SZL ${val.toLocaleString()}`,
+                        t("common.amount"),
+                      ]}
+                    />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                      {financialOverview.map((entry, index) => (
+                        <Cell
+                          key={index}
+                          fill={
+                            index === 0
+                              ? "var(--primary)"
+                              : index === 1
+                                ? "var(--accent)"
+                                : "var(--success)"
+                          }
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-72 flex flex-col items-center justify-center text-center text-muted-foreground gap-3">
+                <BarChart3 className="size-10 opacity-30" />
+                <div>
+                  <p className="text-sm font-semibold">{t("dashboard.coop.noFinancialData")}</p>
+                  <p className="text-xs mt-1">{t("dashboard.coop.noFinancialDataSub")}</p>
                 </div>
-              ) : kpis && kpis.length > 0 ? (
-                <div className="h-72 pt-4 pr-4">
+              </div>
+            )}
+          </Card>
+
+          <Card
+            title={t("dashboard.coop.portfolioQuality")}
+            subtitle={
+              kpis && kpis.length > 0 ? t("dashboard.coop.derivedPar") : t("dashboard.coop.noData")
+            }
+            info={t("dashboard.coop.portfolioQualityInfo")}
+          >
+            {metricsLoading ? (
+              <div className="h-52 flex flex-col gap-3 pt-2">
+                <Skeleton className="h-36 w-36 rounded-full mx-auto" />
+                <div className="space-y-2 border-t border-border pt-3">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-4/5" />
+                  <Skeleton className="h-3 w-3/5" />
+                </div>
+              </div>
+            ) : loanPortfolio.length > 0 ? (
+              <>
+                <div className="h-44">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={financialOverview}
-                      margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="var(--border)"
-                      />
-                      <XAxis
-                        dataKey="name"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                        dy={10}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                        tickFormatter={(val) => `SZL ${(val / 1000).toFixed(0)}k`}
-                      />
+                    <PieChart>
+                      <Pie
+                        data={loanPortfolio}
+                        dataKey="value"
+                        innerRadius={45}
+                        outerRadius={75}
+                        paddingAngle={3}
+                      >
+                        {loanPortfolio.map((_, i) => (
+                          <Cell
+                            key={i}
+                            fill={accentColor}
+                            fillOpacity={accentOpacities[i] ?? 0.2}
+                          />
+                        ))}
+                      </Pie>
                       <Tooltip
-                        cursor={{ fill: "var(--muted)", opacity: 0.2 }}
                         contentStyle={{
                           background: "var(--surface)",
                           border: "1px solid var(--border)",
-                          borderRadius: 8,
+                          borderRadius: 10,
                           fontSize: 12,
-                          color: "var(--foreground)",
                         }}
-                        formatter={(val: number) => [
-                          `SZL ${val.toLocaleString()}`,
-                          t("common.amount"),
-                        ]}
+                        formatter={(value: number) => [`${value.toFixed(1)}%`]}
                       />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                        {financialOverview.map((entry, index) => (
-                          <Cell
-                            key={index}
-                            fill={
-                              index === 0
-                                ? "var(--primary)"
-                                : index === 1
-                                  ? "var(--accent)"
-                                  : "var(--success)"
-                            }
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                    </PieChart>
                   </ResponsiveContainer>
                 </div>
-              ) : (
-                <div className="h-72 flex flex-col items-center justify-center text-center text-muted-foreground gap-3">
-                  <BarChart3 className="size-10 opacity-30" />
-                  <div>
-                    <p className="text-sm font-semibold">{t("dashboard.coop.noFinancialData")}</p>
-                    <p className="text-xs mt-1">{t("dashboard.coop.noFinancialDataSub")}</p>
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            <Card
-              title={t("dashboard.coop.portfolioQuality")}
-              subtitle={
-                kpis && kpis.length > 0
-                  ? t("dashboard.coop.derivedPar")
-                  : t("dashboard.coop.noData")
-              }
-              info={t("dashboard.coop.portfolioQualityInfo")}
-            >
-              {metricsLoading ? (
-                <div className="h-52 flex flex-col gap-3 pt-2">
-                  <Skeleton className="h-36 w-36 rounded-full mx-auto" />
-                  <div className="space-y-2 border-t border-border pt-3">
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-4/5" />
-                    <Skeleton className="h-3 w-3/5" />
-                  </div>
-                </div>
-              ) : loanPortfolio.length > 0 ? (
-                <>
-                  <div className="h-44">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={loanPortfolio}
-                          dataKey="value"
-                          innerRadius={45}
-                          outerRadius={75}
-                          paddingAngle={3}
-                        >
-                          {loanPortfolio.map((_, i) => (
-                            <Cell
-                              key={i}
-                              fill={accentColor}
-                              fillOpacity={accentOpacities[i] ?? 0.2}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            background: "var(--surface)",
-                            border: "1px solid var(--border)",
-                            borderRadius: 10,
-                            fontSize: 12,
-                          }}
-                          formatter={(value: number) => [`${value.toFixed(1)}%`]}
+                <ul className="space-y-2 border-t border-border pt-3 mt-1">
+                  {loanPortfolio.map((item, i) => (
+                    <li key={item.name} className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <span
+                          className="size-2.5 rounded-sm shrink-0"
+                          style={{ background: accentColor, opacity: accentOpacities[i] ?? 0.2 }}
                         />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <ul className="space-y-2 border-t border-border pt-3 mt-1">
-                    {loanPortfolio.map((item, i) => (
-                      <li key={item.name} className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-2 text-muted-foreground">
-                          <span
-                            className="size-2.5 rounded-sm shrink-0"
-                            style={{ background: accentColor, opacity: accentOpacities[i] ?? 0.2 }}
-                          />
-                          {item.name}
-                        </span>
-                        <span className="font-bold num text-foreground">
-                          {item.value.toFixed(1)}%
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
-                  <BarChart3 className="size-8 opacity-30" />
-                  <p className="text-xs">{t("dashboard.coop.submitFinancialStatement")}</p>
-                </div>
-              )}
-            </Card>
-          </div>
-        }
+                        {item.name}
+                      </span>
+                      <span className="font-bold num text-foreground">
+                        {item.value.toFixed(1)}%
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
+                <BarChart3 className="size-8 opacity-30" />
+                <p className="text-xs">{t("dashboard.coop.submitFinancialStatement")}</p>
+              </div>
+            )}
+          </Card>
+        </div>
 
         {/* ── Questionnaire indicators (membership, governance, margins…) ── */}
         {isQuestionnaire && latestSubmission && (
@@ -477,7 +456,10 @@ export function CooperativeDashboard() {
             ) : (
               <div className="space-y-4">
                 {basicData && basicData.indicators.length > 0 ? (
-                  <HeadlineStrip indicators={basicData.indicators} scope={basicData.scope} />
+                  <QuestionnaireIndicatorBoxes
+                    indicators={basicData.indicators}
+                    scope={basicData.scope}
+                  />
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     {t("dashboard.coop.noIndicators")}
