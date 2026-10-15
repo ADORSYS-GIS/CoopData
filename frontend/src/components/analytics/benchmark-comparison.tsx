@@ -377,18 +377,22 @@ export function BenchmarkComparison({
 
   // True when the selected average was withheld for too few contributors.
   // Coop users rely on the backend's insufficient_data flags; apex/federation
-  // users rely on the client-side MIN_CONTRIBUTORS guard (null average).
+  // users on the client-side MIN_CONTRIBUTORS_ADMIN guard, so a lone
+  // cooperative is never compared with an "average" of itself.
+  const tooFewForAdmin = (coops: BenchmarkRow[]) => coops.length < MIN_CONTRIBUTORS_ADMIN;
   const isNationalInsufficient =
-    isCoopUser &&
     compareTarget.isAverage &&
     !compareTarget.isRegional &&
     !compareTarget.isSector &&
-    (serverAverages?.insufficient.national ?? false);
+    (isCoopUser
+      ? (serverAverages?.insufficient.national ?? false)
+      : tooFewForAdmin(cooperativesWithData));
   const isRegionalInsufficient =
-    isCoopUser &&
     compareTarget.isRegional &&
     !compareTarget.isSector &&
-    (serverAverages?.insufficient.regional ?? false);
+    (isCoopUser
+      ? (serverAverages?.insufficient.regional ?? false)
+      : tooFewForAdmin(cooperativesWithData.filter((c) => c.region === compareTarget.region)));
   const isSectorInsufficient =
     compareTarget.isSector && !compareTarget.isRegional && sectorAverages == null;
   const isSectorRegionalInsufficient =
