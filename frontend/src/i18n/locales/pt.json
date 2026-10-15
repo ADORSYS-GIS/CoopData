@@ -3842,6 +3842,7 @@
     "registerNewHeader": "Registar Nova Cooperativa",
     "name": "Nome da Cooperativa",
     "placeholderName": "ex. SACCO de Mbabane",
+    "typeLockedHint": "O tipo já não pode ser alterado: esta cooperativa já tem submissões.",
     "institutionType": "Tipo de Instituição",
     "placeholderType": "Selecionar tipo",
     "regNo": "Número de Registo",

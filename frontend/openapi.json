@@ -1147,7 +1147,7 @@
             "description": "Cooperative not found"
           },
           "409": {
-            "description": "reg_no conflict"
+            "description": "reg_no conflict, or a type change after submissions exist"
           }
         }
       }
@@ -9732,6 +9732,10 @@
             "type": "string",
             "nullable": true
           },
+          "has_submissions": {
+            "type": "boolean",
+            "description": "True once the cooperative has a submission: its type can then no longer change.\nFilled in by the single-profile endpoints; `false` in lists."
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -9831,15 +9835,15 @@
           "region": {
             "type": "string",
             "nullable": true
-          }
-        }
-      },
-      "CooperativeRow": {
           },
           "tier": {
             "type": "string",
             "description": "Reporting tier (\"basic\" cooperatives use the questionnaire). Set when read from the database.",
             "nullable": true
+          }
+        }
+      },
+      "CooperativeRow": {
         "type": "object",
         "required": [
           "cooperative_id",

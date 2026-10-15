@@ -4609,6 +4609,7 @@
     "registerNewHeader": "Register New Cooperative",
     "name": "Cooperative Name",
     "placeholderName": "e.g. Mbabane SACCO",
+    "typeLockedHint": "The type can't be changed: this cooperative already has submissions.",
     "institutionType": "Institution Type",
     "placeholderType": "Select type",
     "regNo": "Registration Number",

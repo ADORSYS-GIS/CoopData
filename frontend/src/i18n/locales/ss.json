@@ -4608,6 +4608,7 @@
     "registerNewHeader": "Bhalisa Ikhopharethi Entsha",
     "name": "Igama Lekhopharethi",
     "placeholderName": "isib. Mbabane SACCO",
+    "typeLockedHint": "Luhlobo alusenakushintjwa: lelikoporasi selinemibiko leyatfunyelwa.",
     "institutionType": "Uhlobo Lwesikhungo",
     "placeholderType": "Khetha uhlobo",
     "regNo": "Inombolo Yokubhaliswa",

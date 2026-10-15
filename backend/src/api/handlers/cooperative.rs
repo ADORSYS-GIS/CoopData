@@ -1430,7 +1430,11 @@ pub async fn get_cooperative_profile(
 
     assert_profile_belongs_to_apex(&state, &claims, &coop).await?;
 
-    Ok((StatusCode::OK, Json(CooperativeProfileResponse::from(coop))))
+    let has_submissions = state.submission_repo.exists_for_cooperative(id).await?;
+    Ok((
+        StatusCode::OK,
+        Json(CooperativeProfileResponse::from(coop).with_submissions(has_submissions)),
+    ))
 }
 
 #[utoipa::path(
@@ -1443,7 +1447,7 @@ pub async fn get_cooperative_profile(
         (status = 400, description = "Invalid input"),
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Cooperative not found"),
-        (status = 409, description = "reg_no conflict")
+        (status = 409, description = "reg_no conflict, or a type change after submissions exist")
     ),
     tag = "Cooperatives"
 )]
@@ -1510,6 +1514,22 @@ pub async fn update_cooperative_profile(
                 "Invalid institution_type. Must be one of: {}",
                 VALID_COOP_TYPES.join(", ")
             )));
+        }
+        // The type decides the reporting forms and benchmarks; changing it under
+        // existing submissions would mix data from two different templates.
+        let current_type = existing.institution_type.as_ref().map(|t| t.as_str());
+        if current_type != Some(ct.as_str())
+            && state.submission_repo.exists_for_cooperative(id).await?
+        {
+            tracing::warn!(
+                coop_id = %id,
+                user_id = %claims.sub,
+                "Rejected cooperative type change: cooperative already has submissions"
+            );
+            return Err(AppError::Conflict(
+                "The cooperative type can no longer be changed: this cooperative already has submissions"
+                    .into(),
+            ));
         }
     }
     if let Some(ref region) = body.region {
@@ -1593,9 +1613,10 @@ pub async fn update_cooperative_profile(
     }
 
     tracing::info!(coop_id = %id, "Cooperative profile updated");
+    let has_submissions = state.submission_repo.exists_for_cooperative(id).await?;
     Ok((
         StatusCode::OK,
-        Json(CooperativeProfileResponse::from(updated)),
+        Json(CooperativeProfileResponse::from(updated).with_submissions(has_submissions)),
     ))
 }
 

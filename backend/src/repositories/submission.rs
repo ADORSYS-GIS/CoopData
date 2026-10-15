@@ -155,6 +155,20 @@ impl SubmissionRepository {
         .await
     }
 
+    /// True when the cooperative has at least one submission, in any status.
+    pub async fn exists_for_cooperative(&self, cooperative_id: Uuid) -> AppResult<bool> {
+        db_query("submission", "exists_for_cooperative", async {
+            use sea_orm::PaginatorTrait;
+            let count = Entity::find()
+                .filter(Column::CooperativeId.eq(cooperative_id))
+                .count(&self.db)
+                .await
+                .map_err(crate::error::AppError::from)?;
+            Ok(count > 0)
+        })
+        .await
+    }
+
     pub async fn count_by_reporting_year(&self, reporting_year: i32) -> AppResult<i64> {
         db_query("submission", "count_by_reporting_year", async {
             use sea_orm::PaginatorTrait;

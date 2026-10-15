@@ -4608,6 +4608,7 @@
     "registerNewHeader": "Enregistrer une nouvelle coopérative",
     "name": "Nom de la coopérative",
     "placeholderName": "ex. SACCO de Mbabane",
+    "typeLockedHint": "Le type ne peut plus être modifié : cette coopérative a déjà des soumissions.",
     "institutionType": "Type d'institution",
     "placeholderType": "Sélectionner le type",
     "regNo": "Numéro d'enregistrement",
