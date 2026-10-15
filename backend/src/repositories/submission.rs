@@ -322,10 +322,18 @@ impl SubmissionRepository {
             .map_err(crate::error::AppError::from)?
             .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
 
+        let now = chrono::Utc::now();
+        let (filed, reviewed) = status_change_dates(&existing.status, &status);
         let mut active: ActiveModel = existing.into();
         active.status = Set(status);
         active.current_tier = Set(current_tier);
-        active.updated_at = Set(chrono::Utc::now());
+        active.updated_at = Set(now);
+        if filed {
+            active.submitted_at = Set(Some(now));
+        }
+        if reviewed {
+            active.last_reviewed_at = Set(Some(now));
+        }
         let updated = active
             .update(db)
             .await
@@ -475,8 +483,58 @@ impl SubmissionRepository {
     }
 }
 
+/// Which dates a status change records: (filed, reviewed). Leaving an editable
+/// state (draft, rejected, returned) files the submission; any later change is a
+/// reviewer's decision.
+fn status_change_dates(previous: &SubmissionStatus, next: &SubmissionStatus) -> (bool, bool) {
+    let editable = |s: &SubmissionStatus| {
+        matches!(
+            s,
+            SubmissionStatus::Draft | SubmissionStatus::Rejected | SubmissionStatus::Returned
+        )
+    };
+    if editable(previous) {
+        (!editable(next), false)
+    } else {
+        (false, true)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::status_change_dates;
+    use crate::entities::enums::SubmissionStatus as S;
+
+    #[test]
+    fn submitting_a_draft_records_the_filing_date() {
+        assert_eq!(status_change_dates(&S::Draft, &S::Submitted), (true, false));
+        assert_eq!(
+            status_change_dates(&S::Returned, &S::Submitted),
+            (true, false)
+        );
+    }
+
+    #[test]
+    fn a_decision_on_a_filed_submission_records_the_review_date() {
+        assert_eq!(
+            status_change_dates(&S::Submitted, &S::Approved),
+            (false, true)
+        );
+        assert_eq!(
+            status_change_dates(&S::Submitted, &S::Rejected),
+            (false, true)
+        );
+        assert_eq!(
+            status_change_dates(&S::InReview, &S::Submitted),
+            (false, true)
+        );
+    }
+
+    #[test]
+    fn editing_a_draft_records_neither_date() {
+        assert_eq!(status_change_dates(&S::Draft, &S::Draft), (false, false));
+    }
+
     use super::*;
 
     /// The empty-cooperative guard must short-circuit to `None` without touching
