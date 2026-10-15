@@ -740,7 +740,12 @@
       "colYear": "Année",
       "colFiledOn": "Déposé le",
       "colStatus": "Statut",
-      "noSubmissionsSub": "Créez une nouvelle soumission pour commencer."
+      "noSubmissionsSub": "Créez une nouvelle soumission pour commencer.",
+      "keyIndicators": "Indicateurs clés",
+      "keyIndicatorsSub": "D'après votre questionnaire {{year}} · {{status}}",
+      "keyIndicatorsInfo": "Indicateurs principaux calculés à partir de votre dernier questionnaire : adhésion, épargne, qualité des prêts, gouvernance et marges.",
+      "noIndicators": "Aucun indicateur n'a encore pu être calculé à partir de ce questionnaire.",
+      "openBasicAnalytics": "Voir tous les indicateurs dans l'analyse de base"
     }
   },
   "users": {

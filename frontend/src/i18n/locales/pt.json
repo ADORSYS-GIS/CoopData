@@ -740,7 +740,12 @@
       "colYear": "Ano",
       "colFiledOn": "Depositado em",
       "colStatus": "Estado",
-      "noSubmissionsSub": "Crie uma nova submissão para começar."
+      "noSubmissionsSub": "Crie uma nova submissão para começar.",
+      "keyIndicators": "Indicadores principais",
+      "keyIndicatorsSub": "Do seu questionário de {{year}} · {{status}}",
+      "keyIndicatorsInfo": "Indicadores principais calculados a partir do seu questionário mais recente: membros, poupança, qualidade dos empréstimos, governação e margens.",
+      "noIndicators": "Ainda não foi possível calcular indicadores a partir deste questionário.",
+      "openBasicAnalytics": "Ver todos os indicadores na Análise Básica"
     }
   },
   "users": {

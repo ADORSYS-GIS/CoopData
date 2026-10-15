@@ -740,7 +740,12 @@
       "colYear": "Year",
       "colFiledOn": "Filed On",
       "colStatus": "Status",
-      "noSubmissionsSub": "Create a new submission to get started."
+      "noSubmissionsSub": "Create a new submission to get started.",
+      "keyIndicators": "Key Indicators",
+      "keyIndicatorsSub": "From your {{year}} questionnaire · {{status}}",
+      "keyIndicatorsInfo": "Headline indicators computed from your most recent questionnaire: membership, savings, loan quality, governance and margins.",
+      "noIndicators": "No indicators could be computed from this questionnaire yet.",
+      "openBasicAnalytics": "See all indicators in Basic Analytics"
     }
   },
   "users": {

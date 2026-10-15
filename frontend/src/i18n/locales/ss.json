@@ -740,7 +740,12 @@
       "colYear": "Unyaka",
       "colFiledOn": "Kufakwe Ngalusuku",
       "colStatus": "Simo",
-      "noSubmissionsSub": "Dala umbiko omusha kuqala."
+      "noSubmissionsSub": "Dala umbiko omusha kuqala.",
+      "keyIndicators": "Tinkhomba letibalulekile",
+      "keyIndicatorsSub": "Kusuka eluhlwini lwakho lwemibuto lwa-{{year}} · {{status}}",
+      "keyIndicatorsInfo": "Tinkhomba letikhulu letibalwe ngeluhlu lwakho lwemibuto lwakamuva: emalunga, kulondvoloza, kuboleka, kuphatsa kanye nenzuzo.",
+      "noIndicators": "Akukabi netinkhomba letibalwe kulolu luhlu lwemibuto.",
+      "openBasicAnalytics": "Bona tonkhe tinkhomba ku-Basic Analytics"
     }
   },
   "users": {
