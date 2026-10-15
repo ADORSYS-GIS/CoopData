@@ -997,6 +997,12 @@ export function ManualEntryWizard() {
         subcategory: "financial_income",
         formula: (m) => getValLocal(4101, m) + getValLocal(4102, m),
       },
+      4200: {
+        name: "Total Other Income",
+        category: "income",
+        subcategory: "other_income",
+        formula: (m) => getValLocal(4201, m),
+      },
       4999: {
         name: "TOTAL INCOME",
         category: "income",
@@ -1015,6 +1021,12 @@ export function ManualEntryWizard() {
         subcategory: "operating_expenses",
         formula: (m) =>
           getValLocal(5201, m) + getValLocal(5202, m) + getValLocal(5203, m) + getValLocal(5204, m),
+      },
+      5300: {
+        name: "Total Credit Loss Expense",
+        category: "expenses",
+        subcategory: "credit_loss",
+        formula: (m) => getValLocal(5301, m),
       },
       5999: {
         name: "TOTAL EXPENSES",
