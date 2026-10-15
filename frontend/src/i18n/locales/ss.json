@@ -745,7 +745,11 @@
       "keyIndicatorsSub": "Kusuka eluhlwini lwakho lwemibuto lwa-{{year}} · {{status}}",
       "keyIndicatorsInfo": "Tinkhomba letikhulu letibalwe ngeluhlu lwakho lwemibuto lwakamuva: emalunga, kulondvoloza, kuboleka, kuphatsa kanye nenzuzo.",
       "noIndicators": "Akukabi netinkhomba letibalwe kulolu luhlu lwemibuto.",
-      "openBasicAnalytics": "Bona tonkhe tinkhomba ku-Basic Analytics"
+      "openBasicAnalytics": "Bona tonkhe tinkhomba ku-Basic Analytics",
+      "keyMetricsSubQuestionnaire": "Kusuka eluhlwini lwakho lwemibuto lwa-{{year}} · {{status}}",
+      "keyMetricsInfoQuestionnaire": "Tinombolo tetimali letibalwe ngetimphendvulo teluhlu lwakho lwemibuto lwakamuva. Imibuto lengaphendvulwanga ikhombisa —.",
+      "par30Label": "Timali letibolekwe letidlule emalanga la-30",
+      "capitalRatioLabel": "Imali yesikhungo"
     }
   },
   "users": {

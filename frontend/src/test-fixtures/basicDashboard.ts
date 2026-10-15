@@ -90,6 +90,16 @@ export const basicDashboardFixture: BasicDashboardResponse = {
     savings_accounts: { male: 90, female: 45 },
     loan_accounts: { male: 60, female: 30 },
   },
+  balances: {
+    total_assets: 1_200_000,
+    gross_loans: 800_000,
+    member_deposits: 500_000,
+    net_surplus: 45_000,
+    par_30_pct: 6.25,
+    capital_ratio_pct: 12.5,
+    overdue_gt_30: 50_000,
+    overdue_gt_90: 20_000,
+  },
   cooperatives: [
     {
       cooperative_id: "a",

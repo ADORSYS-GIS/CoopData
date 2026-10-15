@@ -745,7 +745,11 @@
       "keyIndicatorsSub": "D'après votre questionnaire {{year}} · {{status}}",
       "keyIndicatorsInfo": "Indicateurs principaux calculés à partir de votre dernier questionnaire : adhésion, épargne, qualité des prêts, gouvernance et marges.",
       "noIndicators": "Aucun indicateur n'a encore pu être calculé à partir de ce questionnaire.",
-      "openBasicAnalytics": "Voir tous les indicateurs dans l'analyse de base"
+      "openBasicAnalytics": "Voir tous les indicateurs dans l'analyse de base",
+      "keyMetricsSubQuestionnaire": "D'après votre questionnaire {{year}} · {{status}}",
+      "keyMetricsInfoQuestionnaire": "Chiffres financiers calculés à partir des réponses à votre dernier questionnaire. Les questions sans réponse s'affichent —. Ces chiffres n'ont pas de références.",
+      "par30Label": "Prêts en retard > 30 jours",
+      "capitalRatioLabel": "Capital institutionnel"
     }
   },
   "users": {

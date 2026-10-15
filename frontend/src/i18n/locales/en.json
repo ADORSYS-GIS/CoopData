@@ -745,7 +745,11 @@
       "keyIndicatorsSub": "From your {{year}} questionnaire · {{status}}",
       "keyIndicatorsInfo": "Headline indicators computed from your most recent questionnaire: membership, savings, loan quality, governance and margins.",
       "noIndicators": "No indicators could be computed from this questionnaire yet.",
-      "openBasicAnalytics": "See all indicators in Basic Analytics"
+      "openBasicAnalytics": "See all indicators in Basic Analytics",
+      "keyMetricsSubQuestionnaire": "From your {{year}} questionnaire · {{status}}",
+      "keyMetricsInfoQuestionnaire": "Financial figures calculated from your most recent questionnaire answers. Questions left blank show as —. Questionnaire figures have no benchmarks.",
+      "par30Label": "Loans overdue > 30 days",
+      "capitalRatioLabel": "Institutional capital"
     }
   },
   "users": {

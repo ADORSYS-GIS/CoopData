@@ -8867,6 +8867,55 @@
           }
         }
       },
+      "Balances": {
+        "type": "object",
+        "description": "Money totals and loan quality from the questionnaire answers, so questionnaire\ncooperatives get the same balance boxes and charts as statement-based ones.\n`None` when the questions behind a figure were not answered.",
+        "properties": {
+          "capital_ratio_pct": {
+            "type": "number",
+            "format": "double",
+            "description": "Institutional capital as a share of total assets.",
+            "nullable": true
+          },
+          "gross_loans": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "member_deposits": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "net_surplus": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "overdue_gt_30": {
+            "type": "number",
+            "format": "double",
+            "description": "Outstanding loans overdue more than 30 and more than 90 days (amounts).",
+            "nullable": true
+          },
+          "overdue_gt_90": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "par_30_pct": {
+            "type": "number",
+            "format": "double",
+            "description": "Loans overdue more than 30 days, as a share of outstanding loans.",
+            "nullable": true
+          },
+          "total_assets": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
       "BasicBenchmarkInsufficientData": {
         "type": "object",
         "required": [
@@ -9066,9 +9115,13 @@
           "indicators",
           "series",
           "demographics",
+          "balances",
           "cooperatives"
         ],
         "properties": {
+          "balances": {
+            "$ref": "#/components/schemas/Balances"
+          },
           "cooperatives": {
             "type": "array",
             "items": {

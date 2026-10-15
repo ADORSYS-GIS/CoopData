@@ -745,7 +745,11 @@
       "keyIndicatorsSub": "Do seu questionário de {{year}} · {{status}}",
       "keyIndicatorsInfo": "Indicadores principais calculados a partir do seu questionário mais recente: membros, poupança, qualidade dos empréstimos, governação e margens.",
       "noIndicators": "Ainda não foi possível calcular indicadores a partir deste questionário.",
-      "openBasicAnalytics": "Ver todos os indicadores na Análise Básica"
+      "openBasicAnalytics": "Ver todos os indicadores na Análise Básica",
+      "keyMetricsSubQuestionnaire": "Do seu questionário de {{year}} · {{status}}",
+      "keyMetricsInfoQuestionnaire": "Valores financeiros calculados a partir das respostas ao seu questionário mais recente. Perguntas sem resposta aparecem como —. Estes valores não têm referência.",
+      "par30Label": "Empréstimos em atraso > 30 dias",
+      "capitalRatioLabel": "Capital institucional"
     }
   },
   "users": {

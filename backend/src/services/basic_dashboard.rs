@@ -6,8 +6,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use uuid::Uuid;
 
 use crate::api::dto::basic_dashboard::{
-    AgeBands, BasicDashboardParams, BasicDashboardResponse, CooperativeRow, DashboardScope,
-    DashboardThresholds, Demographics, GenderCount, PeriodOption, SeriesPoint,
+    AgeBands, Balances, BasicDashboardParams, BasicDashboardResponse, CooperativeRow,
+    DashboardScope, DashboardThresholds, Demographics, GenderCount, PeriodOption, SeriesPoint,
 };
 use crate::entities::enums::SubmissionStatus;
 use crate::entities::{cooperative, questionnaire_response, submission};
@@ -327,6 +327,17 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         loan_accounts: gender(i.loan_acc_m, i.loan_acc_f),
     };
 
+    let balances = Balances {
+        total_assets: derived.total_assets,
+        gross_loans: derived.gross_loans,
+        member_deposits: derived.deposits,
+        net_surplus: derived.net_income,
+        par_30_pct: derived.par_pct(derived.overdue_gt_30),
+        capital_ratio_pct: derived.institutional_capital_ratio_pct(),
+        overdue_gt_30: derived.overdue_gt_30,
+        overdue_gt_90: derived.overdue_gt_90,
+    };
+
     let reporting: HashSet<Uuid> = current.iter().map(|c| c.coop.id).collect();
     Ok(BasicDashboardResponse {
         scope: DashboardScope {
@@ -353,6 +364,7 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         indicators,
         series,
         demographics,
+        balances,
         cooperatives: rows,
     })
 }

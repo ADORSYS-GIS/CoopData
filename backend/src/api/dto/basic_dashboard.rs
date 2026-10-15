@@ -107,6 +107,24 @@ pub struct Demographics {
     pub loan_accounts: GenderCount,
 }
 
+/// Money totals and loan quality from the questionnaire answers, so questionnaire
+/// cooperatives get the same balance boxes and charts as statement-based ones.
+/// `None` when the questions behind a figure were not answered.
+#[derive(Debug, Clone, Default, Serialize, ToSchema)]
+pub struct Balances {
+    pub total_assets: Option<f64>,
+    pub gross_loans: Option<f64>,
+    pub member_deposits: Option<f64>,
+    pub net_surplus: Option<f64>,
+    /// Loans overdue more than 30 days, as a share of outstanding loans.
+    pub par_30_pct: Option<f64>,
+    /// Institutional capital as a share of total assets.
+    pub capital_ratio_pct: Option<f64>,
+    /// Outstanding loans overdue more than 30 and more than 90 days (amounts).
+    pub overdue_gt_30: Option<f64>,
+    pub overdue_gt_90: Option<f64>,
+}
+
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct CooperativeRow {
     pub cooperative_id: Uuid,
@@ -133,6 +151,7 @@ pub struct BasicDashboardResponse {
     pub indicators: Vec<IndicatorValue>,
     pub series: HashMap<String, Vec<SeriesPoint>>,
     pub demographics: Demographics,
+    pub balances: Balances,
     /// Administrators only; per-cooperative rows for the ranking table.
     pub cooperatives: Vec<CooperativeRow>,
 }
