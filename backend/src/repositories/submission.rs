@@ -73,16 +73,8 @@ impl SubmissionRepository {
         status: SubmissionStatus,
     ) -> AppResult<Vec<submission::Model>> {
         db_query("submission", "find_by_status", async {
-            let query = if status == SubmissionStatus::Approved {
-                Entity::find().filter(
-                    Column::Status
-                        .eq(SubmissionStatus::Approved)
-                        .or(Column::Status.eq(SubmissionStatus::Submitted)),
-                )
-            } else {
-                Entity::find().filter(Column::Status.eq(status))
-            };
-            query
+            Entity::find()
+                .filter(Column::Status.eq(status))
                 .order_by_desc(Column::CreatedAt)
                 .all(&self.db)
                 .await
