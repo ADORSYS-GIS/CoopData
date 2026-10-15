@@ -393,6 +393,13 @@ export function BenchmarkComparison({
     compareTarget.isSector && !compareTarget.isRegional && sectorAverages == null;
   const isSectorRegionalInsufficient =
     compareTarget.isSector && compareTarget.isRegional && sectorRegionalAverages == null;
+  const isPeerAverageWithheld =
+    isNationalInsufficient ||
+    isRegionalInsufficient ||
+    isSectorInsufficient ||
+    isSectorRegionalInsufficient;
+  const getMatrixCompareValue = (metricKey: string): number | null =>
+    isPeerAverageWithheld ? null : getCompareValue(metricKey);
 
   if (isLoading) {
     return (
@@ -747,7 +754,7 @@ export function BenchmarkComparison({
           selectedCoop={selectedCoop}
           compareTargetName={compareTarget.name}
           getValue={getValue}
-          getCompareValue={getCompareValue}
+          getCompareValue={getMatrixCompareValue}
           selectedKpi={selectedKpi}
           onSelectKpi={setSelectedKpi}
           formatValue={formatValue}
