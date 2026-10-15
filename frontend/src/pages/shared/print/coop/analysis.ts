@@ -1,4 +1,5 @@
 import type { KpiItemResponse } from "@/hooks/submissions/useCooperativeKpis";
+import { reportCode } from "@/lib/questionnaire-report";
 import {
   buildStatement,
   changePct,
@@ -323,7 +324,11 @@ export const analyseCoop = (props: ReportDataProps): CoopAnalysis => {
     reported,
     scorecard,
     growth,
-    ref: `SUB-${props.submission.reporting_year}-${props.submissionId.slice(0, 5).toUpperCase()}`,
+    ref: reportCode(
+      props.submission.reporting_year,
+      props.submissionId,
+      props.submission.reference,
+    ),
     validation,
     footnote: (key) => refByKey.get(key),
   };
