@@ -46,6 +46,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./shared/LanguageSwitcher";
 import { PeriodReminderBell } from "@/components/submissions/PeriodReminderBell";
 import { Spinner } from "@/components/ui/spinner";
+import { useAnalyticsTrackNav } from "@/hooks/cooperatives/useAnalyticsTrackNav";
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: string };
 
@@ -106,6 +107,7 @@ function Sidebar({
   const { getLabel } = useOrganizationLabelsContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, logout, role } = useAuth();
+  const analyticsNav = useAnalyticsTrackNav();
 
   const getGroupLabel = (group: { id: NavGroupId; label: string }) => {
     if (group.id === "oversight") return t("nav.oversight");
@@ -161,7 +163,12 @@ function Sidebar({
   const filteredGroups = NAV_GROUPS.filter((g) => visibleGroups.includes(g.id))
     .map((group) => {
       const allowedItems = ROLE_NAV_ITEMS[effectiveRole][group.id] || [];
-      return { ...group, items: group.items.filter((item) => allowedItems.includes(item.to)) };
+      return {
+        ...group,
+        items: group.items.filter(
+          (item) => allowedItems.includes(item.to) && analyticsNav.isVisible(item.to),
+        ),
+      };
     })
     .filter((g) => g.items.length > 0);
 
@@ -460,6 +467,13 @@ export function AppShell({
   const { isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const analyticsRedirect = useAnalyticsTrackNav().redirectFor(pathname);
+
+  // A cooperative opening analytics meant for another type goes to its own version.
+  useEffect(() => {
+    if (analyticsRedirect) navigate({ to: analyticsRedirect, replace: true });
+  }, [analyticsRedirect, navigate]);
 
   // Redirect to login if not authenticated — must be in useEffect, not render body
   useEffect(() => {

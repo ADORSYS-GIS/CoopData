@@ -74,6 +74,9 @@ pub struct CooperativeResponse {
     pub description: Option<String>,
     pub institution_type: Option<String>,
     pub region: Option<String>,
+    /// Reporting tier ("basic" cooperatives use the questionnaire). Set when read from the database.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tier: Option<String>,
 }
 
 impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
@@ -102,6 +105,7 @@ impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
             description,
             institution_type: None,
             region: None,
+            tier: None,
         }
     }
 }

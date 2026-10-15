@@ -375,6 +375,7 @@ pub async fn list_cooperatives(
                 description: Some(c.display_name),
                 institution_type: c.institution_type.map(|t| t.as_str().to_string()),
                 region: c.region.map(|r| r.as_str().to_string()),
+                tier: Some(c.tier),
             })
             .collect();
         return Ok((StatusCode::OK, Json(responses)));

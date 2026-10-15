@@ -9835,6 +9835,11 @@
         }
       },
       "CooperativeRow": {
+          },
+          "tier": {
+            "type": "string",
+            "description": "Reporting tier (\"basic\" cooperatives use the questionnaire). Set when read from the database.",
+            "nullable": true
         "type": "object",
         "required": [
           "cooperative_id",
