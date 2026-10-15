@@ -27,7 +27,12 @@ const percent = (name: string, value: number | null): KpiItemResponse[] =>
  * Questions that were not answered produce no KPI (the box shows "—"), never a zero.
  * Questionnaire figures have no benchmarks.
  */
-export function questionnaireKpis(balances: Balances, currency: string): KpiItemResponse[] {
+export function questionnaireKpis(
+  balances: Balances | undefined,
+  currency: string,
+): KpiItemResponse[] {
+  // Missing in responses from before balances existed (e.g. saved for offline use).
+  if (!balances) return [];
   const { gross_loans, overdue_gt_90 } = balances;
   const par90 =
     gross_loans && gross_loans > 0 && overdue_gt_90 !== null

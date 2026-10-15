@@ -43,3 +43,9 @@ describe("questionnaireKpis", () => {
     expect(questionnaireKpis(balances, "SZL").every((k) => k.benchmark === undefined)).toBe(true);
   });
 });
+
+describe("questionnaireKpis with data saved before balances existed", () => {
+  it("returns no KPIs instead of crashing", () => {
+    expect(questionnaireKpis(undefined, "SZL")).toEqual([]);
+  });
+});

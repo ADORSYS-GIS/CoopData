@@ -115,7 +115,8 @@ export interface BasicDashboardResponse {
   indicators: IndicatorValue[];
   series: Partial<Record<SeriesKey, SeriesPoint[]>>;
   demographics: Demographics;
-  balances: Balances;
+  /** Absent in responses produced before balances were added (e.g. saved offline). */
+  balances?: Balances;
   cooperatives: CooperativeRow[];
 }
 
