@@ -4324,15 +4324,18 @@
     "selectedFederation": "selected federation",
     "selectedApex": "selected apex",
     "method": {
-      "title": "Report type",
-      "choose": "Both types have data for this selection. Choose which report to export.",
-      "auto": "Only this type has data for this selection, so it is selected for you.",
-      "none": "No approved submissions for this selection.",
-      "standard": "Standard report",
-      "standardDesc": "Built from financial statements ({{count}} approved submissions)",
-      "questionnaire": "Questionnaire report",
-      "questionnaireDesc": "Built from questionnaire answers ({{count}} approved submissions)",
-      "summary": "Report type"
+      "title": "Report edition",
+      "choose": "Cooperatives report in two ways, so this report comes in two editions. Choose the one to export.",
+      "auto": "Only the {{edition}} edition has approved data for {{year}}, so it is selected for you.",
+      "none": "No approved submissions for this selection yet, in either edition.",
+      "standard": "Financial statements",
+      "questionnaire": "Questionnaire",
+      "standardDesc": "Built from financial statements submitted by upload or manual entry, usually by SACCOs.",
+      "questionnaireDesc": "Built from the questionnaire that multipurpose cooperatives fill in.",
+      "count_one": "{{count}} approved submission",
+      "count_other": "{{count}} approved submissions",
+      "noneForYear": "No approved submissions for {{year}}",
+      "summary": "Report edition"
     },
     "close": "Close",
     "status": {
@@ -4347,6 +4350,17 @@
       "updateHint": "Rebuild the report from the latest data",
       "readyToast": "Your {{language}} report is ready.",
       "failedToast": "We couldn't prepare your report. Please try again."
+    },
+    "steps": {
+      "fed": "Federation",
+      "apex": "Apex",
+      "coop": "Cooperative",
+      "submission": "Submission",
+      "year": "Year",
+      "method": "Report edition"
+    },
+    "editions": {
+      "available": "Available in two editions:"
     }
   },
   "analyticsFilter": {

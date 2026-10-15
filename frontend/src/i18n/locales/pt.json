@@ -3557,15 +3557,18 @@
     "selectedFederation": "federação selecionada",
     "selectedApex": "apex selecionado",
     "method": {
-      "title": "Tipo de relatório",
-      "choose": "Os dois tipos têm dados para esta seleção. Escolha o relatório a exportar.",
-      "auto": "Só este tipo tem dados para esta seleção, por isso foi escolhido para si.",
-      "none": "Não há submissões aprovadas para esta seleção.",
-      "standard": "Relatório padrão",
-      "standardDesc": "Elaborado a partir das demonstrações financeiras ({{count}} submissões aprovadas)",
-      "questionnaire": "Relatório de questionário",
-      "questionnaireDesc": "Elaborado a partir das respostas ao questionário ({{count}} submissões aprovadas)",
-      "summary": "Tipo de relatório"
+      "title": "Edição do relatório",
+      "choose": "As cooperativas reportam de duas formas, por isso este relatório tem duas edições. Escolha a que pretende exportar.",
+      "auto": "Só a edição {{edition}} tem dados aprovados para {{year}}, por isso foi selecionada.",
+      "none": "Ainda não há submissões aprovadas para esta seleção, em nenhuma edição.",
+      "standard": "Demonstrações financeiras",
+      "questionnaire": "Questionário",
+      "standardDesc": "Elaborado a partir das demonstrações financeiras carregadas ou introduzidas manualmente, geralmente por SACCOs.",
+      "questionnaireDesc": "Elaborado a partir do questionário que as cooperativas polivalentes preenchem.",
+      "count_one": "{{count}} submissão aprovada",
+      "count_other": "{{count}} submissões aprovadas",
+      "noneForYear": "Sem submissões aprovadas para {{year}}",
+      "summary": "Edição do relatório"
     },
     "close": "Fechar",
     "status": {
@@ -3580,6 +3583,17 @@
       "updateHint": "Reconstruir o relatório com os dados mais recentes",
       "readyToast": "O seu relatório em {{language}} está pronto.",
       "failedToast": "Não foi possível preparar o seu relatório. Tente novamente."
+    },
+    "steps": {
+      "fed": "Federação",
+      "apex": "Ápice",
+      "coop": "Cooperativa",
+      "submission": "Submissão",
+      "year": "Ano",
+      "method": "Edição do relatório"
+    },
+    "editions": {
+      "available": "Disponível em duas edições:"
     }
   },
   "analyticsFilter": {

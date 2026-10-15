@@ -4323,15 +4323,18 @@
     "selectedFederation": "ifederesheni ekhethiwe",
     "selectedApex": "ipheksi ekhethiwe",
     "method": {
-      "title": "Inhlobo yembiko",
-      "choose": "Tonkhe tinhlobo tinedatha yalokukhetsiwe. Khetsa kutsi ngumuphi umbiko lokufanele ukhishwe.",
-      "auto": "Yilena kuphela inhlobo lenedatha yalokukhetsiwe, ngako ikhetselwe wena.",
-      "none": "Akukho mibiko lephasisiwe yalokukhetsiwe.",
-      "standard": "Umbiko lojwayelekile",
-      "standardDesc": "Wakhiwe kusuka etitatimendeni tetimali (imibiko lengu-{{count}} lephasisiwe)",
-      "questionnaire": "Umbiko wemibuzo",
-      "questionnaireDesc": "Wakhiwe kusuka etimphenduleni tembiko wemibuzo (imibiko lengu-{{count}} lephasisiwe)",
-      "summary": "Inhlobo yembiko"
+      "title": "Luhlobo lwembiko",
+      "choose": "Emakoporasi abika ngetindlela letimbili, ngako lombiko unetinhlobo letimbili. Khetsa lofuna kuwukhipha.",
+      "auto": "Nguloluhlobo lwe-{{edition}} kuphela loneluvo lolwemukelwe lwa-{{year}}, ngako lukhetsiwe.",
+      "none": "Akukabi nekutfumela lokwemukelwe kulokukhetsa.",
+      "standard": "Titatimende tetimali",
+      "questionnaire": "Luhlu lwemibuto",
+      "standardDesc": "Lwakhiwe ngetitatimende tetimali letilayishiwe nobe letifakwe ngesandla, kakhulu ngema-SACCO.",
+      "questionnaireDesc": "Lwakhiwe ngeluhlu lwemibuto lolugcwaliswa ngemakoporasi lanetinjongo letinyenti.",
+      "count_one": "{{count}} kutfumela lokwemukelwe",
+      "count_other": "{{count}} kutfumela lokwemukelwe",
+      "noneForYear": "Akukho kutfumela lokwemukelwe kwa-{{year}}",
+      "summary": "Luhlobo lwembiko"
     },
     "close": "Vala",
     "status": {
@@ -4346,6 +4349,17 @@
       "updateHint": "Kwakha kabusha umbiko ngelwatiso lolusha",
       "readyToast": "Umbiko wakho nge-{{language}} sewulungile.",
       "failedToast": "Asikhonanga kulungisa umbiko wakho. Sicela uphindze."
+    },
+    "steps": {
+      "fed": "Inhlangano",
+      "apex": "Apex",
+      "coop": "Likoporasi",
+      "submission": "Kutfumela",
+      "year": "Umnyaka",
+      "method": "Luhlobo lwembiko"
+    },
+    "editions": {
+      "available": "Ikhona ngetinhlobo letimbili:"
     }
   },
   "analyticsFilter": {
