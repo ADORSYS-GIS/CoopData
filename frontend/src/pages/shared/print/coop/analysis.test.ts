@@ -103,6 +103,40 @@ describe("analyseCoop", () => {
     expect(a.validation).toEqual([]);
   });
 
+  it("takes provisions and depreciation off the listed assets before comparing totals", () => {
+    const a = analyseCoop(
+      props({
+        portfolioData: { submission_id: "s", categories: [] },
+        membershipData: {
+          submission_id: "s",
+          male_members: 5,
+          female_members: 5,
+          youth_members: 1,
+          active_members: 5,
+          inactive_members: 5,
+          agm_attendance: 6,
+        },
+        lineItemsData: {
+          submission_id: "s",
+          current_year: [
+            row(1101, 400),
+            row(1201, 600),
+            row(1251, 30),
+            row(1252, 20),
+            row(1303, 200),
+            row(1304, 150),
+            row(1999, 1000),
+            row(2999, 700),
+            row(3999, 300),
+          ],
+          prior_year: [],
+        },
+      }),
+    );
+
+    expect(a.validation.filter((v) => v.key === "assets")).toEqual([]);
+  });
+
   it("builds a reference from the year and submission id", () => {
     expect(analyseCoop(props()).ref).toBe("SUB-2025-ABCDE");
   });
