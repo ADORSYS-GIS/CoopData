@@ -71,7 +71,7 @@ export const buildSavingsMetrics = (
     value: zar(s.total_balance),
     tooltip: t("analytics.netTotalSavingsTooltip2"),
     trend: "up",
-    trendValue: t("analytics.netAvg", { amount: s.average_balance.toFixed(0) }),
+    trendValue: t("analytics.netAvg", { amount: zar(s.average_balance) }),
   },
   {
     key: "activeSavers",
@@ -119,7 +119,7 @@ export const buildLoanMetrics = (l: NfStatisticsResponse["loans"], t: TFunction)
     value: zar(l.total_balance),
     tooltip: t("analytics.netTotalLoansTooltip2"),
     trend: "up",
-    trendValue: t("analytics.netAvg", { amount: l.average_loan_size.toFixed(0) }),
+    trendValue: t("analytics.netAvg", { amount: zar(l.average_loan_size) }),
   },
   {
     key: "loansInArrears",
@@ -172,7 +172,7 @@ export const buildFixedDepositMetrics = (
     value: zar(fd.total_balance),
     tooltip: t("analytics.netTotalFdBalanceTooltip"),
     trend: "up",
-    trendValue: t("analytics.netAvg", { amount: fd.average_balance.toFixed(0) }),
+    trendValue: t("analytics.netAvg", { amount: zar(fd.average_balance) }),
   },
   {
     key: "fdPenetration",
