@@ -24,8 +24,9 @@ describe("dashboardSubmission", () => {
     expect(dashboardSubmission(legacySacco, "both")).toEqual(sub(2025, "questionnaire"));
   });
 
-  it("never uses drafts or returned submissions", () => {
+  it("uses only submissions approved by the apex", () => {
     const subs = [
+      sub(2027, "manual", "submitted"),
       sub(2026, "manual", "draft"),
       sub(2025, "manual", "returned"),
       sub(2024, "upload"),

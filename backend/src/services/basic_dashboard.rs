@@ -114,15 +114,8 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         .find_by_cooperatives(coop_ids.clone())
         .await?;
 
-    let eligible = |sub: &submission::Model| -> bool {
-        sub.status == SubmissionStatus::Approved
-            || req.focus_submission == Some(sub.id)
-            || (individual
-                && matches!(
-                    sub.status,
-                    SubmissionStatus::Submitted | SubmissionStatus::InReview
-                ))
-    };
+    let eligible =
+        |sub: &submission::Model| counts_towards_figures(&sub.status, sub.id, req.focus_submission);
 
     // period -> coop -> (financial, non-financial) answers
     type Answers = (Option<serde_json::Value>, Option<serde_json::Value>);
@@ -369,9 +362,21 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
     })
 }
 
+/// Only figures validated by the apex reach a dashboard, including the
+/// cooperative's own. A report generated for one submission still shows it.
+fn counts_towards_figures(
+    status: &SubmissionStatus,
+    submission_id: Uuid,
+    focus_submission: Option<Uuid>,
+) -> bool {
+    *status == SubmissionStatus::Approved || focus_submission == Some(submission_id)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::active_filter;
+    use super::{active_filter, counts_towards_figures};
+    use crate::entities::enums::SubmissionStatus;
+    use uuid::Uuid;
 
     #[test]
     fn all_and_blank_filters_do_not_narrow() {
@@ -380,6 +385,40 @@ mod tests {
         assert_eq!(active_filter(Some("  ")), None);
         assert_eq!(active_filter(Some("all")), None);
         assert_eq!(active_filter(Some("ALL")), None);
+    }
+
+    #[test]
+    fn only_approved_submissions_count_towards_the_figures() {
+        let id = Uuid::new_v4();
+
+        assert!(counts_towards_figures(
+            &SubmissionStatus::Approved,
+            id,
+            None
+        ));
+        for pending in [
+            SubmissionStatus::Draft,
+            SubmissionStatus::Submitted,
+            SubmissionStatus::InReview,
+        ] {
+            assert!(!counts_towards_figures(&pending, id, None), "{pending:?}");
+        }
+    }
+
+    #[test]
+    fn a_report_for_one_submission_shows_it_before_approval() {
+        let id = Uuid::new_v4();
+
+        assert!(counts_towards_figures(
+            &SubmissionStatus::Submitted,
+            id,
+            Some(id)
+        ));
+        assert!(!counts_towards_figures(
+            &SubmissionStatus::Submitted,
+            id,
+            Some(Uuid::new_v4())
+        ));
     }
 
     #[test]
