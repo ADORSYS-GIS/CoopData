@@ -3222,7 +3222,7 @@
       "maturityDate": "Data de Vencimento",
       "status": "Estado",
       "tenure": "Prazo",
-      "interestRate": "Taxa de Juro",
+      "interestRate": "Taxa de Juro (%)",
       "balance": "Saldo"
     },
     "rowCount": "{{count}} depósito",
@@ -3244,7 +3244,7 @@
       "status": "Estado",
       "borrowerType": "Tipo de Mutuário",
       "dpdCategory": "Categoria Dias em Atraso",
-      "interestRate": "Taxa de Juro",
+      "interestRate": "Taxa de Juro (%)",
       "loanAmount": "Montante do Empréstimo",
       "balance": "Saldo"
     },
@@ -3268,7 +3268,7 @@
       "lastContribDate": "Data da Última Contribuição",
       "contribsCount": "Contagem de Contribuições",
       "trend": "Tendência",
-      "interestRate": "Taxa de Juro",
+      "interestRate": "Taxa de Juro (%)",
       "balance": "Saldo"
     },
     "rowCount": "{{count}} conta de poupança",

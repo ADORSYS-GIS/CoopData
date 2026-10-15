@@ -741,7 +741,7 @@ export function ManualEntryWizard() {
         earlySettlementFlag: false,
         multipleLoansFlag: false,
         largeBorrowerFlag: false,
-        interestRate: 0.1,
+        interestRate: 0,
         balance: 0,
         loanAmount: 0,
       },
@@ -779,7 +779,7 @@ export function ManualEntryWizard() {
         numberOfRenewals: 0,
         changeInTenureAtRenewal: false,
         singleDepositorDependencyFlag: false,
-        interestRate: 0.05,
+        interestRate: 0,
         balance: 0,
       },
     ]);

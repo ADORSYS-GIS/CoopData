@@ -172,7 +172,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       zeroBalanceFlag: false,
       withdrawalFrequencyCategory: "Low",
       emergencyWithdrawalsFlag: false,
-      interestRate: 0.04,
+      interestRate: 4,
       balance: 12500,
     },
     {
@@ -189,7 +189,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       zeroBalanceFlag: false,
       withdrawalFrequencyCategory: "Low",
       emergencyWithdrawalsFlag: false,
-      interestRate: 0.03,
+      interestRate: 3,
       balance: 8500,
     },
     {
@@ -206,7 +206,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       zeroBalanceFlag: false,
       withdrawalFrequencyCategory: "Low",
       emergencyWithdrawalsFlag: false,
-      interestRate: 0.065,
+      interestRate: 6.5,
       balance: 25000,
     },
   ];
@@ -232,7 +232,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       earlySettlementFlag: false,
       multipleLoansFlag: false,
       largeBorrowerFlag: false,
-      interestRate: 0.12,
+      interestRate: 12,
       balance: 5000,
       loanAmount: 15000,
     },
@@ -256,7 +256,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       earlySettlementFlag: false,
       multipleLoansFlag: true,
       largeBorrowerFlag: false,
-      interestRate: 0.15,
+      interestRate: 15,
       balance: 18500,
       loanAmount: 25000,
     },
@@ -278,7 +278,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       numberOfRenewals: 1,
       changeInTenureAtRenewal: false,
       singleDepositorDependencyFlag: false,
-      interestRate: 0.05,
+      interestRate: 5,
       balance: 10000,
     },
     {
@@ -296,7 +296,7 @@ export function generateMockNonFinancialData(): MockNonFinancialPayload {
       numberOfRenewals: 0,
       changeInTenureAtRenewal: false,
       singleDepositorDependencyFlag: false,
-      interestRate: 0.055,
+      interestRate: 5.5,
       balance: 15000,
     },
   ];

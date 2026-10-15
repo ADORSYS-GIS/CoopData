@@ -3222,7 +3222,7 @@
       "maturityDate": "Date d'échéance",
       "status": "Statut",
       "tenure": "Durée",
-      "interestRate": "Taux d'intérêt",
+      "interestRate": "Taux d'intérêt (%)",
       "balance": "Solde"
     },
     "rowCount": "{{count}} dépôt",
@@ -3244,7 +3244,7 @@
       "status": "Statut",
       "borrowerType": "Type d'emprunteur",
       "dpdCategory": "Catégorie Jours de retard",
-      "interestRate": "Taux d'intérêt",
+      "interestRate": "Taux d'intérêt (%)",
       "loanAmount": "Montant du prêt",
       "balance": "Solde"
     },
@@ -3268,7 +3268,7 @@
       "lastContribDate": "Date dernière cotisation",
       "contribsCount": "Nombre de cotisations",
       "trend": "Tendance",
-      "interestRate": "Taux d'intérêt",
+      "interestRate": "Taux d'intérêt (%)",
       "balance": "Solde"
     },
     "rowCount": "{{count}} compte d'épargne",

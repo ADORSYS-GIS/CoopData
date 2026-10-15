@@ -3223,7 +3223,7 @@
       "maturityDate": "Maturity Date",
       "status": "Status",
       "tenure": "Tenure",
-      "interestRate": "Interest Rate",
+      "interestRate": "Interest Rate (%)",
       "balance": "Balance"
     },
     "rowCount": "{{count}} deposit",
@@ -3245,7 +3245,7 @@
       "status": "Status",
       "borrowerType": "Borrower Type",
       "dpdCategory": "DPD Category",
-      "interestRate": "Interest Rate",
+      "interestRate": "Interest Rate (%)",
       "loanAmount": "Loan Amount",
       "balance": "Balance"
     },
@@ -3269,7 +3269,7 @@
       "lastContribDate": "Last Contrib Date",
       "contribsCount": "Contribs Count",
       "trend": "Trend",
-      "interestRate": "Interest Rate",
+      "interestRate": "Interest Rate (%)",
       "balance": "Balance"
     },
     "rowCount": "{{count}} savings account",

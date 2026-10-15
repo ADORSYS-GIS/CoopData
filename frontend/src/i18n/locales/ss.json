@@ -3222,7 +3222,7 @@
       "maturityDate": "Lusuku Lokuvuthwa",
       "status": "Simo",
       "tenure": "Isikhatsi",
-      "interestRate": "Izinga Lenzalo",
+      "interestRate": "Izinga Lenzalo (%)",
       "balance": "Ibhalansi"
     },
     "rowCount": "{{count}} idiphozithi",
@@ -3244,7 +3244,7 @@
       "status": "Simo",
       "borrowerType": "Uhlobo Lwaboleki",
       "dpdCategory": "Isigaba se-DPD",
-      "interestRate": "Izinga Lenzalo",
+      "interestRate": "Izinga Lenzalo (%)",
       "loanAmount": "Inani Lemaloli",
       "balance": "Ibhalansi"
     },
@@ -3268,7 +3268,7 @@
       "lastContribDate": "Lusuku Lomnikelo Wokugcina",
       "contribsCount": "Inani Leminikelo",
       "trend": "Itrend",
-      "interestRate": "Izinga Lenzalo",
+      "interestRate": "Izinga Lenzalo (%)",
       "balance": "Ibhalansi"
     },
     "rowCount": "{{count}} i-akhawunti yekonga",
