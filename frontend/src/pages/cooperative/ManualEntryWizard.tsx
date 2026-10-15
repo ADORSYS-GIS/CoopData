@@ -1635,7 +1635,7 @@ export function ManualEntryWizard() {
             {isFinancialWizard ? (
               <ReviewSummary
                 financialData={financialData}
-                accountingYear={accountingYear}
+                activeMonths={activeMonths}
                 currency={currency}
                 onSubmitFinancial={handleSubmitFinancialOnly}
                 isSubmitting={isSubmitting}

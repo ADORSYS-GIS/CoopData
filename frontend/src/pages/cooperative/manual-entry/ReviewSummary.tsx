@@ -1,13 +1,14 @@
 import { CheckCircle2, AlertCircle, BarChart3, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
-import { totalAssets as assetsTotal } from "./balance";
+import { periodTotals } from "./balance";
 import { fmt } from "./helpers";
 import { Spinner } from "@/components/ui/spinner";
 
 interface ReviewSummaryProps {
   financialData: Record<number, Record<number, number>>;
-  accountingYear: "calendar" | "fiscal";
+  /** Columns of the period being entered, in order (`[0]` for a yearly return). */
+  activeMonths: readonly number[];
   currency: string;
   onSubmitFinancial: () => void;
   isSubmitting: boolean;
@@ -15,50 +16,16 @@ interface ReviewSummaryProps {
 
 export function ReviewSummary({
   financialData,
-  accountingYear,
+  activeMonths,
   currency,
   onSubmitFinancial,
   isSubmitting,
 }: ReviewSummaryProps) {
   const { t } = useTranslation();
-  // Balance sheet is a snapshot at the final month of the reporting year
-  const finalMonth = accountingYear === "fiscal" ? 6 : 12;
-
-  const getVal = (code: number) => financialData[code]?.[finalMonth] || 0;
-
-  const totalAssets = assetsTotal(getVal);
-
-  const totalLiabilities =
-    getVal(2101) +
-    getVal(2102) +
-    getVal(2103) + // Member Deposits
-    (getVal(2201) + getVal(2202)) + // Borrowings
-    (getVal(2301) + getVal(2302) + getVal(2303)); // Other
-
-  const totalEquity =
-    getVal(3101) +
-    getVal(3102) + // Shares
-    (getVal(3201) + getVal(3202) + getVal(3203)) + // Reserves
-    (getVal(3301) + getVal(3302)); // Retained
-
-  // Income statement totals are aggregated sums of all 12 months
-  let totalIncome = 0;
-  let totalExpenses = 0;
-  for (let m = 1; m <= 12; m++) {
-    totalIncome +=
-      (financialData[4101]?.[m] || 0) +
-      (financialData[4102]?.[m] || 0) +
-      (financialData[4201]?.[m] || 0);
-
-    totalExpenses +=
-      (financialData[5101]?.[m] || 0) +
-      (financialData[5102]?.[m] || 0) +
-      (financialData[5201]?.[m] || 0) +
-      (financialData[5202]?.[m] || 0) +
-      (financialData[5203]?.[m] || 0) +
-      (financialData[5204]?.[m] || 0) +
-      (financialData[5301]?.[m] || 0);
-  }
+  const { totalAssets, totalLiabilities, totalEquity, totalIncome, totalExpenses } = periodTotals(
+    financialData,
+    activeMonths,
+  );
   const netSurplus = totalIncome - totalExpenses;
 
   const isBalanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01;
