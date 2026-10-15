@@ -1,6 +1,7 @@
 import { CheckCircle2, AlertCircle, BarChart3, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/app-shell";
+import { totalAssets as assetsTotal } from "./balance";
 import { fmt } from "./helpers";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -25,14 +26,7 @@ export function ReviewSummary({
 
   const getVal = (code: number) => financialData[code]?.[finalMonth] || 0;
 
-  const totalAssets =
-    getVal(1101) +
-    getVal(1102) +
-    getVal(1103) +
-    getVal(1104) + // Liquid
-    (getVal(1201) + getVal(1202) + getVal(1203) + getVal(1204) + getVal(1205)) - // Loan Portfolio
-    (getVal(1251) + getVal(1252)) + // Provisions
-    (getVal(1301) + getVal(1302) + getVal(1303) - Math.abs(getVal(1304)) + getVal(1305)); // Other
+  const totalAssets = assetsTotal(getVal);
 
   const totalLiabilities =
     getVal(2101) +

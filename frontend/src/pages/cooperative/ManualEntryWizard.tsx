@@ -81,6 +81,7 @@ import {
   mapDpdCategoryToFrontend,
 } from "./manual-entry/helpers";
 import { generateMockFinancialGrid, generateMockNonFinancialData } from "./manual-entry/mockData";
+import { otherAssets, totalAssets as assetsTotal } from "./manual-entry/balance";
 
 // Import subcomponents
 import { FarmCoopForm } from "./manual-entry/FarmCoopForm";
@@ -561,17 +562,7 @@ export function ManualEntryWizard() {
     [financialData, finalMonth],
   );
 
-  const totalAssets = useMemo(() => {
-    return (
-      getVal(1101) +
-      getVal(1102) +
-      getVal(1103) +
-      getVal(1104) + // Liquid
-      (getVal(1201) + getVal(1202) + getVal(1203) + getVal(1204) + getVal(1205)) + // Portfolio (provisions are added since they must be negative!)
-      (getVal(1251) + getVal(1252)) + // Provisions (already negative)
-      (getVal(1301) + getVal(1302) + getVal(1303) + getVal(1304) + getVal(1305)) // Other (depreciation is already negative)
-    );
-  }, [getVal]);
+  const totalAssets = useMemo(() => assetsTotal(getVal), [getVal]);
 
   const totalLiabilities = useMemo(() => {
     return (
@@ -929,38 +920,13 @@ export function ManualEntryWizard() {
         name: "Total Other Assets",
         category: "assets",
         subcategory: "other_assets",
-        formula: (m) =>
-          getValLocal(1301, m) +
-          getValLocal(1302, m) +
-          getValLocal(1303, m) +
-          getValLocal(1304, m) +
-          getValLocal(1305, m),
+        formula: (m) => otherAssets((code) => getValLocal(code, m)),
       },
       1999: {
         name: "TOTAL ASSETS",
         category: "assets",
         subcategory: "total_assets",
-        formula: (m) => {
-          const liquid =
-            getValLocal(1101, m) +
-            getValLocal(1102, m) +
-            getValLocal(1103, m) +
-            getValLocal(1104, m);
-          const gross =
-            getValLocal(1201, m) +
-            getValLocal(1202, m) +
-            getValLocal(1203, m) +
-            getValLocal(1204, m) +
-            getValLocal(1205, m);
-          const allowance = getValLocal(1251, m) + getValLocal(1252, m);
-          const other =
-            getValLocal(1301, m) +
-            getValLocal(1302, m) +
-            getValLocal(1303, m) +
-            getValLocal(1304, m) +
-            getValLocal(1305, m);
-          return liquid + gross + allowance + other;
-        },
+        formula: (m) => assetsTotal((code) => getValLocal(code, m)),
       },
       2100: {
         name: "Total Member Deposits",
