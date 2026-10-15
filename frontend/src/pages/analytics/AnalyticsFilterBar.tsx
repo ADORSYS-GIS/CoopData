@@ -111,7 +111,7 @@ export function AnalyticsFilterBar({
       })}
       <div className="flex items-center rounded-lg border border-border bg-background p-0.5 text-xs font-bold">
         <span className="rounded-md bg-primary px-2.5 py-1 text-primary-foreground">
-          {f("zar")}
+          {f("currencyCode")}
         </span>
       </div>
       {isFiltered && (

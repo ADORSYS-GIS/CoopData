@@ -5128,7 +5128,7 @@
         "Transport": "Transportes",
         "Manufacturing": "Indústria"
       },
-      "zar": "ZAR"
+      "currencyCode": "SZL"
     },
     "scope": {
       "individual": "Vista individual",
