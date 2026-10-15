@@ -20,8 +20,15 @@ export const performancePage = (a: QuestAnalysis, no: string): PageSpec => ({
         <Sec no={no} title="Operational & Economic Performance" sub={a.period} />
         <p>
           The main activity margin is {a.text("main_activity_operating_margin_pct")} and the total
-          operating margin is {a.text("total_operating_margin_pct")}. Of the main activity surplus,{" "}
-          {a.text("member_economic_benefit_ratio_pct")} is distributed to members.
+          operating margin is {a.text("total_operating_margin_pct")}.{" "}
+          {a.num("member_economic_benefit_ratio_pct") === null ? (
+            <>The share of the main activity surplus distributed to members is not reported.</>
+          ) : (
+            <>
+              Of the main activity surplus, {a.text("member_economic_benefit_ratio_pct")} is
+              distributed to members.
+            </>
+          )}
         </p>
         {narrative && (
           <div className="opinion keep">
