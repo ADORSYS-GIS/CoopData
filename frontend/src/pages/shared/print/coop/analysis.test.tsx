@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { ReportDataProps } from "@/pages/shared/print/components/types";
 import { analyseCoop } from "@/pages/shared/print/coop/analysis";
 import { positionPages } from "@/pages/shared/print/coop/pages2";
-import { loanQualityPage } from "@/pages/shared/print/coop/pages3";
+import { loanQualityPage, membershipPage } from "@/pages/shared/print/coop/pages3";
 import { verdictOf } from "@/pages/shared/print/coop/text";
 
 const row = (code: number, value: number) => ({
@@ -203,5 +203,32 @@ describe("loan register arrears", () => {
     expect(container.textContent).toMatch(
       /12 loans with a balance of 3,150,000, of which 4 \(33\.3\s?%\)/,
     );
+  });
+});
+
+describe("membership page", () => {
+  it("gives AGM attendance as a share of all members, like every other row", () => {
+    const page = membershipPage(
+      analyseCoop(
+        props({
+          membershipData: {
+            submission_id: "s",
+            male_members: 9,
+            female_members: 11,
+            youth_members: 6,
+            active_members: 17,
+            inactive_members: 3,
+            agm_attendance: 13,
+          },
+        }),
+      ),
+      "6",
+    );
+    const { container } = render(<>{page.render()}</>);
+
+    const row = [...container.querySelectorAll("tr")].find((tr) =>
+      tr.textContent?.startsWith("AGM attendance"),
+    );
+    expect(row?.textContent).toMatch(/65[.,]0\s?%/);
   });
 });

@@ -357,7 +357,7 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
                 <tr>
                   <td>{tr("coop.membership.agm")}</td>
                   <td className="num">{fmtInt(agm)}</td>
-                  <td className="num">{fmtPct(active > 0 ? (agm / active) * 100 : null)}</td>
+                  <td className="num">{fmtPct(total > 0 ? (agm / total) * 100 : null)}</td>
                 </tr>
               </tbody>
             </table>
