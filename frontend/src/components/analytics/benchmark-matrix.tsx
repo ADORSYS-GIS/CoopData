@@ -29,6 +29,29 @@ interface BenchmarkMatrixProps {
   labels: BenchmarkMatrixLabels;
 }
 
+export type GapStatus = "healthy" | "watch" | "critical";
+
+/**
+ * How far a cooperative falls behind its peers: under 10% is healthy, 10–20%
+ * calls for watching and more than 20% is critical. Doing better than the
+ * peers is healthy, whichever direction is better for the metric.
+ */
+export function gapStatus(value: number, peer: number, lowerIsBetter: boolean): GapStatus {
+  const behind = lowerIsBetter ? value - peer : peer - value;
+  if (behind <= 0 || peer === 0) return "healthy";
+  const gap = (behind / Math.abs(peer)) * 100;
+  return gap < 10 ? "healthy" : gap <= 20 ? "watch" : "critical";
+}
+
+const STATUS_STYLE: Record<GapStatus, string> = {
+  healthy:
+    "bg-success/10 dark:bg-success/20 text-success dark:text-success border border-success/20 dark:border-success/30",
+  watch:
+    "bg-warning/10 dark:bg-warning/20 text-warning dark:text-warning border border-warning/20 dark:border-warning/30",
+  critical:
+    "bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive border border-destructive/20 dark:border-destructive/30",
+};
+
 /**
  * The full metric-comparison matrix (search + group filter toolbar and the
  * grouped comparison table). Shared verbatim by the standard and basic
@@ -197,6 +220,10 @@ export function BenchmarkMatrix({
                     // expenditure, NPL, PAR, dormancy.
                     const isPositiveIndicator = !(metric.isLowerBetter ?? false);
                     const isBetter = isPositiveIndicator ? diff >= 0 : diff <= 0;
+                    const status =
+                      targetVal === null
+                        ? "healthy"
+                        : gapStatus(coopVal, targetVal, metric.isLowerBetter ?? false);
 
                     return (
                       <tr
@@ -262,21 +289,18 @@ export function BenchmarkMatrix({
                             </td>
                             <td className="py-3 px-4 text-center">
                               <span
-                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                                  isBetter
-                                    ? "bg-success/10 dark:bg-success/20 text-success dark:text-success border border-success/20 dark:border-success/30"
-                                    : "bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive border border-destructive/20 dark:border-destructive/30"
-                                }`}
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_STYLE[status]}`}
                               >
-                                {isBetter ? (
-                                  <>
-                                    <TrendingUp className="size-2.5" /> {labels.legendHealthy}
-                                  </>
+                                {status === "healthy" ? (
+                                  <TrendingUp className="size-2.5" />
                                 ) : (
-                                  <>
-                                    <TrendingDown className="size-2.5" /> {labels.legendWatch}
-                                  </>
-                                )}
+                                  <TrendingDown className="size-2.5" />
+                                )}{" "}
+                                {status === "healthy"
+                                  ? labels.legendHealthy
+                                  : status === "watch"
+                                    ? labels.legendWatch
+                                    : labels.legendCritical}
                               </span>
                             </td>
                           </>

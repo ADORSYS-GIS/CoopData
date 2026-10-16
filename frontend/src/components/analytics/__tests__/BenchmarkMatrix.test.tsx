@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { Users } from "lucide-react";
 import { describe, expect, it } from "vitest";
 
-import { BenchmarkMatrix } from "@/components/analytics/benchmark-matrix";
+import { BenchmarkMatrix, gapStatus } from "@/components/analytics/benchmark-matrix";
+import { formatBenchmarkValue } from "@/components/analytics/benchmark-utils";
 import type { BenchmarkRow } from "@/components/analytics/benchmark-types";
 
 const coop: BenchmarkRow = {
@@ -40,6 +41,7 @@ const renderMatrix = (getCompareValue: (key: string) => number | null) =>
         status: "Status",
         legendHealthy: "Healthy",
         legendWatch: "Watch",
+        legendCritical: "Critical",
       }}
     />,
   );
@@ -59,5 +61,27 @@ describe("BenchmarkMatrix", () => {
     const row = screen.getByText("Registered Members").closest("tr");
     expect(row?.textContent).toMatch(/\+20/);
     expect(row?.textContent).toMatch(/Healthy/);
+  });
+});
+
+describe("gapStatus", () => {
+  it("rates a value by how far it falls behind the peers", () => {
+    expect(gapStatus(18.94, 19.35, false)).toBe("healthy");
+    expect(gapStatus(4_198_500, 5_159_250, false)).toBe("watch");
+    expect(gapStatus(100_000, 150_000, false)).toBe("critical");
+  });
+
+  it("treats doing better than the peers as healthy, whichever way is better", () => {
+    expect(gapStatus(220, 150, false)).toBe("healthy");
+    expect(gapStatus(2.38, 1.63, true)).toBe("critical");
+    expect(gapStatus(1.63, 2.38, true)).toBe("healthy");
+  });
+});
+
+describe("formatBenchmarkValue", () => {
+  it("shortens negative amounts like positive ones", () => {
+    expect(formatBenchmarkValue(-960_750, "SZL")).toBe("SZL -960.8K");
+    expect(formatBenchmarkValue(-1_250_000, "SZL")).toBe("SZL -1.25M");
+    expect(formatBenchmarkValue(960_750, "SZL")).toBe("SZL 960.8K");
   });
 });

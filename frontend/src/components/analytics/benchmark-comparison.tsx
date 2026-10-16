@@ -24,7 +24,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { BenchmarkMatrix } from "@/components/analytics/benchmark-matrix";
-import { computeKpiAverages } from "@/components/analytics/benchmark-utils";
+import { computeKpiAverages, formatBenchmarkValue } from "@/components/analytics/benchmark-utils";
 import { Spinner } from "@/components/ui/spinner";
 import type {
   BenchmarkAverages,
@@ -278,21 +278,7 @@ export function BenchmarkComparison({
   };
 
   // Formatting helper
-  const formatValue = (val: number, unit: string) => {
-    if (unit === "%") {
-      return `${val.toFixed(2)}%`;
-    }
-    if (unit === "count") {
-      return val.toLocaleString(undefined, { maximumFractionDigits: 0 });
-    }
-    if (val >= 1_000_000) {
-      return `SZL ${(val / 1_000_000).toFixed(2)}M`;
-    }
-    if (val >= 1_000) {
-      return `SZL ${(val / 1_000).toFixed(1)}K`;
-    }
-    return `SZL ${val.toFixed(2)}`;
-  };
+  const formatValue = formatBenchmarkValue;
 
   const activeMetricInfo = useMemo(() => {
     return metrics.find((m) => m.key === selectedKpi);
@@ -773,6 +759,7 @@ export function BenchmarkComparison({
             status: labels.status,
             legendHealthy: labels.legendHealthy,
             legendWatch: labels.legendWatch,
+            legendCritical: labels.legendCritical,
           }}
         />
       )}

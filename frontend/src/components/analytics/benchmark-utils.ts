@@ -14,3 +14,12 @@ export function computeKpiAverages(
   });
   return averages;
 }
+
+/** Formats a benchmark value; amounts are shortened to K / M whatever their sign. */
+export function formatBenchmarkValue(val: number, unit: string): string {
+  if (unit === "%") return `${val.toFixed(2)}%`;
+  if (unit === "count") return val.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  if (Math.abs(val) >= 1_000_000) return `SZL ${(val / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(val) >= 1_000) return `SZL ${(val / 1_000).toFixed(1)}K`;
+  return `SZL ${val.toFixed(2)}`;
+}
