@@ -379,7 +379,7 @@ async fn compute_coop_rows(
                 has_data,
                 total_members: get_nf_val("membership_total") as u64,
                 active_members: get_nf_val("membership_active") as u64,
-                active_borrowers: get_nf_val("loans_active_borrowers") as u64,
+                active_borrowers: get_nf_val("loans_active_loans") as u64,
                 women_borrowers: get_nf_val("loans_women_borrowers") as u64,
                 youth_borrowers: get_nf_val("loans_youth_borrowers") as u64,
                 rural_borrowers: get_nf_val("loans_rural_borrowers") as u64,
