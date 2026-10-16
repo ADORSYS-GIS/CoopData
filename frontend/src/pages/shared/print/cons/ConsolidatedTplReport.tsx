@@ -11,6 +11,7 @@ import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument
 import { trendPage } from "@/pages/shared/print/tpl/TrendPage";
 import { trendOf } from "@/pages/shared/print/tpl/trend";
 import { longDate, tr } from "@/pages/shared/print/tpl/i18n";
+import { NATIVE_CURRENCY } from "@/lib/currency";
 
 const issuerOf = (tier: Tier): string => tr(`cons.issuer.${tier}`);
 
@@ -103,7 +104,7 @@ export const ConsolidatedTplReport: FC<ConsInput> = (input) => {
           [tr("cons.report.returns_submitted"), ofTotal, tr("common.date_of_issue"), issued],
           [
             tr("common.reporting_currency"),
-            tr("cons.report.currency_value"),
+            NATIVE_CURRENCY,
             tr("common.classification"),
             tr("cons.report.classification_value"),
           ],

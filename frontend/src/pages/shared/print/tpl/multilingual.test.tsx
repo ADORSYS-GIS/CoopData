@@ -237,6 +237,12 @@ describe("PDF report templates", () => {
     }
   });
 
+  it("state the reporting currency as SZL", async () => {
+    for (const text of await reportsIn("en")) {
+      expect(text).toMatch(/Reporting currency\s*SZL/);
+    }
+  });
+
   it.each(["fr", "pt", "ss"])("contain no English report text in %s", async (language) => {
     for (const text of await reportsIn(language)) {
       const leaked = ENGLISH.filter((phrase) => text.includes(phrase));
