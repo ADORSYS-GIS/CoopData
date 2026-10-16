@@ -5,6 +5,7 @@ import {
   avgKpi,
   changeOf,
   chunk,
+  filingCounts,
   groupBy,
   money,
   pointChange,
@@ -74,5 +75,34 @@ describe("consolidated report stats", () => {
       "even",
     ]);
     expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+  });
+});
+
+describe("filingCounts", () => {
+  const typed = (name: string, hasData: boolean, type: string | null): CoopKpiRow =>
+    ({ ...coop(name, hasData, {}), institution_type: type }) as unknown as CoopKpiRow;
+
+  it("counts only cooperatives that report financial statements", () => {
+    const data = {
+      total_cooperatives: 5,
+      cooperatives: [
+        typed("basic sacco", true, "sacco"),
+        typed("saccocoop", true, "sacco"),
+        typed("multiP", false, "multipurpose"),
+        typed("fsfsfa", false, "multipurpose"),
+        typed("testModification", false, "multipurpose"),
+      ],
+    } as never;
+
+    expect(filingCounts(data)).toEqual({ filed: 2, total: 2, notFiled: 0, rate: 100 });
+  });
+
+  it("still expects a cooperative whose type is not set", () => {
+    const data = {
+      total_cooperatives: 2,
+      cooperatives: [typed("a", true, "sacco"), typed("b", false, null)],
+    } as never;
+
+    expect(filingCounts(data)).toMatchObject({ filed: 1, total: 2, notFiled: 1 });
   });
 });

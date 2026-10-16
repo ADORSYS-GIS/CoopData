@@ -341,7 +341,12 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
             }
             .to_string(),
             cooperatives_reporting: reporting.len() as u32,
-            cooperatives_in_scope: coops.len() as u32,
+            cooperatives_in_scope: coops
+                .iter()
+                .filter(|c| {
+                    expected_to_file_questionnaire(c.institution_type.as_ref().map(|t| t.as_str()))
+                })
+                .count() as u32,
             reporting_year: selected.as_ref().map(|k| k.year),
             period_type: selected.as_ref().map(|k| k.period_type.clone()),
             period_value: selected.as_ref().map(|k| k.period_value.clone()),
@@ -360,6 +365,13 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         balances,
         cooperatives: rows,
     })
+}
+
+/// Whether a cooperative is expected to report through the questionnaire:
+/// multipurpose cooperatives, and those whose type is not set yet (they may
+/// use either method). SACCOs report financial statements instead.
+fn expected_to_file_questionnaire(institution_type: Option<&str>) -> bool {
+    institution_type != Some("sacco")
 }
 
 /// Only figures validated by the apex reach a dashboard, including the
@@ -419,6 +431,13 @@ mod tests {
             id,
             Some(Uuid::new_v4())
         ));
+    }
+
+    #[test]
+    fn saccos_are_not_expected_to_file_a_questionnaire() {
+        assert!(!super::expected_to_file_questionnaire(Some("sacco")));
+        assert!(super::expected_to_file_questionnaire(Some("multipurpose")));
+        assert!(super::expected_to_file_questionnaire(None));
     }
 
     #[test]

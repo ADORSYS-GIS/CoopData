@@ -103,9 +103,18 @@ export const toneOf = (name: string, value: number | null | undefined): Tone => 
 /** Status label; an unreported ratio reads "Unverified" like every other status pill. */
 export const toneLabel = (tone: Tone): string => tr(`status.${tone}`);
 
+/**
+ * Whether a cooperative is expected in the financial-statements edition: every
+ * cooperative except multipurpose ones, which report through the questionnaire.
+ * A cooperative whose type is not set yet may use either method.
+ */
+export const reportsStatements = (coop: CoopKpiRow): boolean =>
+  coop.institution_type !== "multipurpose";
+
 export const filingCounts = (data: NationalOverviewResponse) => {
-  const filed = data.cooperatives.filter((coop) => coop.has_data).length;
-  const total = data.total_cooperatives || data.cooperatives.length;
+  const expected = data.cooperatives.filter(reportsStatements);
+  const filed = expected.filter((coop) => coop.has_data).length;
+  const total = expected.length;
   return {
     filed,
     total,
