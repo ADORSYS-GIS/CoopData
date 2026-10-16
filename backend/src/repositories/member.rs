@@ -221,6 +221,7 @@ impl MemberRepository {
     ) -> AppResult<crate::api::dto::submission::MembershipStatsResponse> {
         let members = member::Entity::find()
             .filter(MemberColumn::CooperativeId.eq(cooperative_id))
+            .filter(MemberColumn::SubmissionId.eq(submission_id))
             .all(&self.db)
             .await
             .map_err(AppError::DatabaseError)?;

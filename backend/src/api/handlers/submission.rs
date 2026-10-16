@@ -2208,7 +2208,7 @@ pub async fn get_portfolio_breakdown(
 
     let categories = state
         .loan_repo
-        .get_portfolio_breakdown(submission.cooperative_id)
+        .get_portfolio_breakdown(submission.cooperative_id, id)
         .await?;
 
     Ok((

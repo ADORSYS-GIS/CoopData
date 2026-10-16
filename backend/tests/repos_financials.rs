@@ -313,7 +313,7 @@ async fn loan_portfolio_breakdown_maps_dpd_categories() {
     let out = app
         .state
         .loan_repo
-        .get_portfolio_breakdown(coop)
+        .get_portfolio_breakdown(coop, Uuid::new_v4())
         .await
         .expect("breakdown ok");
 
@@ -322,6 +322,26 @@ async fn loan_portfolio_breakdown_maps_dpd_categories() {
     assert_eq!(out[0].count, 2);
     assert_eq!(out[1].category, "Loss", "91+ days past due maps to Loss");
     assert_eq!(out[1].balance, 1000.0);
+}
+
+#[tokio::test]
+async fn portfolio_breakdown_covers_only_the_submissions_own_loans() {
+    let rm = RecordingMock::postgres().query_empty().build();
+    let app = rm.app().await;
+
+    let (coop, sub) = (Uuid::new_v4(), Uuid::new_v4());
+    app.state
+        .loan_repo
+        .get_portfolio_breakdown(coop, sub)
+        .await
+        .expect("breakdown ok");
+
+    let binds = rm.binds(0);
+    assert!(
+        binds.contains(&sub.to_string()),
+        "a report for one year must not include another year's loans: {:?}",
+        binds
+    );
 }
 
 /// Helper row type for the portfolio breakdown aggregate (category is an enum

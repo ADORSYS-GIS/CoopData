@@ -67,6 +67,26 @@ async fn membership_stats_buckets_are_computed_from_rows() {
 }
 
 #[tokio::test]
+async fn membership_stats_count_only_the_submissions_own_members() {
+    let rm = RecordingMock::postgres().query_empty().build();
+    let app = rm.app().await;
+
+    let (coop, sub) = (Uuid::new_v4(), Uuid::new_v4());
+    app.state
+        .member_repo
+        .get_membership_stats(coop, sub)
+        .await
+        .expect("stats ok");
+
+    let binds = rm.binds(0);
+    assert!(
+        binds.contains(&sub.to_string()),
+        "a report for one year must not count another year's members: {:?}",
+        binds
+    );
+}
+
+#[tokio::test]
 async fn member_find_by_coop_and_member_id_uses_both_filters() {
     let rm = RecordingMock::postgres().query_empty().build();
     let app = rm.app().await;
