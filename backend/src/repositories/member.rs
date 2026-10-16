@@ -240,10 +240,8 @@ impl MemberRepository {
                 _ => {}
             }
 
-            match m.age_group {
-                crate::entities::enums::AgeGroup::Under18
-                | crate::entities::enums::AgeGroup::Between18And35 => youth += 1,
-                _ => {}
+            if m.age_group.is_youth() {
+                youth += 1;
             }
 
             match m.status {

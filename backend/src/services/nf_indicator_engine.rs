@@ -308,10 +308,7 @@ impl NfIndicatorEngine {
             .count() as u64;
         let youth_leaders = all
             .iter()
-            .filter(|m| {
-                matches!(m.age_group, AgeGroup::Under18 | AgeGroup::Between18And35)
-                    && m.leadership_role.is_some()
-            })
+            .filter(|m| m.age_group.is_youth() && m.leadership_role.is_some())
             .count() as u64;
 
         Ok(MembershipStats {
@@ -337,7 +334,7 @@ impl NfIndicatorEngine {
             male_pct: pct(male, total),
             female_pct: pct(female, total),
             other_pct: pct(other, total),
-            youth_pct: pct(under_18 + age_18_35, total),
+            youth_pct: pct(age_18_35, total),
             adult_pct: pct(age_36_50 + over_50, total),
             urban_pct: pct(urban, total),
             rural_pct: pct(rural, total),
@@ -668,6 +665,13 @@ impl NfIndicatorEngine {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn youth_means_members_aged_18_to_35() {
+        assert!(AgeGroup::Between18And35.is_youth());
+        assert!(!AgeGroup::Under18.is_youth());
+        assert!(!AgeGroup::Between36And50.is_youth());
+    }
 
     #[test]
     fn inactive_savings_accounts_count_as_dormant() {

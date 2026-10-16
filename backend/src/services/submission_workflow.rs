@@ -1353,9 +1353,10 @@ impl SubmissionWorkflow {
 
 /// KPI rows computed before this instant used earlier formulas (PAR > 30 counted
 /// the 1-30 day bucket, provisions had the wrong sign, income used one month,
-/// "Inactive" savings accounts and "Decreasing" balances were not counted).
+/// "Inactive" savings accounts and "Decreasing" balances were not counted,
+/// members under 18 counted as youth).
 /// Raise it whenever a KPI formula changes so startup recomputes stored rows.
-pub const KPI_FORMULAS_EFFECTIVE_AT: &str = "2026-10-15T20:59:00Z";
+pub const KPI_FORMULAS_EFFECTIVE_AT: &str = "2026-10-16T10:44:00Z";
 
 pub fn kpi_rows_are_stale(rows: &[crate::entities::kpi_record::Model]) -> bool {
     let Ok(cutoff) = chrono::DateTime::parse_from_rfc3339(KPI_FORMULAS_EFFECTIVE_AT) else {
@@ -1390,12 +1391,12 @@ mod kpi_staleness_tests {
 
     #[test]
     fn rows_computed_before_the_cutoff_are_stale() {
-        assert!(kpi_rows_are_stale(&[row("2026-10-14T10:00:00Z")]));
+        assert!(kpi_rows_are_stale(&[row("2026-10-16T09:00:00Z")]));
     }
 
     #[test]
     fn rows_computed_after_the_cutoff_are_current() {
-        assert!(!kpi_rows_are_stale(&[row("2026-10-16T10:00:00Z")]));
+        assert!(!kpi_rows_are_stale(&[row("2026-10-17T10:00:00Z")]));
     }
 
     #[test]

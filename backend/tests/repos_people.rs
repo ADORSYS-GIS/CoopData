@@ -60,7 +60,10 @@ async fn membership_stats_buckets_are_computed_from_rows() {
 
     assert_eq!(stats.male_members, 2);
     assert_eq!(stats.female_members, 1);
-    assert_eq!(stats.youth_members, 3, "under-36 counts as youth");
+    assert_eq!(
+        stats.youth_members, 1,
+        "youth is 18-35, as labelled; members under 18 are not counted"
+    );
     assert_eq!(stats.active_members, 3);
     assert_eq!(stats.inactive_members, 1);
     assert_eq!(stats.agm_attendance, 3);
