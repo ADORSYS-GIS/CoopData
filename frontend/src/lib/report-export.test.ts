@@ -172,11 +172,11 @@ describe("formatCurrency", () => {
   });
 
   it("formats millions with M suffix", () => {
-    expect(formatCurrency(4_200_000)).toBe("SZL 4.2M");
+    expect(formatCurrency(4_200_000)).toBe("SZL 4.20M");
   });
 
   it("formats thousands with K suffix", () => {
-    expect(formatCurrency(9_800)).toBe("SZL 10K");
+    expect(formatCurrency(9_800)).toBe("SZL 9.8K");
   });
 
   it("formats small values without suffix", () => {
@@ -200,7 +200,7 @@ describe("formatPercent", () => {
 
 describe("formatNumber", () => {
   it("formats millions with one decimal", () => {
-    expect(formatNumber(1_500_000)).toBe("1.5M");
+    expect(formatNumber(1_500_000)).toBe("1.50M");
   });
 
   it("formats thousands with one decimal", () => {

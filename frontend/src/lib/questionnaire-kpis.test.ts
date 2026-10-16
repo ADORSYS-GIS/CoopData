@@ -17,9 +17,9 @@ describe("questionnaireKpis", () => {
     const kpis = questionnaireKpis(balances, "SZL");
     const byName = Object.fromEntries(kpis.map((k) => [k.name, k]));
 
-    expect(byName.total_assets?.formatted).toBe("SZL 284.4M");
+    expect(byName.total_assets?.formatted).toBe("SZL 284.40M");
     expect(byName.gross_loan_portfolio?.value).toBe(200_000);
-    expect(byName.total_member_deposits?.formatted).toBe("SZL 35.1M");
+    expect(byName.total_member_deposits?.formatted).toBe("SZL 35.10M");
     expect(byName.net_surplus?.unit).toBe("currency");
     expect(byName.par30?.formatted).toBe("12.5%");
     expect(byName.par90?.value).toBe(5);

@@ -1,3 +1,4 @@
+import { roundHalfUp } from "@/lib/currency";
 import type { CoopKpiRow, NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { fixed, grouped, percentSign, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
@@ -64,8 +65,10 @@ export const pointChange = (current: number | null, prior: number | null): Chang
 export const money = (value: number | null | undefined): string => {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${fixed(value / 1_000_000, 1)} ${tr("common.million_short")}`;
-  if (abs >= 10_000) return `${fixed(value / 1_000, 0)} ${tr("common.thousand_short")}`;
+  if (abs >= 1_000_000)
+    return `${fixed(roundHalfUp(value / 1_000_000, 2), 2)} ${tr("common.million_short")}`;
+  if (abs >= 10_000)
+    return `${fixed(roundHalfUp(value / 1_000, 1), 1)} ${tr("common.thousand_short")}`;
   return grouped(value);
 };
 

@@ -64,7 +64,7 @@ describe("consolidated report stats", () => {
   });
 
   it("formats money compactly", () => {
-    expect(money(2_500_000)).toBe("2.5 m");
+    expect(money(2_500_000)).toBe("2.50 m");
     expect(money(950)).toBe("950");
     expect(money(undefined)).toBe("—");
   });

@@ -1,7 +1,6 @@
+import { shortAmount } from "@/lib/currency";
 import type { KpiItemResponse } from "@/hooks/submissions/useCooperativeKpis";
 import type { Balances } from "@/types/basic-dashboard";
-
-const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 
 const money = (name: string, value: number | null, currency: string): KpiItemResponse[] =>
   value === null
@@ -11,7 +10,7 @@ const money = (name: string, value: number | null, currency: string): KpiItemRes
           name,
           value,
           unit: "currency",
-          formatted: `${currency} ${compact.format(value)}`,
+          formatted: `${currency} ${shortAmount(value)}`,
           description: "",
         },
       ];

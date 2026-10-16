@@ -16,6 +16,6 @@ describe("ledger metrics", () => {
 
     const card = buildSavingsMetrics(savings, t).find((m) => m.key === "memberLedgerSavings");
 
-    expect(card?.trendValue).toBe("Avg: SZL 132K");
+    expect(card?.trendValue).toBe("Avg: SZL 131.5K");
   });
 });
