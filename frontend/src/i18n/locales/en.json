@@ -3178,8 +3178,8 @@
       "totalAssets": "Total Assets",
       "totalLiabilities": "Total Liabilities",
       "totalEquity": "Total Equity",
-      "annualIncome": "Annual Income (12-Mo Sum)",
-      "annualExpenses": "Annual Expenses (12-Mo Sum)",
+      "annualIncome": "Income for the Period",
+      "annualExpenses": "Expenses for the Period",
       "netSurplus": "Net Surplus"
     },
     "balancedSuccess": "Balance sheet balances at period end ✓",

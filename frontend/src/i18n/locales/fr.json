@@ -3177,8 +3177,8 @@
       "totalAssets": "Total des actifs",
       "totalLiabilities": "Total des passifs",
       "totalEquity": "Total des capitaux propres",
-      "annualIncome": "Revenus annuels (Somme 12 mois)",
-      "annualExpenses": "Charges annuelles (Somme 12 mois)",
+      "annualIncome": "Revenus de la période",
+      "annualExpenses": "Charges de la période",
       "netSurplus": "Excédent net"
     },
     "balancedSuccess": "Le bilan s'équilibre à la fin de la période ✓",

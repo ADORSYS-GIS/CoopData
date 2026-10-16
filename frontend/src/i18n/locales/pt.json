@@ -3177,8 +3177,8 @@
       "totalAssets": "Total de Ativos",
       "totalLiabilities": "Total de Passivos",
       "totalEquity": "Total de Capital Próprio",
-      "annualIncome": "Rendimento Anual (Soma de 12 Meses)",
-      "annualExpenses": "Despesas Anuais (Soma de 12 Meses)",
+      "annualIncome": "Rendimento do Período",
+      "annualExpenses": "Despesas do Período",
       "netSurplus": "Excedente Líquido"
     },
     "balancedSuccess": "O balanço equilibra no final do período ✓",
