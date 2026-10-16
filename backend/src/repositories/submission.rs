@@ -484,8 +484,8 @@ impl SubmissionRepository {
 }
 
 /// Which dates a status change records: (filed, reviewed). Leaving an editable
-/// state (draft, rejected, returned) files the submission; any later change is a
-/// reviewer's decision.
+/// state (draft, rejected, returned) files the submission; any later change, or
+/// an approval straight from draft, is a reviewer's decision.
 fn status_change_dates(previous: &SubmissionStatus, next: &SubmissionStatus) -> (bool, bool) {
     let editable = |s: &SubmissionStatus| {
         matches!(
@@ -494,7 +494,8 @@ fn status_change_dates(previous: &SubmissionStatus, next: &SubmissionStatus) -> 
         )
     };
     if editable(previous) {
-        (!editable(next), false)
+        // An apex submitting its own draft approves it in the same step.
+        (!editable(next), *next == SubmissionStatus::Approved)
     } else {
         (false, true)
     }
@@ -528,6 +529,11 @@ mod tests {
             status_change_dates(&S::InReview, &S::Submitted),
             (false, true)
         );
+    }
+
+    #[test]
+    fn an_apex_submitting_its_own_draft_files_and_reviews_it() {
+        assert_eq!(status_change_dates(&S::Draft, &S::Approved), (true, true));
     }
 
     #[test]
