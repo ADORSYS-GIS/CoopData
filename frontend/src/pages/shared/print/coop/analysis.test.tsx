@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { ReportDataProps } from "@/pages/shared/print/components/types";
 import { analyseCoop } from "@/pages/shared/print/coop/analysis";
 import { positionPages } from "@/pages/shared/print/coop/pages2";
+import { loanQualityPage } from "@/pages/shared/print/coop/pages3";
 import { verdictOf } from "@/pages/shared/print/coop/text";
 
 const row = (code: number, value: number) => ({
@@ -175,5 +176,32 @@ describe("positionPages", () => {
     );
     const cells = [...(totalRow?.querySelectorAll("td") ?? [])].map((td) => td.textContent);
     expect(cells[3]).toBe("—");
+  });
+});
+
+describe("loan register arrears", () => {
+  it("counts the backend's past-due categories as arrears", () => {
+    const page = loanQualityPage(
+      analyseCoop(
+        props({
+          portfolioData: {
+            submission_id: "s",
+            categories: [
+              { category: "Performing", balance: 2_850_000, count: 8 },
+              { category: "Watch", balance: 120_000, count: 1 },
+              { category: "Substandard", balance: 65_000, count: 1 },
+              { category: "Doubtful", balance: 40_000, count: 1 },
+              { category: "Loss", balance: 75_000, count: 1 },
+            ],
+          },
+        }),
+      ),
+      "5",
+    );
+    const { container } = render(<>{page.render()}</>);
+
+    expect(container.textContent).toMatch(
+      /12 loans with a balance of 3,150,000, of which 4 \(33\.3\s?%\)/,
+    );
   });
 });

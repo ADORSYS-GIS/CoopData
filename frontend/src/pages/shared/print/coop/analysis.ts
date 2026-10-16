@@ -160,6 +160,14 @@ export interface ValidationItem {
   note: string;
 }
 
+/**
+ * Whether a loan register category is past due. The register groups loans as
+ * Performing / Watch / Substandard / Doubtful / Loss (by days past due); older
+ * data may use names such as "Arrears 31-60" or "Non-performing".
+ */
+export const isArrearsCategory = (category: string): boolean =>
+  /arrear|overdue|delinq|non-?perf|npl|watch|substandard|doubtful|loss/i.test(category);
+
 const CONTRA_ASSET_CODES: ReadonlySet<number> = new Set([1251, 1252, 1304]);
 
 const validate = (
@@ -244,7 +252,7 @@ const validate = (
   }
   const par30 = kpiOf(kpis, "par30")?.value ?? 0;
   const arrears = props.portfolioData.categories
-    .filter((c) => /arrear|overdue|non-perf|npl/i.test(c.category))
+    .filter((c) => isArrearsCategory(c.category))
     .reduce((sum, c) => sum + c.count, 0);
   if (par30 === 0 && arrears > 0) {
     add({
