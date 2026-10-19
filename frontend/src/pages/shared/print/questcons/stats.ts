@@ -1,4 +1,5 @@
-import { PAR30_LIMIT } from "@/pages/shared/print/quest/data";
+import { PAR30_LIMIT, par30Limit } from "@/pages/shared/print/quest/data";
+import { tr } from "@/pages/shared/print/tpl/i18n";
 import type { DonutSlice } from "@/pages/shared/print/tpl/TplTrend";
 import type { BasicDashboardResponse, CooperativeRow } from "@/types/basic-dashboard";
 
@@ -57,10 +58,10 @@ export const complianceOf = (dashboard: BasicDashboardResponse): Compliance => {
 };
 
 export const parBandSlices = (c: Compliance): DonutSlice[] => [
-  { label: `Within ${PAR30_LIMIT}%`, value: c.parBands.within },
-  { label: `${PAR30_LIMIT}% to 10%`, value: c.parBands.watch },
-  { label: "Above 10%", value: c.parBands.above },
-  { label: "Not reported", value: c.parBands.notReported },
+  { label: tr("quest.cons.slice_within", { limit: par30Limit() }), value: c.parBands.within },
+  { label: tr("quest.cons.slice_watch", { limit: par30Limit() }), value: c.parBands.watch },
+  { label: tr("quest.cons.slice_above"), value: c.parBands.above },
+  { label: tr("status.not_reported"), value: c.parBands.notReported },
 ];
 
 export interface Coverage {

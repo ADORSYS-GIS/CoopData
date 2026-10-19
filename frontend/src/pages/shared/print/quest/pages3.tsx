@@ -1,9 +1,15 @@
-import { formatIndicatorValue, isNotReported } from "@/lib/basic-dashboard";
+import { isNotReported } from "@/lib/basic-dashboard";
 import { methodologyIndicators, narrativeText } from "@/lib/questionnaire-report";
 import { IndicatorTable } from "@/pages/shared/print/quest/IndicatorTable";
-import { labelOf, type QuestAnalysis } from "@/pages/shared/print/quest/data";
+import {
+  definitionOf,
+  labelOf,
+  reportValue,
+  type QuestAnalysis,
+} from "@/pages/shared/print/quest/data";
 import { recommendationsOf } from "@/pages/shared/print/quest/text";
 import { chunk } from "@/pages/shared/print/consolidated/stats";
+import { tr } from "@/pages/shared/print/tpl/i18n";
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { EndOfReport, Figure, SignOff } from "@/pages/shared/print/tpl/TplParts";
@@ -11,28 +17,28 @@ import { LineChart } from "@/pages/shared/print/tpl/TplTrend";
 import { INDICATOR_KEYS, type IndicatorGroup } from "@/types/basic-dashboard";
 
 export const performancePage = (a: QuestAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Operational & Economic Performance" },
+  toc: { no, title: tr("quest.performance.title") },
   render: () => {
     const narrative = narrativeText(a.props.narratives, "financial_structure_profitability");
     const margin = a.line("profitability", "total_operating_margin_pct");
     return (
       <>
-        <Sec no={no} title="Operational & Economic Performance" sub={a.period} />
+        <Sec no={no} title={tr("quest.performance.title")} sub={a.period} />
         <p>
-          The main activity margin is {a.text("main_activity_operating_margin_pct")} and the total
-          operating margin is {a.text("total_operating_margin_pct")}.{" "}
-          {a.num("member_economic_benefit_ratio_pct") === null ? (
-            <>The share of the main activity surplus distributed to members is not reported.</>
-          ) : (
-            <>
-              Of the main activity surplus, {a.text("member_economic_benefit_ratio_pct")} is
-              distributed to members.
-            </>
-          )}
+          {a.num("member_economic_benefit_ratio_pct") === null
+            ? tr("quest.performance.summary_missing_benefit", {
+                main: a.text("main_activity_operating_margin_pct"),
+                total: a.text("total_operating_margin_pct"),
+              })
+            : tr("quest.performance.summary", {
+                main: a.text("main_activity_operating_margin_pct"),
+                total: a.text("total_operating_margin_pct"),
+                benefit: a.text("member_economic_benefit_ratio_pct"),
+              })}
         </p>
         {narrative && (
           <div className="opinion keep">
-            <div className="lbl">Performance insights</div>
+            <div className="lbl">{tr("quest.performance.insights")}</div>
             <p style={{ margin: 0 }}>{narrative}</p>
           </div>
         )}
@@ -40,11 +46,15 @@ export const performancePage = (a: QuestAnalysis, no: string): PageSpec => ({
           <Figure
             caption={
               <>
-                <b>Figure F1.</b> Total operating margin by period (%).
+                <b>{tr("quest.figure", { id: "F1" })}</b> {tr("quest.performance.fig_f1")}
               </>
             }
           >
-            <LineChart labels={margin.labels} values={margin.values} unit="% of operating income" />
+            <LineChart
+              labels={margin.labels}
+              values={margin.values}
+              unit={tr("quest.performance.unit")}
+            />
           </Figure>
         )}
         <IndicatorTable a={a} keys={INDICATOR_KEYS.profitability} />
@@ -61,14 +71,11 @@ export const mpcFinancialRatiosPage = (a: QuestAnalysis, no: string): PageSpec |
   const hasData = INDICATOR_KEYS.coa.some((key) => a.num(key) !== null);
   if (!hasData) return null;
   return {
-    toc: { no, title: "MPC Financial Ratios" },
+    toc: { no, title: tr("quest.coa.title") },
     render: () => (
       <>
-        <Sec no={no} title="MPC Financial Ratios" sub={a.period} />
-        <p>
-          Ratios computed from the cooperative's own chart-of-accounts mapping (opening/closing
-          balances and annual movements by standard account).
-        </p>
+        <Sec no={no} title={tr("quest.coa.title")} sub={a.period} />
+        <p>{tr("quest.coa.intro")}</p>
         <IndicatorTable a={a} keys={INDICATOR_KEYS.coa} />
       </>
     ),
@@ -78,20 +85,17 @@ export const mpcFinancialRatiosPage = (a: QuestAnalysis, no: string): PageSpec |
 const PRIORITY_CLASS = { High: "h", Medium: "m", Standard: "l" } as const;
 
 export const findingsPage = (a: QuestAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Supervisory Findings & Recommendations" },
+  toc: { no, title: tr("coop.findings.title") },
   render: () => {
     const recs = recommendationsOf(a);
     const outlook = narrativeText(a.props.narratives, "outlook_recommendations");
     return (
       <>
-        <Sec no={no} title="Supervisory Findings & Recommendations" sub="Action plan" />
-        <p>
-          The following actions are recommended to the Board and management of {a.props.coopName}.
-          Progress should be reported with the next return.
-        </p>
+        <Sec no={no} title={tr("coop.findings.title")} sub={tr("common.action_plan")} />
+        <p>{tr("quest.findings.intro", { name: a.props.coopName })}</p>
         {outlook && (
           <div className="opinion keep">
-            <div className="lbl">Outlook</div>
+            <div className="lbl">{tr("quest.findings.outlook")}</div>
             <p style={{ margin: 0 }}>{outlook}</p>
           </div>
         )}
@@ -99,9 +103,9 @@ export const findingsPage = (a: QuestAnalysis, no: string): PageSpec => ({
           <thead>
             <tr>
               <th />
-              <th>Recommendation</th>
-              <th style={{ width: "20mm" }}>Priority</th>
-              <th style={{ width: "28mm" }}>Timeline</th>
+              <th>{tr("common.recommendation")}</th>
+              <th style={{ width: "20mm" }}>{tr("common.priority")}</th>
+              <th style={{ width: "28mm" }}>{tr("common.timeline")}</th>
             </tr>
           </thead>
           <tbody>
@@ -112,7 +116,9 @@ export const findingsPage = (a: QuestAnalysis, no: string): PageSpec => ({
                   <b>{rec.lead}</b> {rec.text}
                 </td>
                 <td>
-                  <span className={`prio ${PRIORITY_CLASS[rec.priority]}`}>{rec.priority}</span>
+                  <span className={`prio ${PRIORITY_CLASS[rec.priority]}`}>
+                    {tr(`common.priorities.${rec.priority}`)}
+                  </span>
                 </td>
                 <td>{rec.timeline}</td>
               </tr>
@@ -135,45 +141,47 @@ export const annexAPages = (a: QuestAnalysis, no: string): PageSpec[] => {
   const pages = chunk(flagged, ROWS_PER_PAGE);
   const parts = pages.length > 0 ? pages : [[]];
   return parts.map((rows, index): PageSpec => ({
-    toc: index === 0 ? { no, title: "Annex A — Data Quality & Methodology" } : undefined,
+    toc: index === 0 ? { no, title: tr("quest.annex_a.toc") } : undefined,
     render: () => (
       <>
         <Sec
           no={index === 0 ? no : undefined}
-          title="Data Quality & Methodology"
-          sub={parts.length > 1 ? `Annex · part ${index + 1} of ${parts.length}` : "Annex"}
+          title={tr("quest.annex_a.title")}
+          sub={
+            parts.length > 1
+              ? tr("common.annex_part_of", { part: index + 1, parts: parts.length })
+              : tr("common.annex")
+          }
         />
         {index === 0 && (
           <p>
-            {reported} of {total} indicators could be computed from the answers given.{" "}
+            {tr("quest.annex_a.intro", { reported, total })}{" "}
             {flagged.length > 0
-              ? "The indicators below are estimated or missing. An estimate is computed from grouped answers; a missing value has no answer to compute from."
-              : "Every indicator was computed from exact answers."}
+              ? tr("quest.annex_a.intro_flagged")
+              : tr("quest.annex_a.intro_exact")}
           </p>
         )}
         {rows.length > 0 && (
           <table className="tbl compact">
             <thead>
               <tr>
-                <th>Indicator</th>
-                <th style={{ width: "22mm" }}>Status</th>
+                <th>{tr("common.indicator")}</th>
+                <th style={{ width: "22mm" }}>{tr("common.status")}</th>
                 <th className="num" style={{ width: "22mm" }}>
-                  Value
+                  {tr("quest.measure_value")}
                 </th>
-                <th>Formula and source fields</th>
+                <th>{tr("common.definition")}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.key}>
                   <td>{labelOf(row.key)}</td>
-                  <td>{isNotReported(row) ? "Not reported" : "Estimated"}</td>
-                  <td className="num">{formatIndicatorValue(row, scope)}</td>
                   <td>
-                    {row.formula}
-                    {row.note ? ` ${row.note}` : ""}
-                    {row.sources.length > 0 ? ` (${row.sources.join(", ")})` : ""}
+                    {isNotReported(row) ? tr("status.not_reported") : tr("quest.annex_a.estimated")}
                   </td>
+                  <td className="num">{reportValue(row, scope)}</td>
+                  <td>{definitionOf(row.key, row.formula)}</td>
                 </tr>
               ))}
             </tbody>
@@ -184,59 +192,56 @@ export const annexAPages = (a: QuestAnalysis, no: string): PageSpec[] => {
   }));
 };
 
-const GROUP_TITLE: Record<IndicatorGroup, string> = {
-  membership: "Membership",
-  governance: "Governance",
-  training: "Training",
-  profitability: "Performance",
-  savings: "Savings",
-  risk: "Loan quality",
-  capital: "Resilience",
-  coa: "Financial Ratios (Chart of Accounts)",
-};
+const GROUP_ORDER: IndicatorGroup[] = [
+  "membership",
+  "governance",
+  "training",
+  "profitability",
+  "savings",
+  "risk",
+  "capital",
+  "coa",
+];
 
 export const annexBPages = (a: QuestAnalysis, no: string): PageSpec[] => {
   const rows = a.props.dashboard.indicators
     .filter((i) => i.formula)
-    .sort(
-      (x, y) =>
-        Object.keys(GROUP_TITLE).indexOf(x.group) - Object.keys(GROUP_TITLE).indexOf(y.group),
-    );
+    .sort((x, y) => GROUP_ORDER.indexOf(x.group) - GROUP_ORDER.indexOf(y.group));
   const pages = chunk(rows, 22);
   return pages.map((part, index): PageSpec => ({
-    toc: index === 0 ? { no, title: "Annex B — Indicator Definitions" } : undefined,
+    toc: index === 0 ? { no, title: tr("quest.annex_b.toc") } : undefined,
     render: () => (
       <>
         <Sec
           no={index === 0 ? no : undefined}
-          title="Indicator Definitions"
-          sub={pages.length > 1 ? `Annex · part ${index + 1} of ${pages.length}` : "Annex"}
+          title={tr("quest.annex_b.title")}
+          sub={
+            pages.length > 1
+              ? tr("common.annex_part_of", { part: index + 1, parts: pages.length })
+              : tr("common.annex")
+          }
         />
         <table className="tbl compact">
           <thead>
             <tr>
-              <th style={{ width: "24mm" }}>Group</th>
-              <th style={{ width: "50mm" }}>Indicator</th>
-              <th>Definition</th>
+              <th style={{ width: "24mm" }}>{tr("quest.annex_b.group")}</th>
+              <th style={{ width: "50mm" }}>{tr("common.indicator")}</th>
+              <th>{tr("common.definition")}</th>
             </tr>
           </thead>
           <tbody>
             {part.map((row) => (
               <tr key={row.key}>
-                <td>{GROUP_TITLE[row.group] ?? row.group}</td>
+                <td>{tr(`quest.groups.${row.group}`, { defaultValue: row.group })}</td>
                 <td>{labelOf(row.key)}</td>
-                <td>{row.formula}</td>
+                <td>{definitionOf(row.key, row.formula)}</td>
               </tr>
             ))}
           </tbody>
         </table>
         {index === pages.length - 1 && (
           <>
-            <p className="src">
-              Regulatory minimums: liquidity {a.props.dashboard.thresholds.liquidity_minimum_pct}%,
-              institutional capital {a.props.dashboard.thresholds.institutional_capital_minimum_pct}
-              %. PAR limits follow the PEARLS system as configured on the Coop Data platform.
-            </p>
+            <p className="src">{tr("common.pearls_source")}</p>
             <EndOfReport />
           </>
         )}

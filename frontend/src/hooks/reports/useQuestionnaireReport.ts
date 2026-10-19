@@ -29,14 +29,17 @@ export const useQuestionnaireReport = (submissionId: string | undefined, tokenOv
 export const useQuestionnaireNarratives = (
   submissionId: string | undefined,
   tokenOverride?: string,
+  lng?: string,
 ) =>
   useQuery({
-    queryKey: ["questionnaire-narratives", "v1", submissionId, tokenOverride],
+    queryKey: ["questionnaire-narratives", "v1", submissionId, tokenOverride, lng],
     enabled: !!submissionId,
     staleTime: 5 * 60 * 1000,
-    queryFn: () =>
-      fetchJson<QuestionnaireNarratives | null>(
-        `/api/v1/cooperative/submissions/${submissionId}/narratives`,
+    queryFn: () => {
+      const lngParam = lng ? `?lng=${encodeURIComponent(lng)}` : "";
+      return fetchJson<QuestionnaireNarratives | null>(
+        `/api/v1/cooperative/submissions/${submissionId}/narratives${lngParam}`,
         tokenOverride,
-      ),
+      );
+    },
   });

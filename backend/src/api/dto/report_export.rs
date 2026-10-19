@@ -18,7 +18,7 @@ pub struct ReportLanguageStatus {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ReportStatusResponse {
     pub languages: Vec<ReportLanguageStatus>,
-    /// Languages this report can be prepared in (questionnaire reports: English only).
+    /// Languages this report can be prepared in.
     pub available_languages: Vec<String>,
 }
 
