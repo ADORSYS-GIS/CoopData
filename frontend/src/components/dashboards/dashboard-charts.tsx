@@ -177,15 +177,22 @@ export function StatusBreakdownDonut({
           <span className="text-xs text-muted-foreground">{totalLabel}</span>
         </div>
       </div>
-      <div className="mt-4 grid w-full grid-cols-2 gap-2">
+      <ul className="mt-4 w-full divide-y divide-border/60" aria-label={totalLabel}>
         {data.map((d) => (
-          <div key={d.name} className="flex items-center gap-2 text-xs">
-            <span className="size-2.5 rounded-full shrink-0" style={{ background: d.color }} />
-            <span className="text-muted-foreground truncate">{d.name}</span>
-            <span className="ml-auto font-semibold num text-foreground">{d.value}</span>
-          </div>
+          <li key={d.name} className="flex items-center gap-2 py-2 text-xs">
+            <span
+              className="size-2.5 rounded-full shrink-0"
+              style={{ background: d.color }}
+              aria-hidden="true"
+            />
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">{d.name}</span>
+            <span className="font-semibold num text-foreground">{d.value.toLocaleString()}</span>
+            <span className="w-10 text-right num text-muted-foreground">
+              {Math.round((d.value / total) * 100)}%
+            </span>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
