@@ -5485,7 +5485,13 @@
       "frequency": "{{year}} is reported {{frequency}}. Choose that frequency to add another period.",
       "startMonth": "The quarters of {{year}} start in {{month}}. Keep that start month so the periods do not overlap.",
       "taken": "{{period}} {{year}} already exists. Choose another period, or open the existing submission from the list.",
-      "fullYearOverlap": "{{year}} already has monthly returns; a full-year return and single months cannot be mixed."
+      "fullYearOverlap": "{{year}} already has monthly returns; a full-year return and single months cannot be mixed.",
+      "allTaken": {
+        "QUARTERLY": "Every quarter of {{year}} already has a submission. Open them from the list to complete or review them.",
+        "SEMI_ANNUAL": "Both halves of {{year}} already have a submission. Open them from the list to complete or review them.",
+        "MONTHLY": "Every month of {{year}} already has a submission. Open them from the list to complete or review them.",
+        "YEARLY": "{{year}} already has a submission."
+      }
     },
     "lockedStartMonth": "{{year}} starts in {{month}}, like its other periods.",
     "alreadyCreated": "Created"

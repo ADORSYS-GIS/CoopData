@@ -5414,7 +5414,13 @@
       "frequency": "{{year}} é reportado em {{frequency}}. Escolha essa frequência para adicionar outro período.",
       "startMonth": "Os trimestres de {{year}} começam em {{month}}. Mantenha esse mês de início para que os períodos não se sobreponham.",
       "taken": "{{period}} {{year}} já existe. Escolha outro período ou abra a submissão existente na lista.",
-      "fullYearOverlap": "{{year}} já tem declarações mensais; uma declaração do ano completo e meses isolados não podem ser misturados."
+      "fullYearOverlap": "{{year}} já tem declarações mensais; uma declaração do ano completo e meses isolados não podem ser misturados.",
+      "allTaken": {
+        "QUARTERLY": "Cada trimestre de {{year}} já tem uma submissão. Abra-as na lista para as completar ou rever.",
+        "SEMI_ANNUAL": "Os dois semestres de {{year}} já têm uma submissão. Abra-as na lista para as completar ou rever.",
+        "MONTHLY": "Cada mês de {{year}} já tem uma submissão. Abra-as na lista para as completar ou rever.",
+        "YEARLY": "{{year}} já tem uma submissão."
+      }
     },
     "lockedStartMonth": "{{year}} começa em {{month}}, como os seus outros períodos.",
     "alreadyCreated": "Criado"

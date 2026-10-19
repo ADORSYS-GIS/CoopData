@@ -116,6 +116,7 @@ export type CreateBlock =
   | { reason: "frequency"; periodType: PeriodType }
   | { reason: "startMonth"; month: number }
   | { reason: "taken"; period: string }
+  | { reason: "allTaken"; periodType: PeriodType }
   | { reason: "fullYearOverlap" };
 
 /**
@@ -141,6 +142,10 @@ export const createBlock = (
   }
   const value =
     periodType === "YEARLY" ? String(lock.year) : normalizePeriodValue(periodType, periodValue);
+  const expected = periodType === "YEARLY" ? [String(lock.year)] : expectedPeriods(periodType);
+  const allTaken =
+    lock.taken.includes("FULL_YEAR") || expected.every((p) => lock.taken.includes(p));
+  if (allTaken && periodType !== "YEARLY") return { reason: "allTaken", periodType };
   if (lock.taken.includes(value)) return { reason: "taken", period: value };
   if (
     periodType === "MONTHLY" &&

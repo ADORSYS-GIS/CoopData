@@ -233,6 +233,22 @@ describe("createBlock", () => {
     expect(createBlock(monthly, "MONTHLY", "04", 1)).toBeNull();
   });
 
+  it("says when every quarter of the year already exists", () => {
+    const full = yearLock(
+      ["Q1", "Q2", "Q3", "Q4"].map((q) => ({
+        reporting_year: 2024,
+        period_type: "QUARTERLY",
+        period_value: q,
+      })),
+      2024,
+    );
+
+    expect(createBlock(full, "QUARTERLY", "Q1", 1)).toEqual({
+      reason: "allTaken",
+      periodType: "QUARTERLY",
+    });
+  });
+
   it("allows anything in a year with no submission", () => {
     expect(createBlock(null, "QUARTERLY", "Q1", 10)).toBeNull();
   });

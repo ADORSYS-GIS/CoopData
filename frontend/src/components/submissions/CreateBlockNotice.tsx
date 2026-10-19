@@ -29,6 +29,8 @@ export function CreateBlockNotice({ block, year }: CreateBlockNoticeProps) {
           year,
           period: MONTH_NAMES[Number(block.period) - 1] ?? block.period,
         });
+      case "allTaken":
+        return t(`periodReminders.block.allTaken.${block.periodType}`, { year });
       case "fullYearOverlap":
         return t("periodReminders.block.fullYearOverlap", { year });
     }

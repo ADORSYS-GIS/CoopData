@@ -5414,7 +5414,13 @@
       "frequency": "{{year}} ubikwa {{frequency}}. Khetsa leso sikhatsi kute wengete lesinye sikhatsi.",
       "startMonth": "Tikota ta-{{year}} tiyacala nga-{{month}}. Gcina leyo nyanga yekucala kute tikhatsi tingangeneli.",
       "taken": "{{period}} {{year}} sewukhona. Khetsa lesinye sikhatsi, nome uvule lokutfunyelwa lokukhona kuluhlu.",
-      "fullYearOverlap": "{{year}} sewunemibiko yenyanga; umbiko wemnyaka wonkhe netinyanga letitimele akukwati kuhlanganiswa."
+      "fullYearOverlap": "{{year}} sewunemibiko yenyanga; umbiko wemnyaka wonkhe netinyanga letitimele akukwati kuhlanganiswa.",
+      "allTaken": {
+        "QUARTERLY": "Yonkhe ikota ya-{{year}} seyinekutfunyelwa. Tivule kuluhlu kute uticedze nome utibuketele.",
+        "SEMI_ANNUAL": "Tonkhe tingcenye ta-{{year}} setinekutfunyelwa. Tivule kuluhlu kute uticedze nome utibuketele.",
+        "MONTHLY": "Yonkhe inyanga ya-{{year}} seyinekutfunyelwa. Tivule kuluhlu kute uticedze nome utibuketele.",
+        "YEARLY": "{{year}} sewunekutfunyelwa."
+      }
     },
     "lockedStartMonth": "{{year}} ucala nga-{{month}}, njengaletinye tikhatsi tawo.",
     "alreadyCreated": "Kwentiwe"
