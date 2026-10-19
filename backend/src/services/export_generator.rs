@@ -205,7 +205,7 @@ impl ExportGenerator {
                 active_members: nf.membership.active,
                 dormant_members: nf.membership.dormant,
                 women_members: nf.membership.female,
-                youth_members: nf.membership.age_18_35 + nf.membership.under_18,
+                youth_members: nf.membership.age_18_35,
                 rural_members: nf.membership.rural,
                 agm_participation_pct: nf.membership.agm_participation_pct,
                 leadership_count: nf.membership.leadership_count,

@@ -182,7 +182,7 @@ pub async fn get_nf_trend(
                 .await?
             };
             total_members += stats.membership.total;
-            youth_members += stats.membership.under_18 + stats.membership.age_18_35;
+            youth_members += stats.membership.age_18_35;
             women_members += stats.membership.female;
 
             if stats.membership.total > 0 {
@@ -465,7 +465,7 @@ pub async fn get_consolidated_nf_statistics(
                 0.0
             };
             m.youth_pct = if m.total > 0 {
-                ((m.under_18 + m.age_18_35) as f64 / m.total as f64) * 100.0
+                (m.age_18_35 as f64 / m.total as f64) * 100.0
             } else {
                 0.0
             };
