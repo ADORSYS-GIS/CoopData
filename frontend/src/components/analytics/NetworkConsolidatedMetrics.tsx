@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Hourglass } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { IndicatorSearch } from "@/components/analytics/basic/IndicatorSearch";
@@ -16,6 +17,8 @@ export interface NetworkConsolidatedMetricsProps {
   networkTrend?: Pick<MonthlyTrendResponse, "months" | "rates_used">;
   totalCooperatives: number;
   cooperativesWithData: number;
+  /** Cooperatives left out because their year is not complete yet. */
+  cooperativesIncomplete?: number;
   totalApexes?: number;
   seriesQuery: PeriodSeriesQuery;
   /** Page-specific chart sections rendered alongside the network charts, before the other stat groups. */
@@ -27,6 +30,7 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
   networkTrend,
   totalCooperatives,
   cooperativesWithData,
+  cooperativesIncomplete = 0,
   seriesQuery,
   extraCharts,
 }) => {
@@ -68,6 +72,15 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
 
   return (
     <div className="space-y-6">
+      {cooperativesIncomplete > 0 && (
+        <p
+          role="status"
+          className="flex items-center gap-2 rounded-xl border border-info/30 bg-info/5 px-4 py-2.5 text-sm text-foreground"
+        >
+          <Hourglass className="size-4 shrink-0 text-info" aria-hidden="true" />
+          {t("reportingYears.leftOut", { count: cooperativesIncomplete })}
+        </p>
+      )}
       <IndicatorSearch value={query} onChange={setQuery} />
       <NationalMetricSections
         headline={headline}

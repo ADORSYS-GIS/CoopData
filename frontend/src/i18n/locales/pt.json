@@ -6558,6 +6558,12 @@
       "quarterly": "Trimestral",
       "monthly": "Mensal",
       "semiAnnual": "Semestral"
-    }
+    },
+    "pendingTitle": "{{year}} ainda não está completo",
+    "pendingBody": "{{approved}} de {{expected}} períodos aprovados. Um ano é mostrado quando todos os seus períodos estão aprovados.",
+    "showingYear": "A mostrar {{year}}, o seu último ano completo.",
+    "noCompleteYear": "Ainda não há nenhum ano completo para mostrar.",
+    "leftOut_one": "{{count}} cooperativa fica de fora: o seu ano ainda não está completo (nem todos os períodos aprovados).",
+    "leftOut_other": "{{count}} cooperativas ficam de fora: o seu ano ainda não está completo (nem todos os períodos aprovados)."
   }
 }

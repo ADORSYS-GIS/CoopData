@@ -24,6 +24,10 @@ vi.mock("@/components/app-shell", () => ({
 
 vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ role: mockState.role }) }));
 
+vi.mock("@/hooks/submissions/useLatestSubmission", () => ({
+  useAnalyticsYear: () => ({}),
+}));
+
 vi.mock("@/hooks/cooperatives/useCooperatives", () => ({
   useCooperatives: () => ({ data: [{ id: "a", name: "SNAT" }] }),
 }));

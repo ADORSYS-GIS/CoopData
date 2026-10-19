@@ -6619,6 +6619,12 @@
       "quarterly": "Quarterly",
       "monthly": "Monthly",
       "semiAnnual": "Semi-annual"
-    }
+    },
+    "pendingTitle": "{{year}} is not complete yet",
+    "pendingBody": "{{approved}} of {{expected}} periods approved. A year is shown once every period of it is approved.",
+    "showingYear": "Showing {{year}}, your latest complete year.",
+    "noCompleteYear": "There is no complete year to show yet.",
+    "leftOut_one": "{{count}} cooperative is left out: its year is not complete yet (not every period approved).",
+    "leftOut_other": "{{count}} cooperatives are left out: their year is not complete yet (not every period approved)."
   }
 }

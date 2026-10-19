@@ -135,9 +135,15 @@ export interface YearProgress {
   expected: number;
   /** Every period approved: the year counts in dashboards, analytics and reports. */
   complete: boolean;
+  /**
+   * Id of the last period's approved submission once the year is complete: the
+   * backend builds the full year's figures from it (`scope=year`).
+   */
+  anchorId?: string;
 }
 
 export interface YearProgressSubmission extends PeriodSubmission {
+  id?: string;
   cooperative_id?: string | null;
 }
 
@@ -170,6 +176,7 @@ const progressFor = (
 ): YearProgress => {
   const expected = periodType === "YEARLY" ? [String(year)] : expectedPeriods(periodType);
   const states = new Map<string, PeriodState>(expected.map((period) => [period, "missing"]));
+  const approvedIds = new Map<string, string>();
   for (const submission of inYear) {
     if (toPeriodType(submission.period_type) !== periodType) continue;
     const value = normalizePeriodValue(periodType, submission.period_value);
@@ -180,10 +187,13 @@ const progressFor = (
       if (current !== undefined && STATE_RANK[state] > STATE_RANK[current]) {
         states.set(period, state);
       }
+      if (state === "approved" && submission.id) approvedIds.set(period, submission.id);
     }
   }
   const periods = expected.map((period) => ({ period, state: states.get(period) ?? "missing" }));
   const approved = periods.filter((p) => p.state === "approved").length;
+  const complete = approved === expected.length;
+  const lastPeriod = expected[expected.length - 1];
   return {
     cooperativeId,
     year,
@@ -191,7 +201,8 @@ const progressFor = (
     periods,
     approved,
     expected: expected.length,
-    complete: approved === expected.length,
+    complete,
+    anchorId: complete && lastPeriod ? approvedIds.get(lastPeriod) : undefined,
   };
 };
 

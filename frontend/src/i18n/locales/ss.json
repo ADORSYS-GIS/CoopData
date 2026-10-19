@@ -6548,6 +6548,12 @@
       "quarterly": "Ngekota",
       "monthly": "Ngenyanga",
       "semiAnnual": "Ngehhafu yemnyaka"
-    }
+    },
+    "pendingTitle": "{{year}} akakagcwali",
+    "pendingBody": "Tikhatsi letingu-{{approved}} kwaleti-{{expected}} tivunyiwe. Umnyaka uyakhonjiswa nase tonkhe tikhatsi tawo tivunyiwe.",
+    "showingYear": "Kukhonjiswa {{year}}, umnyaka wakho wekugcina logcwele.",
+    "noCompleteYear": "Kute umnyaka logcwele lotawukhonjiswa okwamanje.",
+    "leftOut_one": "Libhizinisi lelilinye ({{count}}) alifakiwe: umnyaka walo akakagcwali (akusito tonkhe tikhatsi letivunyiwe).",
+    "leftOut_other": "Emabhizinisi langu-{{count}} awafakiwe: umnyaka wawo akakagcwali (akusito tonkhe tikhatsi letivunyiwe)."
   }
 }

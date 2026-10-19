@@ -6582,6 +6582,12 @@
       "quarterly": "Trimestrielle",
       "monthly": "Mensuelle",
       "semiAnnual": "Semestrielle"
-    }
+    },
+    "pendingTitle": "{{year}} n'est pas encore complète",
+    "pendingBody": "{{approved}} périodes sur {{expected}} approuvées. Une année s'affiche une fois toutes ses périodes approuvées.",
+    "showingYear": "Affichage de {{year}}, votre dernière année complète.",
+    "noCompleteYear": "Aucune année complète à afficher pour l'instant.",
+    "leftOut_one": "{{count}} coopérative est exclue : son année n'est pas encore complète (toutes les périodes ne sont pas approuvées).",
+    "leftOut_other": "{{count}} coopératives sont exclues : leur année n'est pas encore complète (toutes les périodes ne sont pas approuvées)."
   }
 }

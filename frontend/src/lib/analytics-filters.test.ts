@@ -8,15 +8,30 @@ import {
 } from "@/lib/analytics-filters";
 
 describe("toPeriodOptions", () => {
-  it("keeps only approved submissions, newest first, without duplicates", () => {
+  const q = (year: number, value: string, status = "approved") => ({
+    cooperative_id: "c1",
+    reporting_year: year,
+    period_type: "QUARTERLY",
+    period_value: value,
+    status,
+  });
+
+  it("keeps only periods of complete years, newest first, without duplicates", () => {
     const options = toPeriodOptions([
-      { reporting_year: 2024, period_type: "QUARTERLY", period_value: "Q1", status: "approved" },
-      { reporting_year: 2025, period_type: "QUARTERLY", period_value: "Q2", status: "approved" },
-      { reporting_year: 2025, period_type: "QUARTERLY", period_value: "Q2", status: "approved" },
-      { reporting_year: 2026, period_type: "YEARLY", period_value: "2026", status: "draft" },
+      ...["Q1", "Q2", "Q3", "Q4"].map((v) => q(2024, v)),
+      q(2024, "Q4"),
+      q(2025, "Q1"),
+      q(2025, "Q2"),
+      {
+        cooperative_id: "c1",
+        reporting_year: 2026,
+        period_type: "YEARLY",
+        period_value: "2026",
+        status: "draft",
+      },
     ]);
 
-    expect(options.map((o) => o.label)).toEqual(["Q2 2025", "Q1 2024"]);
+    expect(options.map((o) => o.label)).toEqual(["Q4 2024", "Q3 2024", "Q2 2024", "Q1 2024"]);
   });
 });
 
@@ -74,17 +89,21 @@ describe("resolveYear", () => {
 
 describe("resolveSelection", () => {
   const periods = toPeriodOptions([
-    { reporting_year: 2025, period_type: "QUARTERLY", period_value: "Q1", status: "approved" },
-    { reporting_year: 2025, period_type: "QUARTERLY", period_value: "Q2", status: "approved" },
+    ...["Q1", "Q2", "Q3", "Q4"].map((value) => ({
+      reporting_year: 2025,
+      period_type: "QUARTERLY",
+      period_value: value,
+      status: "approved",
+    })),
     { reporting_year: 2024, period_type: "YEARLY", period_value: "2024", status: "approved" },
   ]);
   const all = { year: "all", periodType: "all", periodValue: "all" };
 
-  it("picks the newest approved period when everything is latest available", () => {
+  it("picks the newest period of a complete year when everything is latest available", () => {
     expect(resolveSelection(all, periods)).toEqual({
       year: 2025,
       periodType: "QUARTERLY",
-      periodValue: "Q2",
+      periodValue: "Q4",
     });
   });
 

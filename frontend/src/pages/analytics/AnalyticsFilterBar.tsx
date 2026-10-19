@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { YearPickerFilter } from "@/components/shared/YearPickerFilter";
 import { FilterSelect } from "@/components/analytics/basic/BasicFilterBar";
-import { periodOptions, periodTypeOptions } from "@/lib/basic-dashboard-filters";
+import { periodTypeOptions } from "@/lib/basic-dashboard-filters";
 import { LATEST } from "@/lib/analytics-filters";
 import type { PeriodOption } from "@/types/basic-dashboard";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
@@ -31,9 +31,10 @@ const byPosition = (a: FilterConfig, b: FilterConfig): number =>
   ORDER.indexOf(a.id) - ORDER.indexOf(b.id);
 
 /**
- * Same inline filter pills as Basic Analytics: year, frequency and period
- * default to "Latest available", followed by the hierarchy filters the role can
- * use. Figures on this dashboard are always shown in SZL.
+ * Year and reporting frequency default to "Latest available", followed by the
+ * hierarchy filters the role can use. Figures are always whole complete years
+ * (a single quarter is never shown on its own); the frequency narrows the
+ * cooperatives and sets the trend charts' periods. Figures are shown in SZL.
  */
 export function AnalyticsFilterBar({
   filters,
@@ -79,18 +80,6 @@ export function AnalyticsFilterBar({
         options={[
           latest,
           ...periodTypeOptions(periods).map((p) => ({ value: p, label: typeLabel(p) })),
-        ]}
-      />
-      <FilterSelect
-        label={f("period")}
-        value={filterValues.periodValue}
-        onValueChange={(value) => onFilterChange("periodValue", value)}
-        options={[
-          latest,
-          ...periodOptions(periods, filterValues.year, filterValues.periodType).map((p) => ({
-            value: p.period_value,
-            label: p.label,
-          })),
         ]}
       />
       {[...filters].sort(byPosition).map((filter) => {

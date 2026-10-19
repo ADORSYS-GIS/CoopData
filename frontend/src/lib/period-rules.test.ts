@@ -117,12 +117,19 @@ describe("yearProgress", () => {
     ]);
   });
 
-  it("completes the year once the last quarter is approved", () => {
+  it("completes the year once the last quarter is approved, anchored on Q4", () => {
     const [year] = yearProgress(
-      ["Q4", "Q2", "Q1", "Q3"].map((q) => sub(2026, "QUARTERLY", q, "approved")),
+      ["Q4", "Q2", "Q1", "Q3"].map((q) => ({ ...sub(2026, "QUARTERLY", q, "approved"), id: q })),
     );
 
     expect(year?.complete).toBe(true);
+    expect(year?.anchorId).toBe("Q4");
+  });
+
+  it("has no anchor while the year is incomplete", () => {
+    const [year] = yearProgress([{ ...sub(2026, "QUARTERLY", "Q4", "approved"), id: "q4" }]);
+
+    expect(year?.anchorId).toBeUndefined();
   });
 
   it("treats a returned period as a draft and a rejected one as missing", () => {

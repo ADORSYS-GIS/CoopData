@@ -69,20 +69,30 @@ const BASE_URL =
     : import.meta.env.VITE_API_BASE_URL || "";
 
 /**
+ * "period": the submission's own period. "year": the complete year it belongs
+ * to, a year reported by quarters, halves or months being combined.
+ */
+export type KpiScope = "period" | "year";
+
+/**
  * Fetches computed KPIs for a specific submission.
  * KPIs are computed on-demand from the submission's balance sheet line items.
  * The submission_id should be the latest submission (highest reporting_year)
  * from useCooperativeSubmissions — regardless of status.
  */
-export const useCooperativeKpis = (submissionId: string | undefined, tokenOverride?: string) =>
+export const useCooperativeKpis = (
+  submissionId: string | undefined,
+  tokenOverride?: string,
+  scope: KpiScope = "period",
+) =>
   useOfflineQuery<SubmissionKpisResponse>({
-    queryKey: ["coop-kpis", submissionId, tokenOverride],
+    queryKey: ["coop-kpis", submissionId, tokenOverride, scope],
     cacheTable: "submissions",
-    cacheKey: `kpis-${submissionId}`,
+    cacheKey: `kpis-${scope}-${submissionId}`,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
       const res = await fetch(
-        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis?include_prior_year=true`,
+        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/kpis?include_prior_year=true${scope === "year" ? "&scope=year" : ""}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
