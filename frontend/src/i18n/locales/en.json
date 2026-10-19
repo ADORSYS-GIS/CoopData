@@ -6527,6 +6527,7 @@
       },
       "supervisory_limits": "Supervisory limits",
       "measure": "Measure",
+      "measure_value": "Value",
       "reported": "Reported",
       "result": "Result",
       "concerns": "Concerns",

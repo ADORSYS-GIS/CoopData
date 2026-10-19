@@ -6490,6 +6490,7 @@
       },
       "supervisory_limits": "Limites prudentielles",
       "measure": "Mesure",
+      "measure_value": "Valeur",
       "reported": "Déclaré",
       "result": "Résultat",
       "concerns": "Préoccupations",

@@ -6466,6 +6466,7 @@
       },
       "supervisory_limits": "Limites de supervisão",
       "measure": "Medida",
+      "measure_value": "Valor",
       "reported": "Reportado",
       "result": "Resultado",
       "concerns": "Preocupações",
