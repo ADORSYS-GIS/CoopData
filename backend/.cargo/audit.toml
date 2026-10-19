@@ -6,6 +6,7 @@ ignore = [
   "RUSTSEC-2026-0187", # lopdf stack overflow via nested PDF objects — transitive via printpdf 0.7; fix requires printpdf upgrade to 0.11+ (breaking API changes)
   "RUSTSEC-2026-0192", # ttf-parser unmaintained — transitive via pdf_oxide; no alternative available
   "RUSTSEC-2026-0221", # event-listener !Send StackSlot — transitive via sqlx-core 0.8.6; fix requires sqlx upgrade
+  "RUSTSEC-2026-0253", # lru potential use-after-free — transitive via tower-layer; fix requires tower-layer upgrade
   "RUSTSEC-2026-0235", # rkyv archive OOB read — transitive via rust_decimal 1.42.1; fix requires rkyv >= 0.8.17 (breaking)
   # zip < 9.0 extraction flaws (symlink targets, permissions through symlinks, SUID/SGID bits) — only
   # reachable through ZipArchive::extract / ZipStreamReader::extract, which write an archive to disk.
