@@ -42,6 +42,9 @@ approved submission is treated as "the year", so:
    - ratios: recalculated from those totals;
    - member, loan and savings registers: the last period (they are stock figures).
 5. **Comparisons** (growth, prior year, trends) only between complete years.
+   Growth across several cooperatives is **like for like**: only the
+   cooperatives with a complete year in both years are compared, and a note
+   names those left out. Totals still include every cooperative.
 6. **Submission review is unchanged.** The apex still reviews and approves each
    period on its own, with that period's own figures.
 
