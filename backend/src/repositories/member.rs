@@ -221,6 +221,7 @@ impl MemberRepository {
     ) -> AppResult<crate::api::dto::submission::MembershipStatsResponse> {
         let members = member::Entity::find()
             .filter(MemberColumn::CooperativeId.eq(cooperative_id))
+            .filter(MemberColumn::SubmissionId.eq(submission_id))
             .all(&self.db)
             .await
             .map_err(AppError::DatabaseError)?;
@@ -239,10 +240,8 @@ impl MemberRepository {
                 _ => {}
             }
 
-            match m.age_group {
-                crate::entities::enums::AgeGroup::Under18
-                | crate::entities::enums::AgeGroup::Between18And35 => youth += 1,
-                _ => {}
+            if m.age_group.is_youth() {
+                youth += 1;
             }
 
             match m.status {

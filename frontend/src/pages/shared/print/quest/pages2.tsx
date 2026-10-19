@@ -65,11 +65,18 @@ export const resiliencePage = (a: QuestAnalysis, no: string): PageSpec => ({
     return (
       <>
         <Sec no={no} title="Institutional Resilience" sub={a.period} />
-        <p>
-          Accumulated reserves are backed by actual bank funds at{" "}
-          {a.text("monetary_reserve_coverage_pct")}. This compares recorded reserves with their
-          monetary backing; it is not a regulatory liquidity ratio.
-        </p>
+        {a.num("monetary_reserve_coverage_pct") === null ? (
+          <p>
+            Monetary reserve coverage is not reported, so the bank backing of recorded reserves
+            cannot be assessed (see Annex A).
+          </p>
+        ) : (
+          <p>
+            Accumulated reserves are backed by actual bank funds at{" "}
+            {a.text("monetary_reserve_coverage_pct")}. This compares recorded reserves with their
+            monetary backing; it is not a regulatory liquidity ratio.
+          </p>
+        )}
         {narrative && (
           <div className="opinion keep">
             <div className="lbl">Resilience insights</div>

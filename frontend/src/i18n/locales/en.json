@@ -697,7 +697,7 @@
       "loans": "Gross Loans",
       "deposits": "Member Deposits",
       "noFinancialData": "No financial data yet",
-      "noFinancialDataSub": "Upload a financial statement to see your data here.",
+      "noFinancialDataSub": "Your figures appear here once the apex approves a financial statement.",
       "portfolioQuality": "Loan Portfolio Quality",
       "derivedPar": "Derived from PAR ratios",
       "noData": "No data yet",
@@ -705,7 +705,7 @@
       "performing": "Performing",
       "watchList": "Watch List",
       "nonPerforming": "Non-Performing",
-      "submitFinancialStatement": "Submit a financial statement to see loan quality data.",
+      "submitFinancialStatement": "Loan quality appears here once the apex approves a financial statement.",
       "growthTrend": "Financial Growth Trend",
       "growthTrendSub": "Assets, loans & savings over the reporting year",
       "growthTrendInfo": "Month-over-month trajectory of your cooperative's key financial balances, indicating growth and seasonal fluctuations.",
@@ -728,7 +728,7 @@
       "submitStatementOss": "Submit a financial statement to see OSS data.",
       "keyMetrics": "Key Financial Metrics",
       "keyMetricsSub": "From your {{year}} submission · {{status}}",
-      "keyMetricsSubFallback": "Extracted from your latest financial statement",
+      "keyMetricsSubFallback": "Shown once the apex approves a financial statement",
       "keyMetricsInfo": "A curated snapshot of critical financial and regulatory compliance indicators drawn from the most recent financial statement.",
       "netSurplus": "Net Surplus",
       "nplRatio": "NPL Ratio",
@@ -740,7 +740,20 @@
       "colYear": "Year",
       "colFiledOn": "Filed On",
       "colStatus": "Status",
-      "noSubmissionsSub": "Create a new submission to get started."
+      "noSubmissionsSub": "Create a new submission to get started.",
+      "keyIndicators": "Key Indicators",
+      "keyIndicatorsSub": "From your {{year}} questionnaire · {{status}}",
+      "keyIndicatorsInfo": "Headline indicators computed from your most recent questionnaire: membership, savings, loan quality, governance and margins.",
+      "noIndicators": "No indicators could be computed from this questionnaire yet.",
+      "openBasicAnalytics": "See all indicators in Basic Analytics",
+      "keyMetricsSubQuestionnaire": "From your {{year}} questionnaire · {{status}}",
+      "keyMetricsInfoQuestionnaire": "Financial figures calculated from your most recent questionnaire answers. Questions left blank show as —. Questionnaire figures have no benchmarks.",
+      "par30Label": "Loans overdue > 30 days",
+      "capitalRatioLabel": "Institutional capital",
+      "keyMetricsSubFallbackQuestionnaire": "Shown once the apex approves a questionnaire",
+      "noFinancialDataSubQuestionnaire": "Your figures appear here once the apex approves a questionnaire.",
+      "submitQuestionnaire": "Loan quality appears here once the apex approves a questionnaire.",
+      "noSubmissions": "No submissions yet"
     }
   },
   "users": {
@@ -1873,7 +1886,7 @@
     "recentActivity": "Recent activity",
     "totalSavingsBalance": "Member Ledger Savings Balance",
     "loanAccounts": "Loan Accounts",
-    "loanValueK": "Loan Value ($K)",
+    "loanValueK": "Loan Value (SZL K)",
     "ytd2025": "YTD 2025",
     "q1_2025": "Q1 2025",
     "q2_2025": "Q2 2025",
@@ -2219,7 +2232,7 @@
     "funnelLeadershipRole": "Leadership Role",
     "funnelMembers": "Members",
     "inclusionNoData": "No loan data available",
-    "inclusionYouth": "Youth (<35)",
+    "inclusionYouth": "Youth (18–35)",
     "inclusionRural": "Rural",
     "inclusionShare": "Inclusion Share",
     "agriNoData": "No agricultural data available",
@@ -2295,7 +2308,7 @@
     "netActivePct": "{{pct}}% Active",
     "netTotalSavings": "Member Ledger Savings",
     "netTotalSavingsTooltip": "The sum of every balance in the uploaded member savings register. It comes from the member ledger, not from the balance sheet, so it can differ from member savings on the financial statement. Converted to ZAR at each submission's frozen rate. Formula: sum of all savings account balances.",
-    "netAvg": "Avg: ${{amount}}",
+    "netAvg": "Avg: {{amount}}",
     "netTotalLoans": "Member Ledger Loans",
     "netTotalLoansTooltip": "The outstanding balance of the loans in the uploaded loan book, without written-off loans. It comes from the member ledger, not from the balance sheet, so it can differ from gross loans on the financial statement. Converted to ZAR. Formula: sum of balances of loans that are not written off.",
     "netArrearsPct": "{{pct}}% Arrears",
@@ -2315,7 +2328,7 @@
     "netDormantMembers": "Dormant Members",
     "netDormantMembersTooltip": "Members whose status in the register is dormant, meaning they are still members but no longer take part. A high share suggests members need to be re-engaged. Taken from the uploaded member ledger. Formula: members with status dormant.",
     "netDormancyRatePct": "{{pct}}% dormancy rate",
-    "netYouthMembers": "Youth members (35 and under)",
+    "netYouthMembers": "Youth members (18–35)",
     "netYouthMembersTooltip": "Members aged 35 or younger. It shows how well the cooperative reaches young people. Taken from the age group of each member in the uploaded member ledger. Formula: members under 18 plus members aged 18 to 35.",
     "netSavingsPortfolioMetrics": "Savings Portfolio Metrics",
     "netSavingsAccounts": "Savings Accounts",
@@ -2739,7 +2752,7 @@
     "totalMembers": "Total Members",
     "active": "Active",
     "women": "Women",
-    "youth": "Youth (<35)",
+    "youth": "Youth (18–35)",
     "savingsStats": "Savings Statistics",
     "savingsRegistry": "Account registry summary",
     "totalAccounts": "Total Accounts",
@@ -3165,8 +3178,8 @@
       "totalAssets": "Total Assets",
       "totalLiabilities": "Total Liabilities",
       "totalEquity": "Total Equity",
-      "annualIncome": "Annual Income (12-Mo Sum)",
-      "annualExpenses": "Annual Expenses (12-Mo Sum)",
+      "annualIncome": "Income for the Period",
+      "annualExpenses": "Expenses for the Period",
       "netSurplus": "Net Surplus"
     },
     "balancedSuccess": "Balance sheet balances at period end ✓",
@@ -3210,7 +3223,7 @@
       "maturityDate": "Maturity Date",
       "status": "Status",
       "tenure": "Tenure",
-      "interestRate": "Interest Rate",
+      "interestRate": "Interest Rate (%)",
       "balance": "Balance"
     },
     "rowCount": "{{count}} deposit",
@@ -3232,7 +3245,7 @@
       "status": "Status",
       "borrowerType": "Borrower Type",
       "dpdCategory": "DPD Category",
-      "interestRate": "Interest Rate",
+      "interestRate": "Interest Rate (%)",
       "loanAmount": "Loan Amount",
       "balance": "Balance"
     },
@@ -3256,7 +3269,7 @@
       "lastContribDate": "Last Contrib Date",
       "contribsCount": "Contribs Count",
       "trend": "Trend",
-      "interestRate": "Interest Rate",
+      "interestRate": "Interest Rate (%)",
       "balance": "Balance"
     },
     "rowCount": "{{count}} savings account",
@@ -4324,15 +4337,18 @@
     "selectedFederation": "selected federation",
     "selectedApex": "selected apex",
     "method": {
-      "title": "Report type",
-      "choose": "Both types have data for this selection. Choose which report to export.",
-      "auto": "Only this type has data for this selection, so it is selected for you.",
-      "none": "No approved submissions for this selection.",
-      "standard": "Standard report",
-      "standardDesc": "Built from financial statements ({{count}} approved submissions)",
-      "questionnaire": "Questionnaire report",
-      "questionnaireDesc": "Built from questionnaire answers ({{count}} approved submissions)",
-      "summary": "Report type"
+      "title": "Report edition",
+      "choose": "Cooperatives report in two ways, so this report comes in two editions. Choose the one to export.",
+      "auto": "Only the {{edition}} edition has approved data for {{year}}, so it is selected for you.",
+      "none": "No approved submissions for this selection yet, in either edition.",
+      "standard": "Financial statements",
+      "questionnaire": "Questionnaire",
+      "standardDesc": "Built from financial statements submitted by upload or manual entry, usually by SACCOs.",
+      "questionnaireDesc": "Built from the questionnaire that multipurpose cooperatives fill in.",
+      "count_one": "{{count}} approved submission",
+      "count_other": "{{count}} approved submissions",
+      "noneForYear": "No approved submissions for {{year}}",
+      "summary": "Report edition"
     },
     "close": "Close",
     "status": {
@@ -4347,6 +4363,17 @@
       "updateHint": "Rebuild the report from the latest data",
       "readyToast": "Your {{language}} report is ready.",
       "failedToast": "We couldn't prepare your report. Please try again."
+    },
+    "steps": {
+      "fed": "Federation",
+      "apex": "Apex",
+      "coop": "Cooperative",
+      "submission": "Submission",
+      "year": "Year",
+      "method": "Report edition"
+    },
+    "editions": {
+      "available": "Available in two editions:"
     }
   },
   "analyticsFilter": {
@@ -4609,6 +4636,7 @@
     "registerNewHeader": "Register New Cooperative",
     "name": "Cooperative Name",
     "placeholderName": "e.g. Mbabane SACCO",
+    "typeLockedHint": "The type can't be changed: this cooperative already has submissions.",
     "institutionType": "Institution Type",
     "placeholderType": "Select type",
     "regNo": "Registration Number",
@@ -5101,7 +5129,7 @@
         "Transport": "Transport",
         "Manufacturing": "Manufacturing"
       },
-      "zar": "ZAR"
+      "currencyCode": "SZL"
     },
     "scope": {
       "individual": "Individual view",

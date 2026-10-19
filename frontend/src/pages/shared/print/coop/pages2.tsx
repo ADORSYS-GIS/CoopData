@@ -106,6 +106,14 @@ function StatementTable({ rows, a, shareLabel, base }: TableProps) {
 
 const paginate = (rows: Row[]): Row[][] => chunk(rows, ROWS_PER_PAGE);
 
+/** A prior-year total, or nothing when the return has no prior-year figures at all. */
+const priorTotal = (s: CoopAnalysis["statement"], total: number): number | undefined =>
+  [...s.assets, ...s.liabilities, ...s.equity, ...s.income, ...s.expenses].some(
+    (line) => line.prior !== undefined,
+  ) || Object.values(s.reported).some((t) => t.prior !== undefined)
+    ? total
+    : undefined;
+
 export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
   const s = a.statement;
   const rows: Row[] = [
@@ -116,7 +124,7 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
       code: 1999,
       name: tr("coop.statement.total_assets"),
       current: s.totals.assets.current,
-      prior: s.totals.assets.prior,
+      prior: priorTotal(s, s.totals.assets.prior),
       note: "assets",
     },
     { kind: "grp", name: tr("coop.statement.liabilities") },
@@ -126,7 +134,7 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
       code: 2999,
       name: tr("coop.statement.total_liabilities"),
       current: s.totals.liabilities.current,
-      prior: s.totals.liabilities.prior,
+      prior: priorTotal(s, s.totals.liabilities.prior),
     },
     { kind: "grp", name: tr("coop.statement.equity") },
     ...linesOf(s.equity),
@@ -135,14 +143,14 @@ export const positionPages = (a: CoopAnalysis, no: string): PageSpec[] => {
       code: 3999,
       name: tr("coop.statement.total_equity"),
       current: s.totals.equity.current,
-      prior: s.totals.equity.prior,
+      prior: priorTotal(s, s.totals.equity.prior),
       note: "equity",
     },
     {
       kind: "grand",
       name: tr("coop.statement.total_liabilities_equity"),
       current: s.totals.liabilities.current + s.totals.equity.current,
-      prior: s.totals.liabilities.prior + s.totals.equity.prior,
+      prior: priorTotal(s, s.totals.liabilities.prior + s.totals.equity.prior),
     },
   ];
   const pages = paginate(rows);
@@ -266,7 +274,7 @@ export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
       name: tr("coop.statement.total_income"),
       code: 4999,
       current: s.totals.income.current,
-      prior: s.totals.income.prior,
+      prior: priorTotal(s, s.totals.income.prior),
     },
     { kind: "grp", name: tr("coop.statement.expenditure") },
     ...s.expenses.map((l): Row => ({
@@ -282,7 +290,7 @@ export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
       name: tr("coop.statement.total_expenditure"),
       code: 5999,
       current: Math.abs(s.totals.expenses.current),
-      prior: Math.abs(s.totals.expenses.prior),
+      prior: priorTotal(s, Math.abs(s.totals.expenses.prior)),
       neg: true,
     },
     {
@@ -290,7 +298,7 @@ export const performancePages = (a: CoopAnalysis, no: string): PageSpec[] => {
       name: tr("coop.statement.net_surplus_year"),
       code: 6999,
       current: s.totals.surplus.current,
-      prior: s.totals.surplus.prior,
+      prior: priorTotal(s, s.totals.surplus.prior),
       note: "surplus",
     },
   ];

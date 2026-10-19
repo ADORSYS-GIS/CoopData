@@ -21,12 +21,36 @@ interface BenchmarkMatrixProps {
   selectedCoop: BenchmarkRow;
   compareTargetName: string;
   getValue: (row: BenchmarkRow, metricKey: string) => number;
-  getCompareValue: (metricKey: string) => number;
+  /** The peer value, or null when the peer average is withheld (too few cooperatives). */
+  getCompareValue: (metricKey: string) => number | null;
   selectedKpi: string;
   onSelectKpi: (key: string) => void;
   formatValue: (val: number, unit: string) => string;
   labels: BenchmarkMatrixLabels;
 }
+
+export type GapStatus = "healthy" | "watch" | "critical";
+
+/**
+ * How far a cooperative falls behind its peers: under 10% is healthy, 10–20%
+ * calls for watching and more than 20% is critical. Doing better than the
+ * peers is healthy, whichever direction is better for the metric.
+ */
+export function gapStatus(value: number, peer: number, lowerIsBetter: boolean): GapStatus {
+  const behind = lowerIsBetter ? value - peer : peer - value;
+  if (behind <= 0 || peer === 0) return "healthy";
+  const gap = (behind / Math.abs(peer)) * 100;
+  return gap < 10 ? "healthy" : gap <= 20 ? "watch" : "critical";
+}
+
+const STATUS_STYLE: Record<GapStatus, string> = {
+  healthy:
+    "bg-success/10 dark:bg-success/20 text-success dark:text-success border border-success/20 dark:border-success/30",
+  watch:
+    "bg-warning/10 dark:bg-warning/20 text-warning dark:text-warning border border-warning/20 dark:border-warning/30",
+  critical:
+    "bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive border border-destructive/20 dark:border-destructive/30",
+};
 
 /**
  * The full metric-comparison matrix (search + group filter toolbar and the
@@ -188,13 +212,18 @@ export function BenchmarkMatrix({
                   {groupMetrics.map((metric) => {
                     const coopVal = getValue(selectedCoop, metric.key);
                     const targetVal = getCompareValue(metric.key);
-                    const diff = coopVal - targetVal;
-                    const percentDiff = targetVal > 0 ? (diff / targetVal) * 100 : 0;
+                    const diff = targetVal === null ? 0 : coopVal - targetVal;
+                    const percentDiff =
+                      targetVal !== null && targetVal > 0 ? (diff / targetVal) * 100 : 0;
 
                     // Direction indicators — a lower value is better for e.g.
                     // expenditure, NPL, PAR, dormancy.
                     const isPositiveIndicator = !(metric.isLowerBetter ?? false);
                     const isBetter = isPositiveIndicator ? diff >= 0 : diff <= 0;
+                    const status =
+                      targetVal === null
+                        ? "healthy"
+                        : gapStatus(coopVal, targetVal, metric.isLowerBetter ?? false);
 
                     return (
                       <tr
@@ -225,47 +254,57 @@ export function BenchmarkMatrix({
                           {formatValue(coopVal, metric.unit)}
                         </td>
                         <td className="py-3 px-4 text-right num text-slate-400 dark:text-slate-500 font-mono">
-                          {formatValue(targetVal, metric.unit)}
+                          {targetVal === null ? "—" : formatValue(targetVal, metric.unit)}
                         </td>
-                        <td
-                          className={`py-3 px-4 text-right num font-semibold font-mono ${
-                            diff === 0
-                              ? "text-slate-450 dark:text-slate-500"
-                              : isBetter
-                                ? "text-success dark:text-success"
-                                : "text-destructive dark:text-destructive"
-                          }`}
-                        >
-                          {diff > 0 ? "+" : ""}
-                          {metric.unit === "%"
-                            ? `${diff.toFixed(2)}%`
-                            : formatValue(diff, metric.unit)}
-                          {targetVal > 0 && (
-                            <span className="text-[10px] ml-1 opacity-70 font-normal">
-                              ({diff > 0 ? "+" : ""}
-                              {percentDiff.toFixed(1)}%)
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                              isBetter
-                                ? "bg-success/10 dark:bg-success/20 text-success dark:text-success border border-success/20 dark:border-success/30"
-                                : "bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive border border-destructive/20 dark:border-destructive/30"
-                            }`}
-                          >
-                            {isBetter ? (
-                              <>
-                                <TrendingUp className="size-2.5" /> {labels.legendHealthy}
-                              </>
-                            ) : (
-                              <>
-                                <TrendingDown className="size-2.5" /> {labels.legendWatch}
-                              </>
-                            )}
-                          </span>
-                        </td>
+                        {targetVal === null ? (
+                          <>
+                            <td className="py-3 px-4 text-right num text-slate-400 dark:text-slate-500 font-mono">
+                              —
+                            </td>
+                            <td className="py-3 px-4 text-center text-slate-400 dark:text-slate-500">
+                              —
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td
+                              className={`py-3 px-4 text-right num font-semibold font-mono ${
+                                diff === 0
+                                  ? "text-slate-450 dark:text-slate-500"
+                                  : isBetter
+                                    ? "text-success dark:text-success"
+                                    : "text-destructive dark:text-destructive"
+                              }`}
+                            >
+                              {diff > 0 ? "+" : ""}
+                              {metric.unit === "%"
+                                ? `${diff.toFixed(2)}%`
+                                : formatValue(diff, metric.unit)}
+                              {targetVal > 0 && (
+                                <span className="text-[10px] ml-1 opacity-70 font-normal">
+                                  ({diff > 0 ? "+" : ""}
+                                  {percentDiff.toFixed(1)}%)
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_STYLE[status]}`}
+                              >
+                                {status === "healthy" ? (
+                                  <TrendingUp className="size-2.5" />
+                                ) : (
+                                  <TrendingDown className="size-2.5" />
+                                )}{" "}
+                                {status === "healthy"
+                                  ? labels.legendHealthy
+                                  : status === "watch"
+                                    ? labels.legendWatch
+                                    : labels.legendCritical}
+                              </span>
+                            </td>
+                          </>
+                        )}
                       </tr>
                     );
                   })}

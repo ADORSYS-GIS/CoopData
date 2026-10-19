@@ -542,6 +542,12 @@ pub enum AgeGroup {
 }
 
 impl AgeGroup {
+    /// Youth means members aged 18 to 35, as the reports and the
+    /// questionnaire define it; members under 18 are not youth.
+    pub fn is_youth(&self) -> bool {
+        *self == Self::Between18And35
+    }
+
     pub fn parse(s: &str) -> Option<Self> {
         let norm = s.trim().to_lowercase().replace(' ', "");
         match norm.as_str() {

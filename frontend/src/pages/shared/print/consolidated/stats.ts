@@ -1,3 +1,4 @@
+import { roundHalfUp } from "@/lib/currency";
 import type { CoopKpiRow, NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { fixed, grouped, percentSign, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
@@ -64,8 +65,10 @@ export const pointChange = (current: number | null, prior: number | null): Chang
 export const money = (value: number | null | undefined): string => {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${fixed(value / 1_000_000, 1)} ${tr("common.million_short")}`;
-  if (abs >= 10_000) return `${fixed(value / 1_000, 0)} ${tr("common.thousand_short")}`;
+  if (abs >= 1_000_000)
+    return `${fixed(roundHalfUp(value / 1_000_000, 2), 2)} ${tr("common.million_short")}`;
+  if (abs >= 10_000)
+    return `${fixed(roundHalfUp(value / 1_000, 1), 1)} ${tr("common.thousand_short")}`;
   return grouped(value);
 };
 
@@ -103,9 +106,18 @@ export const toneOf = (name: string, value: number | null | undefined): Tone => 
 /** Status label; an unreported ratio reads "Unverified" like every other status pill. */
 export const toneLabel = (tone: Tone): string => tr(`status.${tone}`);
 
+/**
+ * Whether a cooperative is expected in the financial-statements edition: every
+ * cooperative except multipurpose ones, which report through the questionnaire.
+ * A cooperative whose type is not set yet may use either method.
+ */
+export const reportsStatements = (coop: CoopKpiRow): boolean =>
+  coop.institution_type !== "multipurpose";
+
 export const filingCounts = (data: NationalOverviewResponse) => {
-  const filed = data.cooperatives.filter((coop) => coop.has_data).length;
-  const total = data.total_cooperatives || data.cooperatives.length;
+  const expected = data.cooperatives.filter(reportsStatements);
+  const filed = expected.filter((coop) => coop.has_data).length;
+  const total = expected.length;
   return {
     filed,
     total,

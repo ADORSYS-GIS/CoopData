@@ -18,10 +18,18 @@ import {
   Database,
   BarChart3,
   Building2,
+  ArrowRight,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { MetricBox } from "./MetricBox";
+import { QuestionnaireIndicatorBoxes } from "./QuestionnaireIndicatorBoxes";
+import { useBasicDashboard } from "@/hooks/analytics/useBasicDashboard";
+import { analyticsTrack } from "@/hooks/cooperatives/useAnalyticsTrackNav";
+import { dashboardSubmission } from "@/lib/dashboard-submission";
+import { questionnaireKpis } from "@/lib/questionnaire-kpis";
+import { loanQualityShares } from "@/lib/loan-quality";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCooperativeStats, useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
-import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
 import { useMyCooperativeProfile } from "@/hooks/cooperatives/useCooperatives";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
@@ -39,12 +47,27 @@ export function CooperativeDashboard() {
   const { data: realSubmissions = [], isLoading: subsLoading } = useCooperativeSubmissions();
   const { data: profile, isLoading: profileLoading } = useMyCooperativeProfile();
 
-  // Real KPI data from the latest submission
-  const latestSubmission = useLatestSubmission();
-  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(latestSubmission?.id);
+  // The dashboard is built from the kind of submission the cooperative's type uses:
+  // financial statements for a SACCO, the questionnaire for a multipurpose cooperative.
+  const track = profile ? analyticsTrack(profile) : undefined;
+  const latestSubmission = dashboardSubmission(realSubmissions, track);
+  const isQuestionnaire =
+    track === "basic" || latestSubmission?.submission_method === "questionnaire";
+  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(
+    isQuestionnaire ? undefined : latestSubmission?.id,
+  );
+  const { data: basicData, isLoading: basicLoading } = useBasicDashboard(
+    { reportingYear: latestSubmission?.reporting_year },
+    isQuestionnaire && latestSubmission !== undefined,
+  );
 
   // Helper: find a KPI by name from the API response
-  const getKpi = (name: string) => kpisData?.kpis?.find((k) => k.name === name);
+  // Questionnaire balances use the same KPI names, so both kinds share the boxes and charts.
+  const kpis = isQuestionnaire
+    ? basicData && questionnaireKpis(basicData.balances, basicData.scope.currency)
+    : kpisData?.kpis;
+  const metricsLoading = isQuestionnaire ? basicLoading : kpisLoading;
+  const getKpi = (name: string) => kpis?.find((k) => k.name === name);
 
   const totalSubs = stats?.total_submissions ?? 0;
   const pendingSubs = stats?.pending_submissions ?? 0;
@@ -78,15 +101,16 @@ export function CooperativeDashboard() {
   ];
 
   // Build loan portfolio quality pie chart data
-  const par30 = getKpi("par30")?.value ?? 0;
-  const par90 = getKpi("par90")?.value ?? 0;
-  const loanPortfolio = [
-    { name: t("dashboard.coop.performing"), value: Math.max(0, 100 - par30) },
-    { name: t("dashboard.coop.watchList"), value: Math.max(0, par30 - par90) },
-    { name: t("dashboard.coop.nonPerforming"), value: par90 },
-  ].filter((s) => s.value > 0);
+  const shares = loanQualityShares(getKpi("par30")?.value, getKpi("par90")?.value);
+  const loanPortfolio = shares
+    ? [
+        { name: t("dashboard.coop.performing"), value: shares.performing },
+        { name: t("dashboard.coop.watchList"), value: shares.watchList },
+        { name: t("dashboard.coop.nonPerforming"), value: shares.nonPerforming },
+      ].filter((s) => s.value > 0)
+    : [];
 
-  const isLoading = statsLoading || subsLoading || profileLoading || kpisLoading;
+  const isLoading = statsLoading || subsLoading || profileLoading || metricsLoading;
 
   return (
     <AppShell
@@ -183,15 +207,28 @@ export function CooperativeDashboard() {
               title={t("dashboard.coop.keyMetrics")}
               subtitle={
                 latestSubmission
-                  ? t("dashboard.coop.keyMetricsSub", {
-                      year: latestSubmission.reporting_year,
-                      status: statusLabel(latestSubmission.status),
-                    })
-                  : t("dashboard.coop.keyMetricsSubFallback")
+                  ? t(
+                      isQuestionnaire
+                        ? "dashboard.coop.keyMetricsSubQuestionnaire"
+                        : "dashboard.coop.keyMetricsSub",
+                      {
+                        year: latestSubmission.reporting_year,
+                        status: statusLabel(latestSubmission.status),
+                      },
+                    )
+                  : t(
+                      isQuestionnaire
+                        ? "dashboard.coop.keyMetricsSubFallbackQuestionnaire"
+                        : "dashboard.coop.keyMetricsSubFallback",
+                    )
               }
-              info={t("dashboard.coop.keyMetricsInfo")}
+              info={
+                isQuestionnaire
+                  ? t("dashboard.coop.keyMetricsInfoQuestionnaire")
+                  : t("dashboard.coop.keyMetricsInfo")
+              }
             >
-              {kpisLoading ? (
+              {metricsLoading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div
@@ -212,11 +249,15 @@ export function CooperativeDashboard() {
                       { label: t("dashboard.coop.loans"), kpiName: "gross_loan_portfolio" },
                       { label: t("dashboard.coop.deposits"), kpiName: "total_member_deposits" },
                       { label: t("dashboard.coop.netSurplus"), kpiName: "net_surplus" },
-                      { label: t("dashboard.coop.nplRatio"), kpiName: "npl_ratio" },
-                      {
-                        label: t("dashboard.coop.capitalAdequacy"),
-                        kpiName: "capital_adequacy_ratio",
-                      },
+                      isQuestionnaire
+                        ? { label: t("dashboard.coop.par30Label"), kpiName: "par30" }
+                        : { label: t("dashboard.coop.nplRatio"), kpiName: "npl_ratio" },
+                      isQuestionnaire
+                        ? { label: t("dashboard.coop.capitalRatioLabel"), kpiName: "capital_ratio" }
+                        : {
+                            label: t("dashboard.coop.capitalAdequacy"),
+                            kpiName: "capital_adequacy_ratio",
+                          },
                     ] as const
                   ).map((metric) => {
                     const kpi = getKpi(metric.kpiName);
@@ -230,33 +271,19 @@ export function CooperativeDashboard() {
                             : "text-foreground";
 
                     return (
-                      <div
+                      <MetricBox
                         key={metric.label}
-                        className="rounded-xl border border-border bg-surface p-4 hover:shadow-sm transition-shadow"
-                      >
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                          {metric.label}
-                        </p>
-                        {kpi ? (
-                          <>
-                            <p className={`font-heading text-lg font-bold num ${statusColor}`}>
-                              {kpi.formatted}
-                            </p>
-                            {kpi.benchmark !== undefined && (
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {t("common.benchmark")}:{" "}
-                                {kpi.unit === "percent"
-                                  ? `${kpi.benchmark}%`
-                                  : String(kpi.benchmark)}
-                              </p>
-                            )}
-                          </>
-                        ) : (
-                          <p className="font-heading text-lg font-bold text-muted-foreground num">
-                            —
-                          </p>
-                        )}
-                      </div>
+                        label={metric.label}
+                        value={kpi?.formatted}
+                        valueClassName={statusColor}
+                        footnote={
+                          kpi?.benchmark != null
+                            ? `${t("common.benchmark")}: ${
+                                kpi.unit === "percent" ? `${kpi.benchmark}%` : String(kpi.benchmark)
+                              }`
+                            : undefined
+                        }
+                      />
                     );
                   })}
                 </div>
@@ -273,11 +300,11 @@ export function CooperativeDashboard() {
             subtitle={t("dashboard.coop.portfolioBalanceSub")}
             info={t("dashboard.coop.portfolioBalanceInfo")}
           >
-            {kpisLoading ? (
+            {metricsLoading ? (
               <div className="h-72 flex items-center justify-center">
                 <Skeleton className="h-48 w-full mx-6" />
               </div>
-            ) : kpisData?.kpis && kpisData.kpis.length > 0 ? (
+            ) : kpis && kpis.length > 0 ? (
               <div className="h-72 pt-4 pr-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -334,7 +361,13 @@ export function CooperativeDashboard() {
                 <BarChart3 className="size-10 opacity-30" />
                 <div>
                   <p className="text-sm font-semibold">{t("dashboard.coop.noFinancialData")}</p>
-                  <p className="text-xs mt-1">{t("dashboard.coop.noFinancialDataSub")}</p>
+                  <p className="text-xs mt-1">
+                    {t(
+                      isQuestionnaire
+                        ? "dashboard.coop.noFinancialDataSubQuestionnaire"
+                        : "dashboard.coop.noFinancialDataSub",
+                    )}
+                  </p>
                 </div>
               </div>
             )}
@@ -342,14 +375,10 @@ export function CooperativeDashboard() {
 
           <Card
             title={t("dashboard.coop.portfolioQuality")}
-            subtitle={
-              kpisData?.kpis && kpisData.kpis.length > 0
-                ? t("dashboard.coop.derivedPar")
-                : t("dashboard.coop.noData")
-            }
+            subtitle={shares ? t("dashboard.coop.derivedPar") : t("dashboard.coop.noData")}
             info={t("dashboard.coop.portfolioQualityInfo")}
           >
-            {kpisLoading ? (
+            {metricsLoading ? (
               <div className="h-52 flex flex-col gap-3 pt-2">
                 <Skeleton className="h-36 w-36 rounded-full mx-auto" />
                 <div className="space-y-2 border-t border-border pt-3">
@@ -410,11 +439,57 @@ export function CooperativeDashboard() {
             ) : (
               <div className="h-52 flex flex-col items-center justify-center text-center text-muted-foreground gap-2">
                 <BarChart3 className="size-8 opacity-30" />
-                <p className="text-xs">{t("dashboard.coop.submitFinancialStatement")}</p>
+                <p className="text-xs">
+                  {t(
+                    isQuestionnaire
+                      ? "dashboard.coop.submitQuestionnaire"
+                      : "dashboard.coop.submitFinancialStatement",
+                  )}
+                </p>
               </div>
             )}
           </Card>
         </div>
+
+        {/* ── Questionnaire indicators (membership, governance, margins…) ── */}
+        {isQuestionnaire && latestSubmission && (
+          <Card
+            title={t("dashboard.coop.keyIndicators")}
+            subtitle={t("dashboard.coop.keyIndicatorsSub", {
+              year: latestSubmission.reporting_year,
+              status: statusLabel(latestSubmission.status),
+            })}
+            info={t("dashboard.coop.keyIndicatorsInfo")}
+          >
+            {basicLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {basicData && basicData.indicators.length > 0 ? (
+                  <QuestionnaireIndicatorBoxes
+                    indicators={basicData.indicators}
+                    scope={basicData.scope}
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {t("dashboard.coop.noIndicators")}
+                  </p>
+                )}
+                <Link
+                  to="/app/basic-analytics"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                >
+                  {t("dashboard.coop.openBasicAnalytics")}
+                  <ArrowRight className="size-3.5" aria-hidden="true" />
+                </Link>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* ── Submission History ── */}
         <Card
@@ -453,7 +528,7 @@ export function CooperativeDashboard() {
                 ) : realSubmissions.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                      <p className="text-sm font-semibold">{t("dashboard.apex.noSubmissions")}</p>
+                      <p className="text-sm font-semibold">{t("dashboard.coop.noSubmissions")}</p>
                       <p className="text-xs mt-1">{t("dashboard.coop.noSubmissionsSub")}</p>
                     </td>
                   </tr>

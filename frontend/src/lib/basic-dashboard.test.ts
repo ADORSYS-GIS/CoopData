@@ -139,8 +139,8 @@ describe("series mapping", () => {
   });
 
   it("compacts axis numbers", () => {
-    expect(compactNumber(3_485_818)).toBe("3.5M");
-    expect(compactNumber(2_500)).toBe("3K");
+    expect(compactNumber(3_485_818)).toBe("3.49M");
+    expect(compactNumber(2_500)).toBe("2.5K");
     expect(compactNumber(42)).toBe("42");
   });
 });

@@ -254,3 +254,56 @@ fn previous_period_gives_point_changes_for_percentages() {
     assert_eq!(active.previous, Some(50.0));
     assert!((active.change_pct.unwrap() - 10.0).abs() < 1e-9);
 }
+
+/// A cooperative answers membership in both questionnaires: the financial one
+/// (`registered_members_*`, `active_members_*`) and the non-financial one
+/// (`total_registered_*`, `total_active_*`). The same members must not be counted twice.
+fn membership_in_both_questionnaires() -> serde_json::Value {
+    let financial = json!({
+        "registered_members_male": 98, "registered_members_female": 122,
+        "active_members_male": 74, "active_members_female": 98,
+        "age_18_25_male": 8, "age_18_25_female": 12,
+        "age_26_35_male": 20, "age_26_35_female": 28,
+        "savings_accounts_male": 70, "savings_accounts_female": 91
+    });
+    let non_financial = json!({
+        "total_registered_male": 98, "total_registered_female": 122,
+        "total_active_male": 74, "total_active_female": 98,
+        "agm_attendance_male": 61, "agm_attendance_female": 79,
+        "members_trained_last_year": 45
+    });
+    merge_answers(Some(&financial), Some(&non_financial))
+}
+
+#[test]
+fn members_answered_in_both_questionnaires_are_counted_once() {
+    let i = inputs(membership_in_both_questionnaires());
+    let d = Derived::from_inputs(&i);
+
+    assert_eq!(d.registered, 220.0);
+    assert_eq!(d.active, 172.0);
+}
+
+#[test]
+fn indicators_per_member_use_the_real_member_count() {
+    let list = compute(membership_in_both_questionnaires());
+
+    let pct = |key: &str| (value(&list, key).unwrap() * 100.0).round() / 100.0;
+    assert_eq!(pct("youth_members_pct"), 30.91);
+    assert_eq!(pct("agm_attendance_pct"), 63.64);
+    assert_eq!(pct("member_training_coverage_pct"), 20.45);
+    assert_eq!(pct("savings_account_penetration_pct"), 73.18);
+    assert_eq!(pct("active_members_pct"), 78.18);
+    assert_eq!(pct("women_members_pct"), 55.45);
+}
+
+#[test]
+fn either_questionnaire_alone_still_gives_the_member_count() {
+    let financial_only =
+        inputs(json!({ "registered_members_male": 98, "registered_members_female": 122 }));
+    let non_financial_only =
+        inputs(json!({ "total_registered_male": 98, "total_registered_female": 122 }));
+
+    assert_eq!(Derived::from_inputs(&financial_only).registered, 220.0);
+    assert_eq!(Derived::from_inputs(&non_financial_only).registered, 220.0);
+}

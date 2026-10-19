@@ -61,6 +61,7 @@ export const QuestionnaireReportPrint: React.FC<Props> = ({ submissionId, tokenO
     <QuestionnaireTplReport
       dashboard={dashboard}
       submissionId={submissionId}
+      reference={submission?.reference}
       coopName={submission?.cooperative_name ?? "COOPERATIVE"}
       narratives={narratives}
       apexName={submission?.apex_name}

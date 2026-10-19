@@ -11,6 +11,7 @@ import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument
 import { trendPage } from "@/pages/shared/print/tpl/TrendPage";
 import { trendOf } from "@/pages/shared/print/tpl/trend";
 import { longDate, tr } from "@/pages/shared/print/tpl/i18n";
+import { NATIVE_CURRENCY } from "@/lib/currency";
 
 const capitalize = (text: string): string =>
   text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
@@ -91,7 +92,7 @@ export const CooperativeTplReport: FC<ReportDataProps> = (props) => {
           [tr("common.date_of_issue"), date, tr("common.submission_status"), status],
           [
             tr("common.reporting_currency"),
-            tr("coop.report.currency_value"),
+            NATIVE_CURRENCY,
             tr("common.classification"),
             tr("coop.report.classification_value"),
           ],

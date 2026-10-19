@@ -34,8 +34,12 @@ export const narrativeText = (
   return text ? text : undefined;
 };
 
-export const reportCode = (year: number | null, submissionId: string): string =>
-  `SUB-${year ?? "----"}-${submissionId.slice(0, 5).toUpperCase()}`;
+/** The submission's reference, or a code built from its year and id when it has none. */
+export const reportCode = (
+  year: number | null,
+  submissionId: string,
+  reference?: string | null,
+): string => reference || `SUB-${year ?? "----"}-${submissionId.slice(0, 5).toUpperCase()}`;
 
 const SERIES_LABEL_KEYS: Record<string, string> = {
   maintained_pct: "maintained",

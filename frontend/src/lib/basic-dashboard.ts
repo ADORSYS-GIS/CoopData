@@ -1,4 +1,4 @@
-import { formatNative, formatSzl } from "@/lib/currency";
+import { formatNative, formatSzl, shortAmount } from "@/lib/currency";
 import {
   INDICATOR_KEYS,
   type DashboardScope,
@@ -132,13 +132,7 @@ export const hasSeriesData = (points: SeriesPoint[] | undefined, keys: string[])
     }),
   );
 
-export const compactNumber = (value: number): string => {
-  const abs = Math.abs(value);
-  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
-  return String(Math.round(value));
-};
+export const compactNumber = (value: number): string => shortAmount(value);
 
 export const rateNote = (_scope: DashboardScope): string | null => null;
 

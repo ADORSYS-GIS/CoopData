@@ -1,5 +1,12 @@
 import { useState, useMemo } from "react";
-import { Download, CheckCircle2, X, ChevronRight } from "lucide-react";
+import {
+  Download,
+  CheckCircle2,
+  X,
+  ChevronRight,
+  ClipboardList,
+  FileSpreadsheet,
+} from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
@@ -129,8 +136,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     selectedApexId,
   ]);
 
-  const methodOptions = useMemo(() => {
-    const counts = countByMethod(
+  const methodCounts = useMemo(() => {
+    return countByMethod(
       rawSubmissions.filter(
         (s) =>
           s.status.toLowerCase() === "approved" &&
@@ -139,9 +146,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
           (!needsApexSelector || !selectedApexId || s.apex_id === selectedApexId),
       ),
     );
-    return availableMethods.map((id) => ({ id, count: counts[id] }));
   }, [
-    availableMethods,
     rawSubmissions,
     selectedYear,
     needsFedSelector,
@@ -266,14 +271,16 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   // Steps configuration
   const steps = useMemo(() => {
     const list = [];
-    if (needsFedSelector) list.push({ key: "fed", label: "Federation" });
-    if (needsApexSelector) list.push({ key: "apex", label: "Apex" });
-    if (needsCoopSelector) list.push({ key: "coop", label: "Cooperative" });
-    if (needsSubmissionSelector) list.push({ key: "submission", label: "Submission" });
-    if (needsYearSelector) list.push({ key: "year", label: "Year" });
-    if (needsMethodSelector) list.push({ key: "method", label: "Report type" });
+    if (needsFedSelector) list.push({ key: "fed", label: t("reportExport.steps.fed") });
+    if (needsApexSelector) list.push({ key: "apex", label: t("reportExport.steps.apex") });
+    if (needsCoopSelector) list.push({ key: "coop", label: t("reportExport.steps.coop") });
+    if (needsSubmissionSelector)
+      list.push({ key: "submission", label: t("reportExport.steps.submission") });
+    if (needsYearSelector) list.push({ key: "year", label: t("reportExport.steps.year") });
+    if (needsMethodSelector) list.push({ key: "method", label: t("reportExport.steps.method") });
     return list;
   }, [
+    t,
     needsFedSelector,
     needsApexSelector,
     needsCoopSelector,
@@ -433,6 +440,21 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {replaceOrgTerms(report.description)}
                   </p>
+                  {report.scope === "consolidated" && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        {t("reportExport.editions.available")}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground">
+                        <FileSpreadsheet className="size-3" aria-hidden="true" />
+                        {t("reportExport.method.standard")}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground">
+                        <ClipboardList className="size-3" aria-hidden="true" />
+                        {t("reportExport.method.questionnaire")}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-1 shrink-0">
                   {report.formats.map((fmt) => {
@@ -574,9 +596,10 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
 
               {activeStepKey === "method" && needsMethodSelector && selectedYear && (
                 <MethodPicker
-                  options={methodOptions}
+                  counts={methodCounts}
                   value={effectiveMethod}
                   onSelect={setSelectedMethod}
+                  year={selectedYear}
                 />
               )}
 

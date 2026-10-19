@@ -1,4 +1,5 @@
 import type { KpiItemResponse } from "@/hooks/submissions/useCooperativeKpis";
+import { reportCode } from "@/lib/questionnaire-report";
 import {
   buildStatement,
   changePct,
@@ -159,6 +160,16 @@ export interface ValidationItem {
   note: string;
 }
 
+/**
+ * Whether a loan register category is past due. The register groups loans as
+ * Performing / Watch / Substandard / Doubtful / Loss (by days past due); older
+ * data may use names such as "Arrears 31-60" or "Non-performing".
+ */
+export const isArrearsCategory = (category: string): boolean =>
+  /arrear|overdue|delinq|non-?perf|npl|watch|substandard|doubtful|loss/i.test(category);
+
+const CONTRA_ASSET_CODES: ReadonlySet<number> = new Set([1251, 1252, 1304]);
+
 const validate = (
   statement: Statement,
   props: ReportDataProps,
@@ -170,7 +181,13 @@ const validate = (
   const near = (a: number, b: number) => Math.abs(a - b) <= Math.max(1, Math.abs(b) * 0.005);
   const { totals, reported, assets, equity } = statement;
 
-  const sumAssets = assets.reduce((s, l) => s + (l.current ?? 0), 0);
+  // Loan loss provisions and accumulated depreciation reduce total assets,
+  // whatever sign the cooperative typed them with.
+  const sumAssets = assets.reduce(
+    (s, l) =>
+      CONTRA_ASSET_CODES.has(l.code) ? s - Math.abs(l.current ?? 0) : s + (l.current ?? 0),
+    0,
+  );
   if (
     reported.assets.current !== undefined &&
     assets.length > 0 &&
@@ -235,7 +252,7 @@ const validate = (
   }
   const par30 = kpiOf(kpis, "par30")?.value ?? 0;
   const arrears = props.portfolioData.categories
-    .filter((c) => /arrear|overdue|non-perf|npl/i.test(c.category))
+    .filter((c) => isArrearsCategory(c.category))
     .reduce((sum, c) => sum + c.count, 0);
   if (par30 === 0 && arrears > 0) {
     add({
@@ -323,7 +340,11 @@ export const analyseCoop = (props: ReportDataProps): CoopAnalysis => {
     reported,
     scorecard,
     growth,
-    ref: `SUB-${props.submission.reporting_year}-${props.submissionId.slice(0, 5).toUpperCase()}`,
+    ref: reportCode(
+      props.submission.reporting_year,
+      props.submissionId,
+      props.submission.reference,
+    ),
     validation,
     footnote: (key) => refByKey.get(key),
   };

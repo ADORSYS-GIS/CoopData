@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { netLoanPortfolio, otherAssets, totalAssets, type AccountReader } from "./balance";
 import { fmt } from "./helpers";
 
 interface MonthCol {
@@ -24,6 +25,11 @@ interface FinancialExcelGridProps {
   financialData: Record<number, Record<number, number>>;
   onChange: (code: number, monthNum: number, value: number) => void;
 }
+
+const readMonth =
+  (data: Record<number, Record<number, number>>, m: number): AccountReader =>
+  (code) =>
+    data[code]?.[m] || 0;
 
 const BALANCE_SHEET_ROWS: GridRowConfig[] = [
   { nameKey: "assets", isHeader: true },
@@ -68,16 +74,7 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
   {
     nameKey: "netLoanPortfolio",
     isTotal: true,
-    formula: (data, m) => {
-      const gross =
-        (data[1201]?.[m] || 0) +
-        (data[1202]?.[m] || 0) +
-        (data[1203]?.[m] || 0) +
-        (data[1204]?.[m] || 0) +
-        (data[1205]?.[m] || 0);
-      const allowance = (data[1251]?.[m] || 0) + (data[1252]?.[m] || 0);
-      return gross - allowance;
-    },
+    formula: (data, m) => netLoanPortfolio(readMonth(data, m)),
   },
   { code: 1301, nameKey: "accountsReceivable", indent: true },
   { code: 1302, nameKey: "prepaidExpenses", indent: true },
@@ -88,38 +85,13 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     code: 1300,
     nameKey: "totalOtherAssets",
     isTotal: true,
-    formula: (data, m) =>
-      (data[1301]?.[m] || 0) +
-      (data[1302]?.[m] || 0) +
-      (data[1303]?.[m] || 0) -
-      Math.abs(data[1304]?.[m] || 0) +
-      (data[1305]?.[m] || 0),
+    formula: (data, m) => otherAssets(readMonth(data, m)),
   },
   {
     code: 1999,
     nameKey: "totalAssets",
     isTotal: true,
-    formula: (data, m) => {
-      const liquid =
-        (data[1101]?.[m] || 0) +
-        (data[1102]?.[m] || 0) +
-        (data[1103]?.[m] || 0) +
-        (data[1104]?.[m] || 0);
-      const gross =
-        (data[1201]?.[m] || 0) +
-        (data[1202]?.[m] || 0) +
-        (data[1203]?.[m] || 0) +
-        (data[1204]?.[m] || 0) +
-        (data[1205]?.[m] || 0);
-      const allowance = (data[1251]?.[m] || 0) + (data[1252]?.[m] || 0);
-      const other =
-        (data[1301]?.[m] || 0) +
-        (data[1302]?.[m] || 0) +
-        (data[1303]?.[m] || 0) -
-        Math.abs(data[1304]?.[m] || 0) +
-        (data[1305]?.[m] || 0);
-      return liquid + gross - allowance + other;
-    },
+    formula: (data, m) => totalAssets(readMonth(data, m)),
   },
   { nameKey: "liabilities", isHeader: true },
   { code: 2101, nameKey: "voluntarySavingsDeposits", indent: true },
@@ -213,25 +185,7 @@ const BALANCE_SHEET_ROWS: GridRowConfig[] = [
     nameKey: "balanceCheck",
     isTotal: true,
     formula: (data, m) => {
-      const liquid =
-        (data[1101]?.[m] || 0) +
-        (data[1102]?.[m] || 0) +
-        (data[1103]?.[m] || 0) +
-        (data[1104]?.[m] || 0);
-      const gross =
-        (data[1201]?.[m] || 0) +
-        (data[1202]?.[m] || 0) +
-        (data[1203]?.[m] || 0) +
-        (data[1204]?.[m] || 0) +
-        (data[1205]?.[m] || 0);
-      const allowance = (data[1251]?.[m] || 0) + (data[1252]?.[m] || 0);
-      const other =
-        (data[1301]?.[m] || 0) +
-        (data[1302]?.[m] || 0) +
-        (data[1303]?.[m] || 0) -
-        Math.abs(data[1304]?.[m] || 0) +
-        (data[1305]?.[m] || 0);
-      const assets = liquid + gross - allowance + other;
+      const assets = totalAssets(readMonth(data, m));
 
       const deposits = (data[2101]?.[m] || 0) + (data[2102]?.[m] || 0) + (data[2103]?.[m] || 0);
       const borrowings = (data[2201]?.[m] || 0) + (data[2202]?.[m] || 0);

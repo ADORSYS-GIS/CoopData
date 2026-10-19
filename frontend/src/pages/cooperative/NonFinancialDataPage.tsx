@@ -19,11 +19,10 @@ import { useFixedDeposits, useDeleteFixedDeposit } from "@/hooks/non-financial/u
 import { useFarmCoops, useDeleteFarmCoop } from "@/hooks/non-financial/useFarmCoop";
 import { useSubmissionRate } from "@/hooks/shared/useSubmissionRate";
 import type { NfUploadResponse } from "@/types/non-financial";
+import { shortAmount } from "@/lib/currency";
 
 function formatCurrency(n: number): string {
-  if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
-  return `SZL ${n.toFixed(0)}`;
+  return `SZL ${shortAmount(n)}`;
 }
 
 export const NonFinancialDataPage: React.FC = () => {

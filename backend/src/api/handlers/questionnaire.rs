@@ -373,6 +373,57 @@ pub(crate) fn get_i32_from_json(json: &serde_json::Value, keys: &[&str]) -> i32 
     get_f64_from_json(json, keys) as i32
 }
 
+/// The answers of one submission. A cooperative may answer both a financial and
+/// a non-financial questionnaire for the same submission, and both ask some of
+/// the same questions (members, share capital, income...).
+pub(crate) struct SubmissionAnswers {
+    pub id: Uuid,
+    pub cooperative_id: Uuid,
+    /// The questionnaires merged, e.g. "financial, non_financial".
+    pub questionnaire_type: String,
+    pub reporting_year: i32,
+    pub answers: serde_json::Value,
+}
+
+/// Merges each submission's questionnaires into one set of answers (financial
+/// answers win on shared keys, as in the questionnaire KPIs), so totals count a
+/// cooperative's figures once rather than once per questionnaire.
+pub(crate) fn merge_per_submission<C>(
+    responses: Vec<(crate::entities::questionnaire_response::Model, C)>,
+) -> Vec<(SubmissionAnswers, C)> {
+    let mut merged: Vec<(SubmissionAnswers, C)> = Vec::new();
+    let mut index: std::collections::HashMap<Uuid, usize> = std::collections::HashMap::new();
+    for (resp, coop) in responses {
+        if let Some(&i) = index.get(&resp.submission_id) {
+            let entry = &mut merged[i].0;
+            let (financial, non_financial) = if resp.questionnaire_type == "financial" {
+                (resp.answers, entry.answers.clone())
+            } else {
+                (entry.answers.clone(), resp.answers)
+            };
+            entry.answers = crate::services::questionnaire_kpi::merge_answers(
+                Some(&financial),
+                Some(&non_financial),
+            );
+            entry.questionnaire_type =
+                format!("{}, {}", entry.questionnaire_type, resp.questionnaire_type);
+            continue;
+        }
+        index.insert(resp.submission_id, merged.len());
+        merged.push((
+            SubmissionAnswers {
+                id: resp.id,
+                cooperative_id: resp.cooperative_id,
+                questionnaire_type: resp.questionnaire_type,
+                reporting_year: resp.reporting_year,
+                answers: resp.answers,
+            },
+            coop,
+        ));
+    }
+    merged
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/analytics/questionnaire",
@@ -432,7 +483,7 @@ pub async fn get_questionnaire_analytics(
     let mut details = Vec::new();
     let mut coop_ids = std::collections::HashSet::new();
 
-    for (resp, coop) in responses {
+    for (resp, coop) in merge_per_submission(responses) {
         coop_ids.insert(resp.cooperative_id);
         let answers = &resp.answers;
 
@@ -575,4 +626,106 @@ pub async fn get_questionnaire_analytics(
     };
 
     Ok((StatusCode::OK, Json(response)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn response(
+        submission_id: Uuid,
+        questionnaire_type: &str,
+        answers: serde_json::Value,
+    ) -> crate::entities::questionnaire_response::Model {
+        crate::entities::questionnaire_response::Model {
+            id: Uuid::new_v4(),
+            submission_id,
+            cooperative_id: Uuid::nil(),
+            questionnaire_type: questionnaire_type.to_string(),
+            reporting_year: 2025,
+            period_type: "YEARLY".to_string(),
+            period_value: "2025".to_string(),
+            answers,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    #[test]
+    fn both_questionnaires_of_a_submission_count_once() {
+        let sub = Uuid::new_v4();
+        let responses = vec![
+            (
+                response(
+                    sub,
+                    "financial",
+                    json!({ "registered_members_male": 98, "registered_members_female": 122,
+                            "total_share_capital": 66000, "current_total_income": 412000 }),
+                ),
+                (),
+            ),
+            (
+                response(
+                    sub,
+                    "non_financial",
+                    json!({ "total_registered_male": 98, "total_registered_female": 122,
+                            "total_share_capital": 66000, "current_total_income": 412000 }),
+                ),
+                (),
+            ),
+        ];
+
+        let merged = merge_per_submission(responses);
+
+        assert_eq!(merged.len(), 1);
+        let answers = &merged[0].0.answers;
+        let members = get_i32_from_json(
+            answers,
+            &["registered_members_male", "total_registered_male"],
+        ) + get_i32_from_json(
+            answers,
+            &["registered_members_female", "total_registered_female"],
+        );
+        assert_eq!(members, 220);
+        assert_eq!(
+            get_f64_from_json(answers, &["total_share_capital"]),
+            66000.0
+        );
+        assert_eq!(merged[0].0.questionnaire_type, "financial, non_financial");
+    }
+
+    #[test]
+    fn financial_answers_win_on_shared_questions() {
+        let sub = Uuid::new_v4();
+        let merged = merge_per_submission(vec![
+            (
+                response(sub, "financial", json!({ "current_total_income": 412000 })),
+                (),
+            ),
+            (
+                response(
+                    sub,
+                    "non_financial",
+                    json!({ "current_total_income": 400000 }),
+                ),
+                (),
+            ),
+        ]);
+
+        assert_eq!(
+            get_f64_from_json(&merged[0].0.answers, &["current_total_income"]),
+            412000.0
+        );
+    }
+
+    #[test]
+    fn different_submissions_stay_separate() {
+        let merged = merge_per_submission(vec![
+            (response(Uuid::new_v4(), "financial", json!({})), ()),
+            (response(Uuid::new_v4(), "financial", json!({})), ()),
+        ]);
+
+        assert_eq!(merged.len(), 2);
+    }
 }

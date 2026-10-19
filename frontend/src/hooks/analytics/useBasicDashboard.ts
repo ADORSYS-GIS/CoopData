@@ -36,9 +36,10 @@ export const useBasicDashboard = (
   tokenOverride?: string,
 ) =>
   useOfflineQuery<BasicDashboardResponse>({
-    queryKey: ["basic-dashboard", "v2", params],
+    // v3: responses include `balances`; older saved copies must not be reused.
+    queryKey: ["basic-dashboard", "v3", params],
     cacheTable: "analytics",
-    cacheKey: `basic-dashboard-v2-${JSON.stringify(params)}`,
+    cacheKey: `basic-dashboard-v3-${JSON.stringify(params)}`,
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

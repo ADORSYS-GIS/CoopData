@@ -697,7 +697,7 @@
       "loans": "Empréstimos Brutos",
       "deposits": "Depósitos de Membros",
       "noFinancialData": "Ainda sem dados financeiros",
-      "noFinancialDataSub": "Carregue uma demonstração financeira para ver os seus dados aqui.",
+      "noFinancialDataSub": "Os seus números aparecem aqui assim que o apex aprovar uma demonstração financeira.",
       "portfolioQuality": "Qualidade da Carteira de Empréstimos",
       "derivedPar": "Derivado dos rácios PAR",
       "noData": "Ainda sem dados",
@@ -705,7 +705,7 @@
       "performing": "Performante",
       "watchList": "Lista de Vigilância",
       "nonPerforming": "Não Performante",
-      "submitFinancialStatement": "Submeta uma demonstração financeira para ver dados de qualidade de empréstimos.",
+      "submitFinancialStatement": "A qualidade dos empréstimos aparece aqui assim que o apex aprovar uma demonstração financeira.",
       "growthTrend": "Tendência de Crescimento Financeiro",
       "growthTrendSub": "Ativos, empréstimos e poupanças ao longo do ano de reporte",
       "growthTrendInfo": "Trajetória mensal dos saldos financeiros principais da sua cooperativa, indicando crescimento e flutuações sazonais.",
@@ -728,7 +728,7 @@
       "submitStatementOss": "Submeta uma demonstração financeira para ver dados de OSS.",
       "keyMetrics": "Indicadores Financeiros Principais",
       "keyMetricsSub": "Da sua submissão de {{year}} · {{status}}",
-      "keyMetricsSubFallback": "Extraído da sua última demonstração financeira",
+      "keyMetricsSubFallback": "Apresentado assim que o apex aprovar uma demonstração financeira",
       "keyMetricsInfo": "Uma fotografia selecionada de indicadores financeiros e de conformidade regulatória críticos extraídos da demonstração financeira mais recente.",
       "netSurplus": "Excedente Líquido",
       "nplRatio": "Rácio NPL",
@@ -740,7 +740,20 @@
       "colYear": "Ano",
       "colFiledOn": "Depositado em",
       "colStatus": "Estado",
-      "noSubmissionsSub": "Crie uma nova submissão para começar."
+      "noSubmissionsSub": "Crie uma nova submissão para começar.",
+      "keyIndicators": "Indicadores principais",
+      "keyIndicatorsSub": "Do seu questionário de {{year}} · {{status}}",
+      "keyIndicatorsInfo": "Indicadores principais calculados a partir do seu questionário mais recente: membros, poupança, qualidade dos empréstimos, governação e margens.",
+      "noIndicators": "Ainda não foi possível calcular indicadores a partir deste questionário.",
+      "openBasicAnalytics": "Ver todos os indicadores na Análise Básica",
+      "keyMetricsSubQuestionnaire": "Do seu questionário de {{year}} · {{status}}",
+      "keyMetricsInfoQuestionnaire": "Valores financeiros calculados a partir das respostas ao seu questionário mais recente. Perguntas sem resposta aparecem como —. Estes valores não têm referência.",
+      "par30Label": "Empréstimos em atraso > 30 dias",
+      "capitalRatioLabel": "Capital institucional",
+      "keyMetricsSubFallbackQuestionnaire": "Apresentado assim que o apex aprovar um questionário",
+      "noFinancialDataSubQuestionnaire": "Os seus números aparecem aqui assim que o apex aprovar um questionário.",
+      "submitQuestionnaire": "A qualidade dos empréstimos aparece aqui assim que o apex aprovar um questionário.",
+      "noSubmissions": "Ainda não há submissões"
     }
   },
   "users": {
@@ -1872,7 +1885,7 @@
     "recentActivity": "Atividade recente",
     "totalSavingsBalance": "Saldo de poupanças do registo de membros",
     "loanAccounts": "Contas de Empréstimo",
-    "loanValueK": "Valor dos Empréstimos ($K)",
+    "loanValueK": "Valor dos Empréstimos (SZL K)",
     "ytd2025": "YTD 2025",
     "q1_2025": "T1 2025",
     "q2_2025": "T2 2025",
@@ -2206,7 +2219,7 @@
     "funnelLeadershipRole": "Função de Liderança",
     "funnelMembers": "Membros",
     "inclusionNoData": "Nenhum dado de empréstimo disponível",
-    "inclusionYouth": "Jovens (<35)",
+    "inclusionYouth": "Jovens (18–35)",
     "inclusionRural": "Rural",
     "inclusionShare": "Participação de Inclusão",
     "agriNoData": "Nenhum dado agrícola disponível",
@@ -2280,7 +2293,7 @@
     "netActivePct": "{{pct}}% Ativos",
     "netTotalSavings": "Poupanças do registo de membros",
     "netTotalSavingsTooltip": "Soma de todos os saldos do registo de poupança dos membros carregado. Vem do registo de membros e não do balanço, por isso pode diferir da poupança dos membros nas demonstrações financeiras. Convertida em ZAR à taxa congelada de cada submissão. Fórmula: soma dos saldos de todas as contas de poupança.",
-    "netAvg": "Méd: ${{amount}}",
+    "netAvg": "Méd: {{amount}}",
     "netTotalLoans": "Empréstimos do registo de membros",
     "netTotalLoansTooltip": "Saldo em dívida dos empréstimos do registo de crédito carregado, sem os empréstimos abatidos. Vem do registo de membros e não do balanço, por isso pode diferir dos empréstimos brutos nas demonstrações financeiras. Convertido em ZAR. Fórmula: soma dos saldos dos empréstimos não abatidos.",
     "netArrearsPct": "{{pct}}% Atrasos",
@@ -2300,7 +2313,7 @@
     "netDormantMembers": "Membros Dormentes",
     "netDormantMembersTooltip": "Membros cujo estado no registo é dormente: ainda são membros mas já não participam. Uma proporção alta sugere que é preciso reativá-los. Vem do registo de membros carregado. Fórmula: membros com estado dormente.",
     "netDormancyRatePct": "{{pct}}% de taxa de dormência",
-    "netYouthMembers": "Membros jovens (35 anos ou menos)",
+    "netYouthMembers": "Membros jovens (18–35 anos)",
     "netYouthMembersTooltip": "Membros com 35 anos ou menos. Mostra se a cooperativa chega aos jovens. Vem da faixa etária de cada membro no registo carregado. Fórmula: membros com menos de 18 anos mais membros de 18 a 35 anos.",
     "netSavingsPortfolioMetrics": "Métricas da Carteira de Poupanças",
     "netSavingsAccounts": "Contas de Poupança",
@@ -2738,7 +2751,7 @@
     "totalMembers": "Total de Membros",
     "active": "Ativos",
     "women": "Mulheres",
-    "youth": "Jovens (<35)",
+    "youth": "Jovens (18–35)",
     "savingsStats": "Estatísticas de Poupanças",
     "savingsRegistry": "Resumo do registo de contas",
     "totalAccounts": "Total de Contas",
@@ -3164,8 +3177,8 @@
       "totalAssets": "Total de Ativos",
       "totalLiabilities": "Total de Passivos",
       "totalEquity": "Total de Capital Próprio",
-      "annualIncome": "Rendimento Anual (Soma de 12 Meses)",
-      "annualExpenses": "Despesas Anuais (Soma de 12 Meses)",
+      "annualIncome": "Rendimento do Período",
+      "annualExpenses": "Despesas do Período",
       "netSurplus": "Excedente Líquido"
     },
     "balancedSuccess": "O balanço equilibra no final do período ✓",
@@ -3209,7 +3222,7 @@
       "maturityDate": "Data de Vencimento",
       "status": "Estado",
       "tenure": "Prazo",
-      "interestRate": "Taxa de Juro",
+      "interestRate": "Taxa de Juro (%)",
       "balance": "Saldo"
     },
     "rowCount": "{{count}} depósito",
@@ -3231,7 +3244,7 @@
       "status": "Estado",
       "borrowerType": "Tipo de Mutuário",
       "dpdCategory": "Categoria Dias em Atraso",
-      "interestRate": "Taxa de Juro",
+      "interestRate": "Taxa de Juro (%)",
       "loanAmount": "Montante do Empréstimo",
       "balance": "Saldo"
     },
@@ -3255,7 +3268,7 @@
       "lastContribDate": "Data da Última Contribuição",
       "contribsCount": "Contagem de Contribuições",
       "trend": "Tendência",
-      "interestRate": "Taxa de Juro",
+      "interestRate": "Taxa de Juro (%)",
       "balance": "Saldo"
     },
     "rowCount": "{{count}} conta de poupança",
@@ -3557,15 +3570,18 @@
     "selectedFederation": "federação selecionada",
     "selectedApex": "apex selecionado",
     "method": {
-      "title": "Tipo de relatório",
-      "choose": "Os dois tipos têm dados para esta seleção. Escolha o relatório a exportar.",
-      "auto": "Só este tipo tem dados para esta seleção, por isso foi escolhido para si.",
-      "none": "Não há submissões aprovadas para esta seleção.",
-      "standard": "Relatório padrão",
-      "standardDesc": "Elaborado a partir das demonstrações financeiras ({{count}} submissões aprovadas)",
-      "questionnaire": "Relatório de questionário",
-      "questionnaireDesc": "Elaborado a partir das respostas ao questionário ({{count}} submissões aprovadas)",
-      "summary": "Tipo de relatório"
+      "title": "Edição do relatório",
+      "choose": "As cooperativas reportam de duas formas, por isso este relatório tem duas edições. Escolha a que pretende exportar.",
+      "auto": "Só a edição {{edition}} tem dados aprovados para {{year}}, por isso foi selecionada.",
+      "none": "Ainda não há submissões aprovadas para esta seleção, em nenhuma edição.",
+      "standard": "Demonstrações financeiras",
+      "questionnaire": "Questionário",
+      "standardDesc": "Elaborado a partir das demonstrações financeiras carregadas ou introduzidas manualmente, geralmente por SACCOs.",
+      "questionnaireDesc": "Elaborado a partir do questionário que as cooperativas polivalentes preenchem.",
+      "count_one": "{{count}} submissão aprovada",
+      "count_other": "{{count}} submissões aprovadas",
+      "noneForYear": "Sem submissões aprovadas para {{year}}",
+      "summary": "Edição do relatório"
     },
     "close": "Fechar",
     "status": {
@@ -3580,6 +3596,17 @@
       "updateHint": "Reconstruir o relatório com os dados mais recentes",
       "readyToast": "O seu relatório em {{language}} está pronto.",
       "failedToast": "Não foi possível preparar o seu relatório. Tente novamente."
+    },
+    "steps": {
+      "fed": "Federação",
+      "apex": "Ápice",
+      "coop": "Cooperativa",
+      "submission": "Submissão",
+      "year": "Ano",
+      "method": "Edição do relatório"
+    },
+    "editions": {
+      "available": "Disponível em duas edições:"
     }
   },
   "analyticsFilter": {
@@ -3842,6 +3869,7 @@
     "registerNewHeader": "Registar Nova Cooperativa",
     "name": "Nome da Cooperativa",
     "placeholderName": "ex. SACCO de Mbabane",
+    "typeLockedHint": "O tipo já não pode ser alterado: esta cooperativa já tem submissões.",
     "institutionType": "Tipo de Instituição",
     "placeholderType": "Selecionar tipo",
     "regNo": "Número de Registo",
@@ -5100,7 +5128,7 @@
         "Transport": "Transportes",
         "Manufacturing": "Indústria"
       },
-      "zar": "ZAR"
+      "currencyCode": "SZL"
     },
     "scope": {
       "individual": "Vista individual",

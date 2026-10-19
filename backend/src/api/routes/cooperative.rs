@@ -227,6 +227,7 @@ async fn get_cooperative_profile(
     let mut resp = CooperativeResponse::from(group);
     resp.institution_type = coop.institution_type.map(|t| t.as_str().to_string());
     resp.region = coop.region.map(|r| r.as_str().to_string());
+    resp.tier = Some(coop.tier);
 
     Ok(Json(resp))
 }

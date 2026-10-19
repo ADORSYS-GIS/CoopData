@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Cookie, X } from "lucide-react";
 
@@ -9,9 +9,13 @@ import {
   setCookieConsentChoice,
 } from "@/lib/cookieConsent";
 
+/** Pages rendered only to be printed or turned into PDFs (by Gotenberg, a fresh browser). */
+const PRINT_ROUTE_PREFIX = "/print/";
+
 export const CookieConsentBanner: React.FC = () => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     if (!getCookieConsentChoice()) {
@@ -33,10 +37,10 @@ export const CookieConsentBanner: React.FC = () => {
     setVisible(false);
   };
 
-  if (!visible) return null;
+  if (!visible || pathname.startsWith(PRINT_ROUTE_PREFIX)) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[70] p-3 sm:p-4">
+    <div className="fixed inset-x-0 bottom-0 z-[70] p-3 sm:p-4 print:hidden">
       <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-surface shadow-[var(--shadow-elev-3)]">
         <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
           <div className="flex items-start gap-3 sm:items-center">

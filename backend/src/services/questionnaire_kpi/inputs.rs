@@ -122,11 +122,13 @@ macro_rules! inputs {
 }
 
 inputs! {
-    // membership
-    reg_m: sum ["registered_members_male", "total_registered_male", "registered_male"];
-    reg_f: sum ["registered_members_female", "total_registered_female", "registered_female"];
-    act_m: sum ["active_members_male", "total_active_male", "active_male"];
-    act_f: sum ["active_members_female", "total_active_female", "active_female"];
+    // membership: each list holds the same figure under the names used by the
+    // financial and non-financial questionnaires (and older templates). A
+    // cooperative answering both must not have its members counted twice.
+    reg_m: first ["registered_members_male", "total_registered_male", "registered_male"];
+    reg_f: first ["registered_members_female", "total_registered_female", "registered_female"];
+    act_m: first ["active_members_male", "total_active_male", "active_male"];
+    act_f: first ["active_members_female", "total_active_female", "active_female"];
     age_18_25: split ["age_18_25_male", "age_18_25_female", "registered_members_18_25"];
     age_26_35: split ["age_26_35_male", "age_26_35_female", "registered_members_26_35"];
     age_36_60: split ["age_36_60_male", "age_36_60_female", "registered_members_36_60"];

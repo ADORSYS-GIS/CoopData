@@ -1,6 +1,7 @@
 // CoopData KPI Calculations
 // Based on COOPDATA ADORSYS.xlsx Indicator definitions
 
+import { shortAmount } from "@/lib/currency";
 import type {
   BalanceSheet,
   MemberRecord,
@@ -134,15 +135,11 @@ function formatPercent(value: number): string {
 }
 
 function formatCurrency(value: number): string {
-  if (value >= 1e9) return `SZL ${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `SZL ${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `SZL ${(value / 1e3).toFixed(0)}K`;
-  return `SZL ${value.toFixed(0)}`;
+  return `SZL ${shortAmount(value)}`;
 }
 
 function formatNumber(value: number): string {
-  if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+  if (Math.abs(value) >= 1e3) return shortAmount(value);
   return value.toLocaleString();
 }
 
@@ -512,7 +509,7 @@ export function calculateMembershipKPIs(
       value: total > 0 ? (youth / total) * 100 : 0,
       formatted: formatPercent(total > 0 ? (youth / total) * 100 : 0),
       unit: "percent",
-      description: "Youth members (<35) / Total members",
+      description: "Youth members (18–35) / Total members",
     },
     ruralMembersPercent: {
       value: total > 0 ? (rural / total) * 100 : 0,
@@ -712,7 +709,7 @@ export function calculateLoanKPIs(
       value: totalLoans > 0 ? (youth / totalLoans) * 100 : 0,
       formatted: formatPercent(totalLoans > 0 ? (youth / totalLoans) * 100 : 0),
       unit: "percent",
-      description: "Loans to youth (<35) / Total loans",
+      description: "Loans to youth (18–35) / Total loans",
     },
     ruralBorrowersPercent: {
       value: totalLoans > 0 ? (rural / totalLoans) * 100 : 0,

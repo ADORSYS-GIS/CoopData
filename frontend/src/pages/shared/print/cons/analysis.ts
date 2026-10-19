@@ -4,6 +4,7 @@ import {
   avgKpi,
   changeOf,
   filingCounts,
+  reportsStatements,
   groupBy,
   sumKpi,
   toneOf,
@@ -124,7 +125,7 @@ export interface Analysis {
 
 export const analyse = (input: ConsInput): Analysis => {
   const { data, priorData } = input;
-  const coops = data.cooperatives ?? [];
+  const coops = (data.cooperatives ?? []).filter(reportsStatements);
   const filed = coops.filter((c) => c.has_data);
   const prior = priorData ? priorData.cooperatives.filter((c) => c.has_data) : null;
   const now = totalsOf(filed);

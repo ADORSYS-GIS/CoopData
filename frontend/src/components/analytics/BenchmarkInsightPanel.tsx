@@ -1,3 +1,4 @@
+import { shortAmount } from "@/lib/currency";
 import { useState } from "react";
 import {
   TrendingUp,
@@ -104,7 +105,7 @@ export function generateInsights(
       kpi.unit === "percent"
         ? `${benchmarkValue.toFixed(1)}%`
         : kpi.unit === "currency"
-          ? `SZL ${(benchmarkValue / 1_000_000).toFixed(1)}M`
+          ? `SZL ${shortAmount(benchmarkValue)}`
           : benchmarkValue.toFixed(2);
 
     insights.push({
