@@ -6529,5 +6529,25 @@
     "badge_other": "Kungena kuphela emalangeni langu-{{count}}",
     "badgeToday": "Kungena kuphela lamuhla",
     "hint": "Kungena kwakho kulelithuluzi kuphela nga-{{date}}. Ngemuva kwaloko udzinga i-inthanethi kute ungene futsi ngephasiwedi yakho. Lushintjo lolungakatfunyelwa luyagcinwa."
+  },
+  "reportingYears": {
+    "title": "Iminyaka yekubika",
+    "subtitle": "Umnyaka usetjentiswa emadeshibhodini, ekuhlatiyeni nasemibikweni nase tonkhe tikhatsi tawo tivunyiwe.",
+    "periodsLabel": "Tikhatsi temnyaka",
+    "counted": "Ugcwele · uyabalwa",
+    "approvedOf": "{{approved}} kwa-{{expected}} tivunyiwe",
+    "notCounted": "Akakabalwa",
+    "state": {
+      "approved": "Kuvunyiwe",
+      "in_review": "Kuyabuyeketwa",
+      "draft": "Lokusalungiswa",
+      "missing": "Akukacali"
+    },
+    "frequency": {
+      "yearly": "Ngemnyaka",
+      "quarterly": "Ngekota",
+      "monthly": "Ngenyanga",
+      "semiAnnual": "Ngehhafu yemnyaka"
+    }
   }
 }

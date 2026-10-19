@@ -614,6 +614,7 @@ import {
   type SubmissionPeriodType,
 } from "@/components/submissions/PeriodSelector";
 import { PeriodReminderBanner } from "@/components/submissions/PeriodReminderBanner";
+import { ReportingYearsPanel } from "@/components/submissions/ReportingYearsPanel";
 import { usePeriodReminders } from "@/hooks/submissions/usePeriodReminders";
 import { yearLock } from "@/lib/period-rules";
 
@@ -1058,6 +1059,9 @@ export const SubmissionsPage: React.FC = () => {
                 <Plus className="size-4" /> {t("submissions.newSubmission")}
               </button>
             </div>
+          )}
+          {(isCooperative || selectedCoopId !== null) && (
+            <ReportingYearsPanel submissions={submissions} />
           )}
           {isMinistry && selectedFederationId === null ? (
             <>

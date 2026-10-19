@@ -6563,5 +6563,25 @@
     "badge_other": "Connexion valable encore {{count}} jours",
     "badgeToday": "La connexion expire aujourd'hui",
     "hint": "Votre connexion sur cet appareil expire le {{date}}. Ensuite, il faudra Internet pour vous reconnecter avec votre mot de passe. Les modifications non envoyées sont conservées."
+  },
+  "reportingYears": {
+    "title": "Années de déclaration",
+    "subtitle": "Une année est utilisée dans les tableaux de bord, analyses et rapports une fois toutes ses périodes approuvées.",
+    "periodsLabel": "Périodes de l'année",
+    "counted": "Complète · prise en compte",
+    "approvedOf": "{{approved}} sur {{expected}} approuvées",
+    "notCounted": "Pas encore prise en compte",
+    "state": {
+      "approved": "Approuvée",
+      "in_review": "En révision",
+      "draft": "Brouillon",
+      "missing": "Non commencée"
+    },
+    "frequency": {
+      "yearly": "Annuelle",
+      "quarterly": "Trimestrielle",
+      "monthly": "Mensuelle",
+      "semiAnnual": "Semestrielle"
+    }
   }
 }

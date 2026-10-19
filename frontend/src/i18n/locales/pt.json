@@ -6539,5 +6539,25 @@
     "badge_other": "A sessão termina em {{count}} dias",
     "badgeToday": "A sessão termina hoje",
     "hint": "A sua sessão neste dispositivo termina em {{date}}. Depois disso, precisa de internet para iniciar sessão novamente com a sua palavra-passe. As alterações não enviadas são mantidas."
+  },
+  "reportingYears": {
+    "title": "Anos de reporte",
+    "subtitle": "Um ano é usado nos painéis, análises e relatórios quando todos os seus períodos estão aprovados.",
+    "periodsLabel": "Períodos do ano",
+    "counted": "Completo · contabilizado",
+    "approvedOf": "{{approved}} de {{expected}} aprovados",
+    "notCounted": "Ainda não contabilizado",
+    "state": {
+      "approved": "Aprovado",
+      "in_review": "Em revisão",
+      "draft": "Rascunho",
+      "missing": "Não iniciado"
+    },
+    "frequency": {
+      "yearly": "Anual",
+      "quarterly": "Trimestral",
+      "monthly": "Mensal",
+      "semiAnnual": "Semestral"
+    }
   }
 }

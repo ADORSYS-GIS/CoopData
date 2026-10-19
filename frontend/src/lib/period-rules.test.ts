@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { periodReminders, toPeriodType, yearLock } from "@/lib/period-rules";
+import { periodReminders, toPeriodType, yearLock, yearProgress } from "@/lib/period-rules";
 
 const NOW = new Date("2026-09-25T00:00:00Z");
 
@@ -82,5 +82,78 @@ describe("toPeriodType", () => {
   it("falls back to yearly for unknown values", () => {
     expect(toPeriodType("weekly")).toBe("YEARLY");
     expect(toPeriodType("semi_annual")).toBe("SEMI_ANNUAL");
+  });
+});
+
+describe("yearProgress", () => {
+  const sub = (
+    year: number,
+    period_type: string,
+    period_value: string,
+    status: string,
+    cooperative_id = "c1",
+  ) => ({ cooperative_id, reporting_year: year, period_type, period_value, status });
+
+  it("counts an approved yearly return as a complete year", () => {
+    const [year] = yearProgress([sub(2025, "YEARLY", "2025", "approved")]);
+
+    expect(year).toMatchObject({ year: 2025, complete: true, approved: 1, expected: 1 });
+    expect(year?.periods).toEqual([{ period: "2025", state: "approved" }]);
+  });
+
+  it("needs every quarter approved, whatever the order they were filed in", () => {
+    const [year] = yearProgress([
+      sub(2026, "QUARTERLY", "Q3", "approved"),
+      sub(2026, "QUARTERLY", "Q1", "approved"),
+      sub(2026, "QUARTERLY", "Q2", "in_review"),
+    ]);
+
+    expect(year).toMatchObject({ complete: false, approved: 2, expected: 4 });
+    expect(year?.periods.map((p) => p.state)).toEqual([
+      "approved",
+      "in_review",
+      "approved",
+      "missing",
+    ]);
+  });
+
+  it("completes the year once the last quarter is approved", () => {
+    const [year] = yearProgress(
+      ["Q4", "Q2", "Q1", "Q3"].map((q) => sub(2026, "QUARTERLY", q, "approved")),
+    );
+
+    expect(year?.complete).toBe(true);
+  });
+
+  it("treats a returned period as a draft and a rejected one as missing", () => {
+    const [year] = yearProgress([
+      sub(2025, "SEMI_ANNUAL", "H1", "returned"),
+      sub(2025, "SEMI_ANNUAL", "H2", "rejected"),
+    ]);
+
+    expect(year?.periods).toEqual([
+      { period: "H1", state: "draft" },
+      { period: "H2", state: "missing" },
+    ]);
+  });
+
+  it("counts a full-year monthly return as all twelve months", () => {
+    const [year] = yearProgress([sub(2025, "MONTHLY", "FULL_YEAR", "approved")]);
+
+    expect(year).toMatchObject({ complete: true, approved: 12, expected: 12 });
+  });
+
+  it("keeps cooperatives and years apart, newest year first", () => {
+    const progress = yearProgress([
+      sub(2024, "YEARLY", "2024", "approved"),
+      sub(2025, "QUARTERLY", "Q1", "draft"),
+      sub(2025, "YEARLY", "2025", "approved", "c2"),
+    ]);
+
+    expect(progress.map((p) => [p.cooperativeId, p.year, p.complete])).toEqual([
+      ["c1", 2025, false],
+      ["c2", 2025, true],
+      ["c1", 2024, true],
+    ]);
   });
 });

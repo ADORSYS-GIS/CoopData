@@ -1,8 +1,6 @@
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { MONTH_NAMES, type YearLock } from "@/lib/period-rules";
 
-export { MONTH_NAMES };
-
 export type SubmissionPeriodType = "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
 
 /** Quarter month ranges aligned to a fiscal-year start month (1-12, 1 = Jan). */

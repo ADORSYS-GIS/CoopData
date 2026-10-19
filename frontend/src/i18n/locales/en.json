@@ -6600,5 +6600,25 @@
     "badge_other": "Sign-in ends in {{count}} days",
     "badgeToday": "Sign-in ends today",
     "hint": "Your sign-in on this device ends on {{date}}. After that you need internet to sign in again with your password. Unsent changes are kept."
+  },
+  "reportingYears": {
+    "title": "Reporting years",
+    "subtitle": "A year is used in dashboards, analytics and reports once every period of it is approved.",
+    "periodsLabel": "Periods of the year",
+    "counted": "Complete · counted",
+    "approvedOf": "{{approved}} of {{expected}} approved",
+    "notCounted": "Not counted yet",
+    "state": {
+      "approved": "Approved",
+      "in_review": "In review",
+      "draft": "Draft",
+      "missing": "Not started"
+    },
+    "frequency": {
+      "yearly": "Yearly",
+      "quarterly": "Quarterly",
+      "monthly": "Monthly",
+      "semiAnnual": "Semi-annual"
+    }
   }
 }

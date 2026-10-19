@@ -117,3 +117,128 @@ export const periodReminders = (
 
 export const reminderKey = (reminder: PeriodReminder): string =>
   `${reminder.year}:${reminder.periodType}:${reminder.missing.join(",")}`;
+
+export type PeriodState = "approved" | "in_review" | "draft" | "missing";
+
+export interface YearPeriod {
+  /** "Q1", "H2", "03" or the year for a yearly return. */
+  period: string;
+  state: PeriodState;
+}
+
+export interface YearProgress {
+  cooperativeId: string;
+  year: number;
+  periodType: PeriodType;
+  periods: YearPeriod[];
+  approved: number;
+  expected: number;
+  /** Every period approved: the year counts in dashboards, analytics and reports. */
+  complete: boolean;
+}
+
+export interface YearProgressSubmission extends PeriodSubmission {
+  cooperative_id?: string | null;
+}
+
+const REVIEW_STATUSES = new Set([
+  "submitted",
+  "in_review",
+  "apex_review",
+  "federation_review",
+  "ministry_review",
+  "escalated",
+]);
+const DRAFT_STATUSES = new Set(["draft", "returned", "synced", "sync_failed"]);
+const STATE_RANK: Record<PeriodState, number> = { missing: 0, draft: 1, in_review: 2, approved: 3 };
+
+const stateOf = (status?: string | null): PeriodState => {
+  const value = (status ?? "").toLowerCase();
+  if (value === "approved") return "approved";
+  if (REVIEW_STATUSES.has(value)) return "in_review";
+  if (DRAFT_STATUSES.has(value)) return "draft";
+  return "missing";
+};
+
+const FREQUENCY_ORDER: readonly PeriodType[] = ["YEARLY", "SEMI_ANNUAL", "QUARTERLY", "MONTHLY"];
+
+const progressFor = (
+  cooperativeId: string,
+  year: number,
+  periodType: PeriodType,
+  inYear: YearProgressSubmission[],
+): YearProgress => {
+  const expected = periodType === "YEARLY" ? [String(year)] : expectedPeriods(periodType);
+  const states = new Map<string, PeriodState>(expected.map((period) => [period, "missing"]));
+  for (const submission of inYear) {
+    if (toPeriodType(submission.period_type) !== periodType) continue;
+    const value = normalizePeriodValue(periodType, submission.period_value);
+    const covered = periodType === "YEARLY" ? expected : value === "FULL_YEAR" ? expected : [value];
+    const state = stateOf(submission.status);
+    for (const period of covered) {
+      const current = states.get(period);
+      if (current !== undefined && STATE_RANK[state] > STATE_RANK[current]) {
+        states.set(period, state);
+      }
+    }
+  }
+  const periods = expected.map((period) => ({ period, state: states.get(period) ?? "missing" }));
+  const approved = periods.filter((p) => p.state === "approved").length;
+  return {
+    cooperativeId,
+    year,
+    periodType,
+    periods,
+    approved,
+    expected: expected.length,
+    complete: approved === expected.length,
+  };
+};
+
+/**
+ * Progress of each cooperative year, newest first. Mirrors
+ * `services::reporting_year` on the backend: a year counts only once every
+ * period of its frequency is approved, whatever the order they were filed in.
+ */
+export const yearProgress = (submissions: YearProgressSubmission[]): YearProgress[] => {
+  const groups = new Map<string, YearProgressSubmission[]>();
+  for (const submission of submissions) {
+    const key = `${submission.cooperative_id ?? ""}|${submission.reporting_year}`;
+    const list = groups.get(key) ?? [];
+    list.push(submission);
+    groups.set(key, list);
+  }
+  const result: YearProgress[] = [];
+  for (const inYear of groups.values()) {
+    const first = inYear[0];
+    if (!first) continue;
+    const types = FREQUENCY_ORDER.filter((type) =>
+      inYear.some((s) => toPeriodType(s.period_type) === type),
+    );
+    const candidates = types.map((type) =>
+      progressFor(first.cooperative_id ?? "", first.reporting_year, type, inYear),
+    );
+    const chosen =
+      candidates.find((c) => c.complete) ??
+      candidates.reduce<YearProgress | undefined>(
+        (best, c) => (!best || c.approved / c.expected > best.approved / best.expected ? c : best),
+        undefined,
+      );
+    if (chosen) result.push(chosen);
+  }
+  return result.sort((a, b) => b.year - a.year || a.cooperativeId.localeCompare(b.cooperativeId));
+};
+
+/** "Mar" for a monthly period, the period itself otherwise. */
+export const periodDisplayName = (progress: YearProgress, period: string): string => {
+  if (progress.periodType !== "MONTHLY") return period;
+  return MONTH_NAMES[Number(period) - 1] ?? period;
+};
+
+/** i18n keys of the frequency names shown next to a year. */
+export const FREQUENCY_LABEL_KEYS = {
+  YEARLY: "reportingYears.frequency.yearly",
+  QUARTERLY: "reportingYears.frequency.quarterly",
+  MONTHLY: "reportingYears.frequency.monthly",
+  SEMI_ANNUAL: "reportingYears.frequency.semiAnnual",
+} as const;

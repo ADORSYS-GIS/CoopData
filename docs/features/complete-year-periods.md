@@ -59,23 +59,25 @@ approved submission is treated as "the year", so:
   startup KPI recompute.
 - Every year-level consumer selects "counted" submissions through the shared
   service instead of filtering `status == approved` on its own.
-- `GET /api/v1/cooperative/reporting-years` (and the apex equivalent): per
-  cooperative and year, the progress (`approved`, `expected`, `missing` periods,
-  `complete`).
+- No new endpoint for progress: every role already loads its submissions list,
+  and `lib/period-rules.ts` (`yearProgress`) applies the same rule on the
+  client. Year-level responses that leave incomplete years out say so in their
+  own payload.
 
 ### Frontend
 
 - Manual entry: a read-only period bar (frequency · period · months covered).
-- `YearProgress` component: "Quarterly · 2 of 4 approved" with one pill per
-  period (approved / submitted / draft / not started). Shown on the submissions
-  page, dashboards and report screens when a year is not complete.
+- "Reporting years" panel on the submissions page (cooperative, or a selected
+  cooperative for apex, federation and ministry): one row per year with a pill
+  per period (approved / in review / draft / not started) and "Complete ·
+  counted" or "2 of 4 approved · Not counted yet".
 - Year pickers on analytics and reports only offer complete years; incomplete
   ones are listed as disabled with their progress.
 
 ## 4. Plan
 
 - [x] 1. Lock the period on the manual-entry page and in the backend.
-- [ ] 2. Reporting-year service, progress endpoint and the progress UI.
+- [x] 2. Reporting-year service and the progress UI.
 - [ ] 3. Full-year KPIs and complete years only in dashboards, analytics,
        benchmarking and consolidated figures.
 - [ ] 4. Reports and comparisons from complete years only.
