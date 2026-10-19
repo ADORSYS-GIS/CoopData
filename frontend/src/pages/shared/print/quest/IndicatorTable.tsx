@@ -1,6 +1,7 @@
-import { formatIndicatorValue, isNotReported } from "@/lib/basic-dashboard";
-import { labelOf, type QuestAnalysis } from "@/pages/shared/print/quest/data";
+import { isNotReported } from "@/lib/basic-dashboard";
 import { pickIndicators } from "@/lib/questionnaire-report";
+import { labelOf, reportValue, type QuestAnalysis } from "@/pages/shared/print/quest/data";
+import { percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
 interface Props {
   a: QuestAnalysis;
@@ -16,26 +17,26 @@ export function IndicatorTable({ a, keys, valueHeading }: Props) {
     <table className="tbl compact">
       <thead>
         <tr>
-          <th>Indicator</th>
+          <th>{tr("common.indicator")}</th>
           <th className="num">{valueHeading ?? a.period}</th>
-          <th className="num">Prior period</th>
-          <th className="num">Change</th>
+          <th className="num">{tr("quest.prior_period_col")}</th>
+          <th className="num">{tr("common.change")}</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => (
           <tr key={row.key}>
             <td>{labelOf(row.key)}</td>
-            <td className="num">{formatIndicatorValue(row, scope)}</td>
+            <td className="num">{reportValue(row, scope)}</td>
             <td className="num">
               {row.previous === null || isNotReported(row)
                 ? "—"
-                : formatIndicatorValue({ ...row, value: row.previous, status: "computed" }, scope)}
+                : reportValue({ ...row, value: row.previous, status: "computed" }, scope)}
             </td>
             <td className="num">
               {row.change_pct === null
                 ? "—"
-                : `${row.change_pct > 0 ? "+" : ""}${row.change_pct.toFixed(1)}%`}
+                : `${row.change_pct > 0 ? "+" : ""}${percentText(row.change_pct, 1)}`}
             </td>
           </tr>
         ))}

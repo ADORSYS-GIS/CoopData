@@ -21,7 +21,6 @@ use crate::services::narrative_translation;
 use crate::AppState;
 
 const ENGLISH: &str = "en";
-const QUESTIONNAIRE_LOCALES: [&str; 1] = [ENGLISH];
 
 /// One report that can be exported as PDF.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,27 +128,23 @@ impl ReportTarget {
             .to_string()
     }
 
-    /// Languages this report can be produced in. Questionnaire reports are English-only.
+    /// Languages this report can be produced in. Statement and questionnaire reports
+    /// are both multilingual; every language but English is prepared on request.
     pub fn languages(&self) -> &'static [&'static str] {
-        if self.questionnaire() {
-            &QUESTIONNAIRE_LOCALES
-        } else {
-            &EXPORT_LOCALES
-        }
+        &EXPORT_LOCALES
     }
 
-    /// Where the translatable AI narratives live. Questionnaire reports have none
-    /// (a questionnaire submission keeps its English-only narratives separately).
+    /// Where the translatable AI narratives live. A questionnaire submission keeps its
+    /// narratives with the submission like any other report. Consolidated questionnaire
+    /// reports carry no AI narratives: only their fixed text is translated, by the print page.
     fn narrative_slot(&self) -> Option<NarrativeSlot> {
-        if self.questionnaire() {
-            return None;
+        match *self {
+            Self::Submission { id, .. } => Some(NarrativeSlot::Submission(id)),
+            _ if self.questionnaire() => None,
+            Self::Apex { id, year, .. } => Some(NarrativeSlot::Apex { id, year }),
+            Self::Federation { id, year, .. } => Some(NarrativeSlot::Federation { id, year }),
+            Self::Ministry { year, .. } => Some(NarrativeSlot::Ministry(year)),
         }
-        Some(match *self {
-            Self::Submission { id, .. } => NarrativeSlot::Submission(id),
-            Self::Apex { id, year, .. } => NarrativeSlot::Apex { id, year },
-            Self::Federation { id, year, .. } => NarrativeSlot::Federation { id, year },
-            Self::Ministry { year, .. } => NarrativeSlot::Ministry(year),
-        })
     }
 }
 
@@ -471,17 +466,29 @@ async fn generate_english(state: &AppState, target: ReportTarget) -> AppResult<s
 }
 
 async fn ensure_translation(state: &AppState, target: ReportTarget, lang: &str) -> AppResult<()> {
-    let slot = target.narrative_slot().ok_or_else(|| {
-        AppError::BadRequest("This report is not available in the requested language".into())
-    })?;
+    // Reports without AI narratives have nothing to translate here.
+    let Some(slot) = target.narrative_slot() else {
+        return Ok(());
+    };
     let stored = match state.narrative_store.load(slot).await? {
         Some(stored) if narrative_translation::english_of(&stored).is_some() => stored,
         // A report exported before narratives were stored: generate them first.
         _ => {
             ensure_english_narratives(state, target, true).await?;
-            state.narrative_store.load(slot).await?.ok_or_else(|| {
-                AppError::InternalServerError("English narratives were not stored".into())
-            })?
+            match state.narrative_store.load(slot).await? {
+                Some(stored) => stored,
+                // A questionnaire report renders without an AI summary when its
+                // narratives could not be generated, in every language.
+                None if target.questionnaire() => {
+                    tracing::warn!(report = %target.key(), lang, "[report] No narratives to translate, rendering without AI summary");
+                    return Ok(());
+                }
+                None => {
+                    return Err(AppError::InternalServerError(
+                        "English narratives were not stored".into(),
+                    ))
+                }
+            }
         }
     };
     if narrative_translation::has_locale(&stored, lang) {
@@ -821,7 +828,7 @@ mod tests {
     }
 
     #[test]
-    fn questionnaire_reports_are_english_only() {
+    fn questionnaire_reports_are_multilingual() {
         let id = Uuid::nil();
         let questionnaire = ReportTarget::Submission {
             id,
@@ -832,12 +839,49 @@ mod tests {
             questionnaire: false,
         };
 
-        assert_eq!(questionnaire.languages(), &["en"]);
-        assert_eq!(questionnaire.narrative_slot(), None);
+        assert_eq!(questionnaire.languages(), &EXPORT_LOCALES);
         assert_eq!(statement.languages(), &EXPORT_LOCALES);
+        assert_eq!(
+            questionnaire.narrative_slot(),
+            Some(NarrativeSlot::Submission(id))
+        );
         assert_eq!(
             statement.narrative_slot(),
             Some(NarrativeSlot::Submission(id))
+        );
+    }
+
+    #[test]
+    fn consolidated_questionnaire_reports_have_no_narratives_to_translate() {
+        let id = Uuid::nil();
+        let consolidated = [
+            ReportTarget::Apex {
+                id,
+                year: 2025,
+                questionnaire: true,
+            },
+            ReportTarget::Federation {
+                id,
+                year: 2025,
+                questionnaire: true,
+            },
+            ReportTarget::Ministry {
+                year: 2025,
+                questionnaire: true,
+            },
+        ];
+
+        for target in consolidated {
+            assert_eq!(target.narrative_slot(), None);
+            assert_eq!(target.languages(), &EXPORT_LOCALES);
+        }
+        assert_eq!(
+            ReportTarget::Ministry {
+                year: 2025,
+                questionnaire: false
+            }
+            .narrative_slot(),
+            Some(NarrativeSlot::Ministry(2025))
         );
     }
 

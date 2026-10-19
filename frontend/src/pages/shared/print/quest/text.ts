@@ -1,4 +1,5 @@
-import { PAR30_LIMIT, parTone, type QuestAnalysis } from "@/pages/shared/print/quest/data";
+import { par30Limit, parTone, pct, type QuestAnalysis } from "@/pages/shared/print/quest/data";
+import { tr } from "@/pages/shared/print/tpl/i18n";
 import type { StatusTone } from "@/pages/shared/print/tpl/TplParts";
 
 export interface Checks {
@@ -8,9 +9,6 @@ export interface Checks {
 export const checksOf = (a: QuestAnalysis): Checks => ({
   par30: parTone(a.num("par_gt_30_pct")),
 });
-
-const pct = (value: number | null | undefined): string =>
-  value == null ? "not reported" : `${value.toFixed(1)}%`;
 
 export const verdictOf = (a: QuestAnalysis): { verdict: string; body: string } => {
   const c = checksOf(a);
@@ -22,33 +20,42 @@ export const verdictOf = (a: QuestAnalysis): { verdict: string; body: string } =
   const watches = reported.filter((t) => t === "warn").length;
   const verdict =
     reported.length === 0
-      ? "The questionnaire does not carry enough figures to assess the cooperative."
+      ? tr("quest.verdict_none")
       : breaches === 0 && watches === 0
-        ? "Sound on the reported indicators."
+        ? tr("quest.verdict_sound")
         : breaches > 0
-          ? "Weaknesses on the reported indicators; corrective action is needed."
-          : "Mixed results; some indicators need attention.";
+          ? tr("quest.verdict_weak")
+          : tr("quest.verdict_mixed");
   const body = [
-    `${a.props.coopName} reports ${pct(a.num("active_members_pct"))} of members active and ${pct(a.num("women_members_pct"))} women members, with ${pct(a.num("savings_account_penetration_pct"))} savings account penetration.`,
-    `PAR over 30 days is ${pct(a.num("par_gt_30_pct"))} (limit ${PAR30_LIMIT}%), the total operating margin is ${pct(margin)} and monetary reserve coverage is ${pct(a.num("monetary_reserve_coverage_pct"))}.`,
+    tr("quest.body_a", {
+      name: a.props.coopName,
+      active: pct(a.num("active_members_pct")),
+      women: pct(a.num("women_members_pct")),
+      penetration: pct(a.num("savings_account_penetration_pct")),
+    }),
+    tr("quest.body_b", {
+      par: pct(a.num("par_gt_30_pct")),
+      limit: par30Limit(),
+      margin: pct(margin),
+      reserve: pct(a.num("monetary_reserve_coverage_pct")),
+    }),
   ].join(" ");
   return { verdict, body };
 };
 
 export const strengthsOf = (a: QuestAnalysis): string[] => {
   const out: string[] = [];
-  const par = a.num("par_gt_30_pct");
   if (checksOf(a).par30 === "ok")
-    out.push(`PAR over 30 days is ${pct(par)}, within the ${PAR30_LIMIT}% limit.`);
+    out.push(tr("quest.str_par", { value: pct(a.num("par_gt_30_pct")), limit: par30Limit() }));
   const women = a.num("women_members_pct");
-  if (women !== null && women >= 40) out.push(`Women are ${pct(women)} of members.`);
+  if (women !== null && women >= 40) out.push(tr("quest.str_women", { value: pct(women) }));
   const active = a.num("active_members_pct");
-  if (active !== null && active >= 80) out.push(`${pct(active)} of members are active.`);
+  if (active !== null && active >= 80) out.push(tr("quest.str_active", { value: pct(active) }));
   const margin = a.num("total_operating_margin_pct");
-  if (margin !== null && margin > 0) out.push(`The total operating margin is ${pct(margin)}.`);
+  if (margin !== null && margin > 0) out.push(tr("quest.str_margin", { value: pct(margin) }));
   const reserve = a.num("monetary_reserve_coverage_pct");
   if (reserve !== null && reserve >= 100)
-    out.push(`Accumulated reserves are fully backed in the bank (${pct(reserve)}).`);
+    out.push(tr("quest.str_reserve", { value: pct(reserve) }));
   return out.slice(0, 5);
 };
 
@@ -56,25 +63,22 @@ export const concernsOf = (a: QuestAnalysis): string[] => {
   const c = checksOf(a);
   const out: string[] = [];
   if (c.par30 === "warn" || c.par30 === "bad")
-    out.push(
-      `PAR over 30 days is ${pct(a.num("par_gt_30_pct"))} against a limit of ${PAR30_LIMIT}%.`,
-    );
+    out.push(tr("quest.con_par", { value: pct(a.num("par_gt_30_pct")), limit: par30Limit() }));
   const margin = a.num("total_operating_margin_pct");
-  if (margin !== null && margin < 0)
-    out.push(`The total operating margin is negative (${pct(margin)}).`);
+  if (margin !== null && margin < 0) out.push(tr("quest.con_margin", { value: pct(margin) }));
   const reserve = a.num("monetary_reserve_coverage_pct");
-  if (reserve !== null && reserve < 100)
-    out.push(`Only ${pct(reserve)} of accumulated reserves is held in the bank.`);
+  if (reserve !== null && reserve < 100) out.push(tr("quest.con_reserve", { value: pct(reserve) }));
   const missing = a.props.dashboard.indicators.filter((i) => i.value === null).length;
-  if (missing > 0)
-    out.push(`${missing} indicators could not be computed from the answers given; see Annex A.`);
+  if (missing > 0) out.push(tr("quest.con_missing", { count: missing }));
   return out.slice(0, 5);
 };
+
+export type Priority = "High" | "Medium" | "Standard";
 
 export interface Recommendation {
   lead: string;
   text: string;
-  priority: "High" | "Medium" | "Standard";
+  priority: Priority;
   timeline: string;
 }
 
@@ -83,39 +87,39 @@ export const recommendationsOf = (a: QuestAnalysis): Recommendation[] => {
   const out: Recommendation[] = [];
   if (c.par30 === "warn" || c.par30 === "bad")
     out.push({
-      lead: "Portfolio quality.",
-      text: "Prepare a recovery plan for overdue loans and report progress with the next return.",
+      lead: tr("quest.rec.portfolio.lead"),
+      text: tr("quest.rec.portfolio.text"),
       priority: "High",
-      timeline: "Within 30 days",
+      timeline: tr("common.timelines.within_30_days"),
     });
   const margin = a.num("total_operating_margin_pct");
   if (margin !== null && margin < 0)
     out.push({
-      lead: "Operating performance.",
-      text: "Present a plan to bring income above expenditure, starting with the main activity.",
+      lead: tr("quest.rec.operating.lead"),
+      text: tr("quest.rec.operating.text"),
       priority: "High",
-      timeline: "Within 30 days",
+      timeline: tr("common.timelines.within_30_days"),
     });
   const reserve = a.num("monetary_reserve_coverage_pct");
   if (reserve !== null && reserve < 100)
     out.push({
-      lead: "Reserves.",
-      text: "Move accumulated reserves into the bank until they are fully backed by actual funds.",
+      lead: tr("quest.rec.reserves.lead"),
+      text: tr("quest.rec.reserves.text"),
       priority: "Medium",
-      timeline: "Next quarter",
+      timeline: tr("common.timelines.next_quarter"),
     });
   if (a.props.dashboard.indicators.some((i) => i.value === null))
     out.push({
-      lead: "Reporting.",
-      text: "Complete the questionnaire fields listed in Annex A so that every indicator can be computed.",
+      lead: tr("quest.rec.reporting.lead"),
+      text: tr("quest.rec.reporting.text"),
       priority: "Medium",
-      timeline: "Next return",
+      timeline: tr("quest.timeline_next_return"),
     });
   out.push({
-    lead: "Financial statements.",
-    text: "Move to full statement reporting when the cooperative is ready, so that ratios are computed from ledger balances.",
+    lead: tr("quest.rec.statements.lead"),
+    text: tr("quest.rec.statements.text"),
     priority: "Standard",
-    timeline: "Next financial year",
+    timeline: tr("common.timelines.next_financial_year"),
   });
   return out;
 };

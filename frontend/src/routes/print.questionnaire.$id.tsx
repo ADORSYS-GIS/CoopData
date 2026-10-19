@@ -7,7 +7,7 @@ export const Route = createFileRoute("/print/questionnaire/$id")({
 
 function PrintComponent() {
   const { id } = Route.useParams();
-  const { token } = Route.useSearch();
+  const { token, lng } = Route.useSearch() as { token?: string; lng?: string };
 
-  return <QuestionnaireReportPrint submissionId={id} tokenOverride={token} />;
+  return <QuestionnaireReportPrint submissionId={id} tokenOverride={token} lng={lng} />;
 }
