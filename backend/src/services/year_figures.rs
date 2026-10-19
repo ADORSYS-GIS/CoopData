@@ -23,6 +23,8 @@ pub struct YearStatement {
     pub has_statement: bool,
     /// Every statement of the year passed validation.
     pub is_validated: bool,
+    /// Currency of the last period's statement (the one the year ends in).
+    pub currency: crate::entities::enums::Currency,
 }
 
 /// Which complete years a screen asks for.
@@ -120,6 +122,12 @@ pub async fn load_statements<'a>(
             .collect();
         let has_statement = !year_statements.is_empty();
         let is_validated = has_statement && year_statements.iter().all(|fs| fs.is_validated);
+        let currency = year_statements
+            .iter()
+            .find(|fs| fs.submission_id == anchor.id)
+            .or_else(|| year_statements.last())
+            .map(|fs| fs.currency.clone())
+            .unwrap_or(crate::entities::enums::Currency::Szl);
         result.insert(
             (year.cooperative_id, year.year),
             YearStatement {
@@ -128,6 +136,7 @@ pub async fn load_statements<'a>(
                 line_items: year_line_items(year, &by_id, &items_by_submission),
                 has_statement,
                 is_validated,
+                currency,
             },
         );
     }

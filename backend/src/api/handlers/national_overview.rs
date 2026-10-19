@@ -883,11 +883,12 @@ pub async fn get_comparative_statements(
             .filter(|statement| statement.has_statement);
 
         let mut grid_items = vec![];
-        let currency = crate::entities::enums::Currency::Szl;
+        let mut currency = crate::entities::enums::Currency::Szl;
         let mut is_validated = false;
         let mut has_unmapped_items = false;
 
         if let Some(statement) = year_statement {
+            currency = statement.currency.clone();
             is_validated = statement.is_validated;
 
             {
