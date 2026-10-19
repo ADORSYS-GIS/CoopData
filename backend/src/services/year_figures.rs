@@ -134,44 +134,104 @@ pub async fn load_statements<'a>(
     Ok(result)
 }
 
-/// KPIs of a complete year. A yearly (or full-year) return keeps its stored
-/// KPIs. A year built from periods gets its financial KPIs recomputed from the
-/// combined statement and keeps the last period's non-financial KPIs (member,
-/// loan and savings registers are year-end figures).
-pub async fn year_kpis(
+/// KPI records of a complete year. A yearly (or full-year) return keeps its
+/// stored KPIs. A year built from periods gets its financial KPIs recomputed
+/// from the combined statement and keeps the last period's non-financial KPIs
+/// (member, loan and savings registers are year-end figures).
+pub async fn year_kpi_records(
     state: &AppState,
     statement: &YearStatement,
-) -> AppResult<Vec<crate::api::dto::financial::KpiItemResponse>> {
-    use crate::api::dto::financial::KpiItemResponse;
-
+) -> AppResult<Vec<crate::entities::kpi_record::Model>> {
     let stored = state
         .kpi_record_repo
         .find_by_submission(statement.anchor.id)
         .await?;
-    let from_record = |r: crate::entities::kpi_record::Model| KpiItemResponse {
-        benchmark: crate::services::KpiEngine::get_benchmark(&r.kpi_name),
-        name: r.kpi_name,
-        value: r.value,
-        formatted: r.formatted,
-        unit: r.unit,
-        status: r.status,
-        description: r.description,
-    };
     if !statement.year.is_multi_period() {
-        return Ok(stored.into_iter().map(from_record).collect());
+        return Ok(stored);
     }
-    let mut kpis: Vec<KpiItemResponse> = crate::services::KpiEngine::compute(&statement.line_items)
-        .to_vec()
-        .into_iter()
-        .map(KpiItemResponse::from)
-        .collect();
-    kpis.extend(
-        stored
+    let now = chrono::Utc::now().fixed_offset();
+    let mut records: Vec<crate::entities::kpi_record::Model> =
+        crate::services::KpiEngine::compute(&statement.line_items)
+            .to_vec()
             .into_iter()
-            .filter(|r| r.kpi_type != "financial")
-            .map(from_record),
-    );
-    Ok(kpis)
+            .map(|kpi| crate::entities::kpi_record::Model {
+                id: Uuid::new_v4(),
+                cooperative_id: statement.anchor.cooperative_id,
+                submission_id: statement.anchor.id,
+                reporting_year: statement.year.year,
+                kpi_name: kpi.name,
+                kpi_type: "financial".to_string(),
+                value: kpi.value,
+                formatted: kpi.formatted,
+                unit: kpi.unit,
+                status: kpi.status,
+                description: kpi.description,
+                created_at: now,
+                updated_at: now,
+            })
+            .collect();
+    records.extend(stored.into_iter().filter(|r| r.kpi_type != "financial"));
+    Ok(records)
+}
+
+/// `year_kpi_records` as API items.
+pub async fn year_kpis(
+    state: &AppState,
+    statement: &YearStatement,
+) -> AppResult<Vec<crate::api::dto::financial::KpiItemResponse>> {
+    Ok(year_kpi_records(state, statement)
+        .await?
+        .into_iter()
+        .map(|r| crate::api::dto::financial::KpiItemResponse {
+            benchmark: crate::services::KpiEngine::get_benchmark(&r.kpi_name),
+            name: r.kpi_name,
+            value: r.value,
+            formatted: r.formatted,
+            unit: r.unit,
+            status: r.status,
+            description: r.description,
+        })
+        .collect())
+}
+
+/// The year a submission belongs to, and the cooperative's previous year.
+#[derive(Debug, Clone, Default)]
+pub struct SubmissionYear {
+    /// Progress of the submission's year.
+    pub progress: Option<YearProgress>,
+    /// The year as one statement, once it is complete.
+    pub current: Option<YearStatement>,
+    /// The previous year, when it is complete: the only year a complete year
+    /// is compared with.
+    pub prior: Option<YearStatement>,
+}
+
+/// The year of `submission`. With `include_submission`, the submission counts
+/// as approved (a report prepared for it before its approval).
+pub async fn for_submission(
+    state: &AppState,
+    submission: &submission::Model,
+    include_submission: bool,
+) -> AppResult<SubmissionYear> {
+    let mut subs = state
+        .submission_repo
+        .find_by_cooperative_ids(vec![submission.cooperative_id])
+        .await?;
+    if include_submission {
+        if let Some(s) = subs.iter_mut().find(|s| s.id == submission.id) {
+            s.status = crate::entities::enums::SubmissionStatus::Approved;
+        }
+    }
+    let progress = reporting_year::year_progress(&subs);
+    let of_year = |year: i32| progress.iter().find(|p| p.year == year);
+    let current = of_year(submission.reporting_year).filter(|p| p.complete);
+    let prior = of_year(submission.reporting_year - 1).filter(|p| p.complete);
+    let mut statements = load_statements(state, current.into_iter().chain(prior), &subs).await?;
+    Ok(SubmissionYear {
+        progress: of_year(submission.reporting_year).cloned(),
+        current: current.and_then(|y| statements.remove(&(y.cooperative_id, y.year))),
+        prior: prior.and_then(|y| statements.remove(&(y.cooperative_id, y.year))),
+    })
 }
 
 /// "2026 is not complete yet: 2 of 4 periods approved." for an incomplete year.

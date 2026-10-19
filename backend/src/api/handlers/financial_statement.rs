@@ -632,49 +632,37 @@ pub async fn get_submission_kpis(
         "KPIs retrieved for submission"
     );
 
-    // Comparisons are only made between complete years.
-    let year_subs = state
-        .submission_repo
-        .find_by_cooperative_ids(vec![submission.cooperative_id])
-        .await?;
-    let progress = crate::services::reporting_year::year_progress(&year_subs);
-    let year_of = |year: i32| progress.iter().find(|p| p.year == year && p.complete);
-    let this_year = year_of(submission.reporting_year);
+    // Comparisons are only made between complete years. The requested
+    // submission counts as approved, so a report prepared for it before its
+    // approval still shows its year.
     let year_scope = query
         .scope
         .as_deref()
         .is_some_and(|scope| scope.eq_ignore_ascii_case("year"));
+    let year = crate::services::year_figures::for_submission(&state, &submission, true).await?;
 
     let kpis = if year_scope {
-        let Some(year) = this_year else {
-            let pending = progress
-                .iter()
-                .find(|p| p.year == submission.reporting_year)
+        let Some(current) = &year.current else {
+            let pending = year
+                .progress
+                .as_ref()
                 .map(crate::services::year_figures::incomplete_message)
                 .unwrap_or_else(|| format!("{} is not complete yet.", submission.reporting_year));
             return Err(AppError::Conflict(pending));
         };
-        let statements =
-            crate::services::year_figures::load_statements(&state, [year], &year_subs).await?;
-        match statements.get(&(year.cooperative_id, year.year)) {
-            Some(statement) => crate::services::year_figures::year_kpis(&state, statement).await?,
-            None => kpis,
-        }
+        crate::services::year_figures::year_kpis(&state, current).await?
     } else {
         kpis
     };
 
-    let compares_years = year_scope || this_year.is_some_and(|y| !y.is_multi_period());
-    let prior_year_kpis = match year_of(submission.reporting_year - 1) {
+    let compares_years = year_scope
+        || year
+            .current
+            .as_ref()
+            .is_some_and(|current| !current.year.is_multi_period());
+    let prior_year_kpis = match &year.prior {
         Some(prior) if query.include_prior_year.unwrap_or(false) && compares_years => {
-            let statements =
-                crate::services::year_figures::load_statements(&state, [prior], &year_subs).await?;
-            match statements.get(&(prior.cooperative_id, prior.year)) {
-                Some(statement) => {
-                    Some(crate::services::year_figures::year_kpis(&state, statement).await?)
-                }
-                None => None,
-            }
+            Some(crate::services::year_figures::year_kpis(&state, prior).await?)
         }
         _ => None,
     };
@@ -725,45 +713,65 @@ pub async fn get_submission_line_items(
         return Err(AppError::Forbidden("Access denied".into()));
     }
 
-    let current_fs = state
-        .financial_statement_repo
-        .find_by_submission_id(id)
-        .await?;
+    // scope=year: the complete year as one annual column. The prior year is
+    // always the previous complete year, as one annual column.
+    let year_scope = query
+        .scope
+        .as_deref()
+        .is_some_and(|scope| scope.eq_ignore_ascii_case("year"));
+    let year = crate::services::year_figures::for_submission(&state, &submission, true).await?;
 
-    let mut current_year_items = vec![];
-    if let Some(fs) = current_fs {
-        current_year_items = state
-            .line_item_repo
-            .find_by_financial_statement(fs.id)
-            .await?
-            .into_iter()
+    let current_year_items: Vec<LineItemResponse> = if year_scope {
+        let Some(current) = &year.current else {
+            let pending = year
+                .progress
+                .as_ref()
+                .map(crate::services::year_figures::incomplete_message)
+                .unwrap_or_else(|| format!("{} is not complete yet.", submission.reporting_year));
+            return Err(AppError::Conflict(pending));
+        };
+        current
+            .line_items
+            .iter()
+            .cloned()
             .map(LineItemResponse::from)
-            .collect();
-    }
-
-    let mut prior_year_items = None;
-    if query.include_prior_year.unwrap_or(false) {
-        if let Some(prior_sub) = state
-            .submission_repo
-            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
+            .collect()
+    } else {
+        match state
+            .financial_statement_repo
+            .find_by_submission_id(id)
             .await?
         {
-            if let Some(prior_fs) = state
-                .financial_statement_repo
-                .find_by_submission_id(prior_sub.id)
+            Some(fs) => state
+                .line_item_repo
+                .find_by_financial_statement(fs.id)
                 .await?
-            {
-                let items = state
-                    .line_item_repo
-                    .find_by_financial_statement(prior_fs.id)
-                    .await?
-                    .into_iter()
-                    .map(LineItemResponse::from)
-                    .collect();
-                prior_year_items = Some(items);
-            }
+                .into_iter()
+                .map(LineItemResponse::from)
+                .collect(),
+            None => vec![],
         }
-    }
+    };
+
+    let compares_years = year_scope
+        || year
+            .current
+            .as_ref()
+            .is_some_and(|current| !current.year.is_multi_period());
+    let prior_year_items = year
+        .prior
+        .as_ref()
+        .filter(|prior| {
+            query.include_prior_year.unwrap_or(false) && compares_years && prior.has_statement
+        })
+        .map(|prior| {
+            prior
+                .line_items
+                .iter()
+                .cloned()
+                .map(LineItemResponse::from)
+                .collect()
+        });
 
     Ok((
         StatusCode::OK,

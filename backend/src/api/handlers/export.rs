@@ -76,8 +76,20 @@ async fn submission_target(state: &AppState, claims: &Claims, id: Uuid) -> AppRe
         ));
     }
 
+    // A period of a year reported by quarters, halves or months shares the
+    // full year's report, available once the year is complete.
+    let cooperative_subs = state
+        .submission_repo
+        .find_by_cooperative_ids(vec![submission.cooperative_id])
+        .await?;
+    let report_id =
+        crate::services::reporting_year::report_submission(&cooperative_subs, &submission)
+            .map_err(|pending| {
+                AppError::Conflict(crate::services::year_figures::incomplete_message(&pending))
+            })?;
+
     Ok(ReportTarget::Submission {
-        id,
+        id: report_id,
         questionnaire: crate::services::questionnaire_report::is_questionnaire_method(
             &submission.submission_method,
         ),
@@ -233,7 +245,8 @@ pub async fn export_single_submission(
     responses(
         (status = 200, description = "Report status per language", body = ReportStatusResponse),
         (status = 403, description = "Forbidden"),
-        (status = 404, description = "Not found")
+        (status = 404, description = "Not found"),
+        (status = 409, description = "The submission's year is not complete yet")
     ),
     tag = "Export"
 )]

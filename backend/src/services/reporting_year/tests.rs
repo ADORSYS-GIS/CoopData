@@ -316,3 +316,66 @@ mod incomplete_cooperatives {
         assert_eq!(incomplete_cooperatives(&subs, None), 1);
     }
 }
+
+mod report_submission {
+    use super::*;
+
+    #[test]
+    fn a_yearly_return_is_its_own_report_whatever_its_status() {
+        let yearly = sub(
+            2025,
+            PeriodType::Yearly,
+            "2025",
+            SubmissionStatus::Submitted,
+        );
+
+        assert_eq!(
+            report_submission(std::slice::from_ref(&yearly), &yearly),
+            Ok(yearly.id)
+        );
+    }
+
+    #[test]
+    fn every_quarter_of_a_complete_year_shares_the_q4_report() {
+        let quarters: Vec<_> = ["Q1", "Q2", "Q3", "Q4"]
+            .iter()
+            .map(|q| approved(2026, PeriodType::Quarterly, q))
+            .collect();
+
+        assert_eq!(
+            report_submission(&quarters, &quarters[1]),
+            Ok(quarters[3].id)
+        );
+    }
+
+    #[test]
+    fn a_quarter_of_an_incomplete_year_has_no_report_yet() {
+        let quarters = vec![
+            approved(2026, PeriodType::Quarterly, "Q1"),
+            approved(2026, PeriodType::Quarterly, "Q2"),
+        ];
+
+        let pending = report_submission(&quarters, &quarters[0]).unwrap_err();
+
+        assert_eq!(pending.missing, vec!["Q3", "Q4"]);
+    }
+
+    #[test]
+    fn the_last_quarter_under_review_completes_its_year_for_the_report() {
+        let mut quarters: Vec<_> = ["Q1", "Q2", "Q3"]
+            .iter()
+            .map(|q| approved(2026, PeriodType::Quarterly, q))
+            .collect();
+        quarters.push(sub(
+            2026,
+            PeriodType::Quarterly,
+            "Q4",
+            SubmissionStatus::Submitted,
+        ));
+
+        assert_eq!(
+            report_submission(&quarters, &quarters[3]),
+            Ok(quarters[3].id)
+        );
+    }
+}

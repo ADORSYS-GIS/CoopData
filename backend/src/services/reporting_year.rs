@@ -230,6 +230,48 @@ pub fn counted_submission_ids(subs: &[submission::Model]) -> Vec<Uuid> {
         .collect()
 }
 
+/// The submission whose report describes `submission`'s year. A yearly (or
+/// full-year) return is its own report. A period of a year reported by
+/// quarters, halves or months shares the year's report, kept under the last
+/// period, and only once the year is complete; `submission` counts as approved
+/// (a report may be prepared while it is reviewed). Returns the year's progress
+/// while it is incomplete.
+pub fn report_submission(
+    subs: &[submission::Model],
+    submission: &submission::Model,
+) -> Result<Uuid, Box<YearProgress>> {
+    let single = submission.period_type == PeriodType::Yearly
+        || (submission.period_type == PeriodType::Monthly
+            && submission
+                .period_value
+                .trim()
+                .eq_ignore_ascii_case(FULL_YEAR));
+    if single {
+        return Ok(submission.id);
+    }
+    let in_year: Vec<submission::Model> = subs
+        .iter()
+        .filter(|s| {
+            s.cooperative_id == submission.cooperative_id
+                && s.reporting_year == submission.reporting_year
+                && s.id != submission.id
+        })
+        .cloned()
+        .chain(std::iter::once(submission::Model {
+            status: SubmissionStatus::Approved,
+            ..submission.clone()
+        }))
+        .collect();
+    let year = year_progress(&in_year)
+        .into_iter()
+        .find(|p| p.period_type == submission.period_type)
+        .expect("the submission's own year is always present");
+    match year.anchor_id {
+        Some(anchor) if year.complete => Ok(anchor),
+        _ => Err(Box::new(year)),
+    }
+}
+
 /// Position (1-12) of a calendar month in a fiscal year starting at `start`.
 fn fiscal_position(month: i16, start: i32) -> i16 {
     let start = if (1..=12).contains(&start) { start } else { 1 } as i16;

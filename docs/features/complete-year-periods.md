@@ -71,6 +71,12 @@ approved submission is treated as "the year", so:
   client. Year-level responses that leave incomplete years out say so in their
   own payload.
 
+- Reports: a yearly (or full-year) return is its own report. The periods of a
+  year reported by quarters, halves or months share one full-year report, kept
+  under the last period (`reporting_year::report_submission`), available once
+  the year is complete (409 before). Report text and figures compare the year
+  only with the previous complete year.
+
 ### Frontend
 
 - Manual entry: a read-only period bar (frequency · period · months covered).
@@ -87,7 +93,9 @@ approved submission is treated as "the year", so:
 - [x] 2. Reporting-year service and the progress UI.
 - [x] 3. Full-year KPIs and complete years only in dashboards, analytics,
        benchmarking and consolidated figures.
-- [ ] 4. Reports and comparisons from complete years only.
+- [x] 4. Reports and comparisons from complete years only.
+- [x] Migration 63: one financial statement per submission. The old
+      one-per-year key made the second quarter of a year fail to save.
 
 Each step has its own tests (yearly, quarterly, semi-annual, monthly and mixed
 data) and its own commit.
