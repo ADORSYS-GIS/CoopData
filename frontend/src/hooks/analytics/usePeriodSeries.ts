@@ -16,6 +16,17 @@ export interface PeriodSeriesQuery {
   apexId?: string;
 }
 
+/**
+ * The same scope as whole years ending at the chosen year. Indicator cards
+ * compare complete years ("this year vs the previous complete year"); only
+ * the charts follow a quarterly, half-yearly or monthly frequency.
+ */
+export const yearSeriesQuery = (query: PeriodSeriesQuery): PeriodSeriesQuery => ({
+  ...query,
+  periodType: "YEARLY",
+  periodValue: undefined,
+});
+
 const extractErrorMessage = (error: unknown): string => {
   if (error && typeof error === "object" && "message" in error) {
     const message = error.message;

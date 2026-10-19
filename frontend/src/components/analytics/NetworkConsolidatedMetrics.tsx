@@ -7,7 +7,11 @@ import { NationalCharts } from "@/components/analytics/national/NationalCharts";
 import { NationalMetricSections } from "@/components/analytics/national/NationalMetricSections";
 import { buildStatementGroups } from "@/components/analytics/national/statementMetrics";
 import { buildHeadlineMetrics, buildMetricGroups } from "@/components/analytics/national/metrics";
-import { usePeriodSeries, type PeriodSeriesQuery } from "@/hooks/analytics/usePeriodSeries";
+import {
+  usePeriodSeries,
+  yearSeriesQuery,
+  type PeriodSeriesQuery,
+} from "@/hooks/analytics/usePeriodSeries";
 import type { MonthlyTrendResponse } from "@/hooks/analytics/useMonthlyTrend";
 import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
 import { describeRate } from "@/lib/currency";
@@ -37,7 +41,8 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
 
-  const { data: series } = usePeriodSeries(seriesQuery);
+  // Cards compare whole years; the charts below follow the chosen frequency.
+  const { data: series } = usePeriodSeries(yearSeriesQuery(seriesQuery));
   const groups = useMemo(
     () => [
       ...(nfStats ? buildMetricGroups(nfStats, t) : []),

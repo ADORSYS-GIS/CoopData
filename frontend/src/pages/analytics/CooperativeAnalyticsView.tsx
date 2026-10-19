@@ -10,7 +10,7 @@ import { buildStatementGroups } from "@/components/analytics/national/statementM
 import { buildMetricGroups } from "@/components/analytics/national/metrics";
 import { PanelSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
+import { usePeriodSeries, yearSeriesQuery } from "@/hooks/analytics/usePeriodSeries";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
 import { useAnalyticsYear } from "@/hooks/submissions/useLatestSubmission";
@@ -76,12 +76,14 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
   );
   const headline = useMemo(() => buildKpiCards(kpisData?.kpis ?? [], t), [kpisData, t]);
   const { data: series } = usePeriodSeries(seriesQuery, hasApproved);
+  // Cards compare whole years; the charts follow the chosen frequency.
+  const { data: yearSeries } = usePeriodSeries(yearSeriesQuery(seriesQuery), hasApproved);
   const groups = useMemo(
     () => [
       ...(nfStats ? buildMetricGroups(nfStats, t) : []),
-      ...buildStatementGroups(series?.points ?? [], t),
+      ...buildStatementGroups(yearSeries?.points ?? [], t),
     ],
-    [nfStats, series, t],
+    [nfStats, yearSeries, t],
   );
   if (!latest && pending) {
     return <YearPendingNotice pending={pending} chosenYear={!Number.isNaN(reportingYear)} />;
