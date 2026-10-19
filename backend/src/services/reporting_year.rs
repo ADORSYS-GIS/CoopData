@@ -2,13 +2,14 @@
 //! frequency is approved; until then none of its figures are used. The order in
 //! which periods are filed and the fiscal start month do not matter.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use uuid::Uuid;
 
-use crate::entities::enums::{PeriodType, SubmissionStatus};
+use crate::entities::balance_sheet_line_item::Model as LineItem;
+use crate::entities::enums::{AccountCategory, PeriodType, SubmissionStatus};
 use crate::entities::submission;
-use crate::services::period_rules::FULL_YEAR;
+use crate::services::period_rules::{period_months, FULL_YEAR};
 use crate::services::period_series::period_index;
 
 /// Progress of one cooperative's reporting year.
@@ -227,6 +228,90 @@ pub fn counted_submission_ids(subs: &[submission::Model]) -> Vec<Uuid> {
         .into_iter()
         .flat_map(|p| p.submission_ids)
         .collect()
+}
+
+/// Position (1-12) of a calendar month in a fiscal year starting at `start`.
+fn fiscal_position(month: i16, start: i32) -> i16 {
+    let start = if (1..=12).contains(&start) { start } else { 1 } as i16;
+    (month - start).rem_euclid(12) + 1
+}
+
+/// Statement lines of a complete year, ready for `KpiEngine::compute` and
+/// `period_series::statement_totals`.
+///
+/// A yearly (or full-year) return is used as it is. A year built from several
+/// periods comes back as one annual column (month 0), like a yearly return:
+/// each period keeps only its own months, income and expense lines are added up
+/// over the year and balance-sheet lines are taken from the last month of the
+/// last period, whatever the fiscal start month.
+pub fn year_line_items(
+    year: &YearProgress,
+    submissions: &HashMap<Uuid, submission::Model>,
+    items_by_submission: &HashMap<Uuid, Vec<LineItem>>,
+) -> Vec<LineItem> {
+    if !year.is_multi_period() {
+        return year
+            .submission_ids
+            .first()
+            .and_then(|id| items_by_submission.get(id))
+            .cloned()
+            .unwrap_or_default();
+    }
+    let mut positioned: Vec<LineItem> = Vec::new();
+    for id in &year.submission_ids {
+        let (Some(s), Some(lines)) = (submissions.get(id), items_by_submission.get(id)) else {
+            continue;
+        };
+        let months = period_months(s.period_type, &s.period_value, s.fiscal_start_month);
+        for line in lines {
+            if line.month == 0 || months.as_ref().is_some_and(|m| !m.contains(&line.month)) {
+                continue;
+            }
+            let mut line = line.clone();
+            line.month = fiscal_position(line.month, s.fiscal_start_month);
+            positioned.push(line);
+        }
+    }
+    annual_column(positioned)
+}
+
+fn is_flow(line: &LineItem) -> bool {
+    match line.account_code {
+        Some(code) => code >= 4000,
+        None => matches!(
+            line.account_category,
+            AccountCategory::Income | AccountCategory::Expenses | AccountCategory::Surplus
+        ),
+    }
+}
+
+/// Folds lines numbered by fiscal position (1-12) into one annual column.
+fn annual_column(mut lines: Vec<LineItem>) -> Vec<LineItem> {
+    let Some(last_month) = lines.iter().map(|l| l.month).max() else {
+        return lines;
+    };
+    lines.sort_by_key(|l| l.month);
+    let mut annual: Vec<LineItem> = Vec::new();
+    let mut index: HashMap<(Option<i32>, String), usize> = HashMap::new();
+    for line in lines {
+        let flow = is_flow(&line);
+        if !flow && line.month != last_month {
+            continue;
+        }
+        let key = (line.account_code, line.account_name.clone());
+        match index.get(&key) {
+            Some(&at) if flow => {
+                let total = annual[at].value.unwrap_or_default() + line.value.unwrap_or_default();
+                annual[at].value = Some(total);
+            }
+            Some(_) => {}
+            None => {
+                index.insert(key, annual.len());
+                annual.push(LineItem { month: 0, ..line });
+            }
+        }
+    }
+    annual
 }
 
 #[cfg(test)]

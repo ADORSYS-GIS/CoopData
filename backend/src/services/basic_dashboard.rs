@@ -13,9 +13,10 @@ use crate::entities::enums::SubmissionStatus;
 use crate::entities::{cooperative, questionnaire_response, submission};
 use crate::error::AppResult;
 use crate::services::questionnaire_kpi::{
-    build_coa_indicators, build_indicators, merge_answers, with_previous, CoaBalances, Derived,
-    Inputs, INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
+    build_coa_indicators, build_indicators, merge_answers, merge_period_answers, with_previous,
+    CoaBalances, Derived, Inputs, INSTITUTIONAL_CAPITAL_MINIMUM_PCT, LIQUIDITY_MINIMUM_PCT,
 };
+use crate::services::reporting_year::{self, YearProgress};
 use crate::AppState;
 
 const MAX_SERIES_POINTS: usize = 8;
@@ -37,14 +38,6 @@ struct PeriodKey {
     order: i32,
     period_type: String,
     period_value: String,
-}
-
-fn period_order(period_type: &str, value: &str) -> i32 {
-    let digits: String = value.chars().filter(char::is_ascii_digit).collect();
-    match period_type {
-        "YEARLY" => 0,
-        _ => digits.parse().unwrap_or(0),
-    }
 }
 
 fn period_label(key: &PeriodKey) -> String {
@@ -71,13 +64,6 @@ fn matches_filter(value: Option<&str>, wanted: &Option<String>) -> bool {
         None => true,
         Some(w) => value.is_some_and(|v| v.eq_ignore_ascii_case(w)),
     }
-}
-
-/// A filter value that narrows the selection; empty and "all" mean no filter.
-fn active_filter(value: Option<&str>) -> Option<&str> {
-    value
-        .map(str::trim)
-        .filter(|v| !v.is_empty() && !v.eq_ignore_ascii_case("all"))
 }
 
 struct CoopPeriod {
@@ -114,35 +100,55 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         .find_by_cooperatives(coop_ids.clone())
         .await?;
 
-    let eligible =
-        |sub: &submission::Model| counts_towards_figures(&sub.status, sub.id, req.focus_submission);
-
-    // period -> coop -> (financial, non-financial) answers
+    // Answers of each submission: (financial, non-financial).
     type Answers = (Option<serde_json::Value>, Option<serde_json::Value>);
-    let mut by_period: BTreeMap<PeriodKey, HashMap<Uuid, (Answers, Uuid)>> = BTreeMap::new();
+    let mut answers_by_submission: HashMap<Uuid, Answers> = HashMap::new();
     for r in &responses {
-        let Some(sub) = submissions.get(&r.submission_id) else {
-            continue;
-        };
-        if !eligible(sub) {
-            continue;
+        let slot = answers_by_submission.entry(r.submission_id).or_default();
+        if r.questionnaire_type == "financial" {
+            slot.0 = Some(r.answers.clone());
+        } else {
+            slot.1 = Some(r.answers.clone());
         }
-        let key = PeriodKey {
-            year: r.reporting_year,
-            order: period_order(&r.period_type, &r.period_value),
-            period_type: r.period_type.clone(),
-            period_value: r.period_value.clone(),
+    }
+
+    // One entry per complete year (year -> coop -> answers). A year answered by
+    // quarters, halves or months is combined into one year: flows summed,
+    // year-end figures from the last period.
+    let all_submissions: Vec<submission::Model> = submissions.values().cloned().collect();
+    let years = years_counted(&all_submissions, req.focus_submission);
+    let mut by_period: BTreeMap<PeriodKey, HashMap<Uuid, (Answers, Uuid)>> = BTreeMap::new();
+    let mut focus_key: Option<PeriodKey> = None;
+    for year in &years {
+        let periods: Vec<&Answers> = year
+            .submission_ids
+            .iter()
+            .filter_map(|id| answers_by_submission.get(id))
+            .collect();
+        let (Some(anchor), false) = (year.anchor_id, periods.is_empty()) else {
+            continue;
         };
-        let slot = by_period
+        let combine = |pick: fn(&Answers) -> Option<&serde_json::Value>| {
+            let list: Vec<&serde_json::Value> = periods.iter().filter_map(|a| pick(a)).collect();
+            (!list.is_empty()).then(|| merge_period_answers(&list))
+        };
+        let answers = (combine(|a| a.0.as_ref()), combine(|a| a.1.as_ref()));
+        let key = PeriodKey {
+            year: year.year,
+            order: 0,
+            period_type: "YEARLY".to_string(),
+            period_value: year.year.to_string(),
+        };
+        if req
+            .focus_submission
+            .is_some_and(|focus| year.submission_ids.contains(&focus))
+        {
+            focus_key = Some(key.clone());
+        }
+        by_period
             .entry(key)
             .or_default()
-            .entry(r.cooperative_id)
-            .or_insert(((None, None), sub.id));
-        if r.questionnaire_type == "financial" {
-            slot.0 .0 = Some(r.answers.clone());
-        } else {
-            slot.0 .1 = Some(r.answers.clone());
-        }
+            .insert(year.cooperative_id, (answers, anchor));
     }
 
     let period_inputs = |key: &PeriodKey| -> Vec<CoopPeriod> {
@@ -184,27 +190,10 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
 
     // ── period selection ──
     let keys: Vec<PeriodKey> = by_period.keys().cloned().collect();
-    let focus_key = req.focus_submission.and_then(|sid| {
-        responses
-            .iter()
-            .find(|r| r.submission_id == sid)
-            .map(|r| PeriodKey {
-                year: r.reporting_year,
-                order: period_order(&r.period_type, &r.period_value),
-                period_type: r.period_type.clone(),
-                period_value: r.period_value.clone(),
-            })
-    });
-    let wanted_type = active_filter(req.params.period_type.as_deref()).map(str::to_uppercase);
-    let wanted_value = active_filter(req.params.period_value.as_deref());
     let selected: Option<PeriodKey> = focus_key.or_else(|| {
         keys.iter()
             .rev()
-            .find(|k| {
-                req.params.reporting_year.map_or(true, |y| y == k.year)
-                    && wanted_type.as_deref().map_or(true, |t| t == k.period_type)
-                    && wanted_value.map_or(true, |v| v.eq_ignore_ascii_case(&k.period_value))
-            })
+            .find(|k| req.params.reporting_year.map_or(true, |y| y == k.year))
             .cloned()
     });
 
@@ -374,6 +363,22 @@ fn expected_to_file_questionnaire(institution_type: Option<&str>) -> bool {
     institution_type != Some("sacco")
 }
 
+/// The complete years among `subs`. A submission that counts towards the
+/// figures (see `counts_towards_figures`) is treated as approved.
+fn years_counted(subs: &[submission::Model], focus_submission: Option<Uuid>) -> Vec<YearProgress> {
+    let adjusted: Vec<submission::Model> = subs
+        .iter()
+        .cloned()
+        .map(|mut s| {
+            if counts_towards_figures(&s.status, s.id, focus_submission) {
+                s.status = SubmissionStatus::Approved;
+            }
+            s
+        })
+        .collect();
+    reporting_year::counted_years(&adjusted)
+}
+
 /// Only figures validated by the apex reach a dashboard, including the
 /// cooperative's own. A report generated for one submission still shows it.
 fn counts_towards_figures(
@@ -386,17 +391,66 @@ fn counts_towards_figures(
 
 #[cfg(test)]
 mod tests {
-    use super::{active_filter, counts_towards_figures};
-    use crate::entities::enums::SubmissionStatus;
+    use super::{counts_towards_figures, years_counted};
+    use crate::entities::enums::{
+        PeriodType, ReviewTier, SubmissionCreatedByRole, SubmissionStatus,
+    };
+    use crate::entities::submission;
     use uuid::Uuid;
 
+    fn quarter(q: &str, status: SubmissionStatus) -> submission::Model {
+        submission::Model {
+            id: Uuid::new_v4(),
+            reference: None,
+            cooperative_id: Uuid::nil(),
+            reporting_year: 2026,
+            period_type: PeriodType::Quarterly,
+            period_value: q.to_string(),
+            fiscal_start_month: 1,
+            status,
+            current_tier: ReviewTier::Cooperative,
+            submitted_by: None,
+            submitted_at: None,
+            last_reviewed_by: None,
+            last_reviewed_at: None,
+            rejection_reason: None,
+            priority: "Routine".into(),
+            metadata: serde_json::json!({}),
+            submission_method: "questionnaire".into(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            created_by_role: SubmissionCreatedByRole::Cooperative,
+            created_by_user_id: None,
+            created_by_name: None,
+            edited_by: None,
+            edited_by_name: None,
+        }
+    }
+
     #[test]
-    fn all_and_blank_filters_do_not_narrow() {
-        assert_eq!(active_filter(None), None);
-        assert_eq!(active_filter(Some("")), None);
-        assert_eq!(active_filter(Some("  ")), None);
-        assert_eq!(active_filter(Some("all")), None);
-        assert_eq!(active_filter(Some("ALL")), None);
+    fn a_quarterly_year_reaches_the_dashboard_only_when_every_quarter_is_approved() {
+        let mut subs: Vec<_> = ["Q1", "Q2", "Q3"]
+            .iter()
+            .map(|q| quarter(q, SubmissionStatus::Approved))
+            .collect();
+        subs.push(quarter("Q4", SubmissionStatus::Submitted));
+
+        assert!(years_counted(&subs, None).is_empty());
+
+        subs[3].status = SubmissionStatus::Approved;
+        assert_eq!(years_counted(&subs, None).len(), 1);
+    }
+
+    #[test]
+    fn a_report_for_the_last_quarter_completes_its_year() {
+        let mut subs: Vec<_> = ["Q1", "Q2", "Q3"]
+            .iter()
+            .map(|q| quarter(q, SubmissionStatus::Approved))
+            .collect();
+        subs.push(quarter("Q4", SubmissionStatus::Submitted));
+        let focus = subs[3].id;
+
+        assert_eq!(years_counted(&subs, Some(focus)).len(), 1);
     }
 
     #[test]
@@ -438,10 +492,5 @@ mod tests {
         assert!(!super::expected_to_file_questionnaire(Some("sacco")));
         assert!(super::expected_to_file_questionnaire(Some("multipurpose")));
         assert!(super::expected_to_file_questionnaire(None));
-    }
-
-    #[test]
-    fn a_real_value_is_kept_trimmed() {
-        assert_eq!(active_filter(Some(" Q1 ")), Some("Q1"));
     }
 }

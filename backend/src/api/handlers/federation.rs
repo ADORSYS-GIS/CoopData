@@ -974,14 +974,8 @@ pub async fn get_federation_stats(
         .filter(|s| s.status == SubmissionStatus::Rejected)
         .count() as u64;
 
-    let approved_sub_ids: Vec<Uuid> = submissions
-        .iter()
-        .filter(|s| s.status == SubmissionStatus::Approved)
-        .map(|s| s.id)
-        .collect();
-
     let (average_par30, average_car) =
-        crate::api::handlers::submission::compute_average_kpis(&state, approved_sub_ids).await;
+        crate::api::handlers::submission::compute_average_kpis(&state, &submissions).await;
 
     Ok((
         StatusCode::OK,

@@ -52,11 +52,18 @@ approved submission is treated as "the year", so:
 - `services::reporting_year` (pure): groups a cooperative's submissions by year
   and returns, per year, the frequency, approved periods, expected periods,
   `complete`, the approved submissions and the anchor (last period).
-- `kpi_records.scope` (`period` | `year`): full-year KPIs of a complete
-  multi-period year are stored once under the anchor submission with scope
-  `year`; per-period KPIs keep scope `period` and stay available for review.
-  They are (re)computed whenever a period of that year is approved and in the
-  startup KPI recompute.
+- `services::year_figures` loads a complete year's statement as one annual
+  column (`reporting_year::year_line_items`): income and expenses summed over
+  the year, balance sheet from the last month of the last period. KPIs of a
+  multi-period year are computed from it on the fly (`year_kpis`); the
+  per-period KPIs stored for review are untouched.
+- Questionnaire years are merged with `questionnaire_kpi::merge_period_answers`:
+  income, expenditure and activity results summed, the accounts grid rolled
+  forward (first opening balance, movements summed, last closing balance),
+  every other answer from the last period.
+- `GET /cooperative/submissions/{id}/kpis?scope=year` returns the KPIs of the
+  complete year the submission belongs to (409 while incomplete). The prior
+  year it returns is always the previous complete year.
 - Every year-level consumer selects "counted" submissions through the shared
   service instead of filtering `status == approved` on its own.
 - No new endpoint for progress: every role already loads its submissions list,
@@ -78,7 +85,7 @@ approved submission is treated as "the year", so:
 
 - [x] 1. Lock the period on the manual-entry page and in the backend.
 - [x] 2. Reporting-year service and the progress UI.
-- [ ] 3. Full-year KPIs and complete years only in dashboards, analytics,
+- [x] 3. Full-year KPIs and complete years only in dashboards, analytics,
        benchmarking and consolidated figures.
 - [ ] 4. Reports and comparisons from complete years only.
 

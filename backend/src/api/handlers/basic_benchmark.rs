@@ -80,7 +80,24 @@ pub async fn get_basic_benchmark(
         .find_responses_with_filters(params.reporting_year, None, None, None, None)
         .await?;
 
-    let all_rows = build_questionnaire_rows(responses);
+    // One set of answers per cooperative: its newest complete year (a year
+    // answered by periods is combined first; incomplete years are left out).
+    let responding: Vec<Uuid> = responses
+        .iter()
+        .map(|(resp, _)| resp.cooperative_id)
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(responding)
+        .await?;
+    let years = crate::api::handlers::questionnaire::merge_per_year(
+        crate::api::handlers::questionnaire::merge_per_submission(responses),
+        &submissions,
+    );
+
+    let all_rows = build_questionnaire_rows(years);
 
     let response = compute_basic_benchmark(
         all_rows,
@@ -232,31 +249,18 @@ fn compute_basic_benchmark(
 /// questionnaire responses (a coop may have both a `financial` and a
 /// `non_financial` questionnaire against the same submission).
 fn build_questionnaire_rows(
-    responses: Vec<(
-        crate::entities::questionnaire_response::Model,
+    years: Vec<(
+        crate::api::handlers::questionnaire::SubmissionAnswers,
         crate::entities::cooperative::Model,
     )>,
 ) -> Vec<BasicBenchmarkRow> {
-    // Group answers per cooperative, merging JSON objects (a key present in
-    // multiple responses keeps the first non-zero value).
+    // `years` is newest first per cooperative; keep each cooperative's newest.
     let mut merged: HashMap<Uuid, (crate::entities::cooperative::Model, serde_json::Value)> =
         HashMap::new();
-    for (resp, coop) in responses {
-        let entry = merged
-            .entry(resp.cooperative_id)
-            .or_insert_with(|| (coop, serde_json::json!({})));
-        if let (Some(obj), Some(target)) = (resp.answers.as_object(), entry.1.as_object_mut()) {
-            for (key, value) in obj {
-                let existing_zero = target
-                    .get(key)
-                    .and_then(|v| v.as_f64())
-                    .map(|v| v == 0.0)
-                    .unwrap_or(true);
-                if existing_zero {
-                    target.insert(key.clone(), value.clone());
-                }
-            }
-        }
+    for (year, coop) in years {
+        merged
+            .entry(year.cooperative_id)
+            .or_insert((coop, year.answers));
     }
 
     merged

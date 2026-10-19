@@ -543,7 +543,11 @@ pub async fn create_manual_financial_statement(
 
 #[derive(Debug, serde::Deserialize, utoipa::IntoParams, utoipa::ToSchema)]
 pub struct KpisQueryParams {
+    /// Also return the KPIs of the previous complete year (only for a complete year).
     pub include_prior_year: Option<bool>,
+    /// "year": the KPIs of the complete year this submission belongs to (a year
+    /// reported by periods is combined). Default: this submission's own period.
+    pub scope: Option<String>,
 }
 
 #[utoipa::path(
@@ -556,7 +560,8 @@ pub struct KpisQueryParams {
     responses(
         (status = 200, description = "Computed KPIs for submission", body = SubmissionKpisResponse),
         (status = 403, description = "Access denied"),
-        (status = 404, description = "Submission or financial statement not found")
+        (status = 404, description = "Submission or financial statement not found"),
+        (status = 409, description = "scope=year and the year is not complete yet")
     ),
     tag = "Cooperative"
 )]
@@ -627,38 +632,51 @@ pub async fn get_submission_kpis(
         "KPIs retrieved for submission"
     );
 
-    let prior_year_kpis = if query.include_prior_year.unwrap_or(false) {
-        if let Some(prior_sub) = state
-            .submission_repo
-            .find_by_cooperative_and_year(submission.cooperative_id, submission.reporting_year - 1)
-            .await?
-        {
-            let db_prior_kpis = state
-                .kpi_record_repo
-                .find_by_submission(prior_sub.id)
-                .await?;
-            Some(
-                db_prior_kpis
-                    .into_iter()
-                    .map(|r| {
-                        let benchmark = crate::services::KpiEngine::get_benchmark(&r.kpi_name);
-                        KpiItemResponse {
-                            name: r.kpi_name,
-                            value: r.value,
-                            formatted: r.formatted,
-                            unit: r.unit,
-                            status: r.status,
-                            benchmark,
-                            description: r.description,
-                        }
-                    })
-                    .collect(),
-            )
-        } else {
-            None
+    // Comparisons are only made between complete years.
+    let year_subs = state
+        .submission_repo
+        .find_by_cooperative_ids(vec![submission.cooperative_id])
+        .await?;
+    let progress = crate::services::reporting_year::year_progress(&year_subs);
+    let year_of = |year: i32| progress.iter().find(|p| p.year == year && p.complete);
+    let this_year = year_of(submission.reporting_year);
+    let year_scope = query
+        .scope
+        .as_deref()
+        .is_some_and(|scope| scope.eq_ignore_ascii_case("year"));
+
+    let kpis = if year_scope {
+        let Some(year) = this_year else {
+            let pending = progress
+                .iter()
+                .find(|p| p.year == submission.reporting_year)
+                .map(crate::services::year_figures::incomplete_message)
+                .unwrap_or_else(|| format!("{} is not complete yet.", submission.reporting_year));
+            return Err(AppError::Conflict(pending));
+        };
+        let statements =
+            crate::services::year_figures::load_statements(&state, [year], &year_subs).await?;
+        match statements.get(&(year.cooperative_id, year.year)) {
+            Some(statement) => crate::services::year_figures::year_kpis(&state, statement).await?,
+            None => kpis,
         }
     } else {
-        None
+        kpis
+    };
+
+    let compares_years = year_scope || this_year.is_some_and(|y| !y.is_multi_period());
+    let prior_year_kpis = match year_of(submission.reporting_year - 1) {
+        Some(prior) if query.include_prior_year.unwrap_or(false) && compares_years => {
+            let statements =
+                crate::services::year_figures::load_statements(&state, [prior], &year_subs).await?;
+            match statements.get(&(prior.cooperative_id, prior.year)) {
+                Some(statement) => {
+                    Some(crate::services::year_figures::year_kpis(&state, statement).await?)
+                }
+                None => None,
+            }
+        }
+        _ => None,
     };
 
     Ok((
@@ -795,39 +813,42 @@ pub async fn get_benchmarks(
         return Ok((StatusCode::OK, Json(cached)));
     }
 
-    // ── Compute from approved submissions ────────────────────────────────────
+    // ── Compute from complete years ──────────────────────────────────────────
+    // A year counts once every period of its frequency is approved; a year
+    // reported by periods is combined into one year first.
     use crate::entities::enums::SubmissionStatus;
     let all_approved = state
         .submission_repo
         .find_by_status(SubmissionStatus::Approved)
         .await?;
-
-    // Filter by year first
-    let year_filtered: Vec<_> = all_approved
-        .iter()
-        .filter(|s| s.reporting_year == year)
-        .collect();
+    let counted = crate::services::year_figures::counted(
+        &all_approved,
+        crate::services::year_figures::YearFilter {
+            reporting_year: Some(year),
+            period_type: None,
+        },
+    );
 
     // Filter by cooperative_type if provided — batch load all coops at once
-    // to avoid N+1 queries (one DB round trip instead of one per submission).
+    // to avoid N+1 queries (one DB round trip instead of one per cooperative).
     let type_filtered: Vec<_> = if let Some(coop_type) = &params.cooperative_type {
         let coop_type_lower = coop_type.to_lowercase();
-        let coop_ids: Vec<_> = year_filtered.iter().map(|s| s.cooperative_id).collect();
+        let coop_ids: Vec<_> = counted.iter().map(|y| y.cooperative_id).collect();
         let coops = state.cooperative_repo.find_by_ids(coop_ids).await?;
         let coop_map: std::collections::HashMap<_, _> =
             coops.into_iter().map(|c| (c.id, c)).collect();
-        year_filtered
+        counted
             .into_iter()
-            .filter(|sub| {
+            .filter(|year| {
                 coop_map
-                    .get(&sub.cooperative_id)
+                    .get(&year.cooperative_id)
                     .and_then(|c| c.institution_type.as_ref())
                     .map(|t| t.as_str().to_lowercase() == coop_type_lower)
                     .unwrap_or(false)
             })
             .collect()
     } else {
-        year_filtered.to_vec()
+        counted
     };
 
     if type_filtered.is_empty() {
@@ -847,42 +868,19 @@ pub async fn get_benchmarks(
         ));
     }
 
-    // Collect all submission IDs and batch-load financial statements
-    let submission_ids: Vec<_> = type_filtered.iter().map(|s| s.id).collect();
-    let all_fs = state
-        .financial_statement_repo
-        .find_by_submission_ids(submission_ids)
-        .await?;
+    let year_statements =
+        crate::services::year_figures::load_statements(&state, &type_filtered, &all_approved)
+            .await?;
 
-    // Batch load all line items for these financial statements
-    let fs_ids: Vec<_> = all_fs.iter().map(|fs| fs.id).collect();
-    let all_line_items = state
-        .line_item_repo
-        .find_by_financial_statement_ids(fs_ids)
-        .await?;
+    // Compute the KPI value for each cooperative year
+    let mut kpi_values: Vec<f64> = Vec::with_capacity(year_statements.len());
 
-    // Group line items by financial_statement_id
-    let mut items_by_fs: std::collections::HashMap<
-        Uuid,
-        Vec<crate::entities::balance_sheet_line_item::Model>,
-    > = std::collections::HashMap::new();
-    for item in all_line_items {
-        items_by_fs
-            .entry(item.financial_statement_id)
-            .or_default()
-            .push(item);
-    }
+    for statement in year_statements.values() {
+        if statement.line_items.is_empty() {
+            continue;
+        }
 
-    // Compute KPI value for each submission
-    let mut kpi_values: Vec<f64> = Vec::with_capacity(all_fs.len());
-
-    for fs in &all_fs {
-        let line_items = match items_by_fs.get(&fs.id) {
-            Some(items) if !items.is_empty() => items,
-            _ => continue,
-        };
-
-        let kpi_set = crate::services::KpiEngine::compute(line_items);
+        let kpi_set = crate::services::KpiEngine::compute(&statement.line_items);
 
         if let Some(kpi) = kpi_set.get_by_name(&params.kpi_name) {
             kpi_values.push(kpi.value);
@@ -1641,15 +1639,8 @@ pub async fn get_ministry_stats(
         "Ministry stats computed"
     );
 
-    // Compute average PAR30 and CAR from approved submissions
-    let approved_sub_ids: Vec<Uuid> = all_submissions
-        .iter()
-        .filter(|s| s.status == SubmissionStatus::Approved)
-        .map(|s| s.id)
-        .collect();
-
     let (average_par30, average_car) =
-        crate::api::handlers::submission::compute_average_kpis(&state, approved_sub_ids).await;
+        crate::api::handlers::submission::compute_average_kpis(&state, &all_submissions).await;
 
     tracing::info!(
         total_cooperatives,
@@ -2162,43 +2153,25 @@ pub async fn get_monthly_trend(
         .find_by_cooperative_ids(coop_ids.clone())
         .await?;
 
-    let year_filtered: Vec<_> = submissions
-        .iter()
-        .filter(|s| {
-            let matches_year = s.reporting_year == year;
-            let matches_pt = params
+    // Only months of a complete year are shown: every period of the year's
+    // frequency has to be approved first.
+    let counted_ids: std::collections::HashSet<Uuid> = crate::services::year_figures::counted(
+        &submissions,
+        crate::services::year_figures::YearFilter {
+            reporting_year: Some(year),
+            period_type: params
                 .period_type
                 .as_deref()
-                .map(|pt| {
-                    if pt.eq_ignore_ascii_case("all") {
-                        true
-                    } else {
-                        let pt_str = match s.period_type {
-                            crate::entities::enums::PeriodType::Yearly => "YEARLY",
-                            crate::entities::enums::PeriodType::Quarterly => "QUARTERLY",
-                            crate::entities::enums::PeriodType::Monthly => "MONTHLY",
-                            crate::entities::enums::PeriodType::SemiAnnual => "SEMI_ANNUAL",
-                        };
-                        pt_str.eq_ignore_ascii_case(pt)
-                    }
-                })
-                .unwrap_or(true);
-            let matches_pv = params
-                .period_value
-                .as_deref()
-                .map(|pv| {
-                    if pv.eq_ignore_ascii_case("all") {
-                        true
-                    } else {
-                        s.period_value.eq_ignore_ascii_case(pv)
-                    }
-                })
-                .unwrap_or(true);
-            matches_year
-                && matches_pt
-                && matches_pv
-                && s.status == crate::entities::enums::SubmissionStatus::Approved
-        })
+                .filter(|pt| !pt.eq_ignore_ascii_case("all"))
+                .and_then(crate::entities::enums::PeriodType::parse),
+        },
+    )
+    .into_iter()
+    .flat_map(|y| y.submission_ids)
+    .collect();
+    let year_filtered: Vec<_> = submissions
+        .iter()
+        .filter(|s| counted_ids.contains(&s.id))
         .collect();
 
     let submission_ids: Vec<Uuid> = year_filtered.iter().map(|s| s.id).collect();

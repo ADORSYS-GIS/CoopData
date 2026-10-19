@@ -378,6 +378,7 @@ pub(crate) fn get_i32_from_json(json: &serde_json::Value, keys: &[&str]) -> i32 
 /// the same questions (members, share capital, income...).
 pub(crate) struct SubmissionAnswers {
     pub id: Uuid,
+    pub submission_id: Uuid,
     pub cooperative_id: Uuid,
     /// The questionnaires merged, e.g. "financial, non_financial".
     pub questionnaire_type: String,
@@ -413,6 +414,7 @@ pub(crate) fn merge_per_submission<C>(
         merged.push((
             SubmissionAnswers {
                 id: resp.id,
+                submission_id: resp.submission_id,
                 cooperative_id: resp.cooperative_id,
                 questionnaire_type: resp.questionnaire_type,
                 reporting_year: resp.reporting_year,
@@ -422,6 +424,39 @@ pub(crate) fn merge_per_submission<C>(
         ));
     }
     merged
+}
+
+/// One set of answers per complete reporting year. A year counts once every
+/// period of its frequency is approved; a year answered by quarters, halves or
+/// months is combined with `merge_period_answers` (flows summed, year-end
+/// figures from the last period). Answers of incomplete years are left out.
+pub(crate) fn merge_per_year<C>(
+    per_submission: Vec<(SubmissionAnswers, C)>,
+    submissions: &[crate::entities::submission::Model],
+) -> Vec<(SubmissionAnswers, C)> {
+    let mut by_submission: std::collections::HashMap<Uuid, (SubmissionAnswers, C)> = per_submission
+        .into_iter()
+        .map(|entry| (entry.0.submission_id, entry))
+        .collect();
+    let mut years = Vec::new();
+    for year in crate::services::reporting_year::counted_years(submissions) {
+        let mut periods: Vec<(SubmissionAnswers, C)> = year
+            .submission_ids
+            .iter()
+            .filter_map(|id| by_submission.remove(id))
+            .collect();
+        let Some((mut last, coop)) = periods.pop() else {
+            continue;
+        };
+        if !periods.is_empty() {
+            let mut answers: Vec<&serde_json::Value> =
+                periods.iter().map(|(p, _)| &p.answers).collect();
+            answers.push(&last.answers);
+            last.answers = crate::services::questionnaire_kpi::merge_period_answers(&answers);
+        }
+        years.push((last, coop));
+    }
+    years
 }
 
 #[utoipa::path(
@@ -483,7 +518,17 @@ pub async fn get_questionnaire_analytics(
     let mut details = Vec::new();
     let mut coop_ids = std::collections::HashSet::new();
 
-    for (resp, coop) in merge_per_submission(responses) {
+    let responding: Vec<Uuid> = responses
+        .iter()
+        .map(|(resp, _)| resp.cooperative_id)
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(responding)
+        .await?;
+    for (resp, coop) in merge_per_year(merge_per_submission(responses), &submissions) {
         coop_ids.insert(resp.cooperative_id);
         let answers = &resp.answers;
 
@@ -633,6 +678,11 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    use crate::entities::enums::{
+        PeriodType, ReviewTier, SubmissionCreatedByRole, SubmissionStatus,
+    };
+    use crate::entities::submission;
+
     fn response(
         submission_id: Uuid,
         questionnaire_type: &str,
@@ -727,5 +777,84 @@ mod tests {
         ]);
 
         assert_eq!(merged.len(), 2);
+    }
+
+    fn quarter(cooperative_id: Uuid, q: &str, status: SubmissionStatus) -> submission::Model {
+        submission::Model {
+            id: Uuid::new_v4(),
+            reference: None,
+            cooperative_id,
+            reporting_year: 2026,
+            period_type: PeriodType::Quarterly,
+            period_value: q.to_string(),
+            fiscal_start_month: 1,
+            status,
+            current_tier: ReviewTier::Cooperative,
+            submitted_by: None,
+            submitted_at: None,
+            last_reviewed_by: None,
+            last_reviewed_at: None,
+            rejection_reason: None,
+            priority: "Routine".into(),
+            metadata: json!({}),
+            submission_method: "questionnaire".into(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            created_by_role: SubmissionCreatedByRole::Cooperative,
+            created_by_user_id: None,
+            created_by_name: None,
+            edited_by: None,
+            edited_by_name: None,
+        }
+    }
+
+    fn answered(subs: &[submission::Model]) -> Vec<(SubmissionAnswers, ())> {
+        let responses = subs
+            .iter()
+            .enumerate()
+            .map(|(i, s)| {
+                (
+                    response(
+                        s.id,
+                        "financial",
+                        json!({ "current_total_income": 100 * (i + 1), "registered_members_male": 10 + i }),
+                    ),
+                    (),
+                )
+            })
+            .collect();
+        merge_per_submission(responses)
+    }
+
+    #[test]
+    fn a_complete_quarterly_year_counts_once_with_income_summed() {
+        let coop = Uuid::new_v4();
+        let subs: Vec<_> = ["Q1", "Q2", "Q3", "Q4"]
+            .iter()
+            .map(|q| quarter(coop, q, SubmissionStatus::Approved))
+            .collect();
+
+        let years = merge_per_year(answered(&subs), &subs);
+
+        assert_eq!(years.len(), 1);
+        let answers = &years[0].0.answers;
+        assert_eq!(
+            get_f64_from_json(answers, &["current_total_income"]),
+            1000.0
+        );
+        assert_eq!(get_i32_from_json(answers, &["registered_members_male"]), 13);
+        assert_eq!(years[0].0.submission_id, subs[3].id);
+    }
+
+    #[test]
+    fn an_incomplete_year_is_left_out() {
+        let coop = Uuid::new_v4();
+        let subs = vec![
+            quarter(coop, "Q1", SubmissionStatus::Approved),
+            quarter(coop, "Q2", SubmissionStatus::Approved),
+            quarter(coop, "Q3", SubmissionStatus::Submitted),
+        ];
+
+        assert!(merge_per_year(answered(&subs), &subs).is_empty());
     }
 }

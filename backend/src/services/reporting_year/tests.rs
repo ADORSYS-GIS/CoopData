@@ -182,3 +182,137 @@ fn years_are_kept_apart_per_cooperative() {
     assert_eq!(progress.len(), 2);
     assert_eq!(progress.iter().filter(|p| p.complete).count(), 1);
 }
+
+mod year_figures {
+    use std::collections::HashMap;
+
+    use rust_decimal::Decimal;
+
+    use super::*;
+    use crate::entities::balance_sheet_line_item::Model as LineItem;
+    use crate::entities::enums::AccountCategory;
+    use crate::services::KpiEngine;
+
+    fn item(code: i32, month: i16, value: f64) -> LineItem {
+        LineItem {
+            id: Uuid::new_v4(),
+            financial_statement_id: Uuid::nil(),
+            account_code: Some(code),
+            account_name: format!("Account {code}"),
+            account_category: AccountCategory::Assets,
+            account_subcategory: "test".into(),
+            month,
+            value: Decimal::from_f64_retain(value),
+            ai_confidence: None,
+            ai_flagged: false,
+            manually_edited: false,
+            raw_label: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    /// One quarter: total assets at the end of each month and the month's surplus.
+    fn quarter(
+        q: &str,
+        start: i32,
+        months: [i16; 3],
+        assets: f64,
+        surplus: f64,
+    ) -> (submission::Model, Vec<LineItem>) {
+        let mut s = approved(2026, PeriodType::Quarterly, q);
+        s.fiscal_start_month = start;
+        let items = months
+            .iter()
+            .flat_map(|m| [item(1999, *m, assets), item(6999, *m, surplus)])
+            .collect();
+        (s, items)
+    }
+
+    fn year_of(quarters: Vec<(submission::Model, Vec<LineItem>)>) -> Vec<LineItem> {
+        let subs: Vec<submission::Model> = quarters.iter().map(|(s, _)| s.clone()).collect();
+        let items: HashMap<Uuid, Vec<LineItem>> =
+            quarters.into_iter().map(|(s, i)| (s.id, i)).collect();
+        let progress = counted_years(&subs).remove(0);
+        let by_id: HashMap<Uuid, submission::Model> = subs.into_iter().map(|s| (s.id, s)).collect();
+        year_line_items(&progress, &by_id, &items)
+    }
+
+    #[test]
+    fn a_quarterly_year_sums_the_surplus_and_keeps_q4_assets() {
+        let items = year_of(vec![
+            quarter("Q3", 1, [7, 8, 9], 300.0, 3.0),
+            quarter("Q1", 1, [1, 2, 3], 100.0, 1.0),
+            quarter("Q4", 1, [10, 11, 12], 400.0, 4.0),
+            quarter("Q2", 1, [4, 5, 6], 200.0, 2.0),
+        ]);
+
+        let kpis = KpiEngine::compute(&items);
+
+        assert_eq!(kpis.total_assets.value, 400.0);
+        assert_eq!(kpis.net_surplus.value, 30.0);
+        assert!(items.iter().all(|i| i.month == 0));
+        assert_eq!(items.len(), 2);
+    }
+
+    #[test]
+    fn a_year_starting_in_october_keeps_the_september_assets() {
+        let items = year_of(vec![
+            quarter("Q1", 10, [10, 11, 12], 100.0, 1.0),
+            quarter("Q2", 10, [1, 2, 3], 200.0, 2.0),
+            quarter("Q3", 10, [4, 5, 6], 300.0, 3.0),
+            quarter("Q4", 10, [7, 8, 9], 400.0, 4.0),
+        ]);
+
+        let kpis = KpiEngine::compute(&items);
+
+        assert_eq!(kpis.total_assets.value, 400.0);
+        assert_eq!(kpis.net_surplus.value, 30.0);
+    }
+
+    #[test]
+    fn months_outside_a_period_are_left_out() {
+        let (mut q1, mut q1_items) = quarter("Q1", 1, [1, 2, 3], 100.0, 1.0);
+        q1_items.push(item(6999, 7, 999.0));
+        q1.fiscal_start_month = 1;
+        let items = year_of(vec![
+            (q1, q1_items),
+            quarter("Q2", 1, [4, 5, 6], 200.0, 2.0),
+            quarter("Q3", 1, [7, 8, 9], 300.0, 3.0),
+            quarter("Q4", 1, [10, 11, 12], 400.0, 4.0),
+        ]);
+
+        assert_eq!(KpiEngine::compute(&items).net_surplus.value, 30.0);
+    }
+
+    #[test]
+    fn a_yearly_return_is_used_as_it_is() {
+        let yearly = approved(2025, PeriodType::Yearly, "2025");
+        let items = vec![item(1999, 0, 500.0), item(6999, 0, 50.0)];
+        let progress = counted_years(std::slice::from_ref(&yearly)).remove(0);
+        let by_id = HashMap::from([(yearly.id, yearly.clone())]);
+        let by_sub = HashMap::from([(yearly.id, items.clone())]);
+
+        assert_eq!(year_line_items(&progress, &by_id, &by_sub), items);
+    }
+}
+
+mod incomplete_cooperatives {
+    use super::*;
+    use crate::services::year_figures::incomplete_cooperatives;
+
+    #[test]
+    fn counts_cooperatives_whose_year_is_not_complete() {
+        let mut other = approved(2026, PeriodType::Quarterly, "Q1");
+        other.cooperative_id = Uuid::from_u128(2);
+        let subs = vec![
+            approved(2025, PeriodType::Yearly, "2025"),
+            approved(2026, PeriodType::Yearly, "2026"),
+            other,
+        ];
+
+        assert_eq!(incomplete_cooperatives(&subs, Some(2026)), 1);
+        assert_eq!(incomplete_cooperatives(&subs, Some(2025)), 0);
+        assert_eq!(incomplete_cooperatives(&subs, None), 1);
+    }
+}
