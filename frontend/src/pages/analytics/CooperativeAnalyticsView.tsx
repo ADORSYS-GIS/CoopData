@@ -84,7 +84,7 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
     [nfStats, series, t],
   );
   if (!latest && pending) {
-    return <YearPendingNotice pending={pending} />;
+    return <YearPendingNotice pending={pending} chosenYear={!Number.isNaN(reportingYear)} />;
   }
   if (!latest) {
     return (

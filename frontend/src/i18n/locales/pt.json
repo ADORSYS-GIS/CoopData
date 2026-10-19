@@ -6579,6 +6579,7 @@
     "noCompleteYear": "Ainda não há nenhum ano completo para mostrar.",
     "leftOut_one": "{{count}} cooperativa fica de fora: o seu ano ainda não está completo (nem todos os períodos aprovados).",
     "leftOut_other": "{{count}} cooperativas ficam de fora: o seu ano ainda não está completo (nem todos os períodos aprovados).",
-    "reportAfterYear": "O relatório fica disponível quando todos os períodos do ano estiverem aprovados."
+    "reportAfterYear": "O relatório fica disponível quando todos os períodos do ano estiverem aprovados.",
+    "chooseAnotherYear": "Escolha outro ano para ver os seus números."
   }
 }

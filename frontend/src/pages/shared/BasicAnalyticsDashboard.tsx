@@ -135,7 +135,9 @@ export function BasicAnalyticsDashboard() {
           showScopeFilters={!isCooperative}
         />
         <IndicatorSearch value={query} onChange={setQuery} />
-        {isCooperative && pending && <YearPendingNotice pending={pending} />}
+        {isCooperative && pending && (
+          <YearPendingNotice pending={pending} chosenYear={filters.year !== ALL} />
+        )}
         {isLoading ? (
           <div className="flex items-center justify-center py-32 text-muted-foreground">
             <Spinner size="md" className="mr-2" /> {t("basicDashboard.loading")}

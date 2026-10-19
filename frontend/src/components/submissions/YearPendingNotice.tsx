@@ -9,13 +9,15 @@ interface YearPendingNoticeProps {
   pending: YearProgress;
   /** The complete year shown instead, if any. */
   shownYear?: number;
+  /** The user picked this year (a filter): suggest another one instead. */
+  chosenYear?: boolean;
 }
 
 /**
  * Tells the user a year is left out until every period of it is approved, and
  * where each period stands.
  */
-export function YearPendingNotice({ pending, shownYear }: YearPendingNoticeProps) {
+export function YearPendingNotice({ pending, shownYear, chosenYear }: YearPendingNoticeProps) {
   const { t } = useTranslation();
 
   return (
@@ -36,7 +38,9 @@ export function YearPendingNotice({ pending, shownYear }: YearPendingNoticeProps
           })}{" "}
           {shownYear !== undefined
             ? t("reportingYears.showingYear", { year: shownYear })
-            : t("reportingYears.noCompleteYear")}
+            : chosenYear
+              ? t("reportingYears.chooseAnotherYear")
+              : t("reportingYears.noCompleteYear")}
         </p>
       </div>
       <div className="shrink-0">

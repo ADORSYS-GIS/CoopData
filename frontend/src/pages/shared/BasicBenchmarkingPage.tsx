@@ -6,6 +6,9 @@ import { BarChart3 } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { useBasicDashboard } from "@/hooks/analytics/useBasicDashboard";
 import { LATEST } from "@/lib/analytics-filters";
+import { useUserRole } from "@/lib/auth";
+import { useAnalyticsYear } from "@/hooks/submissions/useLatestSubmission";
+import { YearPendingNotice } from "@/components/submissions/YearPendingNotice";
 
 export const BasicBenchmarkingPage: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
@@ -25,6 +28,9 @@ export const BasicBenchmarkingPage: React.FC = () => {
 
   const [year, setYear] = useState<string>(LATEST);
   const selectedYear = year === LATEST ? latestDataYear : Number(year);
+  // A cooperative's own year is compared only once every period is approved.
+  const isCooperative = useUserRole() === "cooperative";
+  const { pending } = useAnalyticsYear(isCooperative ? selectedYear : undefined);
 
   return (
     <AppShell
@@ -57,7 +63,11 @@ export const BasicBenchmarkingPage: React.FC = () => {
         </div>
 
         {/* Basic Benchmarking Comparison Widget */}
-        <BasicCooperativeComparison reportingYear={selectedYear} />
+        {isCooperative && pending ? (
+          <YearPendingNotice pending={pending} chosenYear />
+        ) : (
+          <BasicCooperativeComparison reportingYear={selectedYear} />
+        )}
       </div>
     </AppShell>
   );
