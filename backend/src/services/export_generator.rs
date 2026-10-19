@@ -3,6 +3,8 @@ use sea_orm::EntityTrait;
 use uuid::Uuid;
 
 use crate::error::AppResult;
+use crate::repositories::NarrativeSlot;
+use crate::services::narrative_translation;
 use crate::services::report_narrative;
 use crate::AppState;
 
@@ -14,9 +16,6 @@ pub const EXPORT_PREFIX: &str = "exports/v5";
 
 /// Supported export locales — mirrors `localization::SUPPORTED_LOCALES`.
 pub(crate) const EXPORT_LOCALES: [&str; 4] = ["en", "fr", "pt", "ss"];
-
-/// Questionnaire reports are produced in English only.
-pub(crate) const QUESTIONNAIRE_LOCALE: &str = "en";
 
 impl ExportGenerator {
     /// Storage key of one locale of a single-submission report.
@@ -42,36 +41,31 @@ impl ExportGenerator {
         )
     }
 
-    /// Questionnaire reports are English-only: their narratives are generated in
-    /// English and stored as a flat object, without translation. When generation
-    /// fails the report renders its factual sections without an AI summary.
+    /// Generates the English narratives of a questionnaire report and stores them with the
+    /// submission, like any other report: other languages are translated from them on request.
+    /// When generation fails the report renders its factual sections without an AI summary.
     pub(crate) async fn ensure_questionnaire_narratives(
         state: &AppState,
         submission_id: Uuid,
         regenerate: bool,
     ) {
+        let slot = NarrativeSlot::Submission(submission_id);
         if !regenerate {
-            let stored = state
-                .submission_repo
-                .find_by_id(submission_id)
-                .await
-                .ok()
-                .flatten()
-                .and_then(|sub| sub.metadata.get("ai_narratives").cloned());
-            if stored.is_some() {
-                return;
+            if let Ok(Some(stored)) = state.narrative_store.load(slot).await {
+                if narrative_translation::english_of(&stored).is_some() {
+                    return;
+                }
             }
         }
         match Self::generate_questionnaire_narratives(state, submission_id).await {
             Ok(narratives) => {
-                if let Err(e) = state
-                    .submission_repo
-                    .update_metadata(
-                        submission_id,
-                        serde_json::json!({ "ai_narratives": narratives }),
-                    )
-                    .await
-                {
+                let stored = match serde_json::to_value(&narratives) {
+                    Ok(value) => state.narrative_store.store_english(slot, value).await,
+                    Err(e) => Err(crate::error::AppError::InternalServerError(format!(
+                        "Could not serialise narratives: {e}"
+                    ))),
+                };
+                if let Err(e) = stored {
                     tracing::warn!(submission_id = %submission_id, error = %e, "[export] ⚠️ Failed to persist questionnaire narratives");
                 }
             }

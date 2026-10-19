@@ -12,7 +12,6 @@ use uuid::Uuid;
 use crate::api::dto::report_export::ReportStatusResponse;
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
-use crate::services::export_generator::QUESTIONNAIRE_LOCALE;
 use crate::services::narrative_translation;
 use crate::services::report_jobs::{self, ReportTarget};
 use crate::AppState;
@@ -50,12 +49,14 @@ fn requested_locale(lang: Option<&str>) -> String {
         .unwrap_or_else(|| crate::services::localization::FALLBACK_LOCALE.to_string())
 }
 
-/// The requested locale, or English for English-only (questionnaire) reports.
+/// The requested locale of a report, falling back to English when it is not one the
+/// report is available in.
 fn report_locale(target: ReportTarget, lang: Option<&str>) -> String {
-    if target.languages().len() == 1 {
-        QUESTIONNAIRE_LOCALE.to_string()
+    let locale = requested_locale(lang);
+    if target.languages().contains(&locale.as_str()) {
+        locale
     } else {
-        requested_locale(lang)
+        crate::services::localization::FALLBACK_LOCALE.to_string()
     }
 }
 

@@ -1,7 +1,6 @@
 import type { FC } from "react";
 
 import type { QuestionnaireReportProps } from "@/pages/shared/print/components/questionnaire/types";
-import { rateNote } from "@/lib/basic-dashboard";
 import { analyseQuestionnaire } from "@/pages/shared/print/quest/data";
 import { executivePage, membershipPage } from "@/pages/shared/print/quest/pages1";
 import { resiliencePage, savingsLoanQualityPage } from "@/pages/shared/print/quest/pages2";
@@ -12,6 +11,7 @@ import {
   mpcFinancialRatiosPage,
   performancePage,
 } from "@/pages/shared/print/quest/pages3";
+import { longDate, tr } from "@/pages/shared/print/tpl/i18n";
 import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 
 interface Props extends QuestionnaireReportProps {
@@ -19,20 +19,21 @@ interface Props extends QuestionnaireReportProps {
   status?: string;
 }
 
-const issued = () =>
-  new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-
 const capitalize = (text: string): string =>
   text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+
+const statusText = (status: string): string =>
+  tr(`common.submission_status_values.${status.toLowerCase()}`, {
+    defaultValue: capitalize(status),
+  });
 
 /** Report for a cooperative that answered the questionnaire, in the supervisory template. */
 export const QuestionnaireTplReport: FC<Props> = ({ apexName, status, ...props }) => {
   const a = analyseQuestionnaire(props);
   const { scope } = props.dashboard;
   const { coopName } = props;
-  const date = issued();
-  const state = status ? capitalize(status) : "Approved";
-  const currency = rateNote(scope) ? `${scope.currency} (${rateNote(scope)})` : scope.currency;
+  const date = longDate(new Date());
+  const state = statusText(status ?? "approved");
 
   let n = 0;
   const next = () => String(++n);
@@ -56,36 +57,47 @@ export const QuestionnaireTplReport: FC<Props> = ({ apexName, status, ...props }
   return (
     <TplDocument
       frame={{
-        headLeft: "COOP DATA · QUESTIONNAIRE ASSESSMENT",
+        headLeft: tr("quest.report.head"),
         headRight: `${coopName.toUpperCase()} · ${a.period.toUpperCase()}`,
-        footLeft: "RESTRICTED — For supervisory use only",
-        footMid: `Ref. ${a.ref}`,
+        footLeft: tr("coop.report.restricted_foot"),
+        footMid: tr("coop.report.ref", { ref: a.ref }),
       }}
       cover={{
-        kicker: "Questionnaire-based Assessment",
-        title: ["Cooperative Supervisory", `Report — ${a.period}`],
+        kicker: tr("quest.report.kicker"),
+        title: [tr("coop.report.title_1"), tr("quest.report.title_2", { period: a.period })],
         entity: coopName,
-        entityNote: apexName ? `Affiliated to ${apexName}` : "Cooperative",
-        badge: "RESTRICTED",
+        entityNote: apexName
+          ? tr("coop.report.affiliated_to", { apexName })
+          : tr("common.cooperative"),
+        badge: tr("coop.report.badge"),
         meta: [
-          { label: "Reporting period", value: a.period },
-          { label: "Submission ref.", value: a.ref },
-          { label: "Date of issue", value: date },
-          { label: "Reporting currency", value: scope.currency },
+          { label: tr("common.reporting_period"), value: a.period },
+          { label: tr("common.submission_ref"), value: a.ref },
+          { label: tr("common.date_of_issue"), value: date },
+          { label: tr("common.reporting_currency"), value: scope.currency },
         ],
-        footLeft: "Prepared by Coop Data · Unified Cooperative Financial Intelligence & Compliance",
-        footRight: "Figures as answered by the cooperative",
+        footLeft: tr("common.prepared_by"),
+        footRight: tr("coop.report.foot_right"),
       }}
       front={{
         particulars: [
-          ["Cooperative", coopName, "Apex organisation", apexName ?? "—"],
-          ["Reporting period", a.period, "Submission ref.", a.ref],
-          ["Date of issue", date, "Submission status", state],
-          ["Reporting currency", currency, "Data collection", "Questionnaire (basic tier)"],
-          ["Benchmark framework", "PEARLS (adapted)", "Version", "1.0"],
+          [tr("common.cooperative"), coopName, tr("common.apex_organisation"), apexName ?? "—"],
+          [tr("common.reporting_period"), a.period, tr("common.submission_ref"), a.ref],
+          [tr("common.date_of_issue"), date, tr("common.submission_status"), state],
+          [
+            tr("common.reporting_currency"),
+            scope.currency,
+            tr("quest.report.data_collection"),
+            tr("quest.report.data_collection_value"),
+          ],
+          [
+            tr("common.benchmark_framework"),
+            tr("common.pearls_adapted"),
+            tr("common.version"),
+            "1.0",
+          ],
         ],
-        basis:
-          "This assessment is compiled from the questionnaire the cooperative answered through the Coop Data platform. It is not based on financial statements. Some indicators are estimated from grouped answers and some cannot be computed when a question was left unanswered; both are listed in Annex A. Each indicator is defined in Annex B. Figures have not been independently audited.",
+        basis: tr("quest.report.basis"),
       }}
       pages={pages}
     />

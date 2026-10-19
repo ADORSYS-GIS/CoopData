@@ -1,10 +1,11 @@
 import { chunk } from "@/pages/shared/print/consolidated/stats";
 import {
-  PAR30_LIMIT,
   changeNote,
   isDown,
   minimumTone,
+  par30Limit,
   parTone,
+  pct,
   type QuestAnalysis,
 } from "@/pages/shared/print/quest/data";
 import { verdictOf } from "@/pages/shared/print/quest/text";
@@ -15,60 +16,77 @@ import {
   type TestCount,
 } from "@/pages/shared/print/questcons/stats";
 import { concernsOf, recommendationsOf, strengthsOf } from "@/pages/shared/print/questcons/text";
+import { grouped, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { Figure, FindList, Kpis, Opinion, SignOff } from "@/pages/shared/print/tpl/TplParts";
 import { Donut } from "@/pages/shared/print/tpl/TplTrend";
 import type { CooperativeRow } from "@/types/basic-dashboard";
 
-const SUMMARY: readonly [string, string][] = [
-  ["active_members_pct", "Active members"],
-  ["women_members_pct", "Women members"],
-  ["savings_account_penetration_pct", "Savings account penetration"],
-  ["par_gt_30_pct", "PAR over 30 days"],
-  ["delinquent_loan_account_rate_pct", "Delinquent loan accounts"],
-  ["agm_attendance_pct", "AGM participation"],
-  ["total_operating_margin_pct", "Total operating margin"],
-  ["monetary_reserve_coverage_pct", "Monetary reserve coverage"],
+const SUMMARY: readonly string[] = [
+  "active_members_pct",
+  "women_members_pct",
+  "savings_account_penetration_pct",
+  "par_gt_30_pct",
+  "delinquent_loan_account_rate_pct",
+  "agm_attendance_pct",
+  "total_operating_margin_pct",
+  "monetary_reserve_coverage_pct",
 ];
 
-const count = (n: number): string => n.toLocaleString("en-US");
+const count = (n: number): string => grouped(n);
 
 export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Executive Summary" },
+  toc: { no, title: tr("common.executive_summary") },
   render: () => {
     const { dashboard } = a.props;
     const { verdict, body } = verdictOf(a);
     const cover = coverageOf(dashboard);
     const c = complianceOf(dashboard);
     const rows: { label: string; limit: string; test: TestCount }[] = [
-      { label: "PAR over 30 days", limit: `≤ ${PAR30_LIMIT}%`, test: c.par30 },
-      { label: "Total operating margin", limit: "≥ 0%", test: c.operatingMargin },
-      { label: "Monetary reserve coverage", limit: "≥ 100%", test: c.reserveCoverage },
+      {
+        label: tr("quest.kpi.par_gt_30_pct"),
+        limit: `≤ ${par30Limit()}`,
+        test: c.par30,
+      },
+      {
+        label: tr("quest.kpi.total_operating_margin_pct"),
+        limit: `≥ ${percentText(0, 0)}`,
+        test: c.operatingMargin,
+      },
+      {
+        label: tr("quest.kpi.monetary_reserve_coverage_pct"),
+        limit: `≥ ${percentText(100, 0)}`,
+        test: c.reserveCoverage,
+      },
     ];
     return (
       <>
-        <Sec no={no} title="Executive Summary" sub={a.period} />
-        <Opinion label="Overall supervisory view" verdict={verdict}>
-          {`${body} ${count(cover.reporting)} of ${count(cover.inScope)} cooperatives (${cover.rate.toFixed(1)}%) filed a questionnaire for this period.`}
+        <Sec no={no} title={tr("common.executive_summary")} sub={a.period} />
+        <Opinion label={tr("common.overall_view")} verdict={verdict}>
+          {`${body} ${tr("quest.cons.coverage_sentence", {
+            reporting: count(cover.reporting),
+            inScope: count(cover.inScope),
+            rate: percentText(cover.rate, 1),
+          })}`}
         </Opinion>
         <Kpis
-          items={SUMMARY.map(([key, label]) => ({
-            label,
+          items={SUMMARY.map((key) => ({
+            label: tr(`quest.kpi.${key}`),
             value: a.text(key),
             note: changeNote(a.ind(key)),
             down: isDown(a.ind(key)),
           }))}
         />
-        <h3>Cooperatives against the supervisory limits</h3>
+        <h3>{tr("quest.cons.limits_heading")}</h3>
         <table className="tbl compact">
           <thead>
             <tr>
-              <th>Measure</th>
-              <th className="num">Limit</th>
-              <th className="num">Meet</th>
-              <th className="num">Do not meet</th>
-              <th className="num">Not reported</th>
+              <th>{tr("quest.measure")}</th>
+              <th className="num">{tr("common.limit")}</th>
+              <th className="num">{tr("quest.cons.col_meet")}</th>
+              <th className="num">{tr("quest.cons.col_not_meet")}</th>
+              <th className="num">{tr("status.not_reported")}</th>
             </tr>
           </thead>
           <tbody>
@@ -85,18 +103,14 @@ export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
         </table>
         <div className="two">
           <div>
-            <h3>Strengths</h3>
-            <FindList
-              items={
-                strengthsOf(a).length ? strengthsOf(a) : ["No indicator is within its benchmark."]
-              }
-            />
+            <h3>{tr("common.strengths")}</h3>
+            <FindList items={strengthsOf(a).length ? strengthsOf(a) : [tr("common.no_strength")]} />
           </div>
           <div>
-            <h3>Concerns</h3>
+            <h3>{tr("quest.concerns")}</h3>
             <FindList
               red
-              items={concernsOf(a).length ? concernsOf(a) : ["No concern identified."]}
+              items={concernsOf(a).length ? concernsOf(a) : [tr("common.no_concern")]}
             />
           </div>
         </div>
@@ -106,31 +120,32 @@ export const executivePage = (a: QuestAnalysis, no: string): PageSpec => ({
 });
 
 export const coveragePage = (a: QuestAnalysis, no: string): PageSpec => ({
-  toc: { no, title: "Coverage & Portfolio Quality" },
+  toc: { no, title: tr("quest.cons.coverage_title") },
   render: () => {
     const { dashboard } = a.props;
     const cover = coverageOf(dashboard);
     const compliance = complianceOf(dashboard);
     return (
       <>
-        <Sec no={no} title="Coverage & Portfolio Quality" sub={a.period} />
+        <Sec no={no} title={tr("quest.cons.coverage_title")} sub={a.period} />
         <p>
-          {count(cover.reporting)} of {count(cover.inScope)} cooperatives in scope filed a
-          questionnaire. The charts show the filing coverage and how the reporting cooperatives
-          compare on PAR over 30 days.
+          {tr("quest.cons.coverage_text", {
+            reporting: count(cover.reporting),
+            inScope: count(cover.inScope),
+          })}
         </p>
         <div className="two">
           <Figure
             caption={
               <>
-                <b>Figure P1.</b> Questionnaire coverage.
+                <b>{tr("quest.figure", { id: "P1" })}</b> {tr("quest.cons.fig_p1")}
               </>
             }
           >
             <Donut
               slices={[
-                { label: "Filed", value: cover.reporting },
-                { label: "Did not file", value: cover.missing },
+                { label: tr("common.filed"), value: cover.reporting },
+                { label: tr("common.not_filed"), value: cover.missing },
               ]}
               format={count}
             />
@@ -138,7 +153,7 @@ export const coveragePage = (a: QuestAnalysis, no: string): PageSpec => ({
           <Figure
             caption={
               <>
-                <b>Figure P2.</b> Cooperatives by PAR over 30 days.
+                <b>{tr("quest.figure", { id: "P2" })}</b> {tr("quest.cons.fig_p2")}
               </>
             }
           >
@@ -146,8 +161,7 @@ export const coveragePage = (a: QuestAnalysis, no: string): PageSpec => ({
           </Figure>
         </div>
         <p className="src">
-          Only approved questionnaire returns are counted. Amounts are in {dashboard.scope.currency}
-          .
+          {tr("quest.cons.coverage_src", { currency: dashboard.scope.currency })}
         </p>
       </>
     );
@@ -160,36 +174,33 @@ const cell = (tone: string): string => `num ${tone === "bad" || tone === "warn" 
 
 export const cooperativePages = (a: QuestAnalysis, no: string): PageSpec[] => {
   const { dashboard } = a.props;
-  const { scope } = dashboard;
   const rows = dashboard.cooperatives;
   const pages = chunk(rows, ROWS_PER_PAGE);
   if (pages.length === 0) return [];
-  const pct = (v: number | null | undefined) => (v == null ? "—" : `${v.toFixed(1)}%`);
   return pages.map((part, index): PageSpec => ({
-    toc: index === 0 ? { no, title: "Cooperative Overview" } : undefined,
+    toc: index === 0 ? { no, title: tr("quest.cons.overview_title") } : undefined,
     render: () => (
       <>
         <Sec
           no={index === 0 ? no : undefined}
-          title="Cooperative Overview"
-          sub={pages.length > 1 ? `Part ${index + 1} of ${pages.length}` : a.period}
+          title={tr("quest.cons.overview_title")}
+          sub={
+            pages.length > 1
+              ? tr("common.part_of", { part: index + 1, parts: pages.length })
+              : a.period
+          }
         />
-        {index === 0 && (
-          <p>
-            Each cooperative that filed, with its key figures. Values in red are outside the limit:
-            PAR over {PAR30_LIMIT}%, a negative operating margin, or reserves below 100% backed.
-          </p>
-        )}
+        {index === 0 && <p>{tr("quest.cons.overview_intro", { limit: par30Limit() })}</p>}
         <table className="tbl compact">
           <thead>
             <tr>
-              <th>Cooperative</th>
-              <th className="num">Members</th>
-              <th className="num">Active</th>
-              <th className="num">Women</th>
-              <th className="num">PAR &gt;30</th>
-              <th className="num">Op. margin</th>
-              <th className="num">Reserves</th>
+              <th>{tr("common.cooperative")}</th>
+              <th className="num">{tr("common.members")}</th>
+              <th className="num">{tr("common.active")}</th>
+              <th className="num">{tr("common.women")}</th>
+              <th className="num">{tr("quest.cons.col_par")}</th>
+              <th className="num">{tr("quest.cons.col_op_margin")}</th>
+              <th className="num">{tr("quest.cons.col_reserves")}</th>
             </tr>
           </thead>
           <tbody>
@@ -218,21 +229,18 @@ export const cooperativePages = (a: QuestAnalysis, no: string): PageSpec[] => {
 const PRIORITY_CLASS = { High: "h", Medium: "m", Standard: "l" } as const;
 
 export const findingsPage = (a: QuestAnalysis, no: string, entity: string): PageSpec => ({
-  toc: { no, title: "Supervisory Findings & Recommendations" },
+  toc: { no, title: tr("coop.findings.title") },
   render: () => (
     <>
-      <Sec no={no} title="Supervisory Findings & Recommendations" sub="Action plan" />
-      <p>
-        The following actions are recommended to the leadership responsible for {entity}. Progress
-        should be reported with the next return.
-      </p>
+      <Sec no={no} title={tr("coop.findings.title")} sub={tr("common.action_plan")} />
+      <p>{tr("quest.cons.findings_intro", { entity })}</p>
       <table className="tbl recs">
         <thead>
           <tr>
             <th />
-            <th>Recommendation</th>
-            <th style={{ width: "20mm" }}>Priority</th>
-            <th style={{ width: "28mm" }}>Timeline</th>
+            <th>{tr("common.recommendation")}</th>
+            <th style={{ width: "20mm" }}>{tr("common.priority")}</th>
+            <th style={{ width: "28mm" }}>{tr("common.timeline")}</th>
           </tr>
         </thead>
         <tbody>
@@ -243,7 +251,9 @@ export const findingsPage = (a: QuestAnalysis, no: string, entity: string): Page
                 <b>{rec.lead}</b> {rec.text}
               </td>
               <td>
-                <span className={`prio ${PRIORITY_CLASS[rec.priority]}`}>{rec.priority}</span>
+                <span className={`prio ${PRIORITY_CLASS[rec.priority]}`}>
+                  {tr(`common.priorities.${rec.priority}`)}
+                </span>
               </td>
               <td>{rec.timeline}</td>
             </tr>
