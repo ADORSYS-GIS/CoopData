@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { periodReminders, toPeriodType, yearLock, yearProgress } from "@/lib/period-rules";
+import {
+  choiceForYear,
+  createBlock,
+  periodReminders,
+  toPeriodType,
+  yearLock,
+  yearProgress,
+} from "@/lib/period-rules";
 
 const NOW = new Date("2026-09-25T00:00:00Z");
 
@@ -15,7 +22,36 @@ describe("yearLock", () => {
       2017,
     );
 
-    expect(lock).toEqual({ year: 2017, periodType: "QUARTERLY", onlyDrafts: false });
+    expect(lock).toEqual({
+      year: 2017,
+      periodType: "QUARTERLY",
+      onlyDrafts: false,
+      fiscalStartMonth: undefined,
+      taken: ["Q1"],
+    });
+  });
+
+  it("keeps the start month and the periods already created", () => {
+    const lock = yearLock(
+      [
+        {
+          reporting_year: 2024,
+          period_type: "QUARTERLY",
+          period_value: "Q4",
+          fiscal_start_month: 7,
+        },
+        {
+          reporting_year: 2024,
+          period_type: "QUARTERLY",
+          period_value: "q1",
+          fiscal_start_month: 7,
+        },
+      ],
+      2024,
+    );
+
+    expect(lock?.fiscalStartMonth).toBe(7);
+    expect(lock?.taken).toEqual(["Q4", "Q1"]);
   });
 
   it("reports when every submission of the year is still a draft", () => {
@@ -162,5 +198,74 @@ describe("yearProgress", () => {
       ["c2", 2025, true],
       ["c1", 2024, true],
     ]);
+  });
+});
+
+describe("createBlock", () => {
+  const lock = yearLock(
+    [
+      { reporting_year: 2024, period_type: "QUARTERLY", period_value: "Q1", fiscal_start_month: 1 },
+      { reporting_year: 2024, period_type: "QUARTERLY", period_value: "Q4", fiscal_start_month: 1 },
+    ],
+    2024,
+  );
+
+  it("allows a free quarter with the year's start month", () => {
+    expect(createBlock(lock, "QUARTERLY", "Q2", 1)).toBeNull();
+  });
+
+  it("explains a different frequency, start month or a quarter already created", () => {
+    expect(createBlock(lock, "YEARLY", "2024", 1)).toEqual({
+      reason: "frequency",
+      periodType: "QUARTERLY",
+    });
+    expect(createBlock(lock, "QUARTERLY", "Q2", 4)).toEqual({ reason: "startMonth", month: 1 });
+    expect(createBlock(lock, "QUARTERLY", "Q4", 1)).toEqual({ reason: "taken", period: "Q4" });
+  });
+
+  it("does not let a full-year monthly return sit next to single months", () => {
+    const monthly = yearLock(
+      [{ reporting_year: 2025, period_type: "MONTHLY", period_value: "03" }],
+      2025,
+    );
+
+    expect(createBlock(monthly, "MONTHLY", "FULL_YEAR", 1)).toEqual({ reason: "fullYearOverlap" });
+    expect(createBlock(monthly, "MONTHLY", "04", 1)).toBeNull();
+  });
+
+  it("allows anything in a year with no submission", () => {
+    expect(createBlock(null, "QUARTERLY", "Q1", 10)).toBeNull();
+  });
+});
+
+describe("choiceForYear", () => {
+  it("starts from the year's frequency, start month and first free quarter", () => {
+    const lock = yearLock(
+      [
+        {
+          reporting_year: 2024,
+          period_type: "QUARTERLY",
+          period_value: "Q1",
+          fiscal_start_month: 7,
+        },
+        {
+          reporting_year: 2024,
+          period_type: "QUARTERLY",
+          period_value: "Q4",
+          fiscal_start_month: 7,
+        },
+      ],
+      2024,
+    );
+
+    expect(choiceForYear(lock, 2024)).toEqual({
+      periodType: "QUARTERLY",
+      periodValue: "Q2",
+      fiscalStartMonth: 7,
+    });
+  });
+
+  it("leaves a year with no submission free", () => {
+    expect(choiceForYear(null, 2026)).toBeNull();
   });
 });

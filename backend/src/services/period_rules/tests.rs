@@ -273,3 +273,36 @@ fn full_year_monthly_conflicts_with_single_months() {
     assert!(check_period_overlap(&full_year, PeriodType::Monthly, "04", None).is_err());
     assert!(check_period_overlap(&single_month, PeriodType::Monthly, "04", None).is_ok());
 }
+
+#[test]
+fn a_year_keeps_the_start_month_of_its_periods() {
+    let mut q1 = sub(
+        PeriodType::Quarterly,
+        "Q1",
+        SubmissionStatus::Approved,
+        "manual",
+        1,
+    );
+    q1.fiscal_start_month = 7;
+    let existing = [q1];
+
+    assert!(check_fiscal_start(&existing, PeriodType::Quarterly, 7, None).is_ok());
+    let err = check_fiscal_start(&existing, PeriodType::Quarterly, 1, None).unwrap_err();
+    assert!(err.contains("Jul"), "{err}");
+}
+
+#[test]
+fn the_start_month_is_free_for_a_new_year_or_a_yearly_return() {
+    let mut q1 = sub(
+        PeriodType::Quarterly,
+        "Q1",
+        SubmissionStatus::Draft,
+        "manual",
+        1,
+    );
+    q1.fiscal_start_month = 7;
+
+    assert!(check_fiscal_start(&[], PeriodType::Quarterly, 3, None).is_ok());
+    assert!(check_fiscal_start(&[q1.clone()], PeriodType::Yearly, 1, None).is_ok());
+    assert!(check_fiscal_start(&[q1.clone()], PeriodType::Quarterly, 1, Some(q1.id)).is_ok());
+}

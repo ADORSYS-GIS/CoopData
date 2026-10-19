@@ -5409,7 +5409,15 @@
       "semiAnnual": "semestralmente"
     },
     "lockedFrequency": "{{year}} já está definido para relatório {{frequency}}.",
-    "lockedFrequencyDrafts": "{{year}} está definido para relatório {{frequency}}. Elimine os rascunhos desse ano para alterar."
+    "lockedFrequencyDrafts": "{{year}} está definido para relatório {{frequency}}. Elimine os rascunhos desse ano para alterar.",
+    "block": {
+      "frequency": "{{year}} é reportado em {{frequency}}. Escolha essa frequência para adicionar outro período.",
+      "startMonth": "Os trimestres de {{year}} começam em {{month}}. Mantenha esse mês de início para que os períodos não se sobreponham.",
+      "taken": "{{period}} {{year}} já existe. Escolha outro período ou abra a submissão existente na lista.",
+      "fullYearOverlap": "{{year}} já tem declarações mensais; uma declaração do ano completo e meses isolados não podem ser misturados."
+    },
+    "lockedStartMonth": "{{year}} começa em {{month}}, como os seus outros períodos.",
+    "alreadyCreated": "Criado"
   },
   "legal": {
     "termsOfService": "Termos de Serviço",

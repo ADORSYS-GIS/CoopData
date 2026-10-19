@@ -21,7 +21,10 @@ const COOPERATIVES_KEY = "cooperatives";
 const COOPERATIVE_SELF_KEY = "cooperative-self";
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
-type CooperativeResponse = components["schemas"]["CooperativeResponse"];
+export type CooperativeResponse = components["schemas"]["CooperativeResponse"] & {
+  /** Database id, as submissions refer to the cooperative (`id` is the Keycloak group). */
+  database_id?: string | null;
+};
 type MemberResponse = components["schemas"]["MemberResponse"];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

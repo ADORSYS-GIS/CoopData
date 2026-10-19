@@ -5409,7 +5409,15 @@
       "semiAnnual": "kabili ngemnyaka"
     },
     "lockedFrequency": "{{year}} sekuhleliwe kubika nge-{{frequency}}.",
-    "lockedFrequencyDrafts": "{{year}} kuhleliwe kubika nge-{{frequency}}. Susa emadrafti akho embiko waloyo nyaka kuze uguqule."
+    "lockedFrequencyDrafts": "{{year}} kuhleliwe kubika nge-{{frequency}}. Susa emadrafti akho embiko waloyo nyaka kuze uguqule.",
+    "block": {
+      "frequency": "{{year}} ubikwa {{frequency}}. Khetsa leso sikhatsi kute wengete lesinye sikhatsi.",
+      "startMonth": "Tikota ta-{{year}} tiyacala nga-{{month}}. Gcina leyo nyanga yekucala kute tikhatsi tingangeneli.",
+      "taken": "{{period}} {{year}} sewukhona. Khetsa lesinye sikhatsi, nome uvule lokutfunyelwa lokukhona kuluhlu.",
+      "fullYearOverlap": "{{year}} sewunemibiko yenyanga; umbiko wemnyaka wonkhe netinyanga letitimele akukwati kuhlanganiswa."
+    },
+    "lockedStartMonth": "{{year}} ucala nga-{{month}}, njengaletinye tikhatsi tawo.",
+    "alreadyCreated": "Kwentiwe"
   },
   "legal": {
     "termsOfService": "Imigomo Yekusebentisa",

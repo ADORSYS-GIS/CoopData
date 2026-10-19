@@ -5480,7 +5480,15 @@
       "semiAnnual": "semi-annually"
     },
     "lockedFrequency": "{{year}} is already set to {{frequency}} reporting.",
-    "lockedFrequencyDrafts": "{{year}} is set to {{frequency}} reporting. Delete your draft submissions for that year to change it."
+    "lockedFrequencyDrafts": "{{year}} is set to {{frequency}} reporting. Delete your draft submissions for that year to change it.",
+    "block": {
+      "frequency": "{{year}} is reported {{frequency}}. Choose that frequency to add another period.",
+      "startMonth": "The quarters of {{year}} start in {{month}}. Keep that start month so the periods do not overlap.",
+      "taken": "{{period}} {{year}} already exists. Choose another period, or open the existing submission from the list.",
+      "fullYearOverlap": "{{year}} already has monthly returns; a full-year return and single months cannot be mixed."
+    },
+    "lockedStartMonth": "{{year}} starts in {{month}}, like its other periods.",
+    "alreadyCreated": "Created"
   },
   "legal": {
     "termsOfService": "Terms of Service",

@@ -2,6 +2,7 @@ export type PeriodType = "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
 
 export interface PeriodSubmission {
   reporting_year: number;
+  fiscal_start_month?: number | null;
   period_type?: string | null;
   period_value?: string | null;
   status?: string | null;
@@ -12,6 +13,10 @@ export interface YearLock {
   year: number;
   periodType: PeriodType;
   onlyDrafts: boolean;
+  /** Month (1-12) the year's quarters or halves start in, once one exists. */
+  fiscalStartMonth?: number;
+  /** Periods of the year that already have a submission ("Q2", "03", "FULL_YEAR"...). */
+  taken: string[];
 }
 
 export interface PeriodReminder {
@@ -82,16 +87,69 @@ const byYear = (submissions: PeriodSubmission[]): Map<number, PeriodSubmission[]
   return grouped;
 };
 
-/** The frequency already fixed for a year by the cooperative's earlier submissions. */
+/**
+ * What a year already fixes through the cooperative's earlier submissions: its
+ * frequency, the start month of its quarters or halves, and the periods taken.
+ */
 export const yearLock = (submissions: PeriodSubmission[], year: number): YearLock | null => {
   const inYear = submissions.filter((s) => s.reporting_year === year);
   const first = inYear[0];
   if (!first) return null;
+  const periodType = toPeriodType(first.period_type);
+  const withStart = inYear.find(
+    (s) => toPeriodType(s.period_type) !== "YEARLY" && s.fiscal_start_month,
+  );
   return {
     year,
-    periodType: toPeriodType(first.period_type),
+    periodType,
     onlyDrafts: inYear.every((s) => (s.status ?? "").toLowerCase() === "draft"),
+    fiscalStartMonth: withStart?.fiscal_start_month ?? undefined,
+    taken: inYear
+      .filter((s) => toPeriodType(s.period_type) === periodType)
+      .map((s) =>
+        periodType === "YEARLY" ? String(year) : normalizePeriodValue(periodType, s.period_value),
+      ),
   };
+};
+
+export type CreateBlock =
+  | { reason: "frequency"; periodType: PeriodType }
+  | { reason: "startMonth"; month: number }
+  | { reason: "taken"; period: string }
+  | { reason: "fullYearOverlap" };
+
+/**
+ * Why a new submission cannot be created with this choice, or `null` when it
+ * can. Mirrors the backend checks so the button explains itself instead of
+ * failing on click.
+ */
+export const createBlock = (
+  lock: YearLock | null,
+  periodType: PeriodType,
+  periodValue: string,
+  fiscalStartMonth: number,
+): CreateBlock | null => {
+  if (!lock) return null;
+  if (lock.periodType !== periodType) return { reason: "frequency", periodType: lock.periodType };
+  if (
+    periodType !== "YEARLY" &&
+    periodType !== "MONTHLY" &&
+    lock.fiscalStartMonth !== undefined &&
+    lock.fiscalStartMonth !== fiscalStartMonth
+  ) {
+    return { reason: "startMonth", month: lock.fiscalStartMonth };
+  }
+  const value =
+    periodType === "YEARLY" ? String(lock.year) : normalizePeriodValue(periodType, periodValue);
+  if (lock.taken.includes(value)) return { reason: "taken", period: value };
+  if (
+    periodType === "MONTHLY" &&
+    lock.taken.length > 0 &&
+    (value === "FULL_YEAR" || lock.taken.includes("FULL_YEAR"))
+  ) {
+    return { reason: "fullYearOverlap" };
+  }
+  return null;
 };
 
 export const periodReminders = (
@@ -253,3 +311,25 @@ export const FREQUENCY_LABEL_KEYS = {
   MONTHLY: "reportingYears.frequency.monthly",
   SEMI_ANNUAL: "reportingYears.frequency.semiAnnual",
 } as const;
+
+export interface PeriodChoice {
+  periodType: PeriodType;
+  periodValue: string;
+  fiscalStartMonth?: number;
+}
+
+/**
+ * The choice the "new submission" dialog starts from for a year: the year's
+ * frequency and start month, and its first period not created yet. `null` for
+ * a year with no submission (the user chooses freely).
+ */
+export const choiceForYear = (lock: YearLock | null, year: number): PeriodChoice | null => {
+  if (!lock) return null;
+  if (lock.periodType === "YEARLY") return { periodType: "YEARLY", periodValue: String(year) };
+  const free = expectedPeriods(lock.periodType).find((p) => !lock.taken.includes(p));
+  return {
+    periodType: lock.periodType,
+    periodValue: free ?? expectedPeriods(lock.periodType)[0] ?? "",
+    fiscalStartMonth: lock.fiscalStartMonth,
+  };
+};

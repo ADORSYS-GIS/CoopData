@@ -376,6 +376,7 @@ pub async fn list_cooperatives(
                 institution_type: c.institution_type.map(|t| t.as_str().to_string()),
                 region: c.region.map(|r| r.as_str().to_string()),
                 tier: Some(c.tier),
+                database_id: Some(c.id),
             })
             .collect();
         return Ok((StatusCode::OK, Json(responses)));
@@ -400,7 +401,7 @@ pub async fn list_cooperatives(
         .await
         .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
 
-    let cooperatives: Vec<CooperativeResponse> = children
+    let mut cooperatives: Vec<CooperativeResponse> = children
         .into_iter()
         .filter(|sg| {
             sg.attributes
@@ -412,6 +413,15 @@ pub async fn list_cooperatives(
         })
         .map(CooperativeResponse::from)
         .collect();
+    // Submissions refer to the database id: send it so the client can match a
+    // cooperative's submissions (e.g. the year a new submission belongs to).
+    for coop in &mut cooperatives {
+        coop.database_id = state
+            .cooperative_repo
+            .find_by_keycloak_id(&coop.id)
+            .await?
+            .map(|c| c.id);
+    }
 
     Ok((StatusCode::OK, Json(cooperatives)))
 }

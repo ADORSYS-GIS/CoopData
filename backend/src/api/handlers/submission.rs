@@ -142,6 +142,13 @@ pub async fn create_submission(
         None,
     )
     .map_err(AppError::Conflict)?;
+    crate::services::period_rules::check_fiscal_start(
+        &year_submissions,
+        period_type,
+        body.fiscal_start_month,
+        None,
+    )
+    .map_err(AppError::Conflict)?;
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
@@ -2473,6 +2480,13 @@ pub async fn create_apex_submission(
         &year_submissions,
         period_type,
         &period_value,
+        None,
+    )
+    .map_err(AppError::Conflict)?;
+    crate::services::period_rules::check_fiscal_start(
+        &year_submissions,
+        period_type,
+        body.fiscal_start_month,
         None,
     )
     .map_err(AppError::Conflict)?;

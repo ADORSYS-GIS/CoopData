@@ -115,6 +115,36 @@ pub fn check_statement_period(
     ))
 }
 
+/// The periods of a year share one fiscal start month: once a quarter or half of
+/// the year exists, the others must start the year in the same month, or their
+/// months would overlap or leave gaps. A yearly return has no start month.
+pub fn check_fiscal_start(
+    existing: &[submission::Model],
+    period_type: PeriodType,
+    fiscal_start_month: i32,
+    ignore_id: Option<Uuid>,
+) -> Result<(), String> {
+    if period_type == PeriodType::Yearly {
+        return Ok(());
+    }
+    let conflict = existing.iter().find(|s| {
+        Some(s.id) != ignore_id
+            && s.period_type != PeriodType::Yearly
+            && s.fiscal_start_month != fiscal_start_month
+    });
+    match conflict {
+        None => Ok(()),
+        Some(s) => Err(format!(
+            "The fiscal year {} already starts in {} for this cooperative's other periods. Use the same start month.",
+            s.reporting_year,
+            MONTH_NAMES
+                .get((s.fiscal_start_month.clamp(1, 12) - 1) as usize)
+                .copied()
+                .unwrap_or("January")
+        )),
+    }
+}
+
 /// A "Full 12 Mo" monthly return already covers every month of the year, so it
 /// cannot sit next to single-month returns of the same year.
 pub fn check_period_overlap(

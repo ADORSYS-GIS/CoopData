@@ -232,8 +232,25 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   const [periodValue, setPeriodValue] = useState<string>(String(currentYear));
   const [fiscalStartMonth, setFiscalStartMonth] = useState<number>(1);
   const createSubmission = useCreateSubmission();
-  const { data: existingSubmissions = [] } = useCooperativeSubmissions(true);
+  const { data: existingData } = useCooperativeSubmissions(true);
+  const existingSubmissions = useMemo(() => existingData ?? [], [existingData]);
   const lock = yearLock(existingSubmissions, year);
+  const block = createBlock(
+    lock,
+    periodType,
+    periodType === "YEARLY" ? String(year) : periodValue,
+    fiscalStartMonth,
+  );
+
+  // A year that already has submissions fixes the frequency, the start month
+  // and which periods are left: start from its first free period.
+  useEffect(() => {
+    const choice = choiceForYear(yearLock(existingSubmissions, year), year);
+    if (!choice) return;
+    setPeriodType(choice.periodType);
+    setPeriodValue(choice.periodValue);
+    if (choice.fiscalStartMonth) setFiscalStartMonth(choice.fiscalStartMonth);
+  }, [existingSubmissions, year]);
 
   const handlePeriodTypeChange = (type: "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL") => {
     setPeriodType(type);
@@ -245,13 +262,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
 
   const handleYearChange = (y: number) => {
     setYear(y);
-    const yearLocked = yearLock(existingSubmissions, y);
-    if (yearLocked) {
-      handlePeriodTypeChange(yearLocked.periodType);
-      if (yearLocked.periodType === "YEARLY") setPeriodValue(String(y));
-    } else if (periodType === "YEARLY") {
-      setPeriodValue(String(y));
-    }
+    if (periodType === "YEARLY") setPeriodValue(String(y));
   };
 
   const handleCreate = async () => {
@@ -328,6 +339,12 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
+        {block && (
+          <div className="px-6 pb-3">
+            <CreateBlockNotice block={block} year={year} />
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex gap-3 px-6 py-4 border-t border-border bg-muted/10">
           <button
@@ -338,7 +355,7 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={handleCreate}
-            disabled={createSubmission.isPending}
+            disabled={createSubmission.isPending || block !== null}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {createSubmission.isPending ? <Spinner size="sm" /> : <Plus className="size-4" />}
@@ -388,9 +405,34 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
   const [fiscalStartMonth, setFiscalStartMonth] = useState<number>(1);
   const createApexSubmission = useCreateApexSubmission();
   const { data: cooperatives = [], isLoading: coopsLoading } = useCooperatives();
-  const { data: apexSubmissions = [] } = useApexSubmissions(true);
-  const coopSubmissions = apexSubmissions.filter((s) => s.cooperative_id === selectedCoopId);
+  const { data: apexData } = useApexSubmissions(true);
+  // The picker holds the Keycloak id; submissions refer to the database id.
+  const selectedDatabaseId = cooperatives.find((c) => c.id === selectedCoopId)?.database_id;
+  const coopSubmissions = useMemo(
+    () =>
+      selectedDatabaseId
+        ? (apexData ?? []).filter((s) => s.cooperative_id === selectedDatabaseId)
+        : [],
+    [apexData, selectedDatabaseId],
+  );
   const lock = selectedCoopId ? yearLock(coopSubmissions, year) : null;
+  const block = createBlock(
+    lock,
+    periodType,
+    periodType === "YEARLY" ? String(year) : periodValue,
+    fiscalStartMonth,
+  );
+
+  // The chosen cooperative's year fixes the frequency, the start month and
+  // which periods are left: start from its first free period.
+  useEffect(() => {
+    if (!selectedCoopId) return;
+    const choice = choiceForYear(yearLock(coopSubmissions, year), year);
+    if (!choice) return;
+    setPeriodType(choice.periodType);
+    setPeriodValue(choice.periodValue);
+    if (choice.fiscalStartMonth) setFiscalStartMonth(choice.fiscalStartMonth);
+  }, [coopSubmissions, selectedCoopId, year]);
 
   const handlePeriodTypeChange = (type: SubmissionPeriodType) => {
     setPeriodType(type);
@@ -402,13 +444,7 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
 
   const handleYearChange = (y: number) => {
     setYear(y);
-    const yearLocked = selectedCoopId ? yearLock(coopSubmissions, y) : null;
-    if (yearLocked) {
-      handlePeriodTypeChange(yearLocked.periodType);
-      if (yearLocked.periodType === "YEARLY") setPeriodValue(String(y));
-    } else if (periodType === "YEARLY") {
-      setPeriodValue(String(y));
-    }
+    if (periodType === "YEARLY") setPeriodValue(String(y));
   };
 
   const selectedCoop = cooperatives.find((c) => c.id === selectedCoopId) as
@@ -525,6 +561,12 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
+        {block && (
+          <div className="px-6 pt-2">
+            <CreateBlockNotice block={block} year={year} />
+          </div>
+        )}
+
         <div className="flex gap-3 px-6 py-5">
           <button
             onClick={onClose}
@@ -534,7 +576,7 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={handleCreate}
-            disabled={createApexSubmission.isPending || !selectedCoopId}
+            disabled={createApexSubmission.isPending || !selectedCoopId || block !== null}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {createApexSubmission.isPending ? <Spinner size="sm" /> : <Plus className="size-4" />}
@@ -616,7 +658,8 @@ import {
 import { PeriodReminderBanner } from "@/components/submissions/PeriodReminderBanner";
 import { ReportingYearsPanel } from "@/components/submissions/ReportingYearsPanel";
 import { usePeriodReminders } from "@/hooks/submissions/usePeriodReminders";
-import { yearLock } from "@/lib/period-rules";
+import { choiceForYear, createBlock, yearLock } from "@/lib/period-rules";
+import { CreateBlockNotice } from "@/components/submissions/CreateBlockNotice";
 
 function SubmissionTable({
   submissions,
