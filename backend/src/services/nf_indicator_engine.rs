@@ -146,6 +146,18 @@ pub struct NfStatisticsResponse {
     pub computed_at: chrono::DateTime<Utc>,
 }
 
+/// The entry wizard records an unused account as "Inactive"; uploaded
+/// registers and older data use "Dormant". Both are dormant savings.
+fn is_dormant_savings(status: &str) -> bool {
+    matches!(status, "Dormant" | "Inactive")
+}
+
+/// The entry wizard records a falling balance as "Decreasing"; uploaded
+/// registers may say "Declining".
+fn is_declining_trend(trend: &str) -> bool {
+    matches!(trend, "Declining" | "Decreasing")
+}
+
 fn pct(part: u64, total: u64) -> f64 {
     if total == 0 {
         0.0
@@ -296,10 +308,7 @@ impl NfIndicatorEngine {
             .count() as u64;
         let youth_leaders = all
             .iter()
-            .filter(|m| {
-                matches!(m.age_group, AgeGroup::Under18 | AgeGroup::Between18And35)
-                    && m.leadership_role.is_some()
-            })
+            .filter(|m| m.age_group.is_youth() && m.leadership_role.is_some())
             .count() as u64;
 
         Ok(MembershipStats {
@@ -325,7 +334,7 @@ impl NfIndicatorEngine {
             male_pct: pct(male, total),
             female_pct: pct(female, total),
             other_pct: pct(other, total),
-            youth_pct: pct(under_18 + age_18_35, total),
+            youth_pct: pct(age_18_35, total),
             adult_pct: pct(age_36_50 + over_50, total),
             urban_pct: pct(urban, total),
             rural_pct: pct(rural, total),
@@ -350,7 +359,10 @@ impl NfIndicatorEngine {
 
         let total_accounts = all.len() as u64;
         let active_accounts = all.iter().filter(|s| s.account_status == "Active").count() as u64;
-        let dormant_accounts = all.iter().filter(|s| s.account_status == "Dormant").count() as u64;
+        let dormant_accounts = all
+            .iter()
+            .filter(|s| is_dormant_savings(&s.account_status))
+            .count() as u64;
         let zero_balance_count = all.iter().filter(|s| s.zero_balance_flag).count() as u64;
 
         let increasing_trend = all
@@ -360,7 +372,7 @@ impl NfIndicatorEngine {
         let stable_trend = all.iter().filter(|s| s.balance_trend == "Stable").count() as u64;
         let declining_trend = all
             .iter()
-            .filter(|s| s.balance_trend == "Declining")
+            .filter(|s| is_declining_trend(&s.balance_trend))
             .count() as u64;
 
         let high_withdrawal_count = all
@@ -653,6 +665,28 @@ impl NfIndicatorEngine {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn youth_means_members_aged_18_to_35() {
+        assert!(AgeGroup::Between18And35.is_youth());
+        assert!(!AgeGroup::Under18.is_youth());
+        assert!(!AgeGroup::Between36And50.is_youth());
+    }
+
+    #[test]
+    fn inactive_savings_accounts_count_as_dormant() {
+        assert!(super::is_dormant_savings("Inactive"));
+        assert!(super::is_dormant_savings("Dormant"));
+        assert!(!super::is_dormant_savings("Active"));
+        assert!(!super::is_dormant_savings("Closed"));
+    }
+
+    #[test]
+    fn decreasing_balances_count_as_declining() {
+        assert!(super::is_declining_trend("Decreasing"));
+        assert!(super::is_declining_trend("Declining"));
+        assert!(!super::is_declining_trend("Stable"));
+    }
     use super::*;
 
     #[test]

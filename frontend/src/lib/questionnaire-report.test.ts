@@ -72,6 +72,10 @@ describe("questionnaire report helpers", () => {
     expect(hasHistory(undefined)).toBe(false);
   });
 
+  it("uses the submission's own reference when it has one", () => {
+    expect(reportCode(2025, "cb675a39-53bf", "SUB-2025-00002")).toBe("SUB-2025-00002");
+  });
+
   it("builds a report code from the year and submission id", () => {
     expect(reportCode(2026, "abcde12345")).toBe("SUB-2026-ABCDE");
     expect(reportCode(null, "abcde12345")).toBe("SUB------ABCDE");

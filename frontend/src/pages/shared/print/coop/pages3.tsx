@@ -1,4 +1,4 @@
-import type { CoopAnalysis } from "@/pages/shared/print/coop/analysis";
+import { isArrearsCategory, type CoopAnalysis } from "@/pages/shared/print/coop/analysis";
 import { fmtInt, fmtMillions, fmtPct, kpiOf } from "@/pages/shared/print/coop/data";
 import { recommendationsOf } from "@/pages/shared/print/coop/text";
 import { arrearsAgeOf } from "@/pages/shared/print/coop/structure";
@@ -8,8 +8,6 @@ import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { Fn, Figure, FindList, Note } from "@/pages/shared/print/tpl/TplParts";
 import { BarChart, Donut } from "@/pages/shared/print/tpl/TplTrend";
 import { percentText, short, tr } from "@/pages/shared/print/tpl/i18n";
-
-const ARREARS = /arrear|overdue|delinq|non-?perf|npl/i;
 
 export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
   toc: { no, title: tr("coop.loans.title") },
@@ -26,7 +24,7 @@ export const loanQualityPage = (a: CoopAnalysis, no: string): PageSpec => ({
     const count = categories.reduce((s, c) => s + c.count, 0);
     const balance = categories.reduce((s, c) => s + c.balance, 0);
     const inArrears = categories
-      .filter((c) => ARREARS.test(c.category))
+      .filter((c) => isArrearsCategory(c.category))
       .reduce((s, c) => s + c.count, 0);
     const conflict = (par30?.current ?? 0) === 0 && inArrears > 0;
     const actions = recommendationsOf(a).slice(0, 4);
@@ -359,7 +357,7 @@ export const membershipPage = (a: CoopAnalysis, no: string): PageSpec => ({
                 <tr>
                   <td>{tr("coop.membership.agm")}</td>
                   <td className="num">{fmtInt(agm)}</td>
-                  <td className="num">{fmtPct(active > 0 ? (agm / active) * 100 : null)}</td>
+                  <td className="num">{fmtPct(total > 0 ? (agm / total) * 100 : null)}</td>
                 </tr>
               </tbody>
             </table>

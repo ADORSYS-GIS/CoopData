@@ -434,6 +434,7 @@ export function CooperativeComparison({ reportingYear }: CooperativeComparisonPr
       status: t("analytics.status"),
       legendHealthy: t("analytics.legendHealthy"),
       legendWatch: t("analytics.legendWatch"),
+      legendCritical: t("analytics.legendCritical"),
       insufficientNational: t("analytics.insufficientNationalData"),
       insufficientRegional: t("analytics.insufficientRegionalData"),
       insufficientSector: t("analytics.insufficientSectorData"),

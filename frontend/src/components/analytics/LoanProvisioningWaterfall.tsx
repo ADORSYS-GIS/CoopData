@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useTranslation } from "react-i18next";
+import { shortAmount } from "@/lib/currency";
 
 interface Props {
   glp: number;
@@ -69,9 +70,7 @@ export function LoanProvisioningWaterfall({ glp, par30_pct, provisions_pct }: Pr
   ];
 
   const formatCurrency = (val: number) => {
-    if (val >= 1000000) return `SZL ${(val / 1000000).toFixed(1)}M`;
-    if (val >= 1000) return `SZL ${(val / 1000).toFixed(1)}K`;
-    return `SZL ${val.toFixed(0)}`;
+    return `SZL ${shortAmount(val)}`;
   };
 
   return (

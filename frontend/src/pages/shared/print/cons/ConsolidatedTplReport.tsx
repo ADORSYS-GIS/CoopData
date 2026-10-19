@@ -11,6 +11,8 @@ import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument
 import { trendPage } from "@/pages/shared/print/tpl/TrendPage";
 import { trendOf } from "@/pages/shared/print/tpl/trend";
 import { longDate, tr } from "@/pages/shared/print/tpl/i18n";
+import { NATIVE_CURRENCY } from "@/lib/currency";
+import { filingCounts } from "@/pages/shared/print/consolidated/stats";
 
 const issuerOf = (tier: Tier): string => tr(`cons.issuer.${tier}`);
 
@@ -51,7 +53,7 @@ const buildSections = (input: ConsInput): PageSpec[] => {
 export const ConsolidatedTplReport: FC<ConsInput> = (input) => {
   const { tier, entityName, year, data } = input;
   const total = data.total_cooperatives || data.cooperatives.length;
-  const filed = data.cooperatives.filter((c) => c.has_data).length;
+  const filing = filingCounts(data);
   const subject = tier === "Ministry" ? tr("cons.report.national_overview") : entityName;
   const apexCount = new Set(data.cooperatives.map((c) => c.apex_id).filter(Boolean)).size;
   const issuer = issuerOf(tier);
@@ -60,7 +62,7 @@ export const ConsolidatedTplReport: FC<ConsInput> = (input) => {
       ? tr("cons.report.scope_apex", { issuer, total })
       : tr("cons.report.scope_apexes", { issuer, total, count: apexCount });
   const issued = longDate(new Date());
-  const ofTotal = tr("cons.report.of", { filed, total });
+  const ofTotal = tr("cons.report.of", { filed: filing.filed, total: filing.total });
 
   return (
     <TplDocument
@@ -96,14 +98,14 @@ export const ConsolidatedTplReport: FC<ConsInput> = (input) => {
           ],
           [
             tr("cons.report.covered"),
-            `${total}`,
+            `${filing.total}`,
             tier === "Apex" ? tr("cons.report.entity") : tr("cons.report.apex_organisations"),
             tier === "Apex" ? entityName : String(apexCount),
           ],
           [tr("cons.report.returns_submitted"), ofTotal, tr("common.date_of_issue"), issued],
           [
             tr("common.reporting_currency"),
-            tr("cons.report.currency_value"),
+            NATIVE_CURRENCY,
             tr("common.classification"),
             tr("cons.report.classification_value"),
           ],

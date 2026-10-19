@@ -70,9 +70,13 @@ export const resiliencePage = (a: QuestAnalysis, no: string): PageSpec => ({
     return (
       <>
         <Sec no={no} title={tr("quest.resilience.title")} sub={a.period} />
-        <p>
-          {tr("quest.resilience.summary", { reserve: a.text("monetary_reserve_coverage_pct") })}
-        </p>
+        {a.num("monetary_reserve_coverage_pct") === null ? (
+          <p>{tr("quest.resilience.summary_missing")}</p>
+        ) : (
+          <p>
+            {tr("quest.resilience.summary", { reserve: a.text("monetary_reserve_coverage_pct") })}
+          </p>
+        )}
         {narrative && (
           <div className="opinion keep">
             <div className="lbl">{tr("quest.resilience.insights")}</div>

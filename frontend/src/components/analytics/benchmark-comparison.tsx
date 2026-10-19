@@ -24,7 +24,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { BenchmarkMatrix } from "@/components/analytics/benchmark-matrix";
-import { computeKpiAverages } from "@/components/analytics/benchmark-utils";
+import { computeKpiAverages, formatBenchmarkValue } from "@/components/analytics/benchmark-utils";
 import { Spinner } from "@/components/ui/spinner";
 import type {
   BenchmarkAverages,
@@ -278,21 +278,7 @@ export function BenchmarkComparison({
   };
 
   // Formatting helper
-  const formatValue = (val: number, unit: string) => {
-    if (unit === "%") {
-      return `${val.toFixed(2)}%`;
-    }
-    if (unit === "count") {
-      return val.toLocaleString(undefined, { maximumFractionDigits: 0 });
-    }
-    if (val >= 1_000_000) {
-      return `SZL ${(val / 1_000_000).toFixed(2)}M`;
-    }
-    if (val >= 1_000) {
-      return `SZL ${(val / 1_000).toFixed(1)}K`;
-    }
-    return `SZL ${val.toFixed(2)}`;
-  };
+  const formatValue = formatBenchmarkValue;
 
   const activeMetricInfo = useMemo(() => {
     return metrics.find((m) => m.key === selectedKpi);
@@ -377,22 +363,33 @@ export function BenchmarkComparison({
 
   // True when the selected average was withheld for too few contributors.
   // Coop users rely on the backend's insufficient_data flags; apex/federation
-  // users rely on the client-side MIN_CONTRIBUTORS guard (null average).
+  // users on the client-side MIN_CONTRIBUTORS_ADMIN guard, so a lone
+  // cooperative is never compared with an "average" of itself.
+  const tooFewForAdmin = (coops: BenchmarkRow[]) => coops.length < MIN_CONTRIBUTORS_ADMIN;
   const isNationalInsufficient =
-    isCoopUser &&
     compareTarget.isAverage &&
     !compareTarget.isRegional &&
     !compareTarget.isSector &&
-    (serverAverages?.insufficient.national ?? false);
+    (isCoopUser
+      ? (serverAverages?.insufficient.national ?? false)
+      : tooFewForAdmin(cooperativesWithData));
   const isRegionalInsufficient =
-    isCoopUser &&
     compareTarget.isRegional &&
     !compareTarget.isSector &&
-    (serverAverages?.insufficient.regional ?? false);
+    (isCoopUser
+      ? (serverAverages?.insufficient.regional ?? false)
+      : tooFewForAdmin(cooperativesWithData.filter((c) => c.region === compareTarget.region)));
   const isSectorInsufficient =
     compareTarget.isSector && !compareTarget.isRegional && sectorAverages == null;
   const isSectorRegionalInsufficient =
     compareTarget.isSector && compareTarget.isRegional && sectorRegionalAverages == null;
+  const isPeerAverageWithheld =
+    isNationalInsufficient ||
+    isRegionalInsufficient ||
+    isSectorInsufficient ||
+    isSectorRegionalInsufficient;
+  const getMatrixCompareValue = (metricKey: string): number | null =>
+    isPeerAverageWithheld ? null : getCompareValue(metricKey);
 
   if (isLoading) {
     return (
@@ -747,7 +744,7 @@ export function BenchmarkComparison({
           selectedCoop={selectedCoop}
           compareTargetName={compareTarget.name}
           getValue={getValue}
-          getCompareValue={getCompareValue}
+          getCompareValue={getMatrixCompareValue}
           selectedKpi={selectedKpi}
           onSelectKpi={setSelectedKpi}
           formatValue={formatValue}
@@ -762,6 +759,7 @@ export function BenchmarkComparison({
             status: labels.status,
             legendHealthy: labels.legendHealthy,
             legendWatch: labels.legendWatch,
+            legendCritical: labels.legendCritical,
           }}
         />
       )}

@@ -335,6 +335,7 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::basic_dashboard::GenderCount,
         api_module::dto::basic_dashboard::AgeBands,
         api_module::dto::basic_dashboard::Demographics,
+        api_module::dto::basic_dashboard::Balances,
         api_module::dto::basic_dashboard::CooperativeRow,
         api_module::dto::basic_benchmark::BasicBenchmarkRow,
         api_module::dto::basic_benchmark::BasicBenchmarkInsufficientData,

@@ -377,16 +377,17 @@ async fn build(
     regenerate: bool,
     job_id: Uuid,
 ) -> AppResult<String> {
-    if lang == ENGLISH {
+    let narratives = if lang == ENGLISH {
         // A consolidated report always reflects the latest approvals.
         let fresh = regenerate || target.is_consolidated();
         if fresh {
             forget_translations(state, target).await?;
         }
-        ensure_english_narratives(state, target, fresh).await?;
+        ensure_english_narratives(state, target, fresh).await
     } else {
-        ensure_translation(state, target, lang).await?;
-    }
+        ensure_translation(state, target, lang).await
+    };
+    narratives_are_optional(narratives)?;
 
     let url = print_url(state, target, lang).await?;
     let bytes = ExportGenerator::generate_pdf_via_gotenberg(state, &url).await?;
@@ -403,6 +404,20 @@ async fn build(
         .store(&storage_key, &bytes, "application/pdf")
         .await?;
     Ok(storage_key)
+}
+
+/// The AI narratives only add commentary: every figure, table and summary
+/// sentence of a report is written without them. When the AI service fails, the
+/// report is still produced without the commentary (as the questionnaire report
+/// already is); any other failure still stops it.
+fn narratives_are_optional(result: AppResult<()>) -> AppResult<()> {
+    match result {
+        Err(AppError::ExternalServiceError(reason)) => {
+            tracing::warn!(%reason, "[report] ⚠️ AI narratives failed, rendering without them");
+            Ok(())
+        }
+        other => other,
+    }
 }
 
 async fn ensure_english_narratives(
@@ -715,6 +730,26 @@ mod tests {
     use crate::entities::report_export::STATUS_FAILED;
 
     const NOW_SECS: i64 = 1_800_000_000;
+
+    #[test]
+    fn a_failing_ai_service_does_not_stop_the_report() {
+        let failed = Err(AppError::ExternalServiceError(
+            "Narrative LLM API error 401 Unauthorized".into(),
+        ));
+
+        assert!(narratives_are_optional(failed).is_ok());
+    }
+
+    #[test]
+    fn other_failures_still_stop_the_report() {
+        let missing = Err(AppError::NotFound("Submission not found".into()));
+
+        assert!(matches!(
+            narratives_are_optional(missing),
+            Err(AppError::NotFound(_))
+        ));
+        assert!(narratives_are_optional(Ok(())).is_ok());
+    }
 
     fn at(secs_ago: i64) -> DateTime<Utc> {
         DateTime::from_timestamp(NOW_SECS - secs_ago, 0).unwrap_or_default()

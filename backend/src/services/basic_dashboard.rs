@@ -6,8 +6,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use uuid::Uuid;
 
 use crate::api::dto::basic_dashboard::{
-    AgeBands, BasicDashboardParams, BasicDashboardResponse, CooperativeRow, DashboardScope,
-    DashboardThresholds, Demographics, GenderCount, PeriodOption, SeriesPoint,
+    AgeBands, Balances, BasicDashboardParams, BasicDashboardResponse, CooperativeRow,
+    DashboardScope, DashboardThresholds, Demographics, GenderCount, PeriodOption, SeriesPoint,
 };
 use crate::entities::enums::SubmissionStatus;
 use crate::entities::{cooperative, questionnaire_response, submission};
@@ -114,15 +114,8 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         .find_by_cooperatives(coop_ids.clone())
         .await?;
 
-    let eligible = |sub: &submission::Model| -> bool {
-        sub.status == SubmissionStatus::Approved
-            || req.focus_submission == Some(sub.id)
-            || (individual
-                && matches!(
-                    sub.status,
-                    SubmissionStatus::Submitted | SubmissionStatus::InReview
-                ))
-    };
+    let eligible =
+        |sub: &submission::Model| counts_towards_figures(&sub.status, sub.id, req.focus_submission);
 
     // period -> coop -> (financial, non-financial) answers
     type Answers = (Option<serde_json::Value>, Option<serde_json::Value>);
@@ -327,6 +320,17 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         loan_accounts: gender(i.loan_acc_m, i.loan_acc_f),
     };
 
+    let balances = Balances {
+        total_assets: derived.total_assets,
+        gross_loans: derived.gross_loans,
+        member_deposits: derived.deposits,
+        net_surplus: derived.net_income,
+        par_30_pct: derived.par_pct(derived.overdue_gt_30),
+        capital_ratio_pct: derived.institutional_capital_ratio_pct(),
+        overdue_gt_30: derived.overdue_gt_30,
+        overdue_gt_90: derived.overdue_gt_90,
+    };
+
     let reporting: HashSet<Uuid> = current.iter().map(|c| c.coop.id).collect();
     Ok(BasicDashboardResponse {
         scope: DashboardScope {
@@ -337,7 +341,12 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
             }
             .to_string(),
             cooperatives_reporting: reporting.len() as u32,
-            cooperatives_in_scope: coops.len() as u32,
+            cooperatives_in_scope: coops
+                .iter()
+                .filter(|c| {
+                    expected_to_file_questionnaire(c.institution_type.as_ref().map(|t| t.as_str()))
+                })
+                .count() as u32,
             reporting_year: selected.as_ref().map(|k| k.year),
             period_type: selected.as_ref().map(|k| k.period_type.clone()),
             period_value: selected.as_ref().map(|k| k.period_value.clone()),
@@ -353,13 +362,33 @@ pub async fn build(state: &AppState, req: DashboardRequest) -> AppResult<BasicDa
         indicators,
         series,
         demographics,
+        balances,
         cooperatives: rows,
     })
 }
 
+/// Whether a cooperative is expected to report through the questionnaire:
+/// multipurpose cooperatives, and those whose type is not set yet (they may
+/// use either method). SACCOs report financial statements instead.
+fn expected_to_file_questionnaire(institution_type: Option<&str>) -> bool {
+    institution_type != Some("sacco")
+}
+
+/// Only figures validated by the apex reach a dashboard, including the
+/// cooperative's own. A report generated for one submission still shows it.
+fn counts_towards_figures(
+    status: &SubmissionStatus,
+    submission_id: Uuid,
+    focus_submission: Option<Uuid>,
+) -> bool {
+    *status == SubmissionStatus::Approved || focus_submission == Some(submission_id)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::active_filter;
+    use super::{active_filter, counts_towards_figures};
+    use crate::entities::enums::SubmissionStatus;
+    use uuid::Uuid;
 
     #[test]
     fn all_and_blank_filters_do_not_narrow() {
@@ -368,6 +397,47 @@ mod tests {
         assert_eq!(active_filter(Some("  ")), None);
         assert_eq!(active_filter(Some("all")), None);
         assert_eq!(active_filter(Some("ALL")), None);
+    }
+
+    #[test]
+    fn only_approved_submissions_count_towards_the_figures() {
+        let id = Uuid::new_v4();
+
+        assert!(counts_towards_figures(
+            &SubmissionStatus::Approved,
+            id,
+            None
+        ));
+        for pending in [
+            SubmissionStatus::Draft,
+            SubmissionStatus::Submitted,
+            SubmissionStatus::InReview,
+        ] {
+            assert!(!counts_towards_figures(&pending, id, None), "{pending:?}");
+        }
+    }
+
+    #[test]
+    fn a_report_for_one_submission_shows_it_before_approval() {
+        let id = Uuid::new_v4();
+
+        assert!(counts_towards_figures(
+            &SubmissionStatus::Submitted,
+            id,
+            Some(id)
+        ));
+        assert!(!counts_towards_figures(
+            &SubmissionStatus::Submitted,
+            id,
+            Some(Uuid::new_v4())
+        ));
+    }
+
+    #[test]
+    fn saccos_are_not_expected_to_file_a_questionnaire() {
+        assert!(!super::expected_to_file_questionnaire(Some("sacco")));
+        assert!(super::expected_to_file_questionnaire(Some("multipurpose")));
+        assert!(super::expected_to_file_questionnaire(None));
     }
 
     #[test]

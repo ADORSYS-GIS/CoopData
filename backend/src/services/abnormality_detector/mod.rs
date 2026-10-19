@@ -80,28 +80,14 @@ impl AbnormalityDetector {
         ));
         all_flags.extend(flags::run_low_flags(&presence_values));
 
+        let annual_only = line_items.iter().all(|li| li.month == 0);
         for month in 0..=12 {
             let month_values = calculations::build_values_map_for_month(&line_items, month as i16);
             if month_values.is_empty() {
                 continue;
             }
 
-            let month_label = match month {
-                0 => "Dec (Prev)",
-                1 => "Jan",
-                2 => "Feb",
-                3 => "Mar",
-                4 => "Apr",
-                5 => "May",
-                6 => "Jun",
-                7 => "Jul",
-                8 => "Aug",
-                9 => "Sep",
-                10 => "Oct",
-                11 => "Nov",
-                12 => "Dec",
-                _ => "Unknown Month",
-            };
+            let month_label = month_label(month, annual_only);
 
             let mut month_flags = Vec::new();
             month_flags.extend(sum_checks::run_sum_checks(coa, &month_values));
@@ -172,5 +158,44 @@ impl AbnormalityDetector {
             .partition(|f| f.severity == "critical" || f.severity == "high");
 
         Ok((errors, warnings))
+    }
+}
+
+/// Name of a statement column in validation messages. Column 0 holds the
+/// prior year-end for comparison, except in a yearly return, where it is the
+/// only column and holds the annual figures.
+fn month_label(month: i32, annual_only: bool) -> &'static str {
+    match month {
+        0 if annual_only => "Annual Total",
+        0 => "Dec (Prev)",
+        1 => "Jan",
+        2 => "Feb",
+        3 => "Mar",
+        4 => "Apr",
+        5 => "May",
+        6 => "Jun",
+        7 => "Jul",
+        8 => "Aug",
+        9 => "Sep",
+        10 => "Oct",
+        11 => "Nov",
+        12 => "Dec",
+        _ => "Unknown Month",
+    }
+}
+
+#[cfg(test)]
+mod month_label_tests {
+    use super::month_label;
+
+    #[test]
+    fn a_yearly_return_is_labelled_annual_total() {
+        assert_eq!(month_label(0, true), "Annual Total");
+    }
+
+    #[test]
+    fn column_zero_beside_monthly_figures_is_the_prior_year_end() {
+        assert_eq!(month_label(0, false), "Dec (Prev)");
+        assert_eq!(month_label(12, false), "Dec");
     }
 }

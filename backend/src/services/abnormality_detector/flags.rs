@@ -227,24 +227,24 @@ pub fn run_high_flags(v: &ValuesMap) -> Vec<FlagOutput> {
         }
     }
 
-    if let Some(r) = pct(get_zero(v, 1204) + get_zero(v, 1205), gross_loans) {
+    if let Some(r) = pct(get_zero(v, 1205), gross_loans) {
         if r > Decimal::from(5) {
             f.push(flag(
                 "HIGH-002",
                 "medium",
                 format!("PAR 90+ is {}%. Exceeds 5% threshold.", d(r)),
-                Some("1204".into()),
+                Some("1205".into()),
             ));
         }
     }
 
-    if let Some(r) = pct(sum_codes(v, &[1202, 1203, 1204, 1205]), gross_loans) {
+    if let Some(r) = pct(sum_codes(v, &[1203, 1204, 1205]), gross_loans) {
         if r > Decimal::from(10) {
             f.push(flag(
                 "HIGH-003",
                 "medium",
                 format!("PAR 30+ is {}%. Exceeds 10% threshold.", d(r)),
-                Some("1202".into()),
+                Some("1203".into()),
             ));
         }
     }
@@ -546,13 +546,13 @@ pub fn run_medium_flags(v: &ValuesMap) -> Vec<FlagOutput> {
         }
     }
 
-    if let Some(r) = pct(sum_codes(v, &[1202, 1203, 1204, 1205]), gross_loans) {
+    if let Some(r) = pct(sum_codes(v, &[1203, 1204, 1205]), gross_loans) {
         if r > Decimal::from(5) && r <= Decimal::from(10) {
             f.push(flag(
                 "MED-002",
                 "medium",
                 format!("PAR 30 is {}%. Elevated but not critical.", d(r)),
-                Some("1202".into()),
+                Some("1203".into()),
             ));
         }
     }
@@ -956,6 +956,58 @@ mod tests {
     #[test]
     fn missing_required_empty_requirements_yields_no_flags() {
         assert!(check_missing_required(&[], &ValuesMap::new()).is_empty());
+    }
+
+    // ===================== portfolio at risk =====================
+
+    /// Loan book of the 2025 SACCO reference return: 2.85M performing,
+    /// 120K 1-30 days late, 65K 31-60, 40K 61-90, 75K over 90.
+    fn sacco_loans() -> ValuesMap {
+        values(&[
+            (1201, 2_850_000),
+            (1202, 120_000),
+            (1203, 65_000),
+            (1204, 40_000),
+            (1205, 75_000),
+        ])
+    }
+
+    fn message_of(flags: &[FlagOutput], rule: &str) -> Option<String> {
+        flags
+            .iter()
+            .find(|f| f.rule_id == rule)
+            .map(|f| f.message.clone())
+    }
+
+    #[test]
+    fn par_30_leaves_out_loans_only_1_to_30_days_late() {
+        let flags = run_medium_flags(&sacco_loans());
+
+        let message = message_of(&flags, "MED-002").expect("PAR 30 above 5% is flagged");
+        assert!(message.contains("5.71%"), "got {message}");
+    }
+
+    #[test]
+    fn loans_a_few_days_late_do_not_raise_the_par_30_alert() {
+        let v = values(&[(1201, 880), (1202, 100), (1203, 20)]);
+
+        assert!(message_of(&run_high_flags(&v), "HIGH-003").is_none());
+        assert!(message_of(&run_medium_flags(&v), "MED-002").is_none());
+    }
+
+    #[test]
+    fn par_90_counts_only_loans_more_than_90_days_late() {
+        let v = values(&[(1201, 900), (1204, 60), (1205, 40)]);
+
+        assert!(message_of(&run_high_flags(&v), "HIGH-002").is_none());
+    }
+
+    #[test]
+    fn par_90_above_5_percent_is_flagged() {
+        let v = values(&[(1201, 900), (1205, 100)]);
+
+        let message = message_of(&run_high_flags(&v), "HIGH-002").expect("flagged");
+        assert!(message.contains("10"), "got {message}");
     }
 
     // ===================== run_critical_flags =====================

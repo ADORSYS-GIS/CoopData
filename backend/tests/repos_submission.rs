@@ -56,7 +56,7 @@ async fn find_by_id_for_cooperatives_empty_scope_never_queries() {
 }
 
 #[tokio::test]
-async fn find_by_status_approved_includes_submitted() {
+async fn find_by_status_approved_queries_only_approved() {
     let rm = RecordingMock::postgres().query_empty().build();
     let app = rm.app().await;
 
@@ -66,22 +66,11 @@ async fn find_by_status_approved_includes_submitted() {
         .await
         .expect("query ok");
 
-    let sql = &rm.sql()[0];
     let binds = rm.binds(0);
-    assert!(
-        binds.contains(&"approved".to_string()),
-        "approved bound: {:?}",
-        binds
-    );
-    assert!(
-        binds.contains(&"submitted".to_string()),
-        "approved must ALSO include submitted rows (the .or case): {:?}",
-        binds
-    );
-    assert!(
-        sql.contains(" or "),
-        "must be an OR of both statuses: {}",
-        sql
+    assert_eq!(
+        binds,
+        vec!["approved".to_string()],
+        "submitted returns are not validated yet and must not be counted as approved"
     );
 }
 

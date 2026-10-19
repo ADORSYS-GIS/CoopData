@@ -45,6 +45,7 @@ import {
 } from "@/components/financial-form";
 import { FinancialStatementUpload } from "@/components/upload/financial-statement-upload";
 import { useCooperativeSubmissions } from "@/hooks/submissions/useSubmissions";
+import { shortAmount } from "@/lib/currency";
 
 type Tab = "assets" | "liabilities" | "equity" | "income" | "expenses" | "summary";
 
@@ -200,9 +201,7 @@ export const FinancialStatementPage: React.FC = () => {
   };
 
   const formatCurrency = (n: number) => {
-    if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(2)}M`;
-    if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
-    return `SZL ${n.toFixed(0)}`;
+    return `SZL ${shortAmount(n)}`;
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [

@@ -2029,14 +2029,14 @@ async fn build_bulk_export(
                 current_layer.use_text(row.2.to_string(), 9.0, Mm(x_positions[1]), Mm(y), &font);
                 current_layer.use_text(row.3.clone(), 9.0, Mm(x_positions[2]), Mm(y), &font);
                 current_layer.use_text(
-                    format!("{:.1}M", row.4 / 1_000_000.0),
+                    format!("{:.2}M", row.4 / 1_000_000.0),
                     9.0,
                     Mm(x_positions[3]),
                     Mm(y),
                     &font,
                 );
                 current_layer.use_text(
-                    format!("{:.1}M", row.5 / 1_000_000.0),
+                    format!("{:.2}M", row.5 / 1_000_000.0),
                     9.0,
                     Mm(x_positions[4]),
                     Mm(y),

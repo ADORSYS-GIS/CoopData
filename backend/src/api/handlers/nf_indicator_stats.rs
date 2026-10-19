@@ -8,6 +8,7 @@ use std::{collections::BTreeMap, collections::HashSet};
 
 use crate::api::dto::non_financial::{NfStatisticsResponse, NfTrendPoint, NfTrendResponse};
 use crate::auth::claims::Claims;
+use crate::entities::enums::AccountType;
 use crate::error::AppResult;
 use crate::services::nf_indicator_engine::NfIndicatorEngine;
 use crate::AppState;
@@ -790,6 +791,58 @@ fn reconciliation_row(
     }
 }
 
+/// Rows for the member deposit lines. Each savings account type is checked
+/// against its own balance sheet line (voluntary 2101, mandatory 2102), and
+/// fixed-type savings accounts join the fixed deposit register against 2103.
+fn savings_rows(
+    by_type: &[(AccountType, f64, u64)],
+    (fd_total, fd_count): (f64, u64),
+    fin: impl Fn(i32) -> Option<f64>,
+    currency: &str,
+) -> Vec<ReconciliationRow> {
+    let of_type = |kind: AccountType| {
+        by_type
+            .iter()
+            .filter(|(k, _, _)| *k == kind)
+            .fold((0.0, 0), |(t, c), (_, total, count)| (t + total, c + count))
+    };
+    let (fixed_total, fixed_count) = of_type(AccountType::Fixed);
+    let fixed_ledger = if fixed_count > 0 {
+        "Fixed Deposits + Fixed Savings Accounts"
+    } else {
+        "Fixed Deposits"
+    };
+    vec![
+        reconciliation_row(
+            "voluntary_savings",
+            "Voluntary Savings",
+            "Savings Ledger (voluntary)",
+            2101,
+            of_type(AccountType::Voluntary),
+            fin(2101),
+            currency,
+        ),
+        reconciliation_row(
+            "mandatory_savings",
+            "Mandatory Savings",
+            "Savings Ledger (mandatory)",
+            2102,
+            of_type(AccountType::Mandatory),
+            fin(2102),
+            currency,
+        ),
+        reconciliation_row(
+            "fixed_deposits",
+            "Fixed Term Deposits",
+            fixed_ledger,
+            2103,
+            (fd_total + fixed_total, fd_count + fixed_count),
+            fin(2103),
+            currency,
+        ),
+    ]
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/analytics/reconciliation",
@@ -860,50 +913,41 @@ pub async fn get_reconciliation_audit(
         NfIndicatorEngine::compute_for_submission(&state.db, cooperative_id, Some(submission_id))
             .await?;
 
-    let rows = vec![
-        reconciliation_row(
-            "shares",
-            "Member Share Capital",
-            "Shares Register",
-            3101,
-            (share_total.to_f64().unwrap_or(0.0), share_count),
-            fin(3101),
-            &currency_code,
+    let savings_by_type: Vec<(AccountType, f64, u64)> = state
+        .savings_account_repo
+        .sum_balance_by_type(cooperative_id, submission_id)
+        .await?
+        .into_iter()
+        .map(|(kind, total, count)| (kind, total.to_f64().unwrap_or(0.0), count))
+        .collect();
+
+    let mut rows = vec![reconciliation_row(
+        "shares",
+        "Member Share Capital",
+        "Shares Register",
+        3101,
+        (share_total.to_f64().unwrap_or(0.0), share_count),
+        fin(3101),
+        &currency_code,
+    )];
+    rows.extend(savings_rows(
+        &savings_by_type,
+        (
+            nf_stats.fixed_deposits.total_balance,
+            nf_stats.fixed_deposits.total_fds,
         ),
-        reconciliation_row(
-            "savings",
-            "Member Short-Term Savings",
-            "Savings Ledger",
-            2101,
-            (
-                nf_stats.savings.total_balance,
-                nf_stats.savings.total_accounts,
-            ),
-            fin(2101),
-            &currency_code,
-        ),
-        reconciliation_row(
-            "loans",
-            "Performing Loan Portfolio",
-            "Loan Book",
-            1200,
-            (nf_stats.loans.total_balance, nf_stats.loans.total_loans),
-            fin(1200),
-            &currency_code,
-        ),
-        reconciliation_row(
-            "fixed_deposits",
-            "Fixed Term Deposits",
-            "Fixed Deposits",
-            2103,
-            (
-                nf_stats.fixed_deposits.total_balance,
-                nf_stats.fixed_deposits.total_fds,
-            ),
-            fin(2103),
-            &currency_code,
-        ),
-    ];
+        fin,
+        &currency_code,
+    ));
+    rows.push(reconciliation_row(
+        "loans",
+        "Performing Loan Portfolio",
+        "Loan Book",
+        1200,
+        (nf_stats.loans.total_balance, nf_stats.loans.total_loans),
+        fin(1200),
+        &currency_code,
+    ));
 
     Ok((
         StatusCode::OK,
@@ -912,4 +956,63 @@ pub async fn get_reconciliation_audit(
             rows,
         }),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn line(code: i32) -> Option<f64> {
+        match code {
+            2101 => Some(1_650_000.0),
+            2102 => Some(980_000.0),
+            2103 => Some(420_000.0),
+            _ => None,
+        }
+    }
+
+    fn row<'a>(rows: &'a [ReconciliationRow], key: &str) -> &'a ReconciliationRow {
+        rows.iter().find(|r| r.key == key).expect("row present")
+    }
+
+    #[test]
+    fn voluntary_and_mandatory_savings_reconcile_with_their_own_lines() {
+        let by_type = [
+            (AccountType::Voluntary, 1_650_000.0, 12),
+            (AccountType::Mandatory, 980_000.0, 8),
+        ];
+
+        let rows = savings_rows(&by_type, (420_000.0, 5), line, "SZL");
+
+        assert_eq!(row(&rows, "voluntary_savings").status, "match");
+        assert_eq!(row(&rows, "voluntary_savings").sub_ledger_count, 12);
+        assert_eq!(row(&rows, "mandatory_savings").status, "match");
+        assert_eq!(row(&rows, "mandatory_savings").sub_ledger_total, 980_000.0);
+        assert_eq!(row(&rows, "fixed_deposits").status, "match");
+    }
+
+    #[test]
+    fn an_account_filed_under_the_wrong_type_shows_a_variance() {
+        let by_type = [
+            (AccountType::Voluntary, 1_750_000.0, 13),
+            (AccountType::Mandatory, 880_000.0, 7),
+        ];
+
+        let rows = savings_rows(&by_type, (420_000.0, 5), line, "SZL");
+
+        assert_eq!(row(&rows, "voluntary_savings").variance, Some(100_000.0));
+        assert_eq!(row(&rows, "mandatory_savings").variance, Some(-100_000.0));
+    }
+
+    #[test]
+    fn fixed_savings_accounts_are_checked_with_the_fixed_deposits() {
+        let by_type = [(AccountType::Fixed, 20_000.0, 1)];
+
+        let rows = savings_rows(&by_type, (400_000.0, 4), line, "SZL");
+
+        let fixed = row(&rows, "fixed_deposits");
+        assert_eq!(fixed.status, "match");
+        assert_eq!(fixed.sub_ledger_count, 5);
+        assert_eq!(row(&rows, "voluntary_savings").status, "pending_subledger");
+    }
 }

@@ -740,7 +740,20 @@
       "colYear": "Unyaka",
       "colFiledOn": "Kufakwe Ngalusuku",
       "colStatus": "Simo",
-      "noSubmissionsSub": "Dala umbiko omusha kuqala."
+      "noSubmissionsSub": "Dala umbiko omusha kuqala.",
+      "keyIndicators": "Tinkhomba letibalulekile",
+      "keyIndicatorsSub": "Kusuka eluhlwini lwakho lwemibuto lwa-{{year}} · {{status}}",
+      "keyIndicatorsInfo": "Tinkhomba letikhulu letibalwe ngeluhlu lwakho lwemibuto lwakamuva: emalunga, kulondvoloza, kuboleka, kuphatsa kanye nenzuzo.",
+      "noIndicators": "Akukabi netinkhomba letibalwe kulolu luhlu lwemibuto.",
+      "openBasicAnalytics": "Bona tonkhe tinkhomba ku-Basic Analytics",
+      "keyMetricsSubQuestionnaire": "Kusuka eluhlwini lwakho lwemibuto lwa-{{year}} · {{status}}",
+      "keyMetricsInfoQuestionnaire": "Tinombolo tetimali letibalwe ngetimphendvulo teluhlu lwakho lwemibuto lwakamuva. Imibuto lengaphendvulwanga ikhombisa —.",
+      "par30Label": "Timali letibolekwe letidlule emalanga la-30",
+      "capitalRatioLabel": "Imali yesikhungo",
+      "keyMetricsSubFallbackQuestionnaire": "Kubalwe ngeluhlu lwakho lwemibuto lwakamuva",
+      "noFinancialDataSubQuestionnaire": "Tfumela luhlu lwemibuto kute ubone luvo lwakho lapha.",
+      "submitQuestionnaire": "Tfumela luhlu lwemibuto kute ubone simo setimali letibolekwe.",
+      "noSubmissions": "Akukabi nekutfumela"
     }
   },
   "users": {
@@ -1871,7 +1884,7 @@
     "consistentDeposits": "Emadiphozithi ajwayelekile",
     "recentActivity": "Umsebenzi wakamuva",
     "loanAccounts": "Ama-akhawunti Emaloli",
-    "loanValueK": "Inani Lemaloli ($K)",
+    "loanValueK": "Inani Lemaloli (SZL K)",
     "ytd2025": "Kusukela Kwekucala Konyaka 2025",
     "q1_2025": "Kota 1 2025",
     "q2_2025": "Kota 2 2025",
@@ -2205,7 +2218,7 @@
     "funnelLeadershipRole": "Indima Yobuholi",
     "funnelMembers": "Emalunga",
     "inclusionNoData": "Akukho data yemaloli etholakalako",
-    "inclusionYouth": "Bantfu Labasha (<35)",
+    "inclusionYouth": "Bantfu Labasha (18–35)",
     "inclusionRural": "Emakhaya",
     "inclusionShare": "Isheya Lokufaka",
     "agriNoData": "Akukho data yezolimo etholakalako",
@@ -2278,7 +2291,7 @@
     "netTotalMembersTooltip": "Emalunga abhalisiwe wonke enethiwekhi.",
     "netActivePct": "{{pct}}% Asebentako",
     "netTotalSavingsTooltip": "Emadiphozithi emali yekonga ahlanganisiwe aphethwe yimakhopharethi wonke.",
-    "netAvg": "Isilinganiso: ${{amount}}",
+    "netAvg": "Isilinganiso: {{amount}}",
     "netTotalLoansTooltip": "Iphothifoliyo yemaloli esele ehlanganisiwe kuwo wonke emakhopharethi.",
     "netArrearsPct": "{{pct}}% Asemuva",
     "netFixedDepositsTooltip": "Emadiphozithi esikhatsi esicinile ahlanganisiwe aphethwe yimakhopharethi wonke.",
@@ -2738,7 +2751,7 @@
     "totalMembers": "Emalunga Wonkhe",
     "active": "Kusebenta",
     "women": "Besifazane",
-    "youth": "Bantfu Labasha (<35)",
+    "youth": "Bantfu Labasha (18–35)",
     "savingsStats": "Izibalo Zemali Yekonga",
     "savingsRegistry": "Sifinyezo serejistri yama-akhawunti",
     "totalAccounts": "Ama-akhawunti Wonkhe",
@@ -3164,8 +3177,8 @@
       "totalAssets": "Imphahla Yonke",
       "totalLiabilities": "Izikweletu Zonke",
       "totalEquity": "Imali Yemalunga Yonke",
-      "annualIncome": "Imali Engenayo Yonyaka (Isamba Sezinyanga ezingu-12)",
-      "annualExpenses": "Izindleko Zonyaka (Isamba Sezinyanga ezingu-12)",
+      "annualIncome": "Imali Engenayo",
+      "annualExpenses": "Izindleko",
       "netSurplus": "Inzuzo Net"
     },
     "balancedSuccess": "Ibhalansi sheet ibalanse ekupheleni kwesikhatsi ✓",
@@ -3209,7 +3222,7 @@
       "maturityDate": "Lusuku Lokuvuthwa",
       "status": "Simo",
       "tenure": "Isikhatsi",
-      "interestRate": "Izinga Lenzalo",
+      "interestRate": "Izinga Lenzalo (%)",
       "balance": "Ibhalansi"
     },
     "rowCount": "{{count}} idiphozithi",
@@ -3231,7 +3244,7 @@
       "status": "Simo",
       "borrowerType": "Uhlobo Lwaboleki",
       "dpdCategory": "Isigaba se-DPD",
-      "interestRate": "Izinga Lenzalo",
+      "interestRate": "Izinga Lenzalo (%)",
       "loanAmount": "Inani Lemaloli",
       "balance": "Ibhalansi"
     },
@@ -3255,7 +3268,7 @@
       "lastContribDate": "Lusuku Lomnikelo Wokugcina",
       "contribsCount": "Inani Leminikelo",
       "trend": "Itrend",
-      "interestRate": "Izinga Lenzalo",
+      "interestRate": "Izinga Lenzalo (%)",
       "balance": "Ibhalansi"
     },
     "rowCount": "{{count}} i-akhawunti yekonga",
@@ -4323,15 +4336,18 @@
     "selectedFederation": "ifederesheni ekhethiwe",
     "selectedApex": "ipheksi ekhethiwe",
     "method": {
-      "title": "Inhlobo yembiko",
-      "choose": "Tonkhe tinhlobo tinedatha yalokukhetsiwe. Khetsa kutsi ngumuphi umbiko lokufanele ukhishwe.",
-      "auto": "Yilena kuphela inhlobo lenedatha yalokukhetsiwe, ngako ikhetselwe wena.",
-      "none": "Akukho mibiko lephasisiwe yalokukhetsiwe.",
-      "standard": "Umbiko lojwayelekile",
-      "standardDesc": "Wakhiwe kusuka etitatimendeni tetimali (imibiko lengu-{{count}} lephasisiwe)",
-      "questionnaire": "Umbiko wemibuzo",
-      "questionnaireDesc": "Wakhiwe kusuka etimphenduleni tembiko wemibuzo (imibiko lengu-{{count}} lephasisiwe)",
-      "summary": "Inhlobo yembiko"
+      "title": "Luhlobo lwembiko",
+      "choose": "Emakoporasi abika ngetindlela letimbili, ngako lombiko unetinhlobo letimbili. Khetsa lofuna kuwukhipha.",
+      "auto": "Nguloluhlobo lwe-{{edition}} kuphela loneluvo lolwemukelwe lwa-{{year}}, ngako lukhetsiwe.",
+      "none": "Akukabi nekutfumela lokwemukelwe kulokukhetsa.",
+      "standard": "Titatimende tetimali",
+      "questionnaire": "Luhlu lwemibuto",
+      "standardDesc": "Lwakhiwe ngetitatimende tetimali letilayishiwe nobe letifakwe ngesandla, kakhulu ngema-SACCO.",
+      "questionnaireDesc": "Lwakhiwe ngeluhlu lwemibuto lolugcwaliswa ngemakoporasi lanetinjongo letinyenti.",
+      "count_one": "{{count}} kutfumela lokwemukelwe",
+      "count_other": "{{count}} kutfumela lokwemukelwe",
+      "noneForYear": "Akukho kutfumela lokwemukelwe kwa-{{year}}",
+      "summary": "Luhlobo lwembiko"
     },
     "close": "Vala",
     "status": {
@@ -4346,6 +4362,17 @@
       "updateHint": "Kwakha kabusha umbiko ngelwatiso lolusha",
       "readyToast": "Umbiko wakho nge-{{language}} sewulungile.",
       "failedToast": "Asikhonanga kulungisa umbiko wakho. Sicela uphindze."
+    },
+    "steps": {
+      "fed": "Inhlangano",
+      "apex": "Apex",
+      "coop": "Likoporasi",
+      "submission": "Kutfumela",
+      "year": "Umnyaka",
+      "method": "Luhlobo lwembiko"
+    },
+    "editions": {
+      "available": "Ikhona ngetinhlobo letimbili:"
     }
   },
   "analyticsFilter": {
@@ -4608,6 +4635,7 @@
     "registerNewHeader": "Bhalisa Ikhopharethi Entsha",
     "name": "Igama Lekhopharethi",
     "placeholderName": "isib. Mbabane SACCO",
+    "typeLockedHint": "Luhlobo alusenakushintjwa: lelikoporasi selinemibiko leyatfunyelwa.",
     "institutionType": "Uhlobo Lwesikhungo",
     "placeholderType": "Khetha uhlobo",
     "regNo": "Inombolo Yokubhaliswa",
@@ -5100,7 +5128,7 @@
         "Transport": "Kutfutfusa",
         "Manufacturing": "Kukhicita"
       },
-      "zar": "ZAR"
+      "currencyCode": "SZL"
     },
     "scope": {
       "individual": "Kubukwa ngamunye",
@@ -6535,14 +6563,16 @@
         "summary": "Imali yekugcina lebuthelwe ivikelwe yimali yangempela ebhange ngelizinga le-{{reserve}}. Loku kuyahlanganisa imali yekugcina lebhaliwe nekuvikelwa kwayo ngetimali; akusilo livelo lekukhokhela lemtsetfo.",
         "insights": "Lokutfolakele ngekuma",
         "fig_l1": "Kuvikelwa kwetimali yekugcina (%).",
-        "unit": "% yetimali yekugcina lebuthelwe"
+        "unit": "% yetimali yekugcina lebuthelwe",
+        "summary_missing": "Kuvikelwa kwemali yekugcina akubikiwe, ngako kuvikelwa ngetimali kwemali yekugcina lebhaliwe akubalwa (buka isiXendze A)."
       },
       "performance": {
         "title": "Kusebenta Kwebhizinisi Nekwetnhlalakahle",
         "summary": "Inzuzo yemsebenti lophambili yi-{{main}} kantsi inzuzo yekusebenta iyonkhe yi-{{total}}. Kulokusele emsebentini lophambili, {{benefit}} yabelwa emalunga.",
         "insights": "Lokutfolakele ngekusebenta",
         "fig_f1": "Inzuzo yekusebenta iyonkhe ngesikhatsi (%).",
-        "unit": "% yemali lengenako yekusebenta"
+        "unit": "% yemali lengenako yekusebenta",
+        "summary_missing_benefit": "Inzuzo yemsebenti lophambili yi-{{main}} kantsi inzuzo yekusebenta iyonkhe yi-{{total}}. Luhlobo lwelokusele emsebentini lophambili lelubabelwa emalunga akubikiwe."
       },
       "coa": {
         "title": "Tilinganiso Tetimali Te-MPC",

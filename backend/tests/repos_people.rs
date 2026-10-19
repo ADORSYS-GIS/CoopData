@@ -60,10 +60,33 @@ async fn membership_stats_buckets_are_computed_from_rows() {
 
     assert_eq!(stats.male_members, 2);
     assert_eq!(stats.female_members, 1);
-    assert_eq!(stats.youth_members, 3, "under-36 counts as youth");
+    assert_eq!(
+        stats.youth_members, 1,
+        "youth is 18-35, as labelled; members under 18 are not counted"
+    );
     assert_eq!(stats.active_members, 3);
     assert_eq!(stats.inactive_members, 1);
     assert_eq!(stats.agm_attendance, 3);
+}
+
+#[tokio::test]
+async fn membership_stats_count_only_the_submissions_own_members() {
+    let rm = RecordingMock::postgres().query_empty().build();
+    let app = rm.app().await;
+
+    let (coop, sub) = (Uuid::new_v4(), Uuid::new_v4());
+    app.state
+        .member_repo
+        .get_membership_stats(coop, sub)
+        .await
+        .expect("stats ok");
+
+    let binds = rm.binds(0);
+    assert!(
+        binds.contains(&sub.to_string()),
+        "a report for one year must not count another year's members: {:?}",
+        binds
+    );
 }
 
 #[tokio::test]

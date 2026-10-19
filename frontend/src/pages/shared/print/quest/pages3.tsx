@@ -25,11 +25,16 @@ export const performancePage = (a: QuestAnalysis, no: string): PageSpec => ({
       <>
         <Sec no={no} title={tr("quest.performance.title")} sub={a.period} />
         <p>
-          {tr("quest.performance.summary", {
-            main: a.text("main_activity_operating_margin_pct"),
-            total: a.text("total_operating_margin_pct"),
-            benefit: a.text("member_economic_benefit_ratio_pct"),
-          })}
+          {a.num("member_economic_benefit_ratio_pct") === null
+            ? tr("quest.performance.summary_missing_benefit", {
+                main: a.text("main_activity_operating_margin_pct"),
+                total: a.text("total_operating_margin_pct"),
+              })
+            : tr("quest.performance.summary", {
+                main: a.text("main_activity_operating_margin_pct"),
+                total: a.text("total_operating_margin_pct"),
+                benefit: a.text("member_economic_benefit_ratio_pct"),
+              })}
         </p>
         {narrative && (
           <div className="opinion keep">

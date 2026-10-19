@@ -446,8 +446,8 @@ pub fn indicator_map(dashboard: &BasicDashboardResponse) -> HashMap<String, Opti
 mod tests {
     use super::*;
     use crate::api::dto::basic_dashboard::{
-        AgeBands, DashboardScope, DashboardThresholds, Demographics, GenderCount, IndicatorValue,
-        SeriesPoint,
+        AgeBands, Balances, DashboardScope, DashboardThresholds, Demographics, GenderCount,
+        IndicatorValue, SeriesPoint,
     };
 
     fn dashboard() -> BasicDashboardResponse {
@@ -544,6 +544,7 @@ mod tests {
                 savings_accounts: gender(),
                 loan_accounts: gender(),
             },
+            balances: Balances::default(),
             cooperatives: vec![],
         }
     }

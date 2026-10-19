@@ -238,6 +238,25 @@ describe("BasicCooperativeComparison", () => {
     expect(screen.queryByText("basicBenchmarking.noApprovedDataTitle")).not.toBeInTheDocument();
   });
 
+  it("withholds the national average from an admin when only one cooperative has data", () => {
+    mockState.role = "apex";
+    mockState.benchmark = {
+      reporting_year: 2025,
+      cooperative: null,
+      rows: [makeRow({ cooperative_id: "a", name: "multiP" })],
+      national_average: null,
+      regional_average: null,
+      sector_average: null,
+      sector_regional_average: null,
+      insufficient_data: { national: true, regional: true, sector: true, sector_regional: true },
+    };
+
+    render(<BasicCooperativeComparison reportingYear={2025} />);
+
+    expect(screen.getByText("basicBenchmarking.insufficientNationalData")).toBeInTheDocument();
+    expect(screen.queryByText("analytics.outperformingPeerGroup")).not.toBeInTheDocument();
+  });
+
   it("renders the no-population empty state for admins without any rows", () => {
     mockState.role = "ministry";
     mockState.benchmark = {

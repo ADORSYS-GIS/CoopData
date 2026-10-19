@@ -84,6 +84,18 @@ export interface Demographics {
   loan_accounts: GenderCount;
 }
 
+/** Money totals and loan quality from the questionnaire answers (null: not answered). */
+export interface Balances {
+  total_assets: number | null;
+  gross_loans: number | null;
+  member_deposits: number | null;
+  net_surplus: number | null;
+  par_30_pct: number | null;
+  capital_ratio_pct: number | null;
+  overdue_gt_30: number | null;
+  overdue_gt_90: number | null;
+}
+
 export interface CooperativeRow {
   cooperative_id: string;
   name: string;
@@ -103,6 +115,8 @@ export interface BasicDashboardResponse {
   indicators: IndicatorValue[];
   series: Partial<Record<SeriesKey, SeriesPoint[]>>;
   demographics: Demographics;
+  /** Absent in responses produced before balances were added (e.g. saved offline). */
+  balances?: Balances;
   cooperatives: CooperativeRow[];
 }
 

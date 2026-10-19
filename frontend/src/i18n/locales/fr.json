@@ -697,7 +697,7 @@
       "loans": "Prêts bruts",
       "deposits": "Dépôts des membres",
       "noFinancialData": "Aucune donnée financière pour le moment",
-      "noFinancialDataSub": "Téléversez un état financier pour voir vos données ici.",
+      "noFinancialDataSub": "Vos chiffres s'affichent ici dès que l'apex approuve un état financier.",
       "portfolioQuality": "Qualité du portefeuille de prêts",
       "derivedPar": "Dérivé des ratios PAR",
       "noData": "Aucune donnée pour le moment",
@@ -705,7 +705,7 @@
       "performing": "Performant",
       "watchList": "Liste de surveillance",
       "nonPerforming": "Non performant",
-      "submitFinancialStatement": "Soumettez un état financier pour voir les données de qualité des prêts.",
+      "submitFinancialStatement": "La qualité des prêts s'affiche ici dès que l'apex approuve un état financier.",
       "growthTrend": "Tendance de croissance financière",
       "growthTrendSub": "Actifs, prêts et épargne sur l'année de reporting",
       "growthTrendInfo": "Trajectoire mois par mois des soldes financiers clés de votre coopérative, indiquant la croissance et les fluctuations saisonnières.",
@@ -728,7 +728,7 @@
       "submitStatementOss": "Soumettez un état financier pour voir les données OSS.",
       "keyMetrics": "Indicateurs financiers clés",
       "keyMetricsSub": "De votre soumission {{year}} · {{status}}",
-      "keyMetricsSubFallback": "Extrait de votre dernier état financier",
+      "keyMetricsSubFallback": "Affiché dès que l'apex approuve un état financier",
       "keyMetricsInfo": "Un instantané sélectionné d'indicateurs financiers et de conformité réglementaire critiques tirés de l'état financier le plus récent.",
       "netSurplus": "Excédent net",
       "nplRatio": "Ratio NPL",
@@ -740,7 +740,20 @@
       "colYear": "Année",
       "colFiledOn": "Déposé le",
       "colStatus": "Statut",
-      "noSubmissionsSub": "Créez une nouvelle soumission pour commencer."
+      "noSubmissionsSub": "Créez une nouvelle soumission pour commencer.",
+      "keyIndicators": "Indicateurs clés",
+      "keyIndicatorsSub": "D'après votre questionnaire {{year}} · {{status}}",
+      "keyIndicatorsInfo": "Indicateurs principaux calculés à partir de votre dernier questionnaire : adhésion, épargne, qualité des prêts, gouvernance et marges.",
+      "noIndicators": "Aucun indicateur n'a encore pu être calculé à partir de ce questionnaire.",
+      "openBasicAnalytics": "Voir tous les indicateurs dans l'analyse de base",
+      "keyMetricsSubQuestionnaire": "D'après votre questionnaire {{year}} · {{status}}",
+      "keyMetricsInfoQuestionnaire": "Chiffres financiers calculés à partir des réponses à votre dernier questionnaire. Les questions sans réponse s'affichent —. Ces chiffres n'ont pas de références.",
+      "par30Label": "Prêts en retard > 30 jours",
+      "capitalRatioLabel": "Capital institutionnel",
+      "keyMetricsSubFallbackQuestionnaire": "Affiché dès que l'apex approuve un questionnaire",
+      "noFinancialDataSubQuestionnaire": "Vos chiffres s'affichent ici dès que l'apex approuve un questionnaire.",
+      "submitQuestionnaire": "La qualité des prêts s'affiche ici dès que l'apex approuve un questionnaire.",
+      "noSubmissions": "Aucune soumission pour l'instant"
     }
   },
   "users": {
@@ -1872,7 +1885,7 @@
     "recentActivity": "Activité récente",
     "totalSavingsBalance": "Solde d'épargne du registre des membres",
     "loanAccounts": "Comptes de prêts",
-    "loanValueK": "Valeur des prêts ($K)",
+    "loanValueK": "Valeur des prêts (SZL K)",
     "ytd2025": "YTD 2025",
     "q1_2025": "T1 2025",
     "q2_2025": "T2 2025",
@@ -2206,7 +2219,7 @@
     "funnelLeadershipRole": "Rôle de leadership",
     "funnelMembers": "Membres",
     "inclusionNoData": "Aucune donnée de prêt disponible",
-    "inclusionYouth": "Jeunes (<35)",
+    "inclusionYouth": "Jeunes (18–35)",
     "inclusionRural": "Rural",
     "inclusionShare": "Part d'inclusion",
     "agriNoData": "Aucune donnée agricole disponible",
@@ -2280,7 +2293,7 @@
     "netActivePct": "{{pct}} % Actifs",
     "netTotalSavings": "Épargne du registre des membres",
     "netTotalSavingsTooltip": "Somme de tous les soldes du registre d'épargne des membres téléversé. Elle provient du registre des membres et non du bilan ; elle peut donc différer de l'épargne des membres des états financiers. Convertie en ZAR au taux figé de chaque soumission. Formule : somme des soldes de tous les comptes d'épargne.",
-    "netAvg": "Moy. : ${{amount}}",
+    "netAvg": "Moy. : {{amount}}",
     "netTotalLoans": "Prêts du registre des membres",
     "netTotalLoansTooltip": "Solde restant dû des prêts du registre des prêts téléversé, hors prêts passés en perte. Il provient du registre des membres et non du bilan ; il peut donc différer des prêts bruts des états financiers. Converti en ZAR. Formule : somme des soldes des prêts non passés en perte.",
     "netArrearsPct": "{{pct}} % Arriérés",
@@ -2300,7 +2313,7 @@
     "netDormantMembers": "Membres dormants",
     "netDormantMembersTooltip": "Membres dont le statut dans le registre est dormant : ils sont encore membres mais ne participent plus. Une part élevée suggère qu'il faut les remobiliser. Issu du registre des membres téléversé. Formule : membres au statut dormant.",
     "netDormancyRatePct": "{{pct}} % de taux de dormance",
-    "netYouthMembers": "Membres jeunes (35 ans et moins)",
+    "netYouthMembers": "Membres jeunes (18–35 ans)",
     "netYouthMembersTooltip": "Membres âgés de 35 ans ou moins. Cela montre si la coopérative touche les jeunes. Issu de la tranche d'âge de chaque membre dans le registre téléversé. Formule : membres de moins de 18 ans plus membres de 18 à 35 ans.",
     "netSavingsPortfolioMetrics": "Métriques du portefeuille d'épargne",
     "netSavingsAccounts": "Comptes d'épargne",
@@ -2738,7 +2751,7 @@
     "totalMembers": "Total des membres",
     "active": "Actifs",
     "women": "Femmes",
-    "youth": "Jeunes (<35)",
+    "youth": "Jeunes (18–35)",
     "savingsStats": "Statistiques d'épargne",
     "savingsRegistry": "Résumé du registre des comptes",
     "totalAccounts": "Total des comptes",
@@ -3164,8 +3177,8 @@
       "totalAssets": "Total des actifs",
       "totalLiabilities": "Total des passifs",
       "totalEquity": "Total des capitaux propres",
-      "annualIncome": "Revenus annuels (Somme 12 mois)",
-      "annualExpenses": "Charges annuelles (Somme 12 mois)",
+      "annualIncome": "Revenus de la période",
+      "annualExpenses": "Charges de la période",
       "netSurplus": "Excédent net"
     },
     "balancedSuccess": "Le bilan s'équilibre à la fin de la période ✓",
@@ -3209,7 +3222,7 @@
       "maturityDate": "Date d'échéance",
       "status": "Statut",
       "tenure": "Durée",
-      "interestRate": "Taux d'intérêt",
+      "interestRate": "Taux d'intérêt (%)",
       "balance": "Solde"
     },
     "rowCount": "{{count}} dépôt",
@@ -3231,7 +3244,7 @@
       "status": "Statut",
       "borrowerType": "Type d'emprunteur",
       "dpdCategory": "Catégorie Jours de retard",
-      "interestRate": "Taux d'intérêt",
+      "interestRate": "Taux d'intérêt (%)",
       "loanAmount": "Montant du prêt",
       "balance": "Solde"
     },
@@ -3255,7 +3268,7 @@
       "lastContribDate": "Date dernière cotisation",
       "contribsCount": "Nombre de cotisations",
       "trend": "Tendance",
-      "interestRate": "Taux d'intérêt",
+      "interestRate": "Taux d'intérêt (%)",
       "balance": "Solde"
     },
     "rowCount": "{{count}} compte d'épargne",
@@ -4323,15 +4336,18 @@
     "selectedFederation": "fédération sélectionnée",
     "selectedApex": "apex sélectionné",
     "method": {
-      "title": "Type de rapport",
-      "choose": "Les deux types ont des données pour cette sélection. Choisissez le rapport à exporter.",
-      "auto": "Seul ce type a des données pour cette sélection, il est donc choisi pour vous.",
-      "none": "Aucune soumission approuvée pour cette sélection.",
-      "standard": "Rapport standard",
-      "standardDesc": "Établi à partir des états financiers ({{count}} soumissions approuvées)",
-      "questionnaire": "Rapport questionnaire",
-      "questionnaireDesc": "Établi à partir des réponses au questionnaire ({{count}} soumissions approuvées)",
-      "summary": "Type de rapport"
+      "title": "Édition du rapport",
+      "choose": "Les coopératives déclarent de deux façons : ce rapport existe donc en deux éditions. Choisissez celle à exporter.",
+      "auto": "Seule l'édition {{edition}} a des données approuvées pour {{year}} ; elle est sélectionnée pour vous.",
+      "none": "Aucune soumission approuvée pour cette sélection, dans aucune édition.",
+      "standard": "États financiers",
+      "questionnaire": "Questionnaire",
+      "standardDesc": "Établi à partir des états financiers déposés ou saisis manuellement, généralement par les SACCO.",
+      "questionnaireDesc": "Établi à partir du questionnaire que remplissent les coopératives polyvalentes.",
+      "count_one": "{{count}} soumission approuvée",
+      "count_other": "{{count}} soumissions approuvées",
+      "noneForYear": "Aucune soumission approuvée pour {{year}}",
+      "summary": "Édition du rapport"
     },
     "close": "Fermer",
     "status": {
@@ -4346,6 +4362,17 @@
       "updateHint": "Reconstruire le rapport à partir des données les plus récentes",
       "readyToast": "Votre rapport en {{language}} est prêt.",
       "failedToast": "Nous n'avons pas pu préparer votre rapport. Veuillez réessayer."
+    },
+    "steps": {
+      "fed": "Fédération",
+      "apex": "Apex",
+      "coop": "Coopérative",
+      "submission": "Soumission",
+      "year": "Année",
+      "method": "Édition du rapport"
+    },
+    "editions": {
+      "available": "Disponible en deux éditions :"
     }
   },
   "analyticsFilter": {
@@ -4608,6 +4635,7 @@
     "registerNewHeader": "Enregistrer une nouvelle coopérative",
     "name": "Nom de la coopérative",
     "placeholderName": "ex. SACCO de Mbabane",
+    "typeLockedHint": "Le type ne peut plus être modifié : cette coopérative a déjà des soumissions.",
     "institutionType": "Type d'institution",
     "placeholderType": "Sélectionner le type",
     "regNo": "Numéro d'enregistrement",
@@ -5100,7 +5128,7 @@
         "Transport": "Transport",
         "Manufacturing": "Industrie"
       },
-      "zar": "ZAR"
+      "currencyCode": "SZL"
     },
     "scope": {
       "individual": "Vue individuelle",
@@ -6569,14 +6597,16 @@
         "summary": "Les réserves accumulées sont couvertes par des fonds bancaires réels à hauteur de {{reserve}}. Cet indicateur compare les réserves comptabilisées à leur couverture monétaire ; il ne s'agit pas d'un ratio de liquidité réglementaire.",
         "insights": "Analyse de la résilience",
         "fig_l1": "Couverture des réserves monétaires (%).",
-        "unit": "% des réserves accumulées"
+        "unit": "% des réserves accumulées",
+        "summary_missing": "La couverture des réserves monétaires n'est pas déclarée ; le soutien bancaire des réserves comptabilisées ne peut donc pas être évalué (voir l'annexe A)."
       },
       "performance": {
         "title": "Performance opérationnelle et économique",
         "summary": "La marge de l'activité principale est de {{main}} et la marge d'exploitation totale est de {{total}}. Sur l'excédent de l'activité principale, {{benefit}} est distribué aux membres.",
         "insights": "Analyse de la performance",
         "fig_f1": "Marge d'exploitation totale par période (%).",
-        "unit": "% des produits d'exploitation"
+        "unit": "% des produits d'exploitation",
+        "summary_missing_benefit": "La marge de l'activité principale est de {{main}} et la marge d'exploitation totale est de {{total}}. La part de l'excédent de l'activité principale distribuée aux membres n'est pas déclarée."
       },
       "coa": {
         "title": "Ratios financiers de la CMF",

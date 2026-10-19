@@ -18,6 +18,7 @@ import {
   Hash,
 } from "lucide-react";
 import { toast } from "sonner";
+import { shortAmount } from "@/lib/currency";
 
 // ─────────────────────────────────────────────────────────────────────
 // TYPES
@@ -77,9 +78,7 @@ interface SubmissionReviewPanelProps {
 // ─────────────────────────────────────────────────────────────────────
 
 const formatCurrency = (n: number) => {
-  if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
-  return `SZL ${n.toFixed(0)}`;
+  return `SZL ${shortAmount(n)}`;
 };
 
 const statusTone = (status: SubmissionStatus) => {

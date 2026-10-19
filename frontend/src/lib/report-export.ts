@@ -1,3 +1,4 @@
+import { shortAmount } from "@/lib/currency";
 import type { BalanceSheet } from "./financial-data";
 import type {
   FinancialKPIs,
@@ -20,10 +21,7 @@ export interface ReportData {
 }
 
 export function formatCurrency(n: number): string {
-  if (n >= 1e9) return `SZL ${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `SZL ${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `SZL ${(n / 1e3).toFixed(0)}K`;
-  return `SZL ${n.toFixed(0)}`;
+  return `SZL ${shortAmount(n)}`;
 }
 
 export function formatPercent(n: number): string {
@@ -31,8 +29,7 @@ export function formatPercent(n: number): string {
 }
 
 export function formatNumber(n: number): string {
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+  if (Math.abs(n) >= 1e3) return shortAmount(n);
   return n.toLocaleString();
 }
 

@@ -1,3 +1,4 @@
+import { roundHalfUp } from "@/lib/currency";
 import type {
   KpiItemResponse,
   LineItemResponse,
@@ -197,4 +198,4 @@ export const fmtChange = (value: number | null): string =>
 export const fmtMillions = (value: number | undefined): string =>
   value === undefined || Number.isNaN(value)
     ? "—"
-    : `${fixed(value / 1_000_000, 1)} ${tr("common.million_short")}`;
+    : `${fixed(roundHalfUp(value / 1_000_000, 2), 2)} ${tr("common.million_short")}`;

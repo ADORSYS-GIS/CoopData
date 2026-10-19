@@ -41,6 +41,7 @@ import {
   SECTOR_OPTIONS,
   isConsistent,
   sectorForType,
+  sectorsForType,
   typeForSector,
 } from "@/lib/coop-classification";
 
@@ -94,6 +95,8 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
   const createMut = useCreateCooperative();
   const updateMut = useUpdateCooperativeProfile();
   const isEditing = !!existing;
+  // The type decides the reporting forms: it is fixed once the cooperative has submitted data.
+  const typeLocked = isEditing && !!existing?.has_submissions;
 
   const [regNoError, setRegNoError] = useState<string | null>(null);
 
@@ -218,6 +221,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
                       form.setValue("sector", derived, { shouldValidate: true });
                     }}
                     defaultValue={field.value}
+                    disabled={typeLocked}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -232,6 +236,11 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
                       ))}
                     </SelectContent>
                   </Select>
+                  {typeLocked && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("coopProfile.typeLockedHint")}
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -334,6 +343,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
                   <Select
                     onValueChange={(val) => {
                       field.onChange(val);
+                      if (typeLocked) return;
                       form.setValue(
                         "institution_type",
                         typeForSector(val, form.getValues("institution_type")),
@@ -348,7 +358,10 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {SECTOR_OPTIONS.map((s) => (
+                      {(typeLocked
+                        ? sectorsForType(form.watch("institution_type"))
+                        : SECTOR_OPTIONS
+                      ).map((s) => (
                         <SelectItem key={s} value={s}>
                           {s.charAt(0).toUpperCase() + s.slice(1)}
                         </SelectItem>

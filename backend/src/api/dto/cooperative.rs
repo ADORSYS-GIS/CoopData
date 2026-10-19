@@ -74,6 +74,9 @@ pub struct CooperativeResponse {
     pub description: Option<String>,
     pub institution_type: Option<String>,
     pub region: Option<String>,
+    /// Reporting tier ("basic" cooperatives use the questionnaire). Set when read from the database.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tier: Option<String>,
 }
 
 impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
@@ -102,6 +105,7 @@ impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
             description,
             institution_type: None,
             region: None,
+            tier: None,
         }
     }
 }
@@ -253,6 +257,17 @@ pub struct CooperativeProfileResponse {
     pub tier: String,
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
+    /// True once the cooperative has a submission: its type can then no longer change.
+    /// Filled in by the single-profile endpoints; `false` in lists.
+    #[serde(default)]
+    pub has_submissions: bool,
+}
+
+impl CooperativeProfileResponse {
+    pub fn with_submissions(mut self, has_submissions: bool) -> Self {
+        self.has_submissions = has_submissions;
+        self
+    }
 }
 
 impl From<crate::entities::cooperative::Model> for CooperativeProfileResponse {
@@ -282,6 +297,7 @@ impl From<crate::entities::cooperative::Model> for CooperativeProfileResponse {
             tier: m.tier,
             created_at: m.created_at,
             updated_at: m.updated_at,
+            has_submissions: false,
         }
     }
 }

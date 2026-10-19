@@ -59,7 +59,7 @@ export const analyseQuestionnaire = (props: QuestionnaireReportProps): QuestAnal
   const ind = (key: string) => indicatorByKey(indicators, key);
   return {
     props,
-    ref: reportCode(scope.reporting_year, submissionId),
+    ref: reportCode(scope.reporting_year, submissionId, props.reference),
     period: scope.period_label || tr("quest.report.default_period"),
     ind,
     num: (key) => {

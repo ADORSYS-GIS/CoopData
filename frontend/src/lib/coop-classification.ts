@@ -26,6 +26,10 @@ const DEFAULT_TYPE_BY_SECTOR: Record<CoopSector, CoopType> = {
   other: "multipurpose",
 };
 
+/** Sectors that are consistent with a cooperative type. */
+export const sectorsForType = (type: string): readonly CoopSector[] =>
+  SECTORS_BY_TYPE[type as CoopType] ?? SECTOR_OPTIONS;
+
 export const sectorForType = (type: string): CoopSector =>
   SECTORS_BY_TYPE[type as CoopType]?.[0] ?? "other";
 

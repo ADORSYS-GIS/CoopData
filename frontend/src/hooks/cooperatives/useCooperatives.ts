@@ -414,10 +414,11 @@ export const useResendCooperativeMemberVerification = () =>
 // They go through getAccessToken() which reads the Keycloak token the same way
 // the apiClient interceptor does.
 
-export const useMyCooperativeProfile = () =>
+export const useMyCooperativeProfile = ({ enabled = true }: { enabled?: boolean } = {}) =>
   useOfflineQuery({
     queryKey: [COOPERATIVE_SELF_KEY, "profile"],
     ...offlineCacheKeys.cooperativeSelfProfile(),
+    enabled,
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/profile`, {

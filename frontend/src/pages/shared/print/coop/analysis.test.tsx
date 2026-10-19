@@ -1,7 +1,10 @@
+import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { ReportDataProps } from "@/pages/shared/print/components/types";
 import { analyseCoop } from "@/pages/shared/print/coop/analysis";
+import { positionPages } from "@/pages/shared/print/coop/pages2";
+import { loanQualityPage, membershipPage } from "@/pages/shared/print/coop/pages3";
 import { verdictOf } from "@/pages/shared/print/coop/text";
 
 const row = (code: number, value: number) => ({
@@ -103,6 +106,40 @@ describe("analyseCoop", () => {
     expect(a.validation).toEqual([]);
   });
 
+  it("takes provisions and depreciation off the listed assets before comparing totals", () => {
+    const a = analyseCoop(
+      props({
+        portfolioData: { submission_id: "s", categories: [] },
+        membershipData: {
+          submission_id: "s",
+          male_members: 5,
+          female_members: 5,
+          youth_members: 1,
+          active_members: 5,
+          inactive_members: 5,
+          agm_attendance: 6,
+        },
+        lineItemsData: {
+          submission_id: "s",
+          current_year: [
+            row(1101, 400),
+            row(1201, 600),
+            row(1251, 30),
+            row(1252, 20),
+            row(1303, 200),
+            row(1304, 150),
+            row(1999, 1000),
+            row(2999, 700),
+            row(3999, 300),
+          ],
+          prior_year: [],
+        },
+      }),
+    );
+
+    expect(a.validation.filter((v) => v.key === "assets")).toEqual([]);
+  });
+
   it("builds a reference from the year and submission id", () => {
     expect(analyseCoop(props()).ref).toBe("SUB-2025-ABCDE");
   });
@@ -126,5 +163,72 @@ describe("verdictOf", () => {
 
   it("names the weak areas", () => {
     expect(verdictOf(analyseCoop(props())).verdict).toContain("provisioning");
+  });
+});
+
+describe("positionPages", () => {
+  it("leaves the prior-year totals empty when there is no prior year", () => {
+    const pages = positionPages(analyseCoop(props()), "3");
+    const { container } = render(<>{pages.map((p) => p.render())}</>);
+
+    const totalRow = [...container.querySelectorAll("tr")].find((tr) =>
+      tr.textContent?.includes("1999"),
+    );
+    const cells = [...(totalRow?.querySelectorAll("td") ?? [])].map((td) => td.textContent);
+    expect(cells[3]).toBe("—");
+  });
+});
+
+describe("loan register arrears", () => {
+  it("counts the backend's past-due categories as arrears", () => {
+    const page = loanQualityPage(
+      analyseCoop(
+        props({
+          portfolioData: {
+            submission_id: "s",
+            categories: [
+              { category: "Performing", balance: 2_850_000, count: 8 },
+              { category: "Watch", balance: 120_000, count: 1 },
+              { category: "Substandard", balance: 65_000, count: 1 },
+              { category: "Doubtful", balance: 40_000, count: 1 },
+              { category: "Loss", balance: 75_000, count: 1 },
+            ],
+          },
+        }),
+      ),
+      "5",
+    );
+    const { container } = render(<>{page.render()}</>);
+
+    expect(container.textContent).toMatch(
+      /12 loans with a balance of 3,150,000, of which 4 \(33\.3\s?%\)/,
+    );
+  });
+});
+
+describe("membership page", () => {
+  it("gives AGM attendance as a share of all members, like every other row", () => {
+    const page = membershipPage(
+      analyseCoop(
+        props({
+          membershipData: {
+            submission_id: "s",
+            male_members: 9,
+            female_members: 11,
+            youth_members: 6,
+            active_members: 17,
+            inactive_members: 3,
+            agm_attendance: 13,
+          },
+        }),
+      ),
+      "6",
+    );
+    const { container } = render(<>{page.render()}</>);
+
+    const row = [...container.querySelectorAll("tr")].find((tr) =>
+      tr.textContent?.startsWith("AGM attendance"),
+    );
+    expect(row?.textContent).toMatch(/65[.,]0\s?%/);
   });
 });
