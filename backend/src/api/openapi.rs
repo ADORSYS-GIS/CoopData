@@ -316,6 +316,8 @@ pub fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         api_module::dto::financial::MonthlyTrendPoint,
         api_module::dto::period_series::PeriodSeriesParams,
         api_module::dto::period_series::PeriodSeriesPoint,
+        api_module::dto::period_series::PeriodComparison,
+        crate::services::period_series::StatementTotals,
         api_module::dto::period_series::PeriodSeriesResponse,
         api_module::dto::financial::SubmissionActivityResponse,
         api_module::dto::financial::SubmissionActivityPoint,

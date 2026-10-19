@@ -9,7 +9,7 @@ pub const MAX_PERIOD_LIMIT: usize = 12;
 
 macro_rules! statement_totals_struct {
     ($($field:ident),+ $(,)?) => {
-        #[derive(Debug, Clone, Copy, Default, PartialEq)]
+        #[derive(Debug, Clone, Copy, Default, PartialEq, serde::Serialize, utoipa::ToSchema)]
         pub struct StatementTotals {
             $(pub $field: f64,)+
         }
@@ -183,6 +183,55 @@ pub fn statement_totals(
         operating_expenses,
         credit_loss_expense,
     }
+}
+
+/// Totals of the cooperatives present in two consecutive periods, so growth
+/// is not distorted by cooperatives that are new or missing in one of them.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Comparison {
+    /// Cooperatives present in both periods.
+    pub cooperatives: usize,
+    pub current: StatementTotals,
+    pub previous: StatementTotals,
+    /// In the current period only.
+    pub new: Vec<uuid::Uuid>,
+    /// In the previous period only.
+    pub missing: Vec<uuid::Uuid>,
+}
+
+/// Like-for-like comparison of two periods, each given as one total per
+/// cooperative. The cooperatives present in both are added up first, so a
+/// bigger cooperative weighs more, as it does in the totals.
+pub fn compare(
+    current: &[(uuid::Uuid, StatementTotals)],
+    previous: &[(uuid::Uuid, StatementTotals)],
+) -> Comparison {
+    let previous_of: HashMap<uuid::Uuid, &StatementTotals> =
+        previous.iter().map(|(id, t)| (*id, t)).collect();
+    let current_ids: Vec<uuid::Uuid> = current.iter().map(|(id, _)| *id).collect();
+    let mut comparison = Comparison {
+        cooperatives: 0,
+        current: StatementTotals::default(),
+        previous: StatementTotals::default(),
+        new: Vec::new(),
+        missing: Vec::new(),
+    };
+    for (id, totals) in current {
+        match previous_of.get(id) {
+            Some(before) => {
+                comparison.cooperatives += 1;
+                comparison.current.add(totals);
+                comparison.previous.add(before);
+            }
+            None => comparison.new.push(*id),
+        }
+    }
+    comparison.missing = previous
+        .iter()
+        .map(|(id, _)| *id)
+        .filter(|id| !current_ids.contains(id))
+        .collect();
+    comparison
 }
 
 #[cfg(test)]

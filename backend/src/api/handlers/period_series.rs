@@ -7,17 +7,23 @@ use axum::Json;
 use rust_decimal::prelude::ToPrimitive;
 use uuid::Uuid;
 
-use crate::api::dto::period_series::{PeriodSeriesParams, PeriodSeriesPoint, PeriodSeriesResponse};
+use crate::api::dto::period_series::{
+    PeriodComparison, PeriodSeriesParams, PeriodSeriesPoint, PeriodSeriesResponse,
+};
 use crate::auth::claims::Claims;
 use crate::entities::balance_sheet_line_item::Model as LineItem;
 use crate::entities::enums::PeriodType;
 use crate::entities::submission;
 use crate::error::{AppError, AppResult};
 use crate::services::period_series::{
-    period_key, period_label, select_periods, statement_totals, StatementTotals,
+    compare, period_key, period_label, select_periods, statement_totals, StatementTotals,
     DEFAULT_PERIOD_LIMIT,
 };
 use crate::AppState;
+
+/// One cooperative's statement for one period: (period key, period value,
+/// cooperative, statement lines).
+type SeriesEntry = ((i32, u32), String, Uuid, Vec<LineItem>);
 
 /// GET /api/v1/analytics/period-series
 ///
@@ -75,14 +81,19 @@ pub async fn get_period_series(
     // A yearly series uses every complete year, a year reported by periods
     // being combined into one; any other frequency shows the periods of
     // complete years only.
-    let entries: Vec<((i32, u32), String, Vec<LineItem>)> = if period_type == PeriodType::Yearly {
+    let entries: Vec<SeriesEntry> = if period_type == PeriodType::Yearly {
         crate::services::year_figures::load_statements(&state, &counted, &all_submissions)
             .await?
             .into_values()
             .filter(|statement| statement.has_statement)
             .map(|statement| {
                 let year = statement.year.year;
-                ((year, 0), year.to_string(), statement.line_items)
+                (
+                    (year, 0),
+                    year.to_string(),
+                    statement.year.cooperative_id,
+                    statement.line_items,
+                )
             })
             .collect()
     } else {
@@ -120,12 +131,12 @@ pub async fn get_period_series(
             .filter_map(|s| {
                 let key = period_key(period_type, s.reporting_year, &s.period_value)?;
                 let items = items_by_submission.remove(&s.id)?;
-                Some((key, s.period_value.clone(), items))
+                Some((key, s.period_value.clone(), s.cooperative_id, items))
             })
             .collect()
     };
 
-    let available: Vec<(i32, u32)> = entries.iter().map(|(key, _, _)| *key).collect();
+    let available: Vec<(i32, u32)> = entries.iter().map(|(key, ..)| *key).collect();
     let end = params.reporting_year.map(|year| {
         let index = params
             .period_value
@@ -143,8 +154,12 @@ pub async fn get_period_series(
 
     let mut totals_by_period: BTreeMap<(i32, u32), (StatementTotals, i64, String)> =
         BTreeMap::new();
+    // Each cooperative's totals per period, for like-for-like growth.
+    let mut per_cooperative: HashMap<(i32, u32), Vec<(Uuid, StatementTotals)>> = HashMap::new();
 
-    for (key, value, items) in entries.iter().filter(|(key, _, _)| selected.contains(key)) {
+    for (key, value, cooperative_id, items) in
+        entries.iter().filter(|(key, ..)| selected.contains(key))
+    {
         let mut raw: BTreeMap<i16, HashMap<i32, f64>> = BTreeMap::new();
         for item in items {
             if let (Some(code), Some(amount)) =
@@ -157,6 +172,10 @@ pub async fn get_period_series(
             continue;
         }
         let native = statement_totals(&raw, &coa);
+        per_cooperative
+            .entry(*key)
+            .or_default()
+            .push((*cooperative_id, native));
         let entry = totals_by_period
             .entry(*key)
             .or_insert_with(|| (StatementTotals::default(), 0, value.clone()));
@@ -164,12 +183,60 @@ pub async fn get_period_series(
         entry.1 += 1;
     }
 
+    let names: HashMap<Uuid, String> = state
+        .cooperative_repo
+        .find_by_ids(
+            per_cooperative
+                .values()
+                .flatten()
+                .map(|(id, _)| *id)
+                .collect::<std::collections::HashSet<_>>()
+                .into_iter()
+                .collect(),
+        )
+        .await?
+        .into_iter()
+        .map(|c| (c.id, c.display_name.trim().to_string()))
+        .collect();
+    let name_of = |ids: Vec<Uuid>| -> Vec<String> {
+        let mut list: Vec<String> = ids
+            .iter()
+            .map(|id| names.get(id).cloned().unwrap_or_default())
+            .collect();
+        list.sort();
+        list
+    };
+    let present: Vec<(i32, u32)> = selected
+        .iter()
+        .copied()
+        .filter(|key| totals_by_period.contains_key(key))
+        .collect();
+    let comparison_of = |key: &(i32, u32)| -> Option<PeriodComparison> {
+        let position = present.iter().position(|k| k == key)?;
+        let previous = present.get(position.checked_sub(1)?)?;
+        let comparison = compare(
+            per_cooperative.get(key).map(Vec::as_slice).unwrap_or(&[]),
+            per_cooperative
+                .get(previous)
+                .map(Vec::as_slice)
+                .unwrap_or(&[]),
+        );
+        Some(PeriodComparison {
+            cooperatives_compared: comparison.cooperatives as i64,
+            current: comparison.current,
+            previous: comparison.previous,
+            new_cooperatives: name_of(comparison.new),
+            missing_cooperatives: name_of(comparison.missing),
+        })
+    };
+
     let points = selected
         .iter()
         .filter_map(|key| {
             totals_by_period
                 .get(key)
                 .map(|(totals, count, value)| PeriodSeriesPoint {
+                    comparison: comparison_of(key),
                     period_label: period_label(period_type, key.0, value),
                     reporting_year: key.0,
                     period_type: period_type.as_str().to_string(),
