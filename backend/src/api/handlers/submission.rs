@@ -727,6 +727,12 @@ pub async fn apex_submit_submission(
 
     tracing::info!(submission_id = %id, apex_id = %apex_db_id, status = %updated.status.as_str(), "Apex-initiated submission submitted (apex is the final approval level)");
 
+    // The apex is the final approval level, so its submit approves the
+    // submission: prepare the report as the Approve action does.
+    if updated.status == SubmissionStatus::Approved {
+        crate::services::report_jobs::on_submission_approved(state.clone(), updated.clone());
+    }
+
     // Audit: apex-initiated submission submitted and finalized
     if let Err(e) = state
         .audit
