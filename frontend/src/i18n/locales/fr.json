@@ -6588,6 +6588,7 @@
     "showingYear": "Affichage de {{year}}, votre dernière année complète.",
     "noCompleteYear": "Aucune année complète à afficher pour l'instant.",
     "leftOut_one": "{{count}} coopérative est exclue : son année n'est pas encore complète (toutes les périodes ne sont pas approuvées).",
-    "leftOut_other": "{{count}} coopératives sont exclues : leur année n'est pas encore complète (toutes les périodes ne sont pas approuvées)."
+    "leftOut_other": "{{count}} coopératives sont exclues : leur année n'est pas encore complète (toutes les périodes ne sont pas approuvées).",
+    "reportAfterYear": "Le rapport sera disponible une fois toutes les périodes de l'année approuvées."
   }
 }

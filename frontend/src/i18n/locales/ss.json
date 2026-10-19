@@ -6554,6 +6554,7 @@
     "showingYear": "Kukhonjiswa {{year}}, umnyaka wakho wekugcina logcwele.",
     "noCompleteYear": "Kute umnyaka logcwele lotawukhonjiswa okwamanje.",
     "leftOut_one": "Libhizinisi lelilinye ({{count}}) alifakiwe: umnyaka walo akakagcwali (akusito tonkhe tikhatsi letivunyiwe).",
-    "leftOut_other": "Emabhizinisi langu-{{count}} awafakiwe: umnyaka wawo akakagcwali (akusito tonkhe tikhatsi letivunyiwe)."
+    "leftOut_other": "Emabhizinisi langu-{{count}} awafakiwe: umnyaka wawo akakagcwali (akusito tonkhe tikhatsi letivunyiwe).",
+    "reportAfterYear": "Umbiko utawutfolakala nase tonkhe tikhatsi temnyaka tivunyiwe."
   }
 }

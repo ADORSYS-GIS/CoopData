@@ -112,15 +112,19 @@ export const useCooperativeKpis = (
     },
   });
 
-export const useSubmissionLineItems = (submissionId: string | undefined, tokenOverride?: string) =>
+export const useSubmissionLineItems = (
+  submissionId: string | undefined,
+  tokenOverride?: string,
+  scope: KpiScope = "period",
+) =>
   useOfflineQuery<SubmissionLineItemsResponse>({
-    queryKey: ["coop-line-items", submissionId, tokenOverride],
+    queryKey: ["coop-line-items", submissionId, tokenOverride, scope],
     cacheTable: "submissions",
-    cacheKey: `line-items-${submissionId}`,
+    cacheKey: `line-items-${scope}-${submissionId}`,
     queryFn: async () => {
       const token = tokenOverride || (await getAccessToken());
       const res = await fetch(
-        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/financial-statement/line-items?include_prior_year=true`,
+        `${BASE_URL}/api/v1/cooperative/submissions/${submissionId}/financial-statement/line-items?include_prior_year=true${scope === "year" ? "&scope=year" : ""}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },

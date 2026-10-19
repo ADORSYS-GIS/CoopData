@@ -39,13 +39,17 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     undefined,
     tokenOverride,
   );
+  // The report covers the whole year (a year reported by periods is combined)
+  // and compares it with the previous complete year.
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(
     submissionId,
     tokenOverride,
+    "year",
   );
   const { data: lineItemsData, isLoading: lineItemsLoading } = useSubmissionLineItems(
     submissionId,
     tokenOverride,
+    "year",
   );
   const { data: portfolioData, isLoading: portfolioLoading } = usePortfolioBreakdown(
     submissionId,
@@ -65,8 +69,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     ? {
         cooperativeId: submission.cooperative_id,
         reportingYear: submission.reporting_year,
-        periodType: submission.period_type,
-        periodValue: submission.period_value,
+        periodType: "YEARLY",
       }
     : {};
   const ready = Boolean(submission);
@@ -78,11 +81,7 @@ export const CooperativeReportPrint: React.FC<Props> = ({ submissionId, tokenOve
     tokenOverride,
   );
   const { data: peersData, isLoading: peersLoading } = useNationalOverview(
-    {
-      reportingYear: submission?.reporting_year,
-      periodType: submission?.period_type,
-      periodValue: submission?.period_value,
-    },
+    { reportingYear: submission?.reporting_year },
     ready,
     tokenOverride,
   );

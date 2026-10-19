@@ -6625,6 +6625,7 @@
     "showingYear": "Showing {{year}}, your latest complete year.",
     "noCompleteYear": "There is no complete year to show yet.",
     "leftOut_one": "{{count}} cooperative is left out: its year is not complete yet (not every period approved).",
-    "leftOut_other": "{{count}} cooperatives are left out: their year is not complete yet (not every period approved)."
+    "leftOut_other": "{{count}} cooperatives are left out: their year is not complete yet (not every period approved).",
+    "reportAfterYear": "The report is available once every period of the year is approved."
   }
 }

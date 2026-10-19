@@ -13,6 +13,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { type Role, useUserRole } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
+import { reportChoices } from "@/lib/report-years";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
 import { ReportDownloadDialog } from "@/components/reports/report-download-dialog";
 import { withLanguage } from "@/lib/report-filename";
@@ -134,8 +135,10 @@ export const ReportsPage: React.FC = () => {
     return false;
   })();
 
-  const recentSubmissions = [...submissions]
-    .filter((s) => s.status.toLowerCase() === "approved")
+  // One report per complete year: the periods of a year reported by quarters,
+  // halves or months share the year's report.
+  const recentSubmissions = reportChoices(submissions, ["approved"])
+    .filter((s) => !s.pending)
     .sort(
       (a, b) =>
         new Date(b.submitted_at || b.created_at).getTime() -
