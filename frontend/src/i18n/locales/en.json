@@ -1511,7 +1511,16 @@
     "placeholderDepositId": "FD-001",
     "placeholderSavingsId": "SAV-001",
     "draftSavedLocally": "Draft saved locally on this device",
-    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online",
+    "periodBar": {
+      "yearly": "Yearly return {{year}}",
+      "quarterly": "Quarterly",
+      "monthly": "Monthly",
+      "semiAnnual": "Semi-annual",
+      "fullYear": "Full 12 months {{year}}",
+      "yearStarts": "Year starts in {{month}}",
+      "fixedHint": "The reporting period is chosen when the submission is created and cannot be changed here. To report another period, create a new submission from the Submissions page."
+    }
   },
   "financial": {
     "liquidAssets": "Liquid Assets",

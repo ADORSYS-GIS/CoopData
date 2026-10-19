@@ -359,25 +359,6 @@ impl SubmissionRepository {
         active.update(&self.db).await.map_err(Into::into)
     }
 
-    pub async fn update_period(
-        &self,
-        id: Uuid,
-        period_type: crate::entities::enums::PeriodType,
-        period_value: String,
-    ) -> AppResult<submission::Model> {
-        let existing = Entity::find_by_id(id)
-            .one(&self.db)
-            .await
-            .map_err(crate::error::AppError::from)?
-            .ok_or_else(|| crate::error::AppError::NotFound("Submission not found".into()))?;
-
-        let mut active: ActiveModel = existing.into();
-        active.period_type = Set(period_type);
-        active.period_value = Set(period_value);
-        active.updated_at = Set(chrono::Utc::now());
-        active.update(&self.db).await.map_err(Into::into)
-    }
-
     /// Atomically claim editing rights — only succeeds if edited_by is currently NULL.
     /// Returns the updated model on success, or None if the row was already claimed.
     /// This prevents race conditions where two concurrent requests both think they own it.

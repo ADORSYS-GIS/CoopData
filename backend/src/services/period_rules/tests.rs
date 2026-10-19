@@ -174,3 +174,102 @@ fn unrecognised_type_is_unrestricted() {
     assert!(check_method_allowed_for_type(None, "upload").is_ok());
     assert!(check_method_allowed_for_type(None, "questionnaire").is_ok());
 }
+
+#[test]
+fn period_months_follow_the_fiscal_start() {
+    assert_eq!(period_months(PeriodType::Yearly, "2025", 1), Some(vec![0]));
+    assert_eq!(
+        period_months(PeriodType::Quarterly, "Q2", 1),
+        Some(vec![4, 5, 6])
+    );
+    assert_eq!(
+        period_months(PeriodType::Quarterly, "Q1", 11),
+        Some(vec![11, 12, 1])
+    );
+    assert_eq!(
+        period_months(PeriodType::SemiAnnual, "H2", 7),
+        Some(vec![1, 2, 3, 4, 5, 6])
+    );
+    assert_eq!(period_months(PeriodType::Monthly, "03", 7), Some(vec![3]));
+    assert_eq!(
+        period_months(PeriodType::Monthly, "FULL_YEAR", 4),
+        Some(vec![4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3])
+    );
+    assert_eq!(period_months(PeriodType::Quarterly, "Q5", 1), None);
+}
+
+#[test]
+fn statement_save_keeps_the_submission_period() {
+    let existing = sub(
+        PeriodType::Quarterly,
+        "Q2",
+        SubmissionStatus::Draft,
+        "manual",
+        0,
+    );
+
+    assert!(check_statement_period(&existing, None, None, &[4, 5, 6]).is_ok());
+    assert!(check_statement_period(
+        &existing,
+        Some(PeriodType::Quarterly),
+        Some("q2"),
+        &[4, 5, 6]
+    )
+    .is_ok());
+}
+
+#[test]
+fn statement_save_rejects_another_frequency_or_period() {
+    let existing = sub(
+        PeriodType::Quarterly,
+        "Q2",
+        SubmissionStatus::Draft,
+        "manual",
+        0,
+    );
+
+    let other_frequency =
+        check_statement_period(&existing, Some(PeriodType::Yearly), Some("2017"), &[0]);
+    let other_quarter =
+        check_statement_period(&existing, Some(PeriodType::Quarterly), Some("Q3"), &[7]);
+
+    assert!(other_frequency.unwrap_err().contains("Q2 2017"));
+    assert!(other_quarter.unwrap_err().contains("Q2 2017"));
+}
+
+#[test]
+fn statement_save_rejects_months_outside_the_period() {
+    let existing = sub(
+        PeriodType::Quarterly,
+        "Q2",
+        SubmissionStatus::Draft,
+        "manual",
+        0,
+    );
+
+    let result = check_statement_period(&existing, None, None, &[4, 5, 6, 7]);
+
+    assert!(result.unwrap_err().contains("Jul"));
+}
+
+#[test]
+fn full_year_monthly_conflicts_with_single_months() {
+    let single_month = [sub(
+        PeriodType::Monthly,
+        "03",
+        SubmissionStatus::Approved,
+        "manual",
+        1,
+    )];
+    let full_year = [sub(
+        PeriodType::Monthly,
+        "FULL_YEAR",
+        SubmissionStatus::Draft,
+        "manual",
+        1,
+    )];
+
+    assert!(check_period_overlap(&single_month, PeriodType::Monthly, "FULL_YEAR", None).is_err());
+    assert!(check_period_overlap(&full_year, PeriodType::Monthly, "04", None).is_err());
+    assert!(check_period_overlap(&single_month, PeriodType::Monthly, "04", None).is_ok());
+}

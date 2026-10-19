@@ -1,22 +1,9 @@
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
-import type { YearLock } from "@/lib/period-rules";
+import { MONTH_NAMES, type YearLock } from "@/lib/period-rules";
+
+export { MONTH_NAMES };
 
 export type SubmissionPeriodType = "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
-
-export const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
 
 /** Quarter month ranges aligned to a fiscal-year start month (1-12, 1 = Jan). */
 export function quarterRanges(startMonth: number): { q: string; label: string }[] {

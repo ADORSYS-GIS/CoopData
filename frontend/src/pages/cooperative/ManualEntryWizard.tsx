@@ -15,7 +15,6 @@ import {
   Clock,
   Sprout,
   Trash2,
-  Calendar,
   Save,
   WifiOff,
 } from "lucide-react";
@@ -87,6 +86,8 @@ import { otherAssets, totalAssets as assetsTotal } from "./manual-entry/balance"
 import { FarmCoopForm } from "./manual-entry/FarmCoopForm";
 import { ReviewSummary } from "./manual-entry/ReviewSummary";
 import { FinancialExcelGrid } from "./manual-entry/FinancialExcelGrid";
+import { PeriodBar } from "./manual-entry/PeriodBar";
+import { periodFromSubmission, periodMonths } from "./manual-entry/period";
 import { MembersStep } from "./manual-entry/MembersStep";
 import { SavingsStep } from "./manual-entry/SavingsStep";
 import { LoansStep } from "./manual-entry/LoansStep";
@@ -145,42 +146,8 @@ export function ManualEntryWizard() {
   const [step, setStep] = useState<WizardStep>(isFinancialWizard ? "financial" : "members");
 
   const currency = "SZL" as const;
-  const [accountingYear, setAccountingYear] = useState<"calendar" | "fiscal">("calendar");
-  const [startMonth, setStartMonth] = useState<number>(1);
-
-  // Sync startMonth with accountingYear default if changed
-  useEffect(() => {
-    if (accountingYear === "fiscal" && startMonth === 1) {
-      setStartMonth(7); // July default for fiscal
-    } else if (accountingYear === "calendar" && startMonth === 7) {
-      setStartMonth(1);
-    }
-  }, [accountingYear]);
-  const [periodType, setPeriodType] = useState<"YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL">(
-    "YEARLY",
-  );
-  const [periodValue, setPeriodValue] = useState<string>(String(new Date().getFullYear()));
-
-  useEffect(() => {
-    if (submission?.period_type) {
-      const normalizedPeriodType =
-        submission.period_type === "Yearly"
-          ? "YEARLY"
-          : submission.period_type === "Quarterly"
-            ? "QUARTERLY"
-            : submission.period_type === "Monthly"
-              ? "MONTHLY"
-              : submission.period_type === "SemiAnnual"
-                ? "SEMI_ANNUAL"
-                : (submission.period_type as "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL");
-      setPeriodType(normalizedPeriodType);
-    }
-    if (submission?.period_value) {
-      setPeriodValue(submission.period_value);
-    } else if (submission?.reporting_year) {
-      setPeriodValue(String(submission.reporting_year));
-    }
-  }, [submission?.period_type, submission?.period_value, submission?.reporting_year]);
+  const period = useMemo(() => periodFromSubmission(submission), [submission]);
+  const { accountingYear, startMonth, periodType, periodValue } = period;
 
   const [financialData, setFinancialData] = useState<Record<number, Record<number, number>>>(() =>
     createEmptyFinancialGrid(),
@@ -219,10 +186,6 @@ export function ManualEntryWizard() {
       if (draft && hasDraftData(draft)) {
         draftAppliedRef.current = true;
         setHasLocalDraft(true);
-        if (draft.accountingYear) setAccountingYear(draft.accountingYear);
-        if (draft.startMonth) setStartMonth(draft.startMonth);
-        if (draft.periodType) setPeriodType(draft.periodType);
-        if (draft.periodValue) setPeriodValue(draft.periodValue);
         if (draft.financialData) setFinancialData(draft.financialData);
         if (draft.members) setMembers(draft.members);
         if (draft.savings) setSavings(draft.savings);
@@ -243,10 +206,6 @@ export function ManualEntryWizard() {
     if (!isHydrated) return;
     const draft: ManualEntryDraftState = {
       currency,
-      accountingYear,
-      startMonth,
-      periodType,
-      periodValue,
       financialData,
       members,
       savings,
@@ -268,10 +227,6 @@ export function ManualEntryWizard() {
     isHydrated,
     submissionId,
     draftMode,
-    accountingYear,
-    startMonth,
-    periodType,
-    periodValue,
     financialData,
     members,
     savings,
@@ -528,26 +483,10 @@ export function ManualEntryWizard() {
   // Months (or the single annual period 0) that belong to the selected reporting
   // period. Mirrors the column logic of FinancialExcelGrid so only in-period
   // data is submitted instead of all 12 months.
-  const activeMonths = useMemo(() => {
-    if (periodType === "YEARLY") return [0];
-    const seq: number[] = [];
-    const start =
-      typeof startMonth === "number" && startMonth >= 1 && startMonth <= 12 ? startMonth : 1;
-    for (let i = 0; i < 12; i++) seq.push(((start - 1 + i) % 12) + 1);
-    if (periodType === "QUARTERLY") {
-      const qIdx =
-        periodValue === "Q2" ? 1 : periodValue === "Q3" ? 2 : periodValue === "Q4" ? 3 : 0;
-      return seq.slice(qIdx * 3, qIdx * 3 + 3);
-    }
-    if (periodType === "SEMI_ANNUAL") {
-      return periodValue === "H2" ? seq.slice(6, 12) : seq.slice(0, 6);
-    }
-    if (periodType === "MONTHLY" && periodValue && periodValue !== "FULL_YEAR") {
-      const m = Number(periodValue);
-      if (!isNaN(m) && m >= 1 && m <= 12) return [m];
-    }
-    return seq;
-  }, [periodType, periodValue, startMonth]);
+  const activeMonths = useMemo(
+    () => periodMonths(periodType, periodValue, startMonth),
+    [periodType, periodValue, startMonth],
+  );
 
   // Snapshot computations for the final month or annual total (num: 0) of the period
   const finalMonth = activeMonths[activeMonths.length - 1];
@@ -1369,114 +1308,7 @@ export function ManualEntryWizard() {
         <div className="flex items-center gap-3 flex-wrap">
           {step === "financial" && (
             <>
-              <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-4 py-2 border border-border">
-                <TrendingUp className="size-4 text-muted-foreground" />
-                <select
-                  className="bg-transparent text-sm font-semibold text-foreground border-none outline-none cursor-pointer"
-                  value={accountingYear}
-                  onChange={(e) => setAccountingYear(e.target.value as "calendar" | "fiscal")}
-                >
-                  <option value="calendar">{t("manualEntry.calendarYear")}</option>
-                  <option value="fiscal">{t("manualEntry.fiscalYear")}</option>
-                </select>
-              </div>
-
-              {/* Start Month Selector */}
-              <div className="flex items-center gap-2 bg-muted/40 rounded-xl px-3.5 py-2 border border-border">
-                <Calendar className="size-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-                  Start:
-                </span>
-                <select
-                  className="bg-transparent text-sm font-bold text-foreground border-none outline-none cursor-pointer"
-                  value={startMonth}
-                  onChange={(e) => setStartMonth(Number(e.target.value))}
-                >
-                  <option value={1}>Jan - Dec (Calendar)</option>
-                  <option value={10}>Oct - Sep (Oct Start)</option>
-                  <option value={7}>Jul - Jun (Jul Start)</option>
-                  <option value={4}>Apr - Mar (Apr Start)</option>
-                  <option value={2}>Feb - Jan</option>
-                  <option value={3}>Mar - Feb</option>
-                  <option value={5}>May - Apr</option>
-                  <option value={6}>Jun - May</option>
-                  <option value={8}>Aug - Jul</option>
-                  <option value={9}>Sep - Aug</option>
-                  <option value={11}>Nov - Oct</option>
-                  <option value={12}>Dec - Nov</option>
-                </select>
-              </div>
-
-              {/* Interactive Report Frequency Selector */}
-              <div className="flex items-center gap-2 bg-primary/5 rounded-xl px-3.5 py-2 border border-primary/20">
-                <Calendar className="size-4 text-primary" />
-                <select
-                  className="bg-transparent text-sm font-bold text-primary border-none outline-none cursor-pointer"
-                  value={periodType}
-                  onChange={(e) => {
-                    const newType = e.target.value as
-                      "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
-                    setPeriodType(newType);
-                    if (newType === "QUARTERLY") setPeriodValue("Q1");
-                    else if (newType === "MONTHLY") setPeriodValue("FULL_YEAR");
-                    else if (newType === "SEMI_ANNUAL") setPeriodValue("H1");
-                    else
-                      setPeriodValue(
-                        String(submission?.reporting_year || new Date().getFullYear()),
-                      );
-                  }}
-                >
-                  <option value="YEARLY">Yearly (Annual)</option>
-                  <option value="QUARTERLY">Quarterly</option>
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="SEMI_ANNUAL">Semi-Annual</option>
-                </select>
-              </div>
-
-              {/* Interactive Period Value Selector */}
-              {periodType !== "YEARLY" && (
-                <div className="flex items-center gap-2 bg-primary/5 rounded-xl px-3 py-2 border border-primary/20">
-                  <select
-                    className="bg-transparent text-sm font-bold text-primary border-none outline-none cursor-pointer"
-                    value={periodValue}
-                    onChange={(e) => setPeriodValue(e.target.value)}
-                  >
-                    {periodType === "QUARTERLY" && (
-                      <>
-                        <option value="Q1">Q1 ({submission?.reporting_year || ""})</option>
-                        <option value="Q2">Q2 ({submission?.reporting_year || ""})</option>
-                        <option value="Q3">Q3 ({submission?.reporting_year || ""})</option>
-                        <option value="Q4">Q4 ({submission?.reporting_year || ""})</option>
-                      </>
-                    )}
-                    {periodType === "MONTHLY" && (
-                      <>
-                        <option value="FULL_YEAR">
-                          Full 12 Mo ({submission?.reporting_year || ""})
-                        </option>
-                        <option value="01">Jan ({submission?.reporting_year || ""})</option>
-                        <option value="02">Feb ({submission?.reporting_year || ""})</option>
-                        <option value="03">Mar ({submission?.reporting_year || ""})</option>
-                        <option value="04">Apr ({submission?.reporting_year || ""})</option>
-                        <option value="05">May ({submission?.reporting_year || ""})</option>
-                        <option value="06">Jun ({submission?.reporting_year || ""})</option>
-                        <option value="07">Jul ({submission?.reporting_year || ""})</option>
-                        <option value="08">Aug ({submission?.reporting_year || ""})</option>
-                        <option value="09">Sep ({submission?.reporting_year || ""})</option>
-                        <option value="10">Oct ({submission?.reporting_year || ""})</option>
-                        <option value="11">Nov ({submission?.reporting_year || ""})</option>
-                        <option value="12">Dec ({submission?.reporting_year || ""})</option>
-                      </>
-                    )}
-                    {periodType === "SEMI_ANNUAL" && (
-                      <>
-                        <option value="H1">H1 (Jan–Jun {submission?.reporting_year || ""})</option>
-                        <option value="H2">H2 (Jul–Dec {submission?.reporting_year || ""})</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              )}
+              <PeriodBar period={period} />
               {import.meta.env.DEV && (
                 <button
                   onClick={() => {

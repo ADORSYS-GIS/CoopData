@@ -380,15 +380,14 @@ pub async fn create_manual_financial_statement(
         ));
     }
 
-    if let Some(pt) = body.period_type {
-        let pv = body
-            .period_value
-            .unwrap_or_else(|| submission.period_value.clone());
-        state
-            .submission_repo
-            .update_period(submission_id, pt, pv)
-            .await?;
-    }
+    let months: Vec<i16> = body.line_items.iter().map(|item| item.month).collect();
+    crate::services::period_rules::check_statement_period(
+        &submission,
+        body.period_type,
+        body.period_value.as_deref(),
+        &months,
+    )
+    .map_err(AppError::Conflict)?;
 
     // Check for existing FS so we can delete it inside the transaction
     let existing_fs_id = state

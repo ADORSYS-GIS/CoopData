@@ -135,6 +135,13 @@ pub async fn create_submission(
         .await?;
     crate::services::period_rules::check_frequency(&year_submissions, period_type, None)
         .map_err(AppError::Conflict)?;
+    crate::services::period_rules::check_period_overlap(
+        &year_submissions,
+        period_type,
+        &period_value,
+        None,
+    )
+    .map_err(AppError::Conflict)?;
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
 
@@ -2469,6 +2476,13 @@ pub async fn create_apex_submission(
         .await?;
     crate::services::period_rules::check_frequency(&year_submissions, period_type, None)
         .map_err(AppError::Conflict)?;
+    crate::services::period_rules::check_period_overlap(
+        &year_submissions,
+        period_type,
+        &period_value,
+        None,
+    )
+    .map_err(AppError::Conflict)?;
 
     let submitted_by = Uuid::parse_str(&claims.sub).ok();
     let creator_name = claims

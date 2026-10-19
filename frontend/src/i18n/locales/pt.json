@@ -1510,7 +1510,16 @@
     "draftSavedLocally": "Draft saved locally on this device",
     "draftSavedOffline": "Draft saved locally — will sync when you're back online",
     "stepIncomplete": "Etapa incompleta",
-    "financialIncomplete": "Dados financeiros incompletos"
+    "financialIncomplete": "Dados financeiros incompletos",
+    "periodBar": {
+      "yearly": "Declaração anual {{year}}",
+      "quarterly": "Trimestral",
+      "monthly": "Mensal",
+      "semiAnnual": "Semestral",
+      "fullYear": "12 meses completos {{year}}",
+      "yearStarts": "O ano começa em {{month}}",
+      "fixedHint": "O período de reporte é escolhido ao criar a submissão e não pode ser alterado aqui. Para reportar outro período, crie uma nova submissão na página Submissões."
+    }
   },
   "financial": {
     "liquidAssets": "Ativos Líquidos",

@@ -1510,7 +1510,16 @@
     "draftSavedLocally": "Draft saved locally on this device",
     "draftSavedOffline": "Draft saved locally — will sync when you're back online",
     "stepIncomplete": "Étape incomplète",
-    "financialIncomplete": "Données financières incomplètes"
+    "financialIncomplete": "Données financières incomplètes",
+    "periodBar": {
+      "yearly": "Déclaration annuelle {{year}}",
+      "quarterly": "Trimestriel",
+      "monthly": "Mensuel",
+      "semiAnnual": "Semestriel",
+      "fullYear": "12 mois complets {{year}}",
+      "yearStarts": "L'année commence en {{month}}",
+      "fixedHint": "La période de déclaration est choisie à la création de la soumission et ne peut pas être modifiée ici. Pour déclarer une autre période, créez une nouvelle soumission depuis la page Soumissions."
+    }
   },
   "financial": {
     "liquidAssets": "Actifs liquides",

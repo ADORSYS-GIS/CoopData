@@ -20,6 +20,22 @@ export interface PeriodReminder {
   missing: string[];
 }
 
+/** Short English month names, January first. */
+export const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
 const PERIOD_TYPES: readonly PeriodType[] = ["YEARLY", "QUARTERLY", "MONTHLY", "SEMI_ANNUAL"];
 
 export const toPeriodType = (value?: string | null): PeriodType => {
