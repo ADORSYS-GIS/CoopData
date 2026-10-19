@@ -2656,7 +2656,13 @@
       "manufacturing": "Manufacturing"
     },
     "periodFinancialBreakdown": "Your financial breakdown & variation by period",
-    "valueSzZar": "Value (ZAR)"
+    "valueSzZar": "Value (ZAR)",
+    "growthCoverage": {
+      "compared_one": "Growth figures compare the {{count}} cooperative with complete figures for both {{previous}} and {{current}}.",
+      "compared_other": "Growth figures compare the {{count}} cooperatives with complete figures for both {{previous}} and {{current}}.",
+      "added": "Not compared, no complete {{previous}}: {{names}}.",
+      "missing": "Not compared, {{current}} not complete yet: {{names}}."
+    }
   },
   "cooperativeDashboard": {
     "title": "Cooperative Dashboard",
@@ -6536,6 +6542,11 @@
         "Apex": "Report",
         "Federation": "Report",
         "Ministry": "Report"
+      },
+      "like_for_like": {
+        "compared": "Changes on the prior year compare the {{count}} cooperative(s) with figures for both {{prior}} and {{year}}.",
+        "added": "Not compared, no complete {{prior}}: {{names}}.",
+        "missing": "Not compared, {{year}} not complete yet: {{names}}."
       }
     },
     "roles": {

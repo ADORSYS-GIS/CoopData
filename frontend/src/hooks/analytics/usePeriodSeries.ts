@@ -2,8 +2,31 @@ import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
 
-export type PeriodSeriesResponse = components["schemas"]["PeriodSeriesResponse"];
-export type PeriodSeriesPoint = components["schemas"]["PeriodSeriesPoint"];
+type StatementTotals = Omit<
+  components["schemas"]["PeriodSeriesPoint"],
+  "period_label" | "reporting_year" | "period_type" | "period_value" | "cooperatives_reporting"
+>;
+
+/**
+ * Like-for-like comparison with the previous point: the totals of the
+ * cooperatives present in both periods. Growth is computed from these.
+ */
+export interface PeriodComparison {
+  cooperatives_compared: number;
+  current: StatementTotals;
+  previous: StatementTotals;
+  /** In this period only (new, or the previous period not complete). */
+  new_cooperatives: string[];
+  /** In the previous period only (this period not complete yet). */
+  missing_cooperatives: string[];
+}
+
+export type PeriodSeriesPoint = components["schemas"]["PeriodSeriesPoint"] & {
+  comparison?: PeriodComparison | null;
+};
+export type PeriodSeriesResponse = Omit<components["schemas"]["PeriodSeriesResponse"], "points"> & {
+  points: PeriodSeriesPoint[];
+};
 
 export interface PeriodSeriesQuery {
   reportingYear?: number;

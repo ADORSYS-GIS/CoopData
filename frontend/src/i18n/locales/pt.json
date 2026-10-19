@@ -2655,7 +2655,13 @@
     "seriesLiquidAssets": "Ativos líquidos",
     "seriesGrossLoans": "Carteira de empréstimos bruta",
     "seriesMemberDeposits": "Depósitos de membros",
-    "totalSavingsBalanceNote": "Saldo total de poupança"
+    "totalSavingsBalanceNote": "Saldo total de poupança",
+    "growthCoverage": {
+      "compared_one": "As variações comparam a {{count}} cooperativa com números completos para {{previous}} e {{current}}.",
+      "compared_other": "As variações comparam as {{count}} cooperativas com números completos para {{previous}} e {{current}}.",
+      "added": "Não comparadas, sem {{previous}} completo: {{names}}.",
+      "missing": "Não comparadas, {{current}} ainda não completo: {{names}}."
+    }
   },
   "cooperativeDashboard": {
     "title": "Painel da Cooperativa",
@@ -6475,6 +6481,11 @@
         "Apex": "{{apex}}",
         "Federation": "{{federation}}",
         "Ministry": "{{ministry}}"
+      },
+      "like_for_like": {
+        "compared": "As variações sobre o ano anterior comparam a(s) {{count}} cooperativa(s) com números para {{prior}} e {{year}}.",
+        "added": "Não comparadas, sem {{prior}} completo: {{names}}.",
+        "missing": "Não comparadas, {{year}} ainda não completo: {{names}}."
       }
     },
     "roles": {

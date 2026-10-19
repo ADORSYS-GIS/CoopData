@@ -336,24 +336,39 @@ const changeOf = (
   return before !== 0 ? ((now - before) / Math.abs(before)) * 100 : null;
 };
 
+/** Totals of the cooperatives present in both periods (see `PeriodComparison`). */
+export interface LikeForLike {
+  current: StatementPoint;
+  previous: StatementPoint;
+}
+
 /**
  * Statement-based indicators for one period, each compared with the previous
  * period of the same frequency. Ratios come from summed figures, never from an
- * average of cooperative ratios.
+ * average of cooperative ratios. With a like-for-like comparison, the change
+ * only covers the cooperatives present in both periods, so a cooperative that
+ * is new or missing in one of them is not counted as growth or decline.
  */
 export const buildStatementIndicators = (
   current: StatementPoint | undefined,
   previous?: StatementPoint,
+  comparison?: LikeForLike | null,
 ): StatementIndicator[] =>
   DEFINITIONS.map((definition) => {
     const value = computeIfReported(definition, current);
-    const before = computeIfReported(definition, previous);
+    const change = comparison
+      ? changeOf(
+          definition.unit,
+          computeIfReported(definition, comparison.current),
+          computeIfReported(definition, comparison.previous),
+        )
+      : changeOf(definition.unit, value, computeIfReported(definition, previous));
     return {
       key: definition.key,
       group: definition.group,
       unit: definition.unit,
       value,
-      change: changeOf(definition.unit, value, before),
+      change,
       higherIsBetter: definition.higherIsBetter,
     };
   });

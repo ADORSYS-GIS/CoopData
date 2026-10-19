@@ -3,6 +3,7 @@ import { Hourglass } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { IndicatorSearch } from "@/components/analytics/basic/IndicatorSearch";
+import { GrowthCoverageNote } from "@/components/analytics/GrowthCoverageNote";
 import { NationalCharts } from "@/components/analytics/national/NationalCharts";
 import { NationalMetricSections } from "@/components/analytics/national/NationalMetricSections";
 import { buildStatementGroups } from "@/components/analytics/national/statementMetrics";
@@ -86,6 +87,10 @@ export const NetworkConsolidatedMetrics: React.FC<NetworkConsolidatedMetricsProp
           {t("reportingYears.leftOut", { count: cooperativesIncomplete })}
         </p>
       )}
+      <GrowthCoverageNote
+        point={series?.points[series.points.length - 1]}
+        previous={series?.points[series.points.length - 2]}
+      />
       <IndicatorSearch value={query} onChange={setQuery} />
       <NationalMetricSections
         headline={headline}

@@ -2655,6 +2655,12 @@
       "housing": "Tindlu",
       "transport": "Kutfutfusa",
       "manufacturing": "Kukhicita"
+    },
+    "growthCoverage": {
+      "compared_one": "Tinombolo tekukhula ticatsanisa libhizinisi lelilinye ({{count}}) lelinetinombolo letiphelele ta-{{previous}} na-{{current}}.",
+      "compared_other": "Tinombolo tekukhula ticatsanisa emabhizinisi langu-{{count}} lanetinombolo letiphelele ta-{{previous}} na-{{current}}.",
+      "added": "Akucatsaniswa, kute {{previous}} lophelele: {{names}}.",
+      "missing": "Akucatsaniswa, {{current}} akakaphele: {{names}}."
     }
   },
   "cooperativeDashboard": {
@@ -6465,6 +6471,11 @@
         "Apex": "{{apex}}",
         "Federation": "{{federation}}",
         "Ministry": "{{ministry}}"
+      },
+      "like_for_like": {
+        "compared": "Kugucuka kusukela emnyakeni lowendlulile kucatsanisa emabhizinisi langu-{{count}} lanetinombolo ta-{{prior}} na-{{year}}.",
+        "added": "Akucatsaniswa, kute {{prior}} lophelele: {{names}}.",
+        "missing": "Akucatsaniswa, {{year}} akakaphele: {{names}}."
       }
     },
     "roles": {
