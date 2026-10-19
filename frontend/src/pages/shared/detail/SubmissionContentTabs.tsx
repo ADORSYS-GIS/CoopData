@@ -66,11 +66,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/context/AuthContext";
 
 const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const deleteFS = useDeleteFinancialStatement();
+  const { isOffline } = useAuth();
   const [open, setOpen] = React.useState(false);
 
   const handleDelete = async () => {
@@ -92,7 +94,8 @@ const DeleteFileButton: React.FC<{ submissionId: string }> = ({ submissionId }) 
     <>
       <button
         onClick={() => setOpen(true)}
-        disabled={deleteFS.isPending}
+        disabled={deleteFS.isPending || isOffline}
+        title={isOffline ? t("offline.actionRequiresConnection") : undefined}
         className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors cursor-pointer"
       >
         {deleteFS.isPending ? <Spinner size="sm" /> : <Trash2 className="size-3.5" />}
@@ -144,8 +147,18 @@ const ChangeMethodBanner: React.FC<{
   methodChosen: boolean;
   isCooperative: boolean;
   isDraft: boolean;
+  /** Multipurpose cooperatives are always questionnaire — there is no other
+   * method to switch to, so the banner's "change method" action is hidden. */
+  canChangeMethod: boolean;
   onOpenMethodModal: () => void;
-}> = ({ submissionMethod, methodChosen, isCooperative, isDraft, onOpenMethodModal }) => {
+}> = ({
+  submissionMethod,
+  methodChosen,
+  isCooperative,
+  isDraft,
+  canChangeMethod,
+  onOpenMethodModal,
+}) => {
   const { t } = useTranslation();
 
   if (!methodChosen || !isCooperative || !isDraft) return null;
@@ -176,13 +189,15 @@ const ChangeMethodBanner: React.FC<{
           <p className="text-xs text-muted-foreground">{t("submissions.methodModal.changeHint")}</p>
         </div>
       </div>
-      <button
-        onClick={onOpenMethodModal}
-        className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
-      >
-        <PenLine className="size-3.5" />
-        {t("submissions.methodModal.changeBtn")}
-      </button>
+      {canChangeMethod && (
+        <button
+          onClick={onOpenMethodModal}
+          className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+        >
+          <PenLine className="size-3.5" />
+          {t("submissions.methodModal.changeBtn")}
+        </button>
+      )}
     </div>
   );
 };
@@ -212,6 +227,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
   const { data: uploadedFiles = [] } = useSubmissionFiles(submission?.id, "financial");
   const [selectedFileId, setSelectedFileId] = React.useState<string | null>(null);
   const deleteSingleFile = useDeleteSingleFile(submission?.id);
+  const { isOffline } = useAuth();
 
   const activeFileId = selectedFileId || (uploadedFiles[0]?.id ?? extractionJob?.source_file_id);
 
@@ -242,6 +258,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
             methodChosen={methodChosen}
             isCooperative={!isReadOnly}
             isDraft={isDraft}
+            canChangeMethod={submission.cooperative_institution_type !== "multipurpose"}
             onOpenMethodModal={onOpenMethodModal}
           />
           <TabsList id="detail-tabs-list" className="w-full grid grid-cols-2 mb-5 h-auto p-1">
@@ -326,6 +343,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
             methodChosen={methodChosen}
             isCooperative={!isReadOnly}
             isDraft={isDraft}
+            canChangeMethod={submission.cooperative_institution_type !== "multipurpose"}
             onOpenMethodModal={onOpenMethodModal}
           />
           <div className="mb-5">
@@ -412,8 +430,12 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
                               <button
                                 type="button"
                                 onClick={(e) => handleDeleteSingleFile(e, file.id)}
-                                disabled={deleteSingleFile.isPending}
-                                title="Delete this file"
+                                disabled={deleteSingleFile.isPending || isOffline}
+                                title={
+                                  isOffline
+                                    ? t("offline.actionRequiresConnection")
+                                    : "Delete this file"
+                                }
                                 className="ml-1 rounded p-0.5 hover:bg-black/20 hover:text-destructive transition-colors cursor-pointer"
                               >
                                 <X className="size-3" />

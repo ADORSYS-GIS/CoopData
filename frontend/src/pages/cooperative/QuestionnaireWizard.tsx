@@ -26,6 +26,23 @@ import {
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 
+export interface AccountGridRow {
+  code: string;
+  level2: string;
+  level3: string;
+  mandatory: boolean;
+  activityCode?: string;
+  note?: string;
+}
+
+/** One row's entered values for an "account_grid" field, keyed by account code. */
+export interface AccountGridValue {
+  activityCode?: string;
+  openingBalance?: number | "";
+  closingBalance?: number | "";
+  annualMovement?: number | "";
+}
+
 export interface TemplateField {
   key: string;
   label: string;
@@ -33,6 +50,8 @@ export interface TemplateField {
   required?: boolean;
   description?: string;
   options?: string[];
+  /** Only for type === "account_grid": the fixed chart-of-accounts rows. */
+  rows?: AccountGridRow[];
 }
 
 export interface TemplateSection {
@@ -137,6 +156,117 @@ const FieldInput: React.FC<{
   );
 };
 
+// ─── Chart-of-Accounts Grid Renderer ───────────────────────────────────────────
+// Renders a field.type === "account_grid" field: a fixed table of standard
+// accounts (field.rows), where the respondent fills opening/closing
+// balance and annual movement (plus an activity code on tagged rows). The
+// whole table's values live under one answers[field.key], keyed by account
+// code — same flat answers model as every other field type.
+const cellInputClass =
+  "w-full rounded-lg border border-border bg-card/50 px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/45 focus:border-primary transition-all";
+
+const AccountGridInput: React.FC<{
+  field: TemplateField;
+  value: unknown;
+  onChange: (key: string, value: unknown) => void;
+}> = ({ field, value, onChange }) => {
+  const { t } = useTranslation();
+  const rows = field.rows ?? [];
+  const gridValue = (value as Record<string, AccountGridValue> | undefined) ?? {};
+  const hasActivity = rows.some((row) => row.activityCode);
+
+  const updateRow = (code: string, patch: Partial<AccountGridValue>) => {
+    onChange(field.key, { ...gridValue, [code]: { ...gridValue[code], ...patch } });
+  };
+
+  const numberCell = (
+    code: string,
+    prop: "openingBalance" | "closingBalance" | "annualMovement",
+  ) => (
+    <input
+      type="number"
+      id={`field-${field.key}-${code}-${prop}`}
+      className={cellInputClass}
+      value={gridValue[code]?.[prop] ?? ""}
+      onChange={(e) =>
+        updateRow(code, { [prop]: e.target.value === "" ? "" : Number(e.target.value) })
+      }
+      placeholder="0"
+    />
+  );
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-border">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/40">
+          <tr>
+            <th className="px-3 py-2 text-left font-semibold text-foreground/80">
+              {t("questionnaire.coaAccount", "Standard account")}
+            </th>
+            {hasActivity && (
+              <th className="px-3 py-2 text-left font-semibold text-foreground/80">
+                {t("questionnaire.coaActivityCode", "Activity code")}
+              </th>
+            )}
+            <th className="px-3 py-2 text-left font-semibold text-foreground/80">
+              {t("questionnaire.coaOpening", "Opening balance")}
+            </th>
+            <th className="px-3 py-2 text-left font-semibold text-foreground/80">
+              {t("questionnaire.coaClosing", "Closing balance")}
+            </th>
+            <th className="px-3 py-2 text-left font-semibold text-foreground/80">
+              {t("questionnaire.coaMovement", "Annual movement")}
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60">
+          {rows.map((row) => (
+            <tr key={row.code}>
+              <td className="px-3 py-2 align-top min-w-[12rem]">
+                <div className="font-medium text-foreground">{row.level3}</div>
+                <div className="text-muted-foreground mt-0.5">
+                  {row.level2} · {row.code}
+                </div>
+                <div
+                  className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    row.mandatory ? "text-destructive/80" : "text-muted-foreground"
+                  }`}
+                >
+                  {row.mandatory
+                    ? t("questionnaire.coaRequired", "Required")
+                    : t("questionnaire.coaOptional", "Optional")}
+                </div>
+                {row.note && (
+                  <div className="text-muted-foreground/80 italic mt-0.5">{row.note}</div>
+                )}
+              </td>
+              {hasActivity && (
+                <td className="px-3 py-2 align-top w-36">
+                  {row.activityCode ? (
+                    <input
+                      type="text"
+                      id={`field-${field.key}-${row.code}-activityCode`}
+                      className={cellInputClass}
+                      placeholder={row.activityCode}
+                      value={gridValue[row.code]?.activityCode ?? ""}
+                      onChange={(e) => updateRow(row.code, { activityCode: e.target.value })}
+                    />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+              )}
+              <td className="px-3 py-2 align-top w-28">{numberCell(row.code, "openingBalance")}</td>
+              <td className="px-3 py-2 align-top w-28">{numberCell(row.code, "closingBalance")}</td>
+              <td className="px-3 py-2 align-top w-28">{numberCell(row.code, "annualMovement")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 // ─── Main Questionnaire Wizard ─────────────────────────────────────────────────
 export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
   submissionId,
@@ -222,6 +352,20 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
           mockAnswers[field.key] = randOpt;
         } else if (field.type === "date") {
           mockAnswers[field.key] = new Date().toISOString().split("T")[0];
+        } else if (field.type === "account_grid") {
+          const gridValue: Record<string, AccountGridValue> = {};
+          (field.rows || []).forEach((row) => {
+            if (!row.mandatory && Math.random() < 0.4) return; // leave some conditional rows blank
+            const opening = (Math.floor(Math.random() * 90) + 10) * 100;
+            const movement = (Math.floor(Math.random() * 30) - 10) * 100;
+            gridValue[row.code] = {
+              ...(row.activityCode ? { activityCode: row.activityCode } : {}),
+              openingBalance: opening,
+              closingBalance: opening + movement,
+              annualMovement: movement,
+            };
+          });
+          mockAnswers[field.key] = gridValue;
         } else if (field.type === "textarea") {
           mockAnswers[field.key] =
             `This is a sample test answer for "${field.label}" in the ${sec.title} section.`;
@@ -257,11 +401,33 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
     return !(val === undefined || val === null || (typeof val === "string" && val.trim() === ""));
   };
 
-  // Every field in a questionnaire section is mandatory before moving on.
+  // Every field in a questionnaire section is mandatory before moving on
+  // (deliberate: the template's `required` flag is not the gate here — see
+  // the field-validation tests). For an account_grid field this means at
+  // least one row must be entered — an untouched grid has no answers[key]
+  // at all, same as any other empty field.
+  const isGridComplete = (field: TemplateField, val: unknown): boolean => {
+    const grid = (val as Record<string, AccountGridValue> | undefined) ?? {};
+    return (field.rows ?? [])
+      .filter((row) => row.mandatory)
+      .every((row) =>
+        [
+          grid[row.code]?.openingBalance,
+          grid[row.code]?.closingBalance,
+          grid[row.code]?.annualMovement,
+        ].some((n) => typeof n === "number"),
+      );
+  };
+
   const findMissingFields = (fields: TemplateField[]): { key: string; label: string }[] => {
     const missing: { key: string; label: string }[] = [];
     fields.forEach((field: TemplateField) => {
-      if (!isValueFilled(answers[field.key])) {
+      if (field.type !== "account_grid" && field.required === false) return;
+      const filled =
+        field.type === "account_grid"
+          ? isGridComplete(field, answers[field.key])
+          : isValueFilled(answers[field.key]);
+      if (!filled) {
         missing.push({ key: field.key, label: field.label });
       }
     });
@@ -533,37 +699,77 @@ export const QuestionnaireWizard: React.FC<QuestionnaireWizardProps> = ({
                   <p className="text-sm text-muted-foreground mt-0.5">{section.description}</p>
                 )}
                 <p className="text-xs font-medium text-destructive/80 mt-1.5">
-                  * {t("questionnaire.allFieldsRequired")}
+                  *{" "}
+                  {section.fields?.length &&
+                  section.fields.every(
+                    (f: TemplateField) => f.type !== "account_grid" && f.required === false,
+                  )
+                    ? t(
+                        "questionnaire.allFieldsOptional",
+                        "All fields in this section are optional. Leave a field empty if you do not have the figure; the indicators that need it are then not generated.",
+                      )
+                    : section.fields?.some((f: TemplateField) => f.type === "account_grid")
+                      ? t(
+                          "questionnaire.coaRequiredLegend",
+                          "Accounts marked Required must be filled in. Optional accounts only apply to some cooperatives — leave them blank if they do not apply.",
+                        )
+                      : t("questionnaire.allFieldsRequired")}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {(section.fields || []).map((field: TemplateField) => (
-                <div
-                  key={field.key}
-                  className={`flex flex-col gap-1.5 ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
-                >
-                  <label
-                    htmlFor={`field-${field.key}`}
-                    className="text-sm font-medium text-foreground/80 mb-0.5"
+              {(section.fields || []).map((field: TemplateField) =>
+                field.type === "account_grid" ? (
+                  <div
+                    key={field.key}
+                    id={`field-${field.key}`}
+                    tabIndex={-1}
+                    className="flex flex-col gap-1.5 sm:col-span-2 outline-none"
                   >
-                    {field.label}
-                    <span className="text-destructive ml-0.5">*</span>
-                  </label>
-                  {field.description && (
-                    <span className="text-xs text-muted-foreground -mt-1 mb-1 leading-relaxed">
-                      {field.description}
-                    </span>
-                  )}
-                  <FieldInput
-                    field={field}
-                    value={answers[field.key]}
-                    onChange={handleFieldChange}
-                    hasError={!!missingKeys[field.key]}
-                  />
-                </div>
-              ))}
+                    {field.description && (
+                      <span className="text-xs text-muted-foreground mb-1 leading-relaxed">
+                        {field.description}
+                      </span>
+                    )}
+                    <AccountGridInput
+                      field={field}
+                      value={answers[field.key]}
+                      onChange={handleFieldChange}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    key={field.key}
+                    className={`flex flex-col gap-1.5 ${field.type === "textarea" ? "sm:col-span-2" : ""}`}
+                  >
+                    <label
+                      htmlFor={`field-${field.key}`}
+                      className="text-sm font-medium text-foreground/80 mb-0.5"
+                    >
+                      {field.label}
+                      {field.required === false ? (
+                        <span className="text-muted-foreground ml-1 text-xs font-normal">
+                          ({t("questionnaire.optional", "optional")})
+                        </span>
+                      ) : (
+                        <span className="text-destructive ml-0.5">*</span>
+                      )}
+                    </label>
+                    {field.description && (
+                      <span className="text-xs text-muted-foreground -mt-1 mb-1 leading-relaxed">
+                        {field.description}
+                      </span>
+                    )}
+                    <FieldInput
+                      field={field}
+                      value={answers[field.key]}
+                      onChange={handleFieldChange}
+                      hasError={!!missingKeys[field.key]}
+                    />
+                  </div>
+                ),
+              )}
             </div>
           </>
         )}

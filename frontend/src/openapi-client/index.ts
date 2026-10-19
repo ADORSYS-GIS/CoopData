@@ -12,6 +12,8 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./api";
 import { getAccessToken } from "@/services/shared/authService";
+import { reportIfEditAccessLost } from "@/services/shared/editAccessEvents";
+import { CORRELATION_HEADER, takeCorrelationId } from "@/services/shared/correlation";
 import i18n from "i18next";
 import { toast } from "sonner";
 
@@ -81,6 +83,10 @@ apiClient.use({
     } catch {
       // Not authenticated — let the request proceed without token
     }
+    if (!request.headers.has(CORRELATION_HEADER)) {
+      const correlationId = takeCorrelationId(request.method, request.url);
+      if (correlationId) request.headers.set(CORRELATION_HEADER, correlationId);
+    }
     return request;
   },
   onResponse({ response }) {
@@ -89,6 +95,8 @@ apiClient.use({
       const retryAfter = Number(response.headers.get("Retry-After")) || 60;
       showRateLimitToast(retryAfter);
     }
+    // A refused write on a submission this user no longer holds (e.g. reclaimed).
+    void reportIfEditAccessLost(response);
     // Do NOT auto-redirect to /login on 401 from public pages.
     // The OrganizationLabelsProvider fires API calls on ALL pages (including
     // the public landing page at "/"). A 401 is expected when unauthenticated

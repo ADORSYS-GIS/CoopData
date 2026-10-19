@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { UserProfile } from "@/types/auth";
@@ -11,15 +11,35 @@ vi.mock("@/services/shared/authService", () => ({
   getAccessToken: vi.fn().mockResolvedValue("fake-token"),
   getUserProfile: vi.fn().mockReturnValue(null),
   isOfflineModeActive: vi.fn().mockReturnValue(false),
+  getOfflineSessionExpiry: vi.fn().mockReturnValue(null),
 }));
+
+const syncQueue = vi.hoisted(() => ({
+  flushSyncQueue: vi.fn().mockResolvedValue(undefined),
+  getPendingCount: vi.fn().mockResolvedValue(0),
+  getFailedItems: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("@/services/shared/syncQueueService", () => syncQueue);
+
+const offlineTables = vi.hoisted(() =>
+  ["submissions", "analytics", "syncQueue", "drafts"].map((name) => ({
+    name,
+    clear: vi.fn().mockResolvedValue(undefined),
+  })),
+);
+vi.mock("@/services/shared/offlineDb", () => ({ offlineDb: { tables: offlineTables } }));
 
 vi.mock("@/services/shared/offlineSeeder", () => ({
   seedOfflineCache: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+const sonner = vi.hoisted(() => ({
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
+vi.mock("sonner", () => sonner);
+
+const sessionRestore = vi.hoisted(() => ({ keepRestoringSession: vi.fn() }));
+vi.mock("@/services/shared/sessionRestore", () => sessionRestore);
 
 import {
   initKeycloak,
@@ -27,6 +47,7 @@ import {
   logout,
   getAccessToken,
   getUserProfile,
+  isOfflineModeActive,
 } from "@/services/shared/authService";
 import {
   KeycloakAuthProvider,
@@ -76,6 +97,9 @@ describe("AuthContext", () => {
     mockedGetAccessToken.mockResolvedValue("fake-token");
     mockedLogin.mockResolvedValue(undefined);
     mockedLogout.mockResolvedValue(undefined);
+    syncQueue.flushSyncQueue.mockResolvedValue(undefined);
+    syncQueue.getPendingCount.mockResolvedValue(0);
+    syncQueue.getFailedItems.mockResolvedValue([]);
   });
 
   describe("useAuth", () => {
@@ -160,6 +184,51 @@ describe("AuthContext", () => {
       expect(result.current.isAuthenticated).toBe(false);
       expect(result.current.user).toBeNull();
       expect(result.current.accessToken).toBeNull();
+    });
+
+    it("keeps queued changes and drafts on logout, clearing only cached copies", async () => {
+      mockedInitKeycloak.mockResolvedValue(true);
+      mockedGetUserProfile.mockReturnValue(makeProfile("ministry"));
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      const cleared = offlineTables.filter((t) => t.clear.mock.calls.length > 0).map((t) => t.name);
+      expect(cleared).toEqual(["submissions", "analytics"]);
+    });
+
+    it("asks before logging out while offline", async () => {
+      mockedInitKeycloak.mockResolvedValue(true);
+      mockedGetUserProfile.mockReturnValue(makeProfile("cooperative"));
+      const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      expect(mockedLogout).not.toHaveBeenCalled();
+      expect(result.current.isAuthenticated).toBe(true);
+      onLine.mockRestore();
+    });
+
+    it("asks before logging out when changes are still unsent", async () => {
+      mockedInitKeycloak.mockResolvedValue(true);
+      mockedGetUserProfile.mockReturnValue(makeProfile("cooperative"));
+      syncQueue.getPendingCount.mockResolvedValueOnce(2);
+      const { result } = renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+
+      await act(async () => {
+        await result.current.logout();
+      });
+
+      expect(syncQueue.flushSyncQueue).toHaveBeenCalled();
+      expect(mockedLogout).not.toHaveBeenCalled();
     });
   });
 
@@ -257,6 +326,55 @@ describe("AuthContext", () => {
       });
 
       await waitFor(() => expect(result.current).toBe(false));
+    });
+  });
+
+  describe("when the connection returns after starting offline", () => {
+    type Settle = (result: "restored" | "ended" | "reload") => void;
+
+    async function goOnlineAndSettle(result: "restored" | "ended" | "reload") {
+      vi.mocked(isOfflineModeActive).mockReturnValue(true);
+      let settle: Settle = () => {};
+      sessionRestore.keepRestoringSession.mockImplementation((onSettled: Settle) => {
+        settle = onSettled;
+        return () => {};
+      });
+      renderHook(() => useAuth(), { wrapper: createWrapper() });
+      await waitFor(() => expect(mockedInitKeycloak).toHaveBeenCalled());
+
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+      expect(sessionRestore.keepRestoringSession).toHaveBeenCalled();
+      await act(async () => settle(result));
+    }
+
+    afterEach(() => {
+      vi.mocked(isOfflineModeActive).mockReturnValue(false);
+    });
+
+    it("sends the outbox once the session is restored", async () => {
+      await goOnlineAndSettle("restored");
+
+      expect(syncQueue.flushSyncQueue).toHaveBeenCalled();
+      expect(mockedLogout).not.toHaveBeenCalled();
+    });
+
+    it("logs out when Keycloak no longer accepts the saved login", async () => {
+      await goOnlineAndSettle("ended");
+
+      await waitFor(() => expect(mockedLogout).toHaveBeenCalled());
+      expect(syncQueue.flushSyncQueue).not.toHaveBeenCalled();
+    });
+
+    it("offers a reload when the session can only reconnect after one", async () => {
+      await goOnlineAndSettle("reload");
+
+      expect(sonner.toast.info).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ action: expect.objectContaining({ label: expect.any(String) }) }),
+      );
+      expect(syncQueue.flushSyncQueue).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,4 +1,5 @@
 use crate::database::Database;
+use crate::entities::enums::AccountType;
 use crate::entities::{savings_account, SavingsAccountColumn};
 use crate::error::{AppError, AppResult};
 use sea_orm::sea_query::OnConflict;
@@ -22,6 +23,47 @@ impl SavingsAccountRepository {
             .one(&self.db)
             .await
             .map_err(AppError::DatabaseError)
+    }
+
+    /// Balance and number of accounts per account type for one submission.
+    pub async fn sum_balance_by_type(
+        &self,
+        cooperative_id: Uuid,
+        submission_id: Uuid,
+    ) -> AppResult<Vec<(AccountType, rust_decimal::Decimal, u64)>> {
+        use sea_orm::sea_query::Expr;
+        use sea_orm::{FromQueryResult, QuerySelect};
+
+        #[derive(FromQueryResult)]
+        struct SumRow {
+            account_type: AccountType,
+            total: Option<rust_decimal::Decimal>,
+            count: i64,
+        }
+
+        let rows = savings_account::Entity::find()
+            .filter(SavingsAccountColumn::CooperativeId.eq(cooperative_id))
+            .filter(SavingsAccountColumn::SubmissionId.eq(submission_id))
+            .select_only()
+            .column(SavingsAccountColumn::AccountType)
+            .column_as(Expr::col(SavingsAccountColumn::Balance).sum(), "total")
+            .column_as(Expr::col(SavingsAccountColumn::Id).count(), "count")
+            .group_by(SavingsAccountColumn::AccountType)
+            .into_model::<SumRow>()
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| {
+                (
+                    r.account_type,
+                    r.total.unwrap_or(rust_decimal::Decimal::ZERO),
+                    r.count as u64,
+                )
+            })
+            .collect())
     }
 
     pub async fn find_by_cooperative_id(

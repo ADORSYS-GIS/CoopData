@@ -1,5 +1,6 @@
 import { apiClient } from "@/openapi-client";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export interface MinistryStatsResponse {
   total_cooperatives: number;
@@ -34,8 +35,7 @@ function extractErrorMessage(err: unknown): string {
 export const useMinistryStats = (params: MinistryStatsParams = {}, enabled = true) =>
   useOfflineQuery<MinistryStatsResponse>({
     queryKey: ["ministry-stats", params],
-    cacheTable: "analytics",
-    cacheKey: `ministry-stats-${JSON.stringify(params)}`,
+    ...offlineCacheKeys.ministryStats(params),
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

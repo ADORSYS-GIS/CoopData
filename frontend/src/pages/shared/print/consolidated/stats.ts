@@ -1,4 +1,6 @@
+import { roundHalfUp } from "@/lib/currency";
 import type { CoopKpiRow, NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
+import { fixed, grouped, percentSign, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
 export type Tier = "Apex" | "Federation" | "Ministry";
 export type Tone = "ok" | "warn" | "bad" | "na";
@@ -45,7 +47,7 @@ export const changeOf = (current: number, prior: number | null | undefined): Cha
   if (!prior) return null;
   const pct = ((current - prior) / Math.abs(prior)) * 100;
   return {
-    text: `${pct > 0 ? "+" : ""}${pct.toFixed(1)}%`,
+    text: `${pct > 0 ? "+" : ""}${fixed(pct, 1)}${percentSign()}`,
     tone: pct > 0 ? "up" : pct < 0 ? "down" : "flat",
   };
 };
@@ -55,7 +57,7 @@ export const pointChange = (current: number | null, prior: number | null): Chang
   if (current === null || prior === null) return null;
   const diff = current - prior;
   return {
-    text: `${diff > 0 ? "+" : ""}${diff.toFixed(1)} pp`,
+    text: `${diff > 0 ? "+" : ""}${fixed(diff, 1)} ${tr("common.pp")}`,
     tone: diff > 0 ? "up" : diff < 0 ? "down" : "flat",
   };
 };
@@ -63,16 +65,17 @@ export const pointChange = (current: number | null, prior: number | null): Chang
 export const money = (value: number | null | undefined): string => {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} m`;
-  if (abs >= 10_000) return `${(value / 1_000).toFixed(0)} k`;
-  return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (abs >= 1_000_000)
+    return `${fixed(roundHalfUp(value / 1_000_000, 2), 2)} ${tr("common.million_short")}`;
+  if (abs >= 10_000)
+    return `${fixed(roundHalfUp(value / 1_000, 1), 1)} ${tr("common.thousand_short")}`;
+  return grouped(value);
 };
 
 export const percent = (value: number | null | undefined, digits = 1): string =>
-  value === null || value === undefined || Number.isNaN(value) ? "—" : `${value.toFixed(digits)}%`;
+  value === null || value === undefined || Number.isNaN(value) ? "—" : percentText(value, digits);
 
-export const integer = (value: number): string =>
-  value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+export const integer = (value: number): string => grouped(value);
 
 interface Benchmark {
   label: string;
@@ -100,16 +103,21 @@ export const toneOf = (name: string, value: number | null | undefined): Tone => 
   return value >= benchmark.good ? "ok" : value >= benchmark.watch ? "warn" : "bad";
 };
 
-export const TONE_LABEL: Record<Tone, string> = {
-  ok: "Meets",
-  warn: "Watch",
-  bad: "Breach",
-  na: "Not reported",
-};
+/** Status label; an unreported ratio reads "Unverified" like every other status pill. */
+export const toneLabel = (tone: Tone): string => tr(`status.${tone}`);
+
+/**
+ * Whether a cooperative is expected in the financial-statements edition: every
+ * cooperative except multipurpose ones, which report through the questionnaire.
+ * A cooperative whose type is not set yet may use either method.
+ */
+export const reportsStatements = (coop: CoopKpiRow): boolean =>
+  coop.institution_type !== "multipurpose";
 
 export const filingCounts = (data: NationalOverviewResponse) => {
-  const filed = data.cooperatives.filter((coop) => coop.has_data).length;
-  const total = data.total_cooperatives || data.cooperatives.length;
+  const expected = data.cooperatives.filter(reportsStatements);
+  const filed = expected.filter((coop) => coop.has_data).length;
+  const total = expected.length;
   return {
     filed,
     total,

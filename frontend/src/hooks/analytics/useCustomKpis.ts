@@ -3,14 +3,14 @@ import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import { runMutation } from "@/services/shared/syncQueueService";
 import i18n from "@/i18n";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export function useCustomKpis() {
   const queryClient = useQueryClient();
 
   const kpisQuery = useOfflineQuery({
     queryKey: ["custom-kpis", i18n.language?.split("-")[0] || "en"],
-    cacheTable: "analytics",
-    cacheKey: `custom-kpis-${i18n.language?.split("-")[0] || "en"}`,
+    ...offlineCacheKeys.customKpis(i18n.language?.split("-")[0] || "en"),
     queryFn: async () => {
       const lang = i18n.language?.split("-")[0] || "en";
       const { data, error } = await apiClient.GET("/api/v1/ministry/custom-kpis", {

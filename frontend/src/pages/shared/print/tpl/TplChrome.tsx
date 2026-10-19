@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-import { Pill, STATUS_LEGEND } from "@/pages/shared/print/tpl/TplParts";
+import { tr } from "@/pages/shared/print/tpl/i18n";
+import { Pill, statusLegend } from "@/pages/shared/print/tpl/TplParts";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 
 interface CoverProps {
@@ -83,11 +84,11 @@ export function FrontMatter({
   particulars,
   toc,
   basis,
-  basisTitle = "Basis of preparation",
+  basisTitle = tr("front.basis_of_preparation"),
 }: FrontMatterProps) {
   return (
     <>
-      <Sec title="Document Control" sub="Report particulars" />
+      <Sec title={tr("front.document_control")} sub={tr("front.report_particulars")} />
       <table className="kv">
         <tbody>
           {particulars.map(([k1, v1, k2, v2]) => (
@@ -101,7 +102,7 @@ export function FrontMatter({
         </tbody>
       </table>
 
-      <h3>Contents</h3>
+      <h3>{tr("front.contents")}</h3>
       <table className={toc.length > 11 ? "toc tight" : "toc"}>
         <tbody>
           {toc.map((entry) => (
@@ -117,16 +118,16 @@ export function FrontMatter({
       <h3>{basisTitle}</h3>
       <p>{basis}</p>
 
-      <h3>Status legend</h3>
+      <h3>{tr("front.status_legend")}</h3>
       <table className="tbl">
         <thead>
           <tr>
-            <th style={{ width: "26mm" }}>Status</th>
-            <th>Meaning</th>
+            <th style={{ width: "26mm" }}>{tr("common.status")}</th>
+            <th>{tr("common.meaning")}</th>
           </tr>
         </thead>
         <tbody>
-          {STATUS_LEGEND.map((row) => (
+          {statusLegend().map((row) => (
             <tr key={row.tone}>
               <td>
                 <Pill tone={row.tone} />

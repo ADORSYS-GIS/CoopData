@@ -12,6 +12,7 @@ import {
   FileText,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   AlertCircle,
   Plus,
   X,
@@ -20,13 +21,22 @@ import {
   Landmark,
   Network,
   ArrowUpRight,
-  Filter,
   Trash2,
+  Filter,
 } from "lucide-react";
+import { SubmissionAccessBadge } from "@/components/submissions/SubmissionAccessBadge";
+import { submissionAccess } from "@/lib/submissionAccess";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useCooperativeSubmissions,
   useApexSubmissions,
@@ -340,6 +350,33 @@ function NewSubmissionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function CoopSelect({
+  cooperatives,
+  value,
+  onChange,
+  placeholder,
+}: {
+  cooperatives: { id: string; display_name?: string; name: string }[];
+  value: string;
+  onChange: (id: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {cooperatives.map((coop) => (
+          <SelectItem key={coop.id} value={coop.id}>
+            {coop.display_name || coop.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
   const { t, replaceOrgTerms, coopLabel } = useOrganizationLabelsContext();
   const navigate = useNavigate();
@@ -386,11 +423,12 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
       const pVal = periodType === "YEARLY" ? String(year) : periodValue;
       const sub = await createApexSubmission.mutateAsync({
         cooperative_id: selectedCoopId,
+        cooperative_name: selectedCoop?.display_name ?? selectedCoop?.name,
         reporting_year: year,
         period_type: periodType,
         period_value: pVal,
         fiscal_start_month: fiscalStartMonth,
-      } as unknown as CreateApexSubmissionRequest);
+      } as unknown as CreateApexSubmissionRequest & { cooperative_name?: string });
       toast.success(t("submissions.submissionCreated", { year }));
       onClose();
       navigate({ to: "/app/submissions/$id", params: { id: sub.id } });
@@ -447,18 +485,12 @@ function NewApexSubmissionModal({ onClose }: { onClose: () => void }) {
                 {replaceOrgTerms("No cooperatives found under your apex.")}
               </p>
             ) : (
-              <select
+              <CoopSelect
+                cooperatives={cooperatives}
                 value={selectedCoopId}
-                onChange={(e) => setSelectedCoopId(e.target.value)}
-                className="w-full rounded-xl border border-input bg-muted/30 py-2.5 px-3 text-sm transition-all focus:border-ring/60 focus:bg-surface focus:ring-2 focus:ring-ring/10 focus:outline-none"
-              >
-                <option value="">{replaceOrgTerms("Select cooperative...")}</option>
-                {cooperatives.map((coop: { id: string; display_name?: string; name: string }) => (
-                  <option key={coop.id} value={coop.id}>
-                    {coop.display_name || coop.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedCoopId}
+                placeholder={replaceOrgTerms("Select cooperative...")}
+              />
             )}
           </div>
 
@@ -614,7 +646,7 @@ function SubmissionTable({
 }) {
   const { t } = useOrganizationLabelsContext();
   const role = useUserRole();
-  const { isOffline } = useAuth();
+  const { isOffline, user } = useAuth();
   const { verifyIdentity } = useVerifyIdentity();
   const deleteSubmission = useDeleteSubmission();
   const canValidate = true;
@@ -786,7 +818,12 @@ function SubmissionTable({
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <StatusPill tone={statusTone(s.status)}>{statusLabel(s.status, t)}</StatusPill>
+                    <div className="flex flex-col items-start gap-1">
+                      <StatusPill tone={statusTone(s.status)}>
+                        {statusLabel(s.status, t)}
+                      </StatusPill>
+                      <SubmissionAccessBadge compact access={submissionAccess(s, role, user?.id)} />
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-right">
                     <div className="inline-flex items-center gap-2 justify-end">

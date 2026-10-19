@@ -1,0 +1,163 @@
+import { test, expect } from "@playwright/test";
+import {
+  PWA_URL,
+  addQueueItem,
+  clearQueue,
+  isPwaServerUp,
+  loginForOffline,
+  queueItems,
+} from "../fixtures/helpers/offline";
+
+/**
+ * Sync queue (outbox) behaviour: issues C–F in
+ * docs/knowledge/frontend/offline-known-issues.md. Queue items point at a
+ * non-existent endpoint, so no server data is ever changed.
+ *
+ * Same requirements as offline.spec.ts. Run: npm run test:e2e:offline
+ */
+
+const NOOP_ENDPOINT = "/api/v1/__e2e_noop";
+const OFFLINE_BANNER = "You're offline — showing cached data";
+const KEYCLOAK_REQUESTS = "http://localhost:8180/**";
+
+test.describe("Offline sync queue", () => {
+  test.skip(!!process.env.CI, "Requires real backend + Keycloak + PWA build - skipped in CI");
+  test.use({ baseURL: PWA_URL });
+  test.setTimeout(180_000);
+
+  test.beforeAll(async () => {
+    test.skip(
+      !(await isPwaServerUp()),
+      `PWA build not reachable at ${PWA_URL} (docker compose up)`,
+    );
+  });
+
+  test("C: after starting offline, the outbox sends as soon as the connection returns", async ({
+    page,
+    context,
+  }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+
+    await context.setOffline(true);
+    await page.reload(); // the app now starts offline (cached token, no Keycloak)
+    await expect(page.getByRole("status").getByText(OFFLINE_BANNER)).toBeVisible();
+    await addQueueItem(page, { tag: "C", endpoint: NOOP_ENDPOINT, method: "POST", body: {} });
+
+    await context.setOffline(false); // no reload
+    await expect(page.getByRole("status").getByText(OFFLINE_BANNER)).toHaveCount(0, {
+      timeout: 20_000,
+    });
+    await expect
+      .poll(async () => (await queueItems(page)).find((i) => i.tag === "C")?.retryCount ?? 0, {
+        timeout: 20_000,
+      })
+      .toBeGreaterThan(0);
+
+    await clearQueue(page);
+  });
+
+  test("C: reconnects even when Keycloak is briefly unreachable after the network returns", async ({
+    page,
+    context,
+  }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole("status").getByText(OFFLINE_BANNER)).toBeVisible();
+    await addQueueItem(page, { tag: "C2", endpoint: NOOP_ENDPOINT, method: "POST", body: {} });
+
+    // The network is back, but Keycloak doesn't answer for a few seconds.
+    await page.route(KEYCLOAK_REQUESTS, (route) => route.abort("internetdisconnected"));
+    await context.setOffline(false);
+    await page.waitForTimeout(3_000);
+    await page.unroute(KEYCLOAK_REQUESTS);
+
+    await expect(page.getByRole("status").getByText(OFFLINE_BANNER)).toHaveCount(0, {
+      timeout: 45_000,
+    });
+    await expect
+      .poll(async () => (await queueItems(page)).find((i) => i.tag === "C2")?.retryCount ?? 0, {
+        timeout: 20_000,
+      })
+      .toBeGreaterThan(0);
+
+    await clearQueue(page);
+  });
+
+  test("D: an online save and its outbox retries carry the same correlation id", async ({
+    page,
+  }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+    await page.goto("/app/custom-kpis");
+
+    // Every attempt is dropped before reaching the server: nothing is saved.
+    const ids: (string | null)[] = [];
+    await page.route("**/api/v1/ministry/custom-kpis", async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      ids.push(route.request().headers()["x-correlation-id"] ?? null);
+      return route.abort("failed");
+    });
+
+    await page.getByRole("button", { name: /new custom kpi/i }).click();
+    await page.fill("#dialog-kpi-name", `E2E-NOT-SAVED-${Date.now()}`);
+    await page.fill("#dialog-formula-editor", "total_equity / total_assets * 100");
+    await page.getByRole("button", { name: /save custom kpi/i }).click();
+
+    await expect.poll(() => ids.length, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
+    expect(ids[0]).toBeTruthy();
+    expect(new Set(ids).size).toBe(1);
+
+    await clearQueue(page);
+  });
+
+  test("E: an 'already exists' refusal is reported as failed, not as saved", async ({ page }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+
+    // The server refuses: this email is already a user. Nothing is created.
+    await addQueueItem(page, {
+      tag: "E",
+      endpoint: "/api/v1/users",
+      method: "POST",
+      body: { email: process.env.E2E_MINISTRY_EMAIL, full_name: "E2E", role: "ministry" },
+    });
+
+    await expect
+      .poll(async () => (await queueItems(page)).find((i) => i.tag === "E")?.status, {
+        timeout: 20_000,
+      })
+      .toBe("failed");
+    const item = (await queueItems(page)).find((i) => i.tag === "E");
+    expect(item?.lastError).toMatch(/already exists/i);
+
+    await clearQueue(page);
+  });
+
+  test("F: a change the server refuses is shown to the user, who can dismiss it", async ({
+    page,
+  }) => {
+    await loginForOffline(page, "ministry");
+    await clearQueue(page);
+
+    await addQueueItem(page, { tag: "F", endpoint: NOOP_ENDPOINT, method: "POST", body: {} });
+
+    // A 404 won't change on retry: reported right away, not after slow retries.
+    const badge = page.getByRole("button", { name: "Not saved: 1" });
+    await expect(badge).toBeVisible({ timeout: 15_000 });
+    expect((await queueItems(page)).find((i) => i.tag === "F")?.retryCount).toBe(1);
+
+    await badge.click();
+    const panel = page.getByRole("dialog", { name: "Changes that couldn't be saved" });
+    await expect(panel.getByText("Create · Change")).toBeVisible();
+    await expect(panel.getByText("This item no longer exists on the server.")).toBeVisible();
+
+    await panel.getByRole("button", { name: /^Dismiss/ }).click();
+    await expect(panel.getByText("Nothing to fix — all your changes were saved.")).toBeVisible();
+    await expect(badge).toHaveCount(0);
+    expect((await queueItems(page)).find((i) => i.tag === "F")).toBeUndefined();
+  });
+});

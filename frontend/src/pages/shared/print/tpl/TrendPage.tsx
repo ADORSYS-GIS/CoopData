@@ -4,6 +4,7 @@ import type { PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import { Sec } from "@/pages/shared/print/tpl/TplPage";
 import { Figure } from "@/pages/shared/print/tpl/TplParts";
 import { LineChart } from "@/pages/shared/print/tpl/TplTrend";
+import { fixed, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 import {
   CAPITAL_MINIMUM,
   LIQUIDITY_MINIMUM,
@@ -20,14 +21,24 @@ interface TrendPageProps {
   scope: string;
 }
 
-const compact = (value: number): string => String(Math.round(value * 10) / 10);
+const compact = (value: number): string => {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? fixed(rounded, 0) : fixed(rounded, 1);
+};
 
 const movement = (rows: TrendRow[], pick: (row: TrendRow) => number, noun: string): string => {
   const first = rows[0];
   const last = rows[rows.length - 1];
   if (!first || !last || pick(first) === 0) return "";
   const change = ((pick(last) - pick(first)) / Math.abs(pick(first))) * 100;
-  return `${noun} ${change >= 0 ? "rose" : "fell"} ${Math.abs(change).toFixed(1)}% from SZL ${fmtMillions(pick(first))} in ${first.label} to SZL ${fmtMillions(pick(last))} in ${last.label}.`;
+  return tr(change >= 0 ? "trend.rose" : "trend.fell", {
+    noun,
+    change: percentText(Math.abs(change)),
+    from: fmtMillions(pick(first)),
+    fromLabel: first.label,
+    to: fmtMillions(pick(last)),
+    toLabel: last.label,
+  });
 };
 
 /** Returns null when fewer than two periods carry a statement, so no trend page is drawn. */
@@ -36,16 +47,17 @@ export const trendPage = ({ rows, no, scope }: TrendPageProps): PageSpec | null 
   const labels = rows.map((row) => row.label);
   const bars = unitFor(Math.max(...rows.flatMap((row) => [row.assets, row.savings, row.loans])));
   const surplus = unitFor(Math.max(...rows.map((row) => Math.abs(row.surplus))));
+  const title = tr("trend.title");
   return {
-    toc: { no, title: "Multi-Period Trend" },
+    toc: { no, title },
     render: () => (
       <>
-        <Sec no={no} title="Multi-Period Trend" sub={`${rows.length} periods, oldest first`} />
+        <Sec no={no} title={title} sub={tr("trend.periods_oldest_first", { count: rows.length })} />
         <p>
           {[
-            movement(rows, (row) => row.assets, "Total assets"),
-            movement(rows, (row) => row.savings, "Member savings"),
-            movement(rows, (row) => row.loans, "Gross loans"),
+            movement(rows, (row) => row.assets, tr("trend.total_assets")),
+            movement(rows, (row) => row.savings, tr("trend.member_savings")),
+            movement(rows, (row) => row.loans, tr("trend.gross_loans")),
           ]
             .filter(Boolean)
             .join(" ")}
@@ -53,9 +65,7 @@ export const trendPage = ({ rows, no, scope }: TrendPageProps): PageSpec | null 
         <Figure
           caption={
             <>
-              <b>Figure T1.</b> Total assets, member savings and gross loans of {scope}, in{" "}
-              {bars.label}. Approved statements only, converted at the rate frozen on each
-              submission.
+              <b>{tr("trend.fig_t1")}</b> {tr("trend.fig_t1_caption", { scope, unit: bars.label })}
             </>
           }
         >
@@ -63,9 +73,9 @@ export const trendPage = ({ rows, no, scope }: TrendPageProps): PageSpec | null 
             unit={bars.label}
             format={compact}
             series={[
-              { name: "Total assets", color: TEAL },
-              { name: "Member savings", color: LIGHT },
-              { name: "Gross loans", color: "#5E8FA3" },
+              { name: tr("trend.total_assets"), color: TEAL },
+              { name: tr("trend.member_savings"), color: LIGHT },
+              { name: tr("trend.gross_loans"), color: "#5E8FA3" },
             ]}
             data={rows.map((row) => ({
               label: row.label,
@@ -78,7 +88,7 @@ export const trendPage = ({ rows, no, scope }: TrendPageProps): PageSpec | null 
           />
         </Figure>
         <div className="two">
-          <Figure caption={<b>Figure T2. Net surplus ({surplus.label})</b>}>
+          <Figure caption={<b>{tr("trend.fig_t2", { unit: surplus.label })}</b>}>
             <LineChart
               labels={labels}
               values={rows.map((row) => scaled(row.surplus, surplus))}
@@ -86,39 +96,43 @@ export const trendPage = ({ rows, no, scope }: TrendPageProps): PageSpec | null 
               format={compact}
             />
           </Figure>
-          <Figure caption={<b>Figure T3. Portfolio at risk over 30 days (%)</b>}>
+          <Figure caption={<b>{tr("trend.fig_t3")}</b>}>
             <LineChart
               labels={labels}
               values={rows.map((row) => row.par30)}
-              unit="% of gross loans"
-              limit={{ value: PAR30_LIMIT, label: `Max ${PAR30_LIMIT}%` }}
+              unit={tr("common.pct_of_gross_loans")}
+              limit={{
+                value: PAR30_LIMIT,
+                label: tr("common.max_limit", { value: percentText(PAR30_LIMIT, 0) }),
+              }}
             />
           </Figure>
         </div>
         <div className="two">
-          <Figure caption={<b>Figure T4. Liquid assets (% of total assets)</b>}>
+          <Figure caption={<b>{tr("trend.fig_t4")}</b>}>
             <LineChart
               labels={labels}
               values={rows.map((row) => row.liquidity)}
-              unit="% of total assets"
-              limit={{ value: LIQUIDITY_MINIMUM, label: `Min ${LIQUIDITY_MINIMUM}%` }}
+              unit={tr("common.pct_of_total_assets")}
+              limit={{
+                value: LIQUIDITY_MINIMUM,
+                label: tr("common.min_limit", { value: percentText(LIQUIDITY_MINIMUM, 0) }),
+              }}
             />
           </Figure>
-          <Figure caption={<b>Figure T5. Capital adequacy (equity % of total assets)</b>}>
+          <Figure caption={<b>{tr("trend.fig_t5")}</b>}>
             <LineChart
               labels={labels}
               values={rows.map((row) => row.capital)}
-              unit="% of total assets"
-              limit={{ value: CAPITAL_MINIMUM, label: `Min ${CAPITAL_MINIMUM}%` }}
+              unit={tr("common.pct_of_total_assets")}
+              limit={{
+                value: CAPITAL_MINIMUM,
+                label: tr("common.min_limit", { value: percentText(CAPITAL_MINIMUM, 0) }),
+              }}
             />
           </Figure>
         </div>
-        <p className="src">
-          Source: approved financial statements. Balances are taken at the latest month of each
-          period. Amounts are shown in SZL so that periods and cooperatives reporting in different
-          currencies can be compared; the statement tables elsewhere in this report use the currency
-          reported by the cooperative.
-        </p>
+        <p className="src">{tr("trend.source")}</p>
       </>
     ),
   };

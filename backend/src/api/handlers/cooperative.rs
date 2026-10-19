@@ -375,6 +375,7 @@ pub async fn list_cooperatives(
                 description: Some(c.display_name),
                 institution_type: c.institution_type.map(|t| t.as_str().to_string()),
                 region: c.region.map(|r| r.as_str().to_string()),
+                tier: Some(c.tier),
             })
             .collect();
         return Ok((StatusCode::OK, Json(responses)));
@@ -1017,15 +1018,7 @@ pub async fn get_apex_profile(
 
 // ─── Cooperative Profile CRUD (US2.1) ─────────────────────────────────────────
 
-const VALID_COOP_TYPES: &[&str] = &[
-    "sacco",
-    "multipurpose",
-    "farm",
-    "housing",
-    "transport",
-    "finance",
-    "other",
-];
+const VALID_COOP_TYPES: &[&str] = &["sacco", "multipurpose"];
 const VALID_GEO_CLASSIF: &[&str] = &["Urban", "Rural"];
 const VALID_COOP_STATUS: &[&str] = &["Active", "Inactive", "Suspended"];
 const VALID_ACCOUNTING_YEAR: &[&str] = &["calendar", "fiscal"];
@@ -1222,21 +1215,14 @@ pub async fn resolve_cooperative_id_for_nf(
     }
 }
 
-/// Enforces exclusive editor on a submission: if `edited_by` is set, only that user can modify data.
+/// Enforces that the caller currently holds the draft (see `services::edit_access`).
 pub async fn verify_exclusive_editor_for_submission(
     state: &AppState,
     claims: &Claims,
     submission_id: Uuid,
 ) -> AppResult<()> {
     if let Some(sub) = state.submission_repo.find_by_id(submission_id).await? {
-        let current_user_id = Uuid::parse_str(&claims.sub).ok();
-        if let Some(editor_id) = sub.edited_by {
-            if current_user_id != Some(editor_id) {
-                return Err(AppError::Forbidden(
-                    "Only the editor assigned to this submission can modify it".into(),
-                ));
-            }
-        }
+        crate::services::edit_access::ensure_submission_editor(&sub, claims)?;
     }
     Ok(())
 }
@@ -1444,7 +1430,11 @@ pub async fn get_cooperative_profile(
 
     assert_profile_belongs_to_apex(&state, &claims, &coop).await?;
 
-    Ok((StatusCode::OK, Json(CooperativeProfileResponse::from(coop))))
+    let has_submissions = state.submission_repo.exists_for_cooperative(id).await?;
+    Ok((
+        StatusCode::OK,
+        Json(CooperativeProfileResponse::from(coop).with_submissions(has_submissions)),
+    ))
 }
 
 #[utoipa::path(
@@ -1457,7 +1447,7 @@ pub async fn get_cooperative_profile(
         (status = 400, description = "Invalid input"),
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Cooperative not found"),
-        (status = 409, description = "reg_no conflict")
+        (status = 409, description = "reg_no conflict, or a type change after submissions exist")
     ),
     tag = "Cooperatives"
 )]
@@ -1524,6 +1514,22 @@ pub async fn update_cooperative_profile(
                 "Invalid institution_type. Must be one of: {}",
                 VALID_COOP_TYPES.join(", ")
             )));
+        }
+        // The type decides the reporting forms and benchmarks; changing it under
+        // existing submissions would mix data from two different templates.
+        let current_type = existing.institution_type.as_ref().map(|t| t.as_str());
+        if current_type != Some(ct.as_str())
+            && state.submission_repo.exists_for_cooperative(id).await?
+        {
+            tracing::warn!(
+                coop_id = %id,
+                user_id = %claims.sub,
+                "Rejected cooperative type change: cooperative already has submissions"
+            );
+            return Err(AppError::Conflict(
+                "The cooperative type can no longer be changed: this cooperative already has submissions"
+                    .into(),
+            ));
         }
     }
     if let Some(ref region) = body.region {
@@ -1607,9 +1613,10 @@ pub async fn update_cooperative_profile(
     }
 
     tracing::info!(coop_id = %id, "Cooperative profile updated");
+    let has_submissions = state.submission_repo.exists_for_cooperative(id).await?;
     Ok((
         StatusCode::OK,
-        Json(CooperativeProfileResponse::from(updated)),
+        Json(CooperativeProfileResponse::from(updated).with_submissions(has_submissions)),
     ))
 }
 

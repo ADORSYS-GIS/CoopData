@@ -189,16 +189,6 @@ pub enum CooperativeType {
     Sacco,
     #[sea_orm(string_value = "multipurpose")]
     Multipurpose,
-    #[sea_orm(string_value = "farm")]
-    Farm,
-    #[sea_orm(string_value = "housing")]
-    Housing,
-    #[sea_orm(string_value = "transport")]
-    Transport,
-    #[sea_orm(string_value = "finance")]
-    Finance,
-    #[sea_orm(string_value = "other")]
-    Other,
 }
 
 impl CooperativeType {
@@ -206,11 +196,6 @@ impl CooperativeType {
         match s {
             "sacco" => Some(Self::Sacco),
             "multipurpose" => Some(Self::Multipurpose),
-            "farm" => Some(Self::Farm),
-            "housing" => Some(Self::Housing),
-            "transport" => Some(Self::Transport),
-            "finance" => Some(Self::Finance),
-            "other" => Some(Self::Other),
             _ => None,
         }
     }
@@ -219,11 +204,6 @@ impl CooperativeType {
         match self {
             Self::Sacco => "sacco",
             Self::Multipurpose => "multipurpose",
-            Self::Farm => "farm",
-            Self::Housing => "housing",
-            Self::Transport => "transport",
-            Self::Finance => "finance",
-            Self::Other => "other",
         }
     }
 }
@@ -562,6 +542,12 @@ pub enum AgeGroup {
 }
 
 impl AgeGroup {
+    /// Youth means members aged 18 to 35, as the reports and the
+    /// questionnaire define it; members under 18 are not youth.
+    pub fn is_youth(&self) -> bool {
+        *self == Self::Between18And35
+    }
+
     pub fn parse(s: &str) -> Option<Self> {
         let norm = s.trim().to_lowercase().replace(' ', "");
         match norm.as_str() {

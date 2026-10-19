@@ -58,3 +58,24 @@ export const describeRate = (rate: RateUsed): string => {
   parts.push(rate.frozen ? "frozen at approval" : "current rate, not yet frozen");
   return `1 ${rate.currency_code} = ${rate.rate_to_zar} ${rate.currency_code} (${parts.join("; ")})`;
 };
+
+/** Rounds to `digits` decimals, halves away from zero (3.155 → 3.16, not 3.15). */
+export const roundHalfUp = (value: number, digits: number): number => {
+  const factor = 10 ** digits;
+  return (
+    (Math.sign(value) * Math.round(Number((Math.abs(value) * factor).toPrecision(12)))) / factor
+  );
+};
+
+/**
+ * An amount shortened for boxes, cards and summaries: billions and millions
+ * with two decimals, thousands with one (3,150,000 → "3.15M", 838,500 →
+ * "838.5K"). Every screen and report uses this one rule.
+ */
+export const shortAmount = (value: number): string => {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) return `${roundHalfUp(value / 1_000_000_000, 2).toFixed(2)}B`;
+  if (abs >= 1_000_000) return `${roundHalfUp(value / 1_000_000, 2).toFixed(2)}M`;
+  if (abs >= 1_000) return `${roundHalfUp(value / 1_000, 1).toFixed(1)}K`;
+  return String(roundHalfUp(value, 0));
+};

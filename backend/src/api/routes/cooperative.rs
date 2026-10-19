@@ -128,6 +128,14 @@ pub fn cooperative_routes() -> Router<AppState> {
             get(crate::api::handlers::export::export_single_submission),
         )
         .route(
+            "/submissions/{id}/report",
+            get(crate::api::handlers::export::get_submission_report_status),
+        )
+        .route(
+            "/submissions/{id}/report/prepare",
+            post(crate::api::handlers::export::prepare_submission_report),
+        )
+        .route(
             "/submissions/{id}/questionnaire-report",
             get(crate::api::handlers::questionnaire_report::get_questionnaire_report),
         )
@@ -219,6 +227,7 @@ async fn get_cooperative_profile(
     let mut resp = CooperativeResponse::from(group);
     resp.institution_type = coop.institution_type.map(|t| t.as_str().to_string());
     resp.region = coop.region.map(|r| r.as_str().to_string());
+    resp.tier = Some(coop.tier);
 
     Ok(Json(resp))
 }

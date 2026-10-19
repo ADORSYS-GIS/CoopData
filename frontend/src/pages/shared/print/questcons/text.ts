@@ -1,36 +1,23 @@
-import { PAR30_LIMIT, type QuestAnalysis } from "@/pages/shared/print/quest/data";
+import { par30Limit, type QuestAnalysis } from "@/pages/shared/print/quest/data";
 import type { Recommendation } from "@/pages/shared/print/quest/text";
 import { coverageOf, complianceOf } from "@/pages/shared/print/questcons/stats";
+import { tr } from "@/pages/shared/print/tpl/i18n";
 
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+/** Text for a count that reads differently in the singular (`_one`) and the plural (`_other`). */
+const counted = (key: string, count: number, extra: Record<string, unknown> = {}): string =>
+  tr(`quest.cons.${key}_${count === 1 ? "one" : "other"}`, { count, ...extra });
 
 export const concernsOf = (a: QuestAnalysis): string[] => {
   const { dashboard } = a.props;
   const c = complianceOf(dashboard);
   const cover = coverageOf(dashboard);
-  const { thresholds } = dashboard;
   const out: string[] = [];
-  if (c.par30.below > 0)
-    out.push(
-      `${plural(c.par30.below, "cooperative has", "cooperatives have")} PAR over 30 days above ${PAR30_LIMIT}%.`,
-    );
-  if (c.liquidity.below > 0)
-    out.push(
-      `${plural(c.liquidity.below, "cooperative is", "cooperatives are")} below the ${thresholds.liquidity_minimum_pct}% liquidity minimum.`,
-    );
-  if (c.capital.below > 0)
-    out.push(
-      `${plural(c.capital.below, "cooperative is", "cooperatives are")} below the ${thresholds.institutional_capital_minimum_pct}% institutional capital minimum.`,
-    );
-  if (cover.missing > 0)
-    out.push(
-      `${plural(cover.missing, "cooperative has", "cooperatives have")} no questionnaire return for this period.`,
-    );
+  if (c.par30.below > 0) out.push(counted("con_par", c.par30.below, { limit: par30Limit() }));
+  if (c.operatingMargin.below > 0) out.push(counted("con_margin", c.operatingMargin.below));
+  if (c.reserveCoverage.below > 0) out.push(counted("con_reserve", c.reserveCoverage.below));
+  if (cover.missing > 0) out.push(counted("con_missing_coops", cover.missing));
   const missing = dashboard.indicators.filter((i) => i.value === null).length;
-  if (missing > 0)
-    out.push(
-      `${plural(missing, "indicator", "indicators")} could not be computed from the answers given; see Annex A.`,
-    );
+  if (missing > 0) out.push(counted("con_missing_ind", missing));
   return out.slice(0, 5);
 };
 
@@ -42,21 +29,12 @@ export const strengthsOf = (a: QuestAnalysis): string[] => {
   if (cover.inScope > 0 && cover.missing === 0)
     out.push(
       cover.inScope === 1
-        ? "The cooperative in scope filed a questionnaire."
-        : `All ${cover.inScope} cooperatives in scope filed a questionnaire.`,
+        ? tr("quest.cons.str_filed_one")
+        : tr("quest.cons.str_filed_all", { count: cover.inScope }),
     );
-  if (c.par30.meets > 0)
-    out.push(
-      `${plural(c.par30.meets, "cooperative keeps", "cooperatives keep")} PAR over 30 days within ${PAR30_LIMIT}%.`,
-    );
-  if (c.liquidity.meets > 0)
-    out.push(
-      `${plural(c.liquidity.meets, "cooperative meets", "cooperatives meet")} the liquidity minimum.`,
-    );
-  if (c.capital.meets > 0)
-    out.push(
-      `${plural(c.capital.meets, "cooperative meets", "cooperatives meet")} the institutional capital minimum.`,
-    );
+  if (c.par30.meets > 0) out.push(counted("str_par", c.par30.meets, { limit: par30Limit() }));
+  if (c.operatingMargin.meets > 0) out.push(counted("str_margin", c.operatingMargin.meets));
+  if (c.reserveCoverage.meets > 0) out.push(counted("str_reserve", c.reserveCoverage.meets));
   return out.slice(0, 5);
 };
 
@@ -67,44 +45,44 @@ export const recommendationsOf = (a: QuestAnalysis): Recommendation[] => {
   const out: Recommendation[] = [];
   if (c.par30.below > 0)
     out.push({
-      lead: "Portfolio quality.",
-      text: `Require a recovery plan from the ${plural(c.par30.below, "cooperative", "cooperatives")} above the ${PAR30_LIMIT}% PAR limit and follow progress each period.`,
+      lead: tr("quest.rec.portfolio.lead"),
+      text: tr("quest.cons.rec_portfolio_text", { count: c.par30.below, limit: par30Limit() }),
       priority: "High",
-      timeline: "Within 30 days",
+      timeline: tr("common.timelines.within_30_days"),
     });
-  if (c.liquidity.below > 0)
+  if (c.operatingMargin.below > 0)
     out.push({
-      lead: "Liquidity.",
-      text: `Agree liquidity-building plans with the ${plural(c.liquidity.below, "cooperative", "cooperatives")} below ${dashboard.thresholds.liquidity_minimum_pct}%.`,
+      lead: tr("quest.rec.operating.lead"),
+      text: tr("quest.cons.rec_operating_text", { count: c.operatingMargin.below }),
       priority: "High",
-      timeline: "Within 30 days",
+      timeline: tr("common.timelines.within_30_days"),
     });
-  if (c.capital.below > 0)
+  if (c.reserveCoverage.below > 0)
     out.push({
-      lead: "Capital.",
-      text: `Agree capital-building plans with the ${plural(c.capital.below, "cooperative", "cooperatives")} below ${dashboard.thresholds.institutional_capital_minimum_pct}%.`,
-      priority: "High",
-      timeline: "Within 30 days",
+      lead: tr("quest.rec.reserves.lead"),
+      text: tr("quest.cons.rec_reserves_text", { count: c.reserveCoverage.below }),
+      priority: "Medium",
+      timeline: tr("common.timelines.next_quarter"),
     });
   if (cover.missing > 0)
     out.push({
-      lead: "Reporting coverage.",
-      text: `Follow up the ${plural(cover.missing, "cooperative", "cooperatives")} that did not file, so that the next report covers every cooperative.`,
+      lead: tr("quest.cons.rec_coverage_lead"),
+      text: tr("quest.cons.rec_coverage_text", { count: cover.missing }),
       priority: "Medium",
-      timeline: "Next return",
+      timeline: tr("quest.timeline_next_return"),
     });
   if (dashboard.indicators.some((i) => i.value === null))
     out.push({
-      lead: "Data quality.",
-      text: "Ask cooperatives to complete the questionnaire fields listed in Annex A so that every indicator can be computed.",
+      lead: tr("quest.cons.rec_data_lead"),
+      text: tr("quest.cons.rec_data_text"),
       priority: "Medium",
-      timeline: "Next return",
+      timeline: tr("quest.timeline_next_return"),
     });
   out.push({
-    lead: "Financial statements.",
-    text: "Encourage cooperatives to move to full statement reporting, so that ratios are computed from ledger balances.",
+    lead: tr("quest.rec.statements.lead"),
+    text: tr("quest.cons.rec_statements_text"),
     priority: "Standard",
-    timeline: "Next financial year",
+    timeline: tr("common.timelines.next_financial_year"),
   });
   return out;
 };

@@ -1,3 +1,5 @@
+import { percentSign, short } from "@/pages/shared/print/tpl/i18n";
+
 const TEAL = "#1F4E62";
 const LIGHT = "#8FB0BF";
 const RED = "#B8392B";
@@ -39,7 +41,7 @@ export function HBarPairs({ rows, priorLabel, currentLabel, unit, format }: HBar
   const height = rows.length * rowH + 50;
   const x = (value: number) => left + (width * Math.abs(value)) / max;
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * max);
-  const fmt = format ?? ((v: number) => String(Math.round(v * 10) / 10));
+  const fmt = format ?? ((v: number) => short(Math.round(v * 10) / 10));
 
   return (
     <svg viewBox={`0 0 780 ${height}`} fontFamily="Carlito, sans-serif" fontSize="11" fill={INK}>
@@ -110,7 +112,7 @@ export function VBarGroups({ data, series, unit, format }: VBarGroupsProps) {
   const slot = width / Math.max(data.length, 1);
   const barW = Math.min(30, (slot - 24) / Math.max(series.length, 1));
   const y = (value: number) => bottom - ((bottom - top) * Math.abs(value)) / max;
-  const fmt = format ?? ((v: number) => String(Math.round(v * 10) / 10));
+  const fmt = format ?? ((v: number) => short(Math.round(v * 10) / 10));
 
   return (
     <svg viewBox="0 0 780 250" fontFamily="Carlito, sans-serif" fontSize="11" fill={INK}>
@@ -214,7 +216,8 @@ export function ShareBars({ rows }: { rows: ShareRow[] }) {
             stroke="#E3E8EB"
           />
           <text x={left + (width * tick) / 100} y={rows.length * rowH + 16} textAnchor="middle">
-            {tick}%
+            {tick}
+            {percentSign()}
           </text>
         </g>
       ))}
@@ -247,7 +250,8 @@ export function ShareBars({ rows }: { rows: ShareRow[] }) {
                       fill={i < 2 ? "#fff" : TEAL}
                       fontSize="10"
                     >
-                      {segment.label} {Math.round((segment.value / total) * 100)}%
+                      {segment.label} {Math.round((segment.value / total) * 100)}
+                      {percentSign()}
                     </text>
                   )}
                 </g>

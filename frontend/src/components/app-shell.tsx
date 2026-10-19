@@ -31,6 +31,8 @@ import {
   Calculator,
   Gauge,
   Tags,
+  FileText,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { type ReactNode, useState, useEffect, useMemo } from "react";
@@ -44,6 +46,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "./shared/LanguageSwitcher";
 import { PeriodReminderBell } from "@/components/submissions/PeriodReminderBell";
 import { Spinner } from "@/components/ui/spinner";
+import { useAnalyticsTrackNav } from "@/hooks/cooperatives/useAnalyticsTrackNav";
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: string };
 
@@ -82,6 +85,8 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/questionnaire-templates", label: "Questionnaire Forms", icon: ClipboardList },
       { to: "/app/users", label: "Users & Roles", icon: Users },
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
+      { to: "/app/admin-legal", label: "Legal Policies", icon: FileText },
+      { to: "/app/data-privacy", label: "Data Privacy & Consents", icon: ShieldCheck },
       { to: "/app/profile", label: "Profile", icon: UserCog },
     ],
   },
@@ -102,6 +107,7 @@ function Sidebar({
   const { getLabel } = useOrganizationLabelsContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, logout, role } = useAuth();
+  const analyticsNav = useAnalyticsTrackNav();
 
   const getGroupLabel = (group: { id: NavGroupId; label: string }) => {
     if (group.id === "oversight") return t("nav.oversight");
@@ -134,6 +140,8 @@ function Sidebar({
     if (item.to === "/app/settings") return t("nav.settings");
     if (item.to === "/app/configure-roles")
       return t("nav.configureRoles", { defaultValue: "Configure Levels" });
+    if (item.to === "/app/data-privacy")
+      return t("nav.dataPrivacy", { defaultValue: "Data Privacy & Consents" });
     if (item.to === "/app/profile") return t("nav.profile");
     return item.label;
   };
@@ -146,14 +154,21 @@ function Sidebar({
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
+    // Resolves without redirecting when the user is asked to confirm first.
     await logout();
+    setIsLoggingOut(false);
   };
 
   const visibleGroups = ROLE_NAV[effectiveRole];
   const filteredGroups = NAV_GROUPS.filter((g) => visibleGroups.includes(g.id))
     .map((group) => {
       const allowedItems = ROLE_NAV_ITEMS[effectiveRole][group.id] || [];
-      return { ...group, items: group.items.filter((item) => allowedItems.includes(item.to)) };
+      return {
+        ...group,
+        items: group.items.filter(
+          (item) => allowedItems.includes(item.to) && analyticsNav.isVisible(item.to),
+        ),
+      };
     })
     .filter((g) => g.items.length > 0);
 
@@ -350,7 +365,9 @@ function Topbar({
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
+    // Resolves without redirecting when the user is asked to confirm first.
     await logout();
+    setIsLoggingOut(false);
   };
 
   const cycleTheme = () => {
@@ -450,6 +467,13 @@ export function AppShell({
   const { isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const analyticsRedirect = useAnalyticsTrackNav().redirectFor(pathname);
+
+  // A cooperative opening analytics meant for another type goes to its own version.
+  useEffect(() => {
+    if (analyticsRedirect) navigate({ to: analyticsRedirect, replace: true });
+  }, [analyticsRedirect, navigate]);
 
   // Redirect to login if not authenticated — must be in useEffect, not render body
   useEffect(() => {

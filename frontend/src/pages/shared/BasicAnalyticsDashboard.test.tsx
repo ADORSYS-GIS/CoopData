@@ -54,8 +54,8 @@ describe("BasicAnalyticsDashboard", () => {
   it("renders the indicator groups, the ranking table and the scope header", () => {
     mockState.empty = false;
     render(<BasicAnalyticsDashboard />);
-    expect(screen.getByText("risk")).toBeTruthy();
-    expect(screen.getByText("membership")).toBeTruthy();
+    expect(screen.getAllByText("risk").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("governance").length).toBeGreaterThan(0);
     expect(screen.getAllByText("SNAT").length).toBeGreaterThan(0);
     expect(screen.getByText("consolidated")).toBeTruthy();
   });
@@ -64,6 +64,6 @@ describe("BasicAnalyticsDashboard", () => {
     mockState.empty = true;
     render(<BasicAnalyticsDashboard />);
     expect(screen.getByText("empty")).toBeTruthy();
-    expect(screen.queryByText("membership")).toBeNull();
+    expect(screen.queryByText("governance")).toBeNull();
   });
 });

@@ -5,6 +5,9 @@ import { getAccessToken, getUserProfile } from "@/services/shared/authService";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { runMutation } from "@/services/shared/syncQueueService";
 import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
+import { assertOnline } from "@/services/shared/networkGuard";
+import { cacheLocalDraftSubmission } from "@/services/shared/localDraftSubmission";
 
 export type SubmissionResponse = components["schemas"]["SubmissionResponse"] & {
   period_type?: string;
@@ -63,8 +66,7 @@ export class DuplicateSubmissionError extends Error {
 export const useCooperativeSubmissions = (enabled = true) =>
   useOfflineQuery<SubmissionResponse[]>({
     queryKey: [SUBMISSIONS_KEY],
-    cacheTable: "submissions",
-    cacheKey: "cooperative-list",
+    ...offlineCacheKeys.cooperativeSubmissions(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/submissions");
@@ -78,8 +80,7 @@ export const useCooperativeSubmissions = (enabled = true) =>
 export const useApexSubmissions = (enabled = true) =>
   useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["apex-submissions"],
-    cacheTable: "submissions",
-    cacheKey: "apex-list",
+    ...offlineCacheKeys.apexSubmissions(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/submissions");
@@ -97,8 +98,7 @@ export const useFederationSubmissions = (
   const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
   return useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["federation-submissions", { all, enabled }],
-    cacheTable: "submissions",
-    cacheKey: `federation-list-${all ?? "default"}`,
+    ...offlineCacheKeys.federationSubmissions(all),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/federation/submissions", {
@@ -121,8 +121,7 @@ export const useMinistrySubmissions = (
   const enabled = typeof options === "object" ? (options.enabled ?? true) : options;
   return useOfflineQuery<SubmissionResponse[]>({
     queryKey: ["ministry-submissions", { all, enabled }],
-    cacheTable: "submissions",
-    cacheKey: `ministry-list-${all ?? "default"}`,
+    ...offlineCacheKeys.ministrySubmissions(all),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/submissions", {
@@ -141,8 +140,7 @@ export const useMinistrySubmissions = (
 export const useSubmission = (id: string, role?: string, tokenOverride?: string) =>
   useOfflineQuery<SubmissionResponse>({
     queryKey: [SUBMISSIONS_KEY, id],
-    cacheTable: "submissions",
-    cacheKey: `submission-${id}`,
+    ...offlineCacheKeys.submission(id),
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
 
@@ -178,6 +176,9 @@ export const useSubmission = (id: string, role?: string, tokenOverride?: string)
       return data as SubmissionResponse;
     },
     enabled: !!id,
+    // A draft can change hands (delegation, reclaim) while it is open: keep it fresh.
+    refetchInterval: (query) => (query.state.data?.status === "draft" ? 15_000 : false),
+    refetchOnWindowFocus: true,
   });
 
 export const useCreateSubmission = () => {
@@ -208,97 +209,11 @@ export const useCreateSubmission = () => {
       };
 
       const userId = getUserProfile()?.id ?? "anon";
-
-      // 1. Write the new optimistic submission to IndexedDB cached lists immediately
-      try {
-        const cachedCoopList = await cacheGet<SubmissionResponse[]>(
-          "submissions",
-          "cooperative-list",
-          userId,
-          true,
-        );
-        if (cachedCoopList) {
-          if (!cachedCoopList.some((s) => s.id === localId)) {
-            const updated = [optimistic, ...cachedCoopList];
-            await cacheSet("submissions", "cooperative-list", userId, updated);
-          }
-        } else {
-          await cacheSet("submissions", "cooperative-list", userId, [optimistic]);
-        }
-      } catch (e) {
-        console.warn("Failed to update cached cooperative submissions list on create", e);
-      }
-
-      // 2. Also cache the submission detail record so details view can open it offline
-      try {
-        await cacheSet("submissions", `submission-${localId}`, userId, optimistic);
-      } catch (e) {
-        // ignore
-      }
-
-      // 3. Cache empty reviews array for this new submission so no stale review history leaks
-      try {
-        await cacheSet("submissions", `reviews-${localId}`, userId, []);
-      } catch (e) {
-        // ignore
-      }
-
-      // 4. Cache initial pending section models for this new submission
-      const initialSections = [
-        {
-          id: crypto.randomUUID(),
-          submission_id: localId,
-          section: "financial",
-          status: "pending",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: crypto.randomUUID(),
-          submission_id: localId,
-          section: "members",
-          status: "pending",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: crypto.randomUUID(),
-          submission_id: localId,
-          section: "savings",
-          status: "pending",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: crypto.randomUUID(),
-          submission_id: localId,
-          section: "loans",
-          status: "pending",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: crypto.randomUUID(),
-          submission_id: localId,
-          section: "fixed_deposits",
-          status: "pending",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: crypto.randomUUID(),
-          submission_id: localId,
-          section: "farm_coop",
-          status: "pending",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ];
-      try {
-        await cacheSet("submissions", `sections-${localId}`, userId, initialSections);
-      } catch (e) {
-        // ignore
-      }
+      await cacheLocalDraftSubmission(
+        optimistic,
+        offlineCacheKeys.cooperativeSubmissions(),
+        userId,
+      );
 
       return runMutation<SubmissionResponse>("/api/v1/cooperative/submissions", "POST", {
         body: payload,
@@ -491,6 +406,7 @@ export const useDeleteFinancialStatement = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (submissionId: string) => {
+      assertOnline();
       const { getAccessToken } = await import("@/services/shared/authService");
       const token = await getAccessToken();
       const base = import.meta.env.VITE_API_BASE_URL || "";
@@ -521,14 +437,14 @@ export interface SubmissionReviewResponse {
   reviewer_id: string | null;
   action: string;
   comment: string | null;
+  target_tier?: string | null;
   created_at: string;
 }
 
 export const useSubmissionReviews = (submissionId: string | undefined) =>
   useOfflineQuery<SubmissionReviewResponse[]>({
     queryKey: ["submission-reviews", submissionId],
-    cacheTable: "submissions",
-    cacheKey: `reviews-${submissionId}`,
+    ...offlineCacheKeys.submissionReviews(submissionId),
     enabled: !!submissionId,
     queryFn: async () => {
       const token = await getAccessToken();
@@ -551,8 +467,7 @@ export const useApexStats = (enabled = true) =>
     rejected_submissions: number;
   }>({
     queryKey: ["apex-stats"],
-    cacheTable: "submissions",
-    cacheKey: "apex-stats",
+    ...offlineCacheKeys.apexStats(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/stats");
@@ -575,8 +490,7 @@ export const useCooperativeStats = (enabled = true) =>
     rejected_submissions: number;
   }>({
     queryKey: ["cooperative-stats"],
-    cacheTable: "submissions",
-    cacheKey: "cooperative-stats",
+    ...offlineCacheKeys.cooperativeStats(),
     enabled,
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/cooperative/stats");
@@ -596,21 +510,58 @@ export const useCooperativeStats = (enabled = true) =>
 export const useCreateApexSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: {
-      cooperative_id: string;
-      reporting_year: number;
-      priority?: string;
-      submission_method?: string;
+    mutationFn: async ({
+      cooperative_name,
+      ...body
+    }: CreateApexSubmissionRequest & {
+      /** Display-only: shown for the offline draft, never sent to the server. */
+      cooperative_name?: string;
     }) => {
-      const { data, error } = await apiClient.POST("/api/v1/apex/submissions", {
-        body: body as unknown as CreateApexSubmissionRequest,
+      const profile = getUserProfile();
+      const localId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const optimistic = {
+        id: localId,
+        reporting_year: body.reporting_year,
+        cooperative_id: body.cooperative_id,
+        cooperative_name,
+        status: "draft",
+        submission_method: body.submission_method ?? "",
+        current_tier: "apex",
+        priority: body.priority ?? "Routine",
+        period_type: body.period_type ?? "",
+        period_value: String(body.period_value ?? ""),
+        fiscal_start_month: body.fiscal_start_month ?? 1,
+        created_by_role: "apex",
+        edited_by: profile?.id ?? null,
+        edited_by_name: profile?.name ?? null,
+        created_at: now,
+        updated_at: now,
+        sections: [],
+      } as unknown as SubmissionResponse;
+      const payload = { ...body, id: localId };
+
+      await cacheLocalDraftSubmission(
+        optimistic,
+        offlineCacheKeys.apexSubmissions(),
+        profile?.id ?? "anon",
+      );
+
+      return runMutation<SubmissionResponse>("/api/v1/apex/submissions", "POST", {
+        body: payload,
+        optimisticData: optimistic,
+        online: async () => {
+          const { data, error } = await apiClient.POST("/api/v1/apex/submissions", {
+            body: payload as unknown as CreateApexSubmissionRequest,
+          });
+          if (error) {
+            const sid = extractSubmissionId(error);
+            if (sid) throw new DuplicateSubmissionError(extractErrorMessage(error), sid);
+            throw new Error(extractErrorMessage(error));
+          }
+          return data as SubmissionResponse;
+        },
       });
-      if (error) {
-        const sid = extractSubmissionId(error);
-        if (sid) throw new DuplicateSubmissionError(extractErrorMessage(error), sid);
-        throw new Error(extractErrorMessage(error));
-      }
-      return data as SubmissionResponse;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
@@ -623,6 +574,7 @@ export const useDelegateSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      assertOnline();
       const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/delegate", {
         params: { path: { id } },
         body: { comment } as unknown as DelegateSubmissionRequest,
@@ -642,6 +594,7 @@ export const useReclaimSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, comment }: { id: string; comment?: string }) => {
+      assertOnline();
       const { data, error } = await apiClient.POST("/api/v1/apex/submissions/{id}/reclaim", {
         params: { path: { id } },
         body: { comment } as unknown as ReclaimSubmissionRequest,
@@ -661,6 +614,7 @@ export const useClaimCooperativeEdit = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
+      assertOnline();
       const { data, error } = await apiClient.POST(
         "/api/v1/cooperative/submissions/{id}/claim-edit" as never,
         { params: { path: { id } } } as never,
@@ -679,6 +633,7 @@ export const useClaimApexEdit = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
+      assertOnline();
       const { data, error } = await apiClient.POST(
         "/api/v1/apex/submissions/{id}/claim-edit" as never,
         {

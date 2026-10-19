@@ -229,6 +229,10 @@ pub struct SubmissionResponse {
     /// Cooperative display name (populated by list handlers for apex/federation/ministry)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cooperative_name: Option<String>,
+    /// Cooperative type ("sacco" or "multipurpose"), used by the frontend to
+    /// gate which submission methods are offered.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cooperative_institution_type: Option<String>,
     /// Apex display name (populated by list handlers for federation/ministry)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apex_name: Option<String>,
@@ -281,6 +285,7 @@ impl From<SubmissionModel> for SubmissionResponse {
             file_id: None,
             sections: Vec::new(),
             cooperative_name: None,
+            cooperative_institution_type: None,
             apex_name: None,
             federation_name: None,
             apex_id: None,
@@ -314,6 +319,11 @@ impl SubmissionResponse {
 
     pub fn with_cooperative_name(mut self, name: Option<String>) -> Self {
         self.cooperative_name = name;
+        self
+    }
+
+    pub fn with_cooperative_institution_type(mut self, institution_type: Option<String>) -> Self {
+        self.cooperative_institution_type = institution_type;
         self
     }
 
@@ -411,6 +421,10 @@ pub struct MembershipStatsResponse {
 
 #[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct CreateApexSubmissionRequest {
+    /// Client-generated id, so a draft created offline keeps the id that
+    /// queued follow-up edits already reference.
+    #[serde(default)]
+    pub id: Option<Uuid>,
     pub cooperative_id: Uuid,
     pub reporting_year: i32,
     #[serde(default)]
@@ -561,5 +575,37 @@ mod period_validation_tests {
         assert!(validate_period(Some("quarterly"), Some("Q1"), 2024).is_ok());
         assert!(validate_period(Some("semiannual"), Some("H1"), 2024).is_ok());
         assert!(validate_period(Some("monthly"), Some("06"), 2024).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod create_apex_submission_request_tests {
+    use super::CreateApexSubmissionRequest;
+    use uuid::Uuid;
+
+    #[test]
+    fn accepts_a_client_generated_id() {
+        let id = Uuid::new_v4();
+        let body = serde_json::json!({
+            "id": id,
+            "cooperative_id": Uuid::new_v4(),
+            "reporting_year": 2026,
+        });
+
+        let req: CreateApexSubmissionRequest = serde_json::from_value(body).unwrap();
+
+        assert_eq!(req.id, Some(id));
+    }
+
+    #[test]
+    fn id_is_optional_for_existing_clients() {
+        let body = serde_json::json!({
+            "cooperative_id": Uuid::new_v4(),
+            "reporting_year": 2026,
+        });
+
+        let req: CreateApexSubmissionRequest = serde_json::from_value(body).unwrap();
+
+        assert_eq!(req.id, None);
     }
 }

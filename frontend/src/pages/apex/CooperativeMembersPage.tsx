@@ -27,6 +27,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
+import { isAppOffline } from "@/services/shared/networkGuard";
 
 type MemberItem = {
   id: string;
@@ -108,12 +109,15 @@ export const CooperativeMembersPage: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success(
-            t("coopMembers.toast.invitationSent", {
-              firstName: firstName.trim(),
-              lastName: lastName.trim(),
-            }),
-          );
+          if (isAppOffline())
+            toast.info(t("offline.inviteQueued"), { description: t("offline.inviteQueuedDesc") });
+          else
+            toast.success(
+              t("coopMembers.toast.invitationSent", {
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+              }),
+            );
           setShowInvite(false);
           setFirstName("");
           setLastName("");
@@ -171,7 +175,9 @@ export const CooperativeMembersPage: React.FC = () => {
       { cooperativeId, userId: m.id },
       {
         onSuccess: () =>
-          toast.success(t("coopMembers.toast.emailResent", { name: displayName(m) })),
+          isAppOffline()
+            ? toast.info(t("offline.resendQueued"), { description: t("offline.inviteQueuedDesc") })
+            : toast.success(t("coopMembers.toast.emailResent", { name: displayName(m) })),
         onError: (err) => {
           const msg = err instanceof Error ? err.message : String(err);
           toast.error(t("coopMembers.toast.resendFailed"), { description: msg });

@@ -426,14 +426,20 @@ impl KpiEngine {
     fn format_currency(value: f64) -> String {
         let abs = value.abs();
         let sign = if value < 0.0 { "-" } else { "" };
+        // Halves round up (3.155M → 3.16M); millions keep two decimals and
+        // thousands one, as everywhere in the frontend.
+        let half_up = |x: f64, digits: i32| {
+            let factor = 10f64.powi(digits);
+            (x * factor + 1e-9).round() / factor
+        };
         if abs >= 1_000_000_000.0 {
-            format!("SZL {sign}{:.2}B", abs / 1_000_000_000.0)
+            format!("SZL {sign}{:.2}B", half_up(abs / 1_000_000_000.0, 2))
         } else if abs >= 1_000_000.0 {
-            format!("SZL {sign}{:.1}M", abs / 1_000_000.0)
+            format!("SZL {sign}{:.2}M", half_up(abs / 1_000_000.0, 2))
         } else if abs >= 1_000.0 {
-            format!("SZL {sign}{:.0}K", abs / 1_000.0)
+            format!("SZL {sign}{:.1}K", half_up(abs / 1_000.0, 1))
         } else {
-            format!("SZL {sign}{abs:.0}")
+            format!("SZL {sign}{:.0}", half_up(abs, 0))
         }
     }
 
@@ -495,6 +501,15 @@ impl KpiEngine {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn amounts_keep_two_decimals_for_millions_and_one_for_thousands() {
+        assert_eq!(KpiEngine::format_currency(3_150_000.0), "SZL 3.15M");
+        assert_eq!(KpiEngine::format_currency(4_198_500.0), "SZL 4.20M");
+        assert_eq!(KpiEngine::format_currency(838_500.0), "SZL 838.5K");
+        assert_eq!(KpiEngine::format_currency(-20_000.0), "SZL -20.0K");
+        assert_eq!(KpiEngine::format_currency(3_155_000.0), "SZL 3.16M");
+    }
     use super::*;
     use chrono::Utc;
     use rust_decimal::Decimal;
@@ -642,10 +657,10 @@ mod tests {
     #[test]
     fn test_currency_formatting() {
         assert_eq!(KpiEngine::format_currency(1_500_000_000.0), "SZL 1.50B");
-        assert_eq!(KpiEngine::format_currency(6_400_000.0), "SZL 6.4M");
-        assert_eq!(KpiEngine::format_currency(420_000.0), "SZL 420K");
+        assert_eq!(KpiEngine::format_currency(6_400_000.0), "SZL 6.40M");
+        assert_eq!(KpiEngine::format_currency(420_000.0), "SZL 420.0K");
         assert_eq!(KpiEngine::format_currency(500.0), "SZL 500");
-        assert_eq!(KpiEngine::format_currency(-2_000_000.0), "SZL -2.0M");
+        assert_eq!(KpiEngine::format_currency(-2_000_000.0), "SZL -2.00M");
     }
 
     #[test]

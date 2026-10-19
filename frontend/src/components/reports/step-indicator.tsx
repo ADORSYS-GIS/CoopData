@@ -30,13 +30,30 @@ interface StepIndicatorProps {
 export function StepIndicator({ steps, currentStepIndex }: StepIndicatorProps) {
   if (steps.length <= 1) return null;
   return (
-    <div className="flex items-center gap-2 mb-4">
-      {steps.map((st, idx) => (
-        <div key={st.key} className="flex-1 flex items-center gap-2">
-          <StepDot n={idx + 1} active={currentStepIndex === idx} done={currentStepIndex > idx} />
-          {idx < steps.length - 1 && <div className="h-px flex-1 bg-border" />}
-        </div>
-      ))}
-    </div>
+    <ol className="flex items-start gap-2 mb-4">
+      {steps.map((st, idx) => {
+        const active = currentStepIndex === idx;
+        const done = currentStepIndex > idx;
+        return (
+          <li
+            key={st.key}
+            className="flex-1 flex items-start gap-2 min-w-0"
+            aria-current={active ? "step" : undefined}
+          >
+            <div className="flex flex-col items-center gap-1 min-w-0">
+              <StepDot n={idx + 1} active={active} done={done} />
+              <span
+                className={`text-[10px] font-semibold text-center leading-tight ${
+                  active ? "text-primary" : done ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {st.label}
+              </span>
+            </div>
+            {idx < steps.length - 1 && <div className="mt-3 h-px flex-1 bg-border" />}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

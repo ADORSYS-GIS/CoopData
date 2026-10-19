@@ -1,5 +1,7 @@
 # Offline Sync & Conflict Resolution Guide
 
+> ⚠️ **Outdated — original plan, not the current code.** This document was written before offline mode was implemented and describes pieces that were never built as written (there is no client-side conflict resolution: the server validates each queued change, and refusals are shown in the "Not saved" panel). For how offline mode actually works, read [`offline-mode.md`](offline-mode.md).
+
 > **Core Philosophy**: Synchronization must execute sequentially to preserve database integrity and avoid race conditions. When the database updates a record that was changed on both the client and the server, the app must apply a clear, pre-defined **Conflict Resolution Strategy**.
 
 ---

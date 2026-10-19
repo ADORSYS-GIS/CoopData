@@ -15,7 +15,6 @@ import {
   rateNote,
   seriesToChartData,
   sortRows,
-  topShares,
   womenSharePct,
 } from "@/lib/basic-dashboard";
 import {
@@ -80,8 +79,8 @@ describe("delta semantics", () => {
 
   it("treats borrowed funds ratio and inactive members as worse when they rise", () => {
     const borrowed = makeIndicator({
-      group: "structure",
-      key: "borrowed_funds_ratio",
+      group: "coa",
+      key: "debt_to_equity_ratio",
       change_pct: 2,
     });
     expect(deltaTone(borrowed)).toBe("bad");
@@ -105,13 +104,13 @@ describe("delta semantics", () => {
 describe("groupIndicators", () => {
   it("groups by indicator group and follows the display order", () => {
     const grouped = groupIndicators(basicDashboardFixture.indicators);
-    expect(grouped.risk.map((i) => i.key)).toEqual(["par_gt_30_pct", "par_gt_90_pct"]);
-    expect(grouped.loans).toHaveLength(1);
-    expect(grouped.governance).toEqual([]);
+    expect(grouped.risk.map((i) => i.key)).toEqual(["par_gt_30_pct", "loan_recovery_rate_pct"]);
+    expect(grouped.savings).toHaveLength(1);
+    expect(grouped.training).toEqual([]);
   });
 
   it("finds an indicator by key", () => {
-    expect(indicatorByKey(basicDashboardFixture.indicators, "registered_members")?.value).toBe(
+    expect(indicatorByKey(basicDashboardFixture.indicators, "meetings_held_count")?.value).toBe(
       6992,
     );
     expect(indicatorByKey(basicDashboardFixture.indicators, "nope")).toBeUndefined();
@@ -120,22 +119,28 @@ describe("groupIndicators", () => {
 
 describe("series mapping", () => {
   it("maps points to chart rows and nulls out missing values", () => {
-    const rows = seriesToChartData(basicDashboardFixture.series.par_trend, [
+    const rows = seriesToChartData(basicDashboardFixture.series.risk, [
       "par_gt_30_pct",
-      "par_gt_90_pct",
+      "loan_recovery_rate_pct",
     ]);
-    expect(rows[0]).toEqual({ label: "Q1 2025", par_gt_30_pct: 5.3, par_gt_90_pct: null });
+    expect(rows[0]).toEqual({
+      label: "Q1 2025",
+      par_gt_30_pct: 5.3,
+      loan_recovery_rate_pct: null,
+    });
   });
 
   it("detects whether any requested key has data", () => {
-    expect(hasSeriesData(basicDashboardFixture.series.par_trend, ["par_gt_30_pct"])).toBe(true);
-    expect(hasSeriesData(basicDashboardFixture.series.par_trend, ["par_gt_90_pct"])).toBe(false);
+    expect(hasSeriesData(basicDashboardFixture.series.risk, ["par_gt_30_pct"])).toBe(true);
+    expect(hasSeriesData(basicDashboardFixture.series.risk, ["loan_recovery_rate_pct"])).toBe(
+      false,
+    );
     expect(hasSeriesData(undefined, ["x"])).toBe(false);
   });
 
   it("compacts axis numbers", () => {
-    expect(compactNumber(3_485_818)).toBe("3.5M");
-    expect(compactNumber(2_500)).toBe("3K");
+    expect(compactNumber(3_485_818)).toBe("3.49M");
+    expect(compactNumber(2_500)).toBe("2.5K");
     expect(compactNumber(42)).toBe("42");
   });
 });
@@ -146,7 +151,7 @@ describe("ranking helpers", () => {
     expect(sortRows(rows, "par_gt_30_pct", "asc").map((r) => r.name)).toEqual(["SNAT", "Bunye"]);
     expect(sortRows(rows, "par_gt_30_pct", "desc").map((r) => r.name)).toEqual(["SNAT", "Bunye"]);
     expect(sortRows(rows, "name", "asc")[0].name).toBe("Bunye");
-    expect(sortRows(rows, "total_assets", "desc")[0].name).toBe("SNAT");
+    expect(sortRows(rows, "total_members", "desc")[0].name).toBe("SNAT");
   });
 
   it("colours PAR and minimum-based ratios", () => {
@@ -164,27 +169,7 @@ describe("ranking helpers", () => {
   });
 });
 
-describe("share helpers", () => {
-  const rows = Array.from({ length: 12 }, (_, i) => ({
-    cooperative_id: String(i),
-    name: `Coop ${i}`,
-    value: 100 - i,
-    share_pct: 10 - i * 0.5,
-  }));
-
-  it("keeps everything when there are few slices", () => {
-    expect(topShares(rows.slice(0, 3), 9, "Other")).toHaveLength(3);
-  });
-
-  it("groups the smallest slices into Other and preserves the total share", () => {
-    const slices = topShares(rows, 5, "Other");
-    expect(slices).toHaveLength(5);
-    expect(slices[4].name).toBe("Other");
-    const original = rows.reduce((sum, r) => sum + r.share_pct, 0);
-    const grouped = slices.reduce((sum, s) => sum + s.share_pct, 0);
-    expect(grouped).toBeCloseTo(original, 6);
-  });
-
+describe("women share", () => {
   it("computes the women share and returns null with no members", () => {
     expect(womenSharePct({ male: 3, female: 1 })).toBe(25);
     expect(womenSharePct({ male: 0, female: 0 })).toBeNull();

@@ -1,7 +1,7 @@
 # Apex-Initiated Submissions — Feature Design
 
 > **Status:** Implemented
-> **Last Updated:** 2025-08-22
+> **Last Updated:** 2026-09-29
 > **Owner:** Engineering Team
 
 ---
@@ -273,8 +273,9 @@ When apex delegates a returned submission to the cooperative, the following happ
    → POST /api/v1/apex/submissions/{id}/delegate
    → Body: { "comment": "Please update the members data" }
    → Backend:
-     a. Verifies apex has permission (apex role + cooperative belongs to them)
-     b. Verifies submission is in Returned status at Apex tier
+     a. Verifies `created_by_role === "apex"` — only Apex-created subs can be delegated
+     b. Verifies submission is not Approved or Rejected
+        (delegation allowed from any unapproved state: Draft, Returned, etc.)
      c. Records a review audit log entry:
         {
           action: "return",
@@ -284,8 +285,9 @@ When apex delegates a returned submission to the cooperative, the following happ
           target_tier: "cooperative",
           created_at: NOW()
         }
-     d. Sets edited_by = NULL (cooperative will pick it up when they open it)
-     e. Returns updated submission
+     d. Sets status = Draft, current_tier = Cooperative (atomic DB transaction)
+     e. Sets edited_by = NULL (cooperative picks it up on first open)
+     f. Returns updated submission
 
 4. COOPERATIVE'S VIEW CHANGES
    → Before: "Returned to Apex" (read-only)
@@ -331,9 +333,9 @@ When apex wants to take back a delegated submission from the cooperative:
    → POST /api/v1/apex/submissions/{id}/reclaim
    → Body: { "comment": "I have the correct data, taking over" }
    → Backend:
-     a. Verifies apex has permission (apex role + cooperative belongs to them)
-     b. Verifies submission is a draft (in delegated state)
-     c. Verifies the submission was previously delegated (has a return review with target_tier=cooperative)
+     a. Verifies `created_by_role === "apex"`
+     b. Verifies submission is not Approved or Rejected
+     c. Verifies current_tier === Cooperative (submission must be sitting with the coop)
      d. Records a review audit log entry:
         {
           action: "comment",
@@ -342,8 +344,9 @@ When apex wants to take back a delegated submission from the cooperative:
           comment: "Reclaimed by apex: I have the correct data, taking over",
           created_at: NOW()
         }
-     e. Sets edited_by = apex user UUID, edited_by_name = apex user name
-     f. Returns updated submission
+     e. Sets current_tier = Apex
+     f. Sets edited_by = apex user UUID, edited_by_name = apex user name
+     g. Returns updated submission
 
 4. COOPERATIVE'S VIEW CHANGES
    → Before: "Editing — Mary Smith (Cooperative)" (editable)
@@ -592,24 +595,68 @@ CREATE INDEX idx_submissions_coop_year
 ### 10.3 Edit Permission Logic
 
 ```typescript
-const canEdit = (submission: Submission, user: UserProfile): boolean => {
-  // Only the owner can edit drafts
-  if (submission.status !== 'draft') return false;
-  return submission.edited_by === user.sub;
+// Who can edit? Only the current lock holder.
+const isEditor = (submission: Submission, currentUserId: string): boolean => {
+  return isDraft && submission.edited_by === currentUserId;
 };
 
-const canDelete = (submission: Submission, user: UserProfile): boolean => {
-  // Only the original creator can delete
-  if (submission.status !== 'draft') return false;
-  return submission.created_by_user_id === user.sub;
-};
+// Auto-claim when no one holds the pen yet — strictly tier-gated:
+// Cooperative can ONLY auto-claim if current_tier === "cooperative"
+// Apex can ONLY auto-claim if current_tier === "apex"
+useEffect(() => {
+  if (submission.edited_by != null) return; // someone already has it
+  if (role === "cooperative" && submission.current_tier === "cooperative") {
+    claimCoopEdit.mutate({ id });
+  } else if (role === "apex" && submission.current_tier === "apex") {
+    claimApexEdit.mutate({ id });
+  }
+  // If tier doesn't match your role → you are read-only, no claim fires
+}, [submission, role]);
 
-const canDelegate = (submission: Submission, user: UserProfile): boolean => {
-  // Only apex can delegate, and only when status is Returned
-  if (user.role !== 'apex') return false;
-  return submission.status === 'returned' && submission.current_tier === 'apex';
-};
+// When does Apex see the Delegate button?
+// - They are the current editor (edited_by === currentUserId)
+// - Submission is a draft
+// - Submission was created by the Apex (created_by_role === "apex")
+// Note: no tier restriction — Apex-created drafts can live at cooperative tier
+const showDelegateButton =
+  role === 'apex' &&
+  submission.status === 'draft' &&
+  submission.created_by_role === 'apex' &&
+  submission.edited_by === currentUserId;
+
+// When does Apex see the Reclaim button?
+// - Submission is at cooperative tier
+// - Apex is NOT the current editor
+// - Submission was created by the Apex
+const showReclaimButton =
+  role === 'apex' &&
+  submission.current_tier === 'cooperative' &&
+  submission.edited_by !== currentUserId &&
+  submission.created_by_role === 'apex' &&
+  !['approved', 'rejected'].includes(submission.status);
 ```
+
+### 10.4 Stale-Cache Race Condition Guard (Backend)
+
+> **Problem:** After an Apex reclaim, the cooperative's browser still holds cached data showing `current_tier = "cooperative"` and `edited_by = null`. The auto-claim `useEffect` fires and calls `claim-edit` — which would undo the reclaim.
+
+> **Fix:** The backend `cooperative/claim-edit` endpoint enforces a hard tier check:
+
+```rust
+// In POST /api/v1/cooperative/submissions/{id}/claim-edit
+if submission.current_tier != ReviewTier::Cooperative {
+    return Err(AppError::BadRequest(
+        "Cannot claim edit: submission is at the Apex tier."
+    ));
+}
+```
+
+This means even if the frontend fires a stale claim, the server rejects it at the door. The database is never touched. Two independent locks protect every reclaim:
+
+| Layer | Guard |
+|---|---|
+| Frontend | `useEffect` only fires `claimCoopEdit` when `current_tier === "cooperative"` |
+| Backend | `claim-edit` endpoint returns 400 if `current_tier !== Cooperative` |
 
 ---
 

@@ -3,12 +3,12 @@ import type { FC } from "react";
 import { rateNote } from "@/lib/basic-dashboard";
 import { analyseQuestionnaire } from "@/pages/shared/print/quest/data";
 import { membershipPage } from "@/pages/shared/print/quest/pages1";
-import { liquidityCapitalPage, portfolioPage, riskPage } from "@/pages/shared/print/quest/pages2";
+import { resiliencePage, savingsLoanQualityPage } from "@/pages/shared/print/quest/pages2";
 import {
   annexAPages,
   annexBPages,
-  assetTrendPage,
-  structurePage,
+  mpcFinancialRatiosPage,
+  performancePage,
 } from "@/pages/shared/print/quest/pages3";
 import {
   cooperativePages,
@@ -16,6 +16,7 @@ import {
   executivePage,
   findingsPage,
 } from "@/pages/shared/print/questcons/pages";
+import { longDate, tr } from "@/pages/shared/print/tpl/i18n";
 import { TplDocument, type PageSpec } from "@/pages/shared/print/tpl/TplDocument";
 import type { BasicDashboardResponse } from "@/types/basic-dashboard";
 
@@ -28,14 +29,19 @@ interface Props {
   dashboard: BasicDashboardResponse;
 }
 
-const ISSUER: Record<QuestionnaireTier, string> = {
-  Apex: "Apex organisation",
-  Federation: "Federation",
-  Ministry: "Ministry of Commerce, Industry and Trade",
-};
+const tierLabel = (tier: QuestionnaireTier): string =>
+  tier === "Apex"
+    ? tr("quest.cons.tier_apex")
+    : tier === "Federation"
+      ? tr("quest.cons.tier_federation")
+      : tr("quest.cons.tier_ministry");
 
-const issued = () =>
-  new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const issuerOf = (tier: QuestionnaireTier): string =>
+  tier === "Apex"
+    ? tr("common.apex_organisation")
+    : tier === "Federation"
+      ? tr("quest.cons.tier_federation")
+      : tr("quest.cons.issuer_ministry");
 
 /** Consolidated report built from the questionnaire returns of the cooperatives in scope. */
 export const QuestionnaireConsolidatedReport: FC<Props> = ({
@@ -44,7 +50,7 @@ export const QuestionnaireConsolidatedReport: FC<Props> = ({
   year,
   dashboard,
 }) => {
-  const subject = tier === "Ministry" ? "National Cooperative Overview" : entityName;
+  const subject = tier === "Ministry" ? tr("quest.cons.national") : entityName;
   const base = analyseQuestionnaire({
     dashboard,
     submissionId: "",
@@ -54,9 +60,12 @@ export const QuestionnaireConsolidatedReport: FC<Props> = ({
   const ref = `QSC-${tier.slice(0, 3).toUpperCase()}-${year}`;
   const a = { ...base, ref };
   const { scope } = dashboard;
-  const date = issued();
+  const date = longDate(new Date());
   const currency = rateNote(scope) ? `${scope.currency} (${rateNote(scope)})` : scope.currency;
-  const filed = `${scope.cooperatives_reporting} of ${scope.cooperatives_in_scope}`;
+  const filed = tr("quest.cons.filed_of", {
+    reporting: scope.cooperatives_reporting,
+    inScope: scope.cooperatives_in_scope,
+  });
 
   let n = 0;
   const next = () => String(++n);
@@ -69,11 +78,10 @@ export const QuestionnaireConsolidatedReport: FC<Props> = ({
     executivePage(a, next()),
     coveragePage(a, next()),
     membershipPage(a, next()),
-    portfolioPage(a, next()),
-    riskPage(a, next()),
-    liquidityCapitalPage(a, next()),
-    structurePage(a, next()),
-    ...optional((no) => assetTrendPage(a, no)),
+    savingsLoanQualityPage(a, next()),
+    resiliencePage(a, next()),
+    performancePage(a, next()),
+    ...optional((no) => mpcFinancialRatiosPage(a, no)),
   ];
   const overview = cooperativePages(a, String(n + 1));
   if (overview.length > 0) {
@@ -85,42 +93,51 @@ export const QuestionnaireConsolidatedReport: FC<Props> = ({
   return (
     <TplDocument
       frame={{
-        headLeft: `COOP DATA · ${tier.toUpperCase()} QUESTIONNAIRE CONSOLIDATED REPORT`,
+        headLeft: tr("quest.cons.head", { tier: tierLabel(tier) }),
         headRight: `${subject.toUpperCase()} · ${a.period.toUpperCase()}`,
-        footLeft: "OFFICIAL — Confidential",
-        footMid: `Ref. ${ref}`,
+        footLeft: tr("quest.cons.foot_left"),
+        footMid: tr("coop.report.ref", { ref }),
       }}
       cover={{
-        kicker: "Consolidated questionnaire returns",
-        title: [`${tier} Questionnaire`, "Consolidated Report"],
+        kicker: tr("quest.cons.kicker"),
+        title: [tr("quest.cons.title_1", { tier: tierLabel(tier) }), tr("quest.cons.title_2")],
         entity: subject,
-        entityNote: `${ISSUER[tier]} · ${filed} cooperatives filed a questionnaire`,
-        badge: "OFFICIAL · CONFIDENTIAL",
+        entityNote: tr("quest.cons.note", { issuer: issuerOf(tier), filed }),
+        badge: tr("quest.cons.badge"),
         meta: [
-          { label: "Reporting period", value: a.period },
-          { label: "Cooperatives filed", value: filed },
-          { label: "Reporting currency", value: scope.currency },
-          { label: "Date of issue", value: date },
+          { label: tr("common.reporting_period"), value: a.period },
+          { label: tr("quest.cons.meta_filed"), value: filed },
+          { label: tr("common.reporting_currency"), value: scope.currency },
+          { label: tr("common.date_of_issue"), value: date },
         ],
-        footLeft: "Prepared by Coop Data · Unified Cooperative Financial Intelligence & Compliance",
-        footRight: "Figures as answered by the cooperatives",
+        footLeft: tr("common.prepared_by"),
+        footRight: tr("quest.cons.foot_right"),
       }}
       front={{
         particulars: [
-          ["Issuing authority", ISSUER[tier], "Scope", subject],
-          ["Report type", "Consolidated questionnaire report", "Reporting period", a.period],
+          [tr("quest.cons.issuing_authority"), issuerOf(tier), tr("quest.cons.scope"), subject],
           [
-            "Cooperatives in scope",
+            tr("quest.cons.report_type"),
+            tr("quest.cons.report_type_value"),
+            tr("common.reporting_period"),
+            a.period,
+          ],
+          [
+            tr("quest.cons.in_scope"),
             String(scope.cooperatives_in_scope),
-            "Questionnaires filed",
+            tr("quest.cons.questionnaires_filed"),
             filed,
           ],
-          ["Reporting currency", currency, "Date of issue", date],
-          ["Benchmark framework", "PEARLS (adapted)", "Reference", ref],
+          [tr("common.reporting_currency"), currency, tr("common.date_of_issue"), date],
+          [
+            tr("common.benchmark_framework"),
+            tr("common.pearls_adapted"),
+            tr("quest.cons.reference"),
+            ref,
+          ],
         ],
-        basisTitle: "Purpose and basis of preparation",
-        basis:
-          "This report consolidates the questionnaires answered by the cooperatives in scope. Cooperatives that report with full financial statements are covered by the standard consolidated report. Amounts and counts are summed across the cooperatives that filed, and ratios are computed from those sums. Some indicators are estimated or cannot be computed; they are listed in Annex A. Where cooperatives answered for different periods, the latest period of the year is used. Figures have not been independently audited.",
+        basisTitle: tr("quest.cons.basis_title"),
+        basis: tr("quest.cons.basis"),
       }}
       pages={pages}
     />

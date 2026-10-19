@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeRate, formatNative, formatSzl, toSzl } from "@/lib/currency";
+import { describeRate, formatNative, formatSzl, toSzl, shortAmount } from "@/lib/currency";
 
 describe("currency", () => {
   const rates = { ZAR: 1, SZL: 18.5 };
@@ -38,5 +38,21 @@ describe("currency", () => {
     expect(describeRate({ currency_code: "SZL", rate_to_zar: 20, frozen: false })).toContain(
       "current rate, not yet frozen",
     );
+  });
+});
+
+describe("shortAmount", () => {
+  it("keeps two decimals for millions and one for thousands", () => {
+    expect(shortAmount(3_150_000)).toBe("3.15M");
+    expect(shortAmount(4_198_500)).toBe("4.20M");
+    expect(shortAmount(838_500)).toBe("838.5K");
+    expect(shortAmount(1_250_000_000)).toBe("1.25B");
+    expect(shortAmount(950)).toBe("950");
+  });
+
+  it("rounds halves up and keeps the sign", () => {
+    expect(shortAmount(3_155_000)).toBe("3.16M");
+    expect(shortAmount(-960_750)).toBe("-960.8K");
+    expect(shortAmount(-20_000)).toBe("-20.0K");
   });
 });

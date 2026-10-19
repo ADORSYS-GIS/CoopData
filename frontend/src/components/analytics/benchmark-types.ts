@@ -111,6 +111,7 @@ export interface BenchmarkComparisonLabels {
   status: string;
   legendHealthy: string;
   legendWatch: string;
+  legendCritical: string;
   // Insufficient-data notices
   insufficientNational: string;
   insufficientRegional: string;
@@ -130,4 +131,5 @@ export interface BenchmarkMatrixLabels {
   status: string;
   legendHealthy: string;
   legendWatch: string;
+  legendCritical: string;
 }

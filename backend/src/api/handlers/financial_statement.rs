@@ -240,14 +240,7 @@ pub async fn update_line_items(
 
     // Enforce exclusive editor on the parent submission
     if let Some(sub) = state.submission_repo.find_by_id(fs.submission_id).await? {
-        let current_user_id = uuid::Uuid::parse_str(&claims.sub).ok();
-        if let Some(editor_id) = sub.edited_by {
-            if current_user_id != Some(editor_id) {
-                return Err(AppError::Forbidden(
-                    "Only the editor assigned to this submission can modify it".into(),
-                ));
-            }
-        }
+        crate::services::edit_access::ensure_submission_editor(&sub, &claims)?;
     }
 
     let mut updated = vec![];
@@ -2036,14 +2029,14 @@ async fn build_bulk_export(
                 current_layer.use_text(row.2.to_string(), 9.0, Mm(x_positions[1]), Mm(y), &font);
                 current_layer.use_text(row.3.clone(), 9.0, Mm(x_positions[2]), Mm(y), &font);
                 current_layer.use_text(
-                    format!("{:.1}M", row.4 / 1_000_000.0),
+                    format!("{:.2}M", row.4 / 1_000_000.0),
                     9.0,
                     Mm(x_positions[3]),
                     Mm(y),
                     &font,
                 );
                 current_layer.use_text(
-                    format!("{:.1}M", row.5 / 1_000_000.0),
+                    format!("{:.2}M", row.5 / 1_000_000.0),
                     9.0,
                     Mm(x_positions[4]),
                     Mm(y),

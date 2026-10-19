@@ -48,7 +48,7 @@ export type TestRole = "ministry" | "federation" | "apex" | "cooperative";
 const KEYCLOAK_BASE = "http://localhost:8180";
 const KEYCLOAK_REALM = "coop-data";
 const KEYCLOAK_CLIENT_ID = "coopdata-frontend";
-const FRONTEND_URL = "http://localhost:5173"; // Must match registered redirect URI in Keycloak
+const FRONTEND_URL = "http://localhost:5173"; // Default; must match a registered redirect URI in Keycloak
 
 /**
  * Login helper for full-stack E2E tests using real Keycloak authentication.
@@ -62,11 +62,15 @@ const FRONTEND_URL = "http://localhost:5173"; // Must match registered redirect 
  * 6. Frontend exchanges code for token
  * 7. Redirects to dashboard
  */
-export async function loginAs(page: Page, role: TestRole) {
+export async function loginAs(
+  page: Page,
+  role: TestRole,
+  { frontendUrl = FRONTEND_URL }: { frontendUrl?: string } = {},
+) {
   const credentials = getCredentials(role);
 
   // Build Keycloak auth URL - navigate directly to Keycloak
-  const redirectUri = encodeURIComponent(`${FRONTEND_URL}/app/dashboard`);
+  const redirectUri = encodeURIComponent(`${frontendUrl}/app/dashboard`);
   const keycloakAuthUrl = `${KEYCLOAK_BASE}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/auth?client_id=${KEYCLOAK_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=openid profile email offline_access`;
 
   console.log(`[E2E] Navigating to Keycloak: ${keycloakAuthUrl}`);

@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import { runMutation } from "@/services/shared/syncQueueService";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 const USERS_KEY = "users";
 
@@ -24,8 +25,7 @@ function extractErrorMessage(err: unknown): string {
 export const useUsers = () =>
   useOfflineQuery({
     queryKey: [USERS_KEY],
-    cacheTable: "users",
-    cacheKey: "users-list",
+    ...offlineCacheKeys.usersList(),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/users");
       if (error) throw new Error(extractErrorMessage(error));

@@ -1,15 +1,15 @@
 import type { BasicDashboardResponse, IndicatorValue, SeriesPoint } from "@/types/basic-dashboard";
 
 export const makeIndicator = (overrides: Partial<IndicatorValue> = {}): IndicatorValue => ({
-  key: "gross_loan_portfolio",
-  group: "loans",
+  key: "avg_savings_per_depositor",
+  group: "savings",
   value: 1000,
   unit: "currency",
   status: "computed",
   previous: null,
   change_pct: null,
-  formula: "outstanding_value_male + outstanding_value_female",
-  sources: ["outstanding_value_male", "outstanding_value_female"],
+  formula: "savings_value / savings_accounts",
+  sources: ["savings_value_male", "savings_accounts_male"],
   note: null,
   ...overrides,
 });
@@ -24,7 +24,7 @@ const point = (
   reporting_year: year,
   period_type: "QUARTERLY",
   period_value: label.slice(0, 2),
-  values: { total_assets: value, ...extra },
+  values: { active_members_pct: value, ...extra },
 });
 
 export const basicDashboardFixture: BasicDashboardResponse = {
@@ -56,36 +56,29 @@ export const basicDashboardFixture: BasicDashboardResponse = {
       change_pct: -29.8,
     }),
     makeIndicator({
-      key: "par_gt_90_pct",
+      key: "loan_recovery_rate_pct",
       group: "risk",
       unit: "percent",
       value: null,
       status: "not_reported",
     }),
     makeIndicator({
-      key: "registered_members",
-      group: "membership",
+      key: "meetings_held_count",
+      group: "governance",
       unit: "count",
       value: 6992,
     }),
   ],
   series: {
-    asset_evolution: [
-      point("Q1 2025", 2025, 3130874),
-      point("Q4 2025", 2025, 3348330),
-      point("Q1 2026", 2026, 3485818),
+    membership: [
+      point("Q1 2025", 2025, 71),
+      point("Q4 2025", 2025, 74),
+      point("Q1 2026", 2026, 78),
     ],
-    par_trend: [
+    risk: [
       point("Q1 2025", 2025, 0, { par_gt_30_pct: 5.3 }),
       point("Q1 2026", 2026, 0, { par_gt_30_pct: 2.94 }),
     ],
-  },
-  market_share: {
-    by_assets: [
-      { cooperative_id: "a", name: "SNAT", value: 100, share_pct: 60 },
-      { cooperative_id: "b", name: "Bunye", value: 66, share_pct: 40 },
-    ],
-    by_loans: [],
   },
   demographics: {
     registered: { male: 100, female: 50 },
@@ -97,6 +90,16 @@ export const basicDashboardFixture: BasicDashboardResponse = {
     savings_accounts: { male: 90, female: 45 },
     loan_accounts: { male: 60, female: 30 },
   },
+  balances: {
+    total_assets: 1_200_000,
+    gross_loans: 800_000,
+    member_deposits: 500_000,
+    net_surplus: 45_000,
+    par_30_pct: 6.25,
+    capital_ratio_pct: 12.5,
+    overdue_gt_30: 50_000,
+    overdue_gt_90: 20_000,
+  },
   cooperatives: [
     {
       cooperative_id: "a",
@@ -104,13 +107,11 @@ export const basicDashboardFixture: BasicDashboardResponse = {
       region: "Manzini",
       sector: "Finance",
       total_members: 3000,
-      total_assets: 1000,
-      total_deposits: 700,
-      gross_loans: 600,
+      active_members_pct: 80,
+      women_members_pct: 40,
       par_gt_30_pct: 3,
-      liquidity_ratio_pct: 12,
-      institutional_capital_ratio_pct: 14,
-      net_income: 50,
+      total_operating_margin_pct: 12,
+      monetary_reserve_coverage_pct: null,
     },
     {
       cooperative_id: "b",
@@ -118,13 +119,11 @@ export const basicDashboardFixture: BasicDashboardResponse = {
       region: null,
       sector: null,
       total_members: 2000,
-      total_assets: 660,
-      total_deposits: 400,
-      gross_loans: 300,
+      active_members_pct: 80,
+      women_members_pct: 40,
       par_gt_30_pct: null,
-      liquidity_ratio_pct: null,
-      institutional_capital_ratio_pct: null,
-      net_income: -10,
+      total_operating_margin_pct: 12,
+      monetary_reserve_coverage_pct: null,
     },
   ],
 };

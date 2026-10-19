@@ -1,24 +1,45 @@
-import en from "@/i18n/locales/en.json";
 import {
   compactNumber,
   currencyPrefix,
-  formatDelta,
-  formatIndicatorValue,
   humanizeKey,
   indicatorByKey,
   isNotReported,
 } from "@/lib/basic-dashboard";
 import { reportCode } from "@/lib/questionnaire-report";
 import type { QuestionnaireReportProps } from "@/pages/shared/print/components/questionnaire/types";
+import { fixed, grouped, localizePercent, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 import type { StatusTone } from "@/pages/shared/print/tpl/TplParts";
-import type { IndicatorValue, SeriesKey } from "@/types/basic-dashboard";
-
-const LABELS = en.basicDashboard.indicators as Record<string, string>;
+import type { DashboardScope, IndicatorValue, SeriesKey } from "@/types/basic-dashboard";
 
 export const PAR30_LIMIT = 5;
 export const PAR90_LIMIT = 2;
 
-export const labelOf = (key: string): string => LABELS[key] ?? humanizeKey(key);
+/** The PAR limit as written in the report language, e.g. "5%" or "5 %". */
+export const par30Limit = (): string => localizePercent(`${PAR30_LIMIT}%`);
+
+export const labelOf = (key: string): string =>
+  tr(`quest.ind.${key}`, { defaultValue: humanizeKey(key) });
+
+/** Definition of an indicator in the report language. */
+export const definitionOf = (key: string, fallback: string): string =>
+  tr(`quest.def.${key}`, { defaultValue: fallback });
+
+/** A percentage in the report language, or the "not reported" wording when absent. */
+export const pct = (value: number | null | undefined): string =>
+  value == null ? tr("quest.not_reported_word") : percentText(value, 1);
+
+/** An indicator value formatted with the report language's number conventions. */
+export const reportValue = (
+  indicator: IndicatorValue,
+  scope: Pick<DashboardScope, "currency">,
+): string => {
+  if (isNotReported(indicator) || indicator.value === null) return "—";
+  const { value, unit } = indicator;
+  if (unit === "count") return grouped(Math.round(value));
+  if (unit === "currency") return `${scope.currency} ${grouped(Math.round(value))}`;
+  if (unit === "percent") return percentText(value, Math.abs(value) >= 10 ? 1 : 2);
+  return fixed(value, 2);
+};
 
 export interface QuestAnalysis {
   props: QuestionnaireReportProps;
@@ -38,8 +59,8 @@ export const analyseQuestionnaire = (props: QuestionnaireReportProps): QuestAnal
   const ind = (key: string) => indicatorByKey(indicators, key);
   return {
     props,
-    ref: reportCode(scope.reporting_year, submissionId),
-    period: scope.period_label || "Reporting period",
+    ref: reportCode(scope.reporting_year, submissionId, props.reference),
+    period: scope.period_label || tr("quest.report.default_period"),
     ind,
     num: (key) => {
       const found = ind(key);
@@ -47,7 +68,7 @@ export const analyseQuestionnaire = (props: QuestionnaireReportProps): QuestAnal
     },
     text: (key) => {
       const found = ind(key);
-      return found ? formatIndicatorValue(found, scope) : "—";
+      return found ? reportValue(found, scope) : "—";
     },
     money: (value) => `${prefix}${compactNumber(value)}`,
     line: (name, key) => {
@@ -65,9 +86,13 @@ export const analyseQuestionnaire = (props: QuestionnaireReportProps): QuestAnal
 
 /** "▲ 3.2% on prior period" style note, or undefined when there is no comparison. */
 export const changeNote = (indicator: IndicatorValue | undefined): string | undefined => {
-  const delta = formatDelta(indicator?.change_pct ?? null);
-  if (!delta || !indicator) return undefined;
-  return `${(indicator.change_pct ?? 0) < 0 ? "▼" : "▲"} ${delta.replace(/^[+-]/, "")} on prior period`;
+  const change = indicator?.change_pct ?? null;
+  if (!indicator || change === null || !Number.isFinite(change)) return undefined;
+  return tr("common.on_prior", {
+    arrow: change < 0 ? "▼" : "▲",
+    change: percentText(Math.abs(change), 1),
+    prior: tr("quest.prior_period"),
+  });
 };
 
 /** Lower is better for risk and cost indicators. */

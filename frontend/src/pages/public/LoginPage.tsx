@@ -129,12 +129,6 @@ export const LoginPage: React.FC = () => {
           >
             ← {t("login.backToHome")}
           </Link>
-          <p className="text-xs text-muted-foreground">
-            {t("login.needAccess")}{" "}
-            <a href="#" className="font-semibold text-accent hover:underline">
-              {t("login.requestInvitation")}
-            </a>
-          </p>
         </div>
 
         {/* Form content */}

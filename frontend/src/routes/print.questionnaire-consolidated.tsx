@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
 import { useBasicDashboard } from "@/hooks/analytics/useBasicDashboard";
 import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
+import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
 import {
   QuestionnaireConsolidatedReport,
   type QuestionnaireTier,
@@ -21,13 +22,15 @@ const TIER: Record<string, QuestionnaireTier> = {
 
 function PrintComponent() {
   const { t } = useTranslation();
-  const { token, year, scope, id, name } = Route.useSearch() as {
+  const { token, year, scope, id, name, lng } = Route.useSearch() as {
     token?: string;
     year?: string;
     scope?: string;
     id?: string;
     name?: string;
+    lng?: string;
   };
+  const languageReady = usePrintLanguage(lng);
   const tier = TIER[scope ?? ""] ?? "Ministry";
   const reportingYear = year ? parseInt(year, 10) : new Date().getFullYear();
 
@@ -41,9 +44,11 @@ function PrintComponent() {
     token,
   );
 
-  useGotenbergReady(!isLoading);
+  const loading = !languageReady || isLoading || !dashboard;
 
-  if (isLoading || !dashboard) {
+  useGotenbergReady(!loading);
+
+  if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-white text-slate-800">
         <div className="text-center">

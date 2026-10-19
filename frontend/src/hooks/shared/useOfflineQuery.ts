@@ -1,4 +1,4 @@
-import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type Query, type UseQueryOptions } from "@tanstack/react-query";
 import { cacheGet, cacheSet, type CacheTable } from "@/services/shared/offlineCache";
 import { getUserProfile, isOfflineModeActive } from "@/services/shared/authService";
 import i18n from "i18next";
@@ -12,16 +12,44 @@ export interface UseOfflineQueryOptions<T> extends Omit<
   queryFn: () => Promise<T>;
   cacheTable: CacheTable;
   cacheKey: string;
-  /** Fallback value to return when offline and no cache exists, or when an online fetch fails. */
+  /** Value to return when no cached copy exists (offline, or after a failed fetch). */
   fallbackData?: T;
+}
+
+/** Thrown when the device is offline and nothing is cached for the requested data. */
+export class OfflineDataUnavailableError extends Error {
+  readonly code = "OFFLINE_DATA_UNAVAILABLE";
+
+  constructor(readonly cacheKey: string) {
+    super(i18n.t("offline.dataUnavailable"));
+    this.name = "OfflineDataUnavailableError";
+  }
+}
+
+// Values served from the device cache or a fallback are a stale snapshot, not a
+// fresh server answer. Tracking them lets staleTime treat them as stale, so
+// TanStack refetches as soon as the connection returns instead of keeping the
+// offline copy for the whole default staleTime window.
+const offlineServed = new WeakSet<object>();
+
+function markOfflineServed<T>(data: T): T {
+  if (typeof data === "object" && data !== null) offlineServed.add(data);
+  return data;
+}
+
+function isOfflineServed(data: unknown): boolean {
+  return typeof data === "object" && data !== null && offlineServed.has(data);
 }
 
 /**
  * Wraps TanStack Query with an offline cache layer:
  *  - On successful fetch, the response is written to the offline DB.
- *  - When offline or in offline mode, serves from cache immediately.
- *  - On fetch failure (offline / network), falls back to the cached value.
- *  - NEVER throws to the React error boundary — always returns data or fallback.
+ *  - When disconnected, serves from cache without calling the network.
+ *  - On fetch failure, falls back to the cached value.
+ *  - With no cached copy, returns `fallbackData` when the caller provides one,
+ *    otherwise the query errors (offline: `OfflineDataUnavailableError`) so the
+ *    page renders its error/empty state instead of receiving invented data.
+ *  - NEVER throws to the React error boundary (`throwOnError: false`).
  */
 export function useOfflineQuery<T>({
   queryKey,
@@ -32,30 +60,34 @@ export function useOfflineQuery<T>({
   ...rest
 }: UseOfflineQueryOptions<T>) {
   const userId = getUserProfile()?.id ?? "anon";
+  const queryClient = useQueryClient();
+  const { staleTime } = rest;
 
-  // Default fallback: arrays for list/log/kpi keys, objects otherwise
-  const getDefaultFallback = (): T => {
-    if (fallbackData !== undefined) return fallbackData;
-    return (cacheKey.includes("list") ||
-    cacheKey.includes("logs") ||
-    cacheKey.includes("kpi") ||
-    cacheKey.includes("apexes") ||
-    cacheKey.includes("federation") ||
-    cacheKey.includes("cooperative") ||
-    cacheKey.includes("reviews") ||
-    cacheKey.includes("sections") ||
-    cacheKey.includes("line-items")
-      ? []
-      : {}) as unknown as T;
+  const readCacheOrFallback = async (error: Error): Promise<T> => {
+    const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
+    if (cached !== null) return markOfflineServed(cached);
+    if (fallbackData !== undefined) return markOfflineServed(fallbackData);
+    throw error;
   };
 
   return useQuery<T>({
     networkMode: "offlineFirst",
-    retry: (failureCount) => {
+    retry: (failureCount, error) => {
+      if (error instanceof OfflineDataUnavailableError) return false;
       if (!navigator.onLine || isOfflineModeActive()) return false;
       return failureCount < 1;
     },
     ...rest,
+    staleTime: (query) => {
+      if (isOfflineServed(query.state.data)) return 0;
+      if (staleTime !== undefined) {
+        return typeof staleTime === "function" ? staleTime(query) : staleTime;
+      }
+      const clientDefault = queryClient.getDefaultOptions().queries?.staleTime ?? 0;
+      return typeof clientDefault === "function"
+        ? clientDefault(query as unknown as Query)
+        : clientDefault;
+    },
     queryKey,
     // Must come AFTER ...rest so callers cannot accidentally override it
     throwOnError: false,
@@ -66,18 +98,11 @@ export function useOfflineQuery<T>({
       // must still try to fetch — otherwise users get stuck on stale cached
       // snapshots (e.g. organization labels one terminology-change behind)
       // for as long as the flag stays on.
-      const isDisconnected = !navigator.onLine;
-
-      // 1. When disconnected, return from cache immediately without trying network
-      if (isDisconnected) {
+      if (!navigator.onLine) {
         toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
-        const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
-        if (cached !== null) return cached;
-        // Return type-safe fallback so UI never crashes offline
-        return getDefaultFallback();
+        return readCacheOrFallback(new OfflineDataUnavailableError(cacheKey));
       }
 
-      // 2. Try online fetch
       try {
         const data = await queryFn();
         if (data !== undefined && data !== null) {
@@ -92,11 +117,7 @@ export function useOfflineQuery<T>({
         if (!navigator.onLine || isOfflineModeActive()) {
           toast.warning(i18n.t("offline.banner"), { id: "offline-cache-warning" });
         }
-        // 3. On fetch failure (offline / network error), serve cached data ignoring TTL
-        const cached = await cacheGet<T>(cacheTable, cacheKey, userId, true);
-        if (cached !== null) return cached;
-        // Safe fallback so React never shows blank error screens
-        return getDefaultFallback();
+        return readCacheOrFallback(err instanceof Error ? err : new Error(String(err)));
       }
     },
   });

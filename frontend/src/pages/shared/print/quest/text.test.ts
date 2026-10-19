@@ -39,12 +39,9 @@ const analysis = (values: Record<string, number | null>) =>
   });
 
 describe("checksOf", () => {
-  it("rates PAR, liquidity and capital against their limits", () => {
-    const checks = checksOf(
-      analysis({ par_gt_30_pct: 4, liquidity_ratio_pct: 12, institutional_capital_ratio_pct: 3 }),
-    );
-
-    expect(checks).toEqual({ par30: "ok", liquidity: "warn", capital: "bad" });
+  it("rates PAR against its limit", () => {
+    expect(checksOf(analysis({ par_gt_30_pct: 4 }))).toEqual({ par30: "ok" });
+    expect(checksOf(analysis({ par_gt_30_pct: 12 }))).toEqual({ par30: "bad" });
   });
 
   it("leaves an unreported indicator unrated", () => {
@@ -53,11 +50,11 @@ describe("checksOf", () => {
 });
 
 describe("verdictOf and recommendations", () => {
-  it("calls the cooperative sound when every minimum is met", () => {
+  it("calls the cooperative sound when the limits are met", () => {
     const a = analysis({
       par_gt_30_pct: 2,
-      liquidity_ratio_pct: 20,
-      institutional_capital_ratio_pct: 10,
+      total_operating_margin_pct: 10,
+      monetary_reserve_coverage_pct: 120,
     });
 
     expect(verdictOf(a).verdict).toMatch(/^Sound/);
@@ -67,18 +64,17 @@ describe("verdictOf and recommendations", () => {
   it("asks for corrective action and names the failing measures", () => {
     const a = analysis({
       par_gt_30_pct: 12,
-      liquidity_ratio_pct: 5,
-      institutional_capital_ratio_pct: 10,
+      total_operating_margin_pct: -5,
     });
 
     expect(verdictOf(a).verdict).toMatch(/corrective action/);
     expect(recommendationsOf(a).map((r) => r.lead)).toEqual(
-      expect.arrayContaining(["Portfolio quality.", "Liquidity."]),
+      expect.arrayContaining(["Portfolio quality.", "Operating performance."]),
     );
   });
 
   it("flags indicators that could not be computed", () => {
-    const a = analysis({ par_gt_30_pct: 2, par_gt_90_pct: null });
+    const a = analysis({ par_gt_30_pct: 2, loan_recovery_rate_pct: null });
 
     expect(concernsOf(a).some((c) => c.includes("Annex A"))).toBe(true);
   });

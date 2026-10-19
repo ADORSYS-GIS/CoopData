@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  PANEL_INDICATOR_KEYS,
   hasHistory,
   methodologyIndicators,
   narrativeText,
@@ -14,7 +13,7 @@ import type { IndicatorValue, SeriesPoint } from "@/types/basic-dashboard";
 
 const indicator = (key: string, overrides: Partial<IndicatorValue> = {}): IndicatorValue => ({
   key,
-  group: "loans",
+  group: "risk",
   value: 10,
   unit: "count",
   status: "computed",
@@ -27,11 +26,6 @@ const indicator = (key: string, overrides: Partial<IndicatorValue> = {}): Indica
 });
 
 describe("questionnaire report helpers", () => {
-  it("lists the 25 indicators of the regulator panel without duplicates", () => {
-    expect(PANEL_INDICATOR_KEYS).toHaveLength(25);
-    expect(new Set(PANEL_INDICATOR_KEYS).size).toBe(25);
-  });
-
   it("picks indicators in the requested order and skips unknown keys", () => {
     const list = [indicator("b"), indicator("a")];
     expect(pickIndicators(list, ["a", "missing", "b"]).map((i) => i.key)).toEqual(["a", "b"]);
@@ -76,6 +70,10 @@ describe("questionnaire report helpers", () => {
     expect(hasHistory([point])).toBe(false);
     expect(hasHistory([point, point])).toBe(true);
     expect(hasHistory(undefined)).toBe(false);
+  });
+
+  it("uses the submission's own reference when it has one", () => {
+    expect(reportCode(2025, "cb675a39-53bf", "SUB-2025-00002")).toBe("SUB-2025-00002");
   });
 
   it("builds a report code from the year and submission id", () => {

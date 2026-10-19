@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { Spinner } from "@/components/ui/spinner";
 import { useGotenbergReady } from "@/hooks/print/useGotenbergReady";
+import { usePrintLanguage } from "@/hooks/print/usePrintLanguage";
 import {
   useQuestionnaireNarratives,
   useQuestionnaireReport,
@@ -13,10 +14,13 @@ import { QuestionnaireTplReport } from "./print/quest/QuestionnaireTplReport";
 interface Props {
   submissionId: string;
   tokenOverride?: string;
+  /** Locale code passed by Gotenberg via ?lng= URL param (en | fr | pt | ss). */
+  lng?: string;
 }
 
-export const QuestionnaireReportPrint: React.FC<Props> = ({ submissionId, tokenOverride }) => {
+export const QuestionnaireReportPrint: React.FC<Props> = ({ submissionId, tokenOverride, lng }) => {
   const { t } = useTranslation();
+  const languageReady = usePrintLanguage(lng);
   const { data: submission, isLoading: subLoading } = useSubmission(
     submissionId,
     undefined,
@@ -30,9 +34,10 @@ export const QuestionnaireReportPrint: React.FC<Props> = ({ submissionId, tokenO
   const { data: narratives, isLoading: narrativesLoading } = useQuestionnaireNarratives(
     submissionId,
     tokenOverride,
+    lng,
   );
 
-  const loading = subLoading || reportLoading || narrativesLoading;
+  const loading = !languageReady || subLoading || reportLoading || narrativesLoading;
   useGotenbergReady(!loading);
 
   if (loading) {
@@ -61,6 +66,7 @@ export const QuestionnaireReportPrint: React.FC<Props> = ({ submissionId, tokenO
     <QuestionnaireTplReport
       dashboard={dashboard}
       submissionId={submissionId}
+      reference={submission?.reference}
       coopName={submission?.cooperative_name ?? "COOPERATIVE"}
       narratives={narratives}
       apexName={submission?.apex_name}

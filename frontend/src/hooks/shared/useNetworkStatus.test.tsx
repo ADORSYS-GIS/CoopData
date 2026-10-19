@@ -20,6 +20,8 @@ vi.mock("../../services/shared/authService", () => ({
 describe("useNetworkStatus", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks keeps implementations: reset the flag one test switches on.
+    mockIsOfflineModeActive.mockReturnValue(false);
     vi.useFakeTimers({ shouldAdvanceTime: true });
     Object.defineProperty(navigator, "onLine", { value: true, writable: true });
   });

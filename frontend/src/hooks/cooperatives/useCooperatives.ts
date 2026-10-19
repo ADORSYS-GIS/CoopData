@@ -15,6 +15,7 @@ import type { components } from "@/openapi-client/api";
 import { getAccessToken, getUserProfile } from "@/services/shared/authService";
 import { runMutation } from "@/services/shared/syncQueueService";
 import { cacheGet, cacheSet, cacheDelete } from "@/services/shared/offlineCache";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 const COOPERATIVES_KEY = "cooperatives";
 const COOPERATIVE_SELF_KEY = "cooperative-self";
@@ -40,8 +41,7 @@ function extractErrorMessage(err: unknown): string {
 export const useCooperatives = () =>
   useOfflineQuery({
     queryKey: [COOPERATIVES_KEY],
-    cacheTable: "cooperatives",
-    cacheKey: "cooperatives-list",
+    ...offlineCacheKeys.cooperativesList(),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives");
       if (error) throw new Error(extractErrorMessage(error));
@@ -53,8 +53,7 @@ export const useCooperatives = () =>
 export const useCooperative = (id: string, tokenOverride?: string) =>
   useOfflineQuery({
     queryKey: [COOPERATIVES_KEY, id],
-    cacheTable: "cooperatives",
-    cacheKey: `cooperative-${id}`,
+    ...offlineCacheKeys.cooperative(id),
     queryFn: async () => {
       const headers = tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : undefined;
       const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives/{id}", {
@@ -273,8 +272,7 @@ export const useCooperativeDeletePreview = (id: string) =>
 export const useCooperativeMembers = (cooperativeId: string) =>
   useOfflineQuery({
     queryKey: [COOPERATIVES_KEY, cooperativeId, "members"],
-    cacheTable: "cooperatives",
-    cacheKey: `cooperative-${cooperativeId}-members`,
+    ...offlineCacheKeys.cooperativeMembers(cooperativeId),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/apex/cooperatives/{id}/members", {
         params: { path: { id: cooperativeId } },
@@ -416,11 +414,11 @@ export const useResendCooperativeMemberVerification = () =>
 // They go through getAccessToken() which reads the Keycloak token the same way
 // the apiClient interceptor does.
 
-export const useMyCooperativeProfile = () =>
+export const useMyCooperativeProfile = ({ enabled = true }: { enabled?: boolean } = {}) =>
   useOfflineQuery({
     queryKey: [COOPERATIVE_SELF_KEY, "profile"],
-    cacheTable: "cooperatives",
-    cacheKey: "cooperative-self-profile",
+    ...offlineCacheKeys.cooperativeSelfProfile(),
+    enabled,
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/profile`, {
@@ -435,8 +433,7 @@ export const useMyCooperativeProfile = () =>
 export const useMyCooperativeMembers = () =>
   useOfflineQuery({
     queryKey: [COOPERATIVE_SELF_KEY, "members"],
-    cacheTable: "cooperatives",
-    cacheKey: "cooperative-self-members",
+    ...offlineCacheKeys.cooperativeSelfMembers(),
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/members`, {
@@ -451,8 +448,7 @@ export const useMyCooperativeMembers = () =>
 export const useMyAssignedDimensions = () =>
   useOfflineQuery({
     queryKey: [COOPERATIVE_SELF_KEY, "dimensions"],
-    cacheTable: "cooperatives",
-    cacheKey: "cooperative-self-dimensions",
+    ...offlineCacheKeys.cooperativeSelfDimensions(),
     queryFn: async () => {
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE}/api/v1/cooperative/dimensions`, {

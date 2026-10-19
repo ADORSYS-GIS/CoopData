@@ -9,6 +9,7 @@ import { keepPreviousData } from "@tanstack/react-query";
 import { useOfflineQuery } from "@/hooks/shared/useOfflineQuery";
 import { apiClient } from "@/openapi-client";
 import type { components } from "@/openapi-client/api";
+import { offlineCacheKeys } from "@/services/shared/offlineCacheKeys";
 
 export type AuditLog = components["schemas"]["AuditLogResponse"];
 export type PaginatedAuditLog = components["schemas"]["PaginatedAuditLogResponse"];
@@ -48,8 +49,7 @@ export const useAuditLogs = (filters: AuditLogFilters) => {
 
   return useOfflineQuery({
     queryKey: [AUDIT_KEY, query],
-    cacheTable: "analytics",
-    cacheKey: `audit-logs-${JSON.stringify(query)}`,
+    ...offlineCacheKeys.auditLogs(query),
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/v1/ministry/audit-logs", {
         params: { query },

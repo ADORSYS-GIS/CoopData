@@ -62,6 +62,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Plus, RefreshCw, Trash2, AlertCircle, Search, UserCog } from "lucide-react";
 import type { components } from "@/openapi-client/api";
+import { isAppOffline } from "@/services/shared/networkGuard";
 
 type Invitation = components["schemas"]["InvitationResponse"];
 type Federation = components["schemas"]["FederationResponse"];
@@ -361,9 +362,12 @@ export const InvitationList: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success(t("invitationList.toastSent"), {
-            description: t("invitationList.toastSentDesc", { email: values.email }),
-          });
+          if (isAppOffline())
+            toast.info(t("offline.inviteQueued"), { description: t("offline.inviteQueuedDesc") });
+          else
+            toast.success(t("invitationList.toastSent"), {
+              description: t("invitationList.toastSentDesc", { email: values.email }),
+            });
           setShowCreateModal(false);
         },
         onError: (err) => {
@@ -382,7 +386,9 @@ export const InvitationList: React.FC = () => {
       { federationId: selectedFederationId, invitationId: confirmAction.invitationId },
       {
         onSuccess: () => {
-          toast.success(t("invitationList.toastResent"));
+          if (isAppOffline())
+            toast.info(t("offline.resendQueued"), { description: t("offline.inviteQueuedDesc") });
+          else toast.success(t("invitationList.toastResent"));
           setConfirmAction(null);
         },
         onError: (err) => {

@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+"""Publish the legal documents (Terms, Privacy, ...) to the database.
+
+The Markdown files in frontend/public/locales/{lang}/legal/ are the single source
+of the legal texts. The app shows the copy stored in the `legal_policies` table,
+so every change to those files must be published as a new policy version:
+
+    python3 scripts/publish-legal.py          # write a migration for changed documents
+    python3 scripts/publish-legal.py --check  # CI: fail if a change was not published
+
+Publishing writes `backend/migrations/NN_publish_legal_policies.sql`, which adds a
+new version of each changed document, and records the fingerprint (SHA-256) of the
+published texts in `backend/legal/published.json`. The migration runs with the
+other migrations at deploy time. A version is only added when its text differs
+from the latest one in the database, so running the migration twice is harmless.
+
+Standard library only.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+LOCALES = ROOT / "frontend" / "public" / "locales"
+MIGRATIONS = ROOT / "backend" / "migrations"
+MANIFEST = ROOT / "backend" / "legal" / "published.json"
+
+LANGS = ("en", "fr", "pt", "ss")
+# (slug in legal_policies, Markdown file name)
+POLICIES = (
+    ("terms", "terms.md"),
+    ("privacy", "privacy.md"),
+    ("cookies", "cookies.md"),
+    ("acceptable-use", "acceptable_use.md"),
+    ("security", "security.md"),
+    ("data-retention", "data_retention.md"),
+    ("data-use", "data_use.md"),
+    ("data-processing", "data_processing.md"),
+)
+
+
+class PublishError(Exception):
+    pass
+
+
+def read_policy(file_name: str) -> dict[str, str]:
+    texts = {}
+    for lang in LANGS:
+        path = LOCALES / lang / "legal" / file_name
+        if not path.is_file():
+            raise PublishError(f"missing {path.relative_to(ROOT)}")
+        text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+        if not text.strip():
+            raise PublishError(f"{path.relative_to(ROOT)} is empty")
+        texts[lang] = text
+    return texts
+
+
+def title_of(text: str, where: str) -> str:
+    first = text.lstrip("﻿").split("\n", 1)[0].strip()
+    if not first.startswith("# "):
+        raise PublishError(f"{where} must start with a '# Title' line")
+    return first[2:].strip()
+
+
+def fingerprint(texts: dict[str, str]) -> str:
+    digest = hashlib.sha256()
+    for lang in LANGS:
+        digest.update(lang.encode())
+        digest.update(b"\0")
+        digest.update(texts[lang].encode("utf-8"))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def sql_text(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def load_manifest() -> dict:
+    if MANIFEST.is_file():
+        return json.loads(MANIFEST.read_text(encoding="utf-8"))
+    return {"policies": {}}
+
+
+def current_state() -> list[tuple[str, str, dict[str, str], str]]:
+    state = []
+    for slug, file_name in POLICIES:
+        texts = read_policy(file_name)
+        state.append((slug, file_name, texts, fingerprint(texts)))
+    return state
+
+
+def stale_policies(manifest: dict, state) -> list:
+    published = manifest.get("policies", {})
+    return [p for p in state if published.get(p[0], {}).get("sha256") != p[3]]
+
+
+def next_migration_number() -> int:
+    numbers = [
+        int(m.group(1))
+        for f in MIGRATIONS.glob("*.sql")
+        if (m := re.match(r"^(\d+)_", f.name))
+    ]
+    return max(numbers, default=0) + 1
+
+
+def insert_statement(slug: str, file_name: str, texts: dict[str, str], sha: str) -> str:
+    titles = {lang: title_of(texts[lang], f"{lang}/legal/{file_name}") for lang in LANGS}
+    latest = f"FROM legal_policies WHERE slug = {sql_text(slug)}"
+    columns = ", ".join(
+        [f"title_{l}" for l in LANGS] + [f"content_{l}" for l in LANGS]
+    )
+    values = ",\n    ".join(
+        [sql_text(titles[l]) for l in LANGS] + [sql_text(texts[l]) for l in LANGS]
+    )
+    return f"""-- {slug} ({file_name})
+INSERT INTO legal_policies (id, policy_id, slug, {columns}, version, source_sha256, created_at, updated_at)
+SELECT
+    gen_random_uuid(),
+    COALESCE((SELECT policy_id {latest} ORDER BY version LIMIT 1), gen_random_uuid()),
+    {sql_text(slug)},
+    {values},
+    COALESCE((SELECT MAX(version) {latest}), 0) + 1,
+    {sql_text(sha)},
+    now(),
+    now()
+WHERE COALESCE((SELECT source_sha256 {latest} ORDER BY version DESC LIMIT 1), '') <> {sql_text(sha)};
+"""
+
+
+def publish() -> int:
+    manifest = load_manifest()
+    state = current_state()
+    stale = stale_policies(manifest, state)
+    if not stale:
+        print("Legal documents are already published; nothing to do.")
+        return 0
+
+    number = next_migration_number()
+    migration = MIGRATIONS / f"{number}_publish_legal_policies.sql"
+    names = ", ".join(slug for slug, *_ in stale)
+    body = [
+        f"-- Migration {number}: publish legal policies ({names}).",
+        "-- Generated by scripts/publish-legal.py from frontend/public/locales/*/legal/*.md.",
+        "-- Do not edit: change the Markdown files and publish again.",
+        "",
+    ]
+    body += [insert_statement(*p) for p in stale]
+    migration.write_text("\n".join(body), encoding="utf-8")
+
+    policies = manifest.setdefault("policies", {})
+    for slug, _file, _texts, sha in stale:
+        policies[slug] = {"sha256": sha, "migration": migration.name}
+    MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+    MANIFEST.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    print(f"Published {names} in {migration.relative_to(ROOT)}")
+    print(f"Updated {MANIFEST.relative_to(ROOT)}. Commit both with the Markdown changes.")
+    return 0
+
+
+def check() -> int:
+    stale = stale_policies(load_manifest(), current_state())
+    if not stale:
+        print("Legal documents are published.")
+        return 0
+    for slug, file_name, *_ in stale:
+        print(f"::error::Legal document '{slug}' ({file_name}) changed but was not published.")
+    print("Run `python3 scripts/publish-legal.py` and commit the generated migration and manifest.")
+    return 1
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--check", action="store_true", help="fail if a change was not published")
+    args = parser.parse_args()
+    try:
+        return check() if args.check else publish()
+    except PublishError as e:
+        print(f"::error::{e}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

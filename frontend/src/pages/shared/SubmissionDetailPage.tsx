@@ -63,7 +63,7 @@ import { useVerifyIdentity } from "@/hooks/auth/useVerifyIdentity";
 import { useLineItems } from "@/hooks/submissions/useFinancialStatement";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useCallback, useState, useEffect, useRef, useMemo } from "react";
 import type { NfUploadResponse } from "@/types/non-financial";
 import { useMembers } from "@/hooks/non-financial/useMembers";
 import { useSavings } from "@/hooks/non-financial/useSavings";
@@ -72,6 +72,10 @@ import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { EditAccessLostDialog } from "@/components/submissions/EditAccessLostDialog";
+import { SubmissionAccessBadge } from "@/components/submissions/SubmissionAccessBadge";
+import { SubmissionAccessBanner } from "@/components/submissions/SubmissionAccessBanner";
+import { useSubmissionAccess } from "@/hooks/submissions/useSubmissionAccess";
 import type { TFunction } from "i18next";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -186,6 +190,7 @@ export const SubmissionDetailPage: React.FC = () => {
     isLoading,
     isError,
     error,
+    refetch: refetchSubmission,
   } = useSubmission(id ?? "", role ?? undefined);
   const { data: extractionJob } = useExtractionJob(submission?.extraction_job_id ?? null);
   const { data: sections, refetch: refetchSections } = useSubmissionSections(id);
@@ -211,7 +216,17 @@ export const SubmissionDetailPage: React.FC = () => {
   const [updatingSectionKey, setUpdatingSectionKey] = useState<string | null>(null);
   const [methodModalOpen, setMethodModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const { data: reviews } = useSubmissionReviews(id);
+  const { data: reviews, refetch: refetchReviews } = useSubmissionReviews(id);
+  const refreshSubmission = useCallback(() => void refetchSubmission(), [refetchSubmission]);
+  const refreshReviews = useCallback(() => void refetchReviews(), [refetchReviews]);
+  const { access, lost, dismissLost } = useSubmissionAccess(
+    submission,
+    role,
+    currentUserId,
+    reviews,
+    refreshSubmission,
+    refreshReviews,
+  );
   const { data: financialQ } = useQuestionnaire(id ?? "", "financial");
   const { data: nonFinancialQ } = useQuestionnaire(id ?? "", "non_financial");
   const { data: financialTemplate } = useActiveTemplate("financial");
@@ -371,7 +386,8 @@ export const SubmissionDetailPage: React.FC = () => {
   const claimCoopEdit = useClaimCooperativeEdit();
   const claimApexEdit = useClaimApexEdit();
 
-  // Check if this is a delegated/reclaimed draft waiting to be claimed
+  // Check if this is a delegated draft waiting to be claimed by whoever the tier belongs to.
+  // Cooperative can only claim if tier is cooperative. Apex can only claim if tier is apex.
   const isDelegatedToMe =
     isDraft &&
     submission?.edited_by == null &&
@@ -380,25 +396,24 @@ export const SubmissionDetailPage: React.FC = () => {
 
   const isEditor = isDraft && (submission?.edited_by === currentUserId || isDelegatedToMe);
 
-  // Auto-claim edit rights when opening a delegated draft with no editor
-  // Guard against React StrictMode double-mount and rapid navigation triggering multiple claims
+  // Only Apex-created submissions can be delegated/reclaimed
+  const wasDelegatedToCoop = submission?.created_by_role === "apex";
+
+  // Auto-claim edit rights when opening a draft with no editor.
+  // STRICT: cooperative can ONLY claim if current_tier === 'cooperative'.
+  //         apex can ONLY claim if current_tier === 'apex'.
   const hasClaimedRef = useRef(false);
   useEffect(() => {
     if (!submission || !isDraft || submission.edited_by != null || !id) return;
-    if (hasClaimedRef.current) return;
+    // Claiming needs the server; try again once the connection is back.
+    if (isOffline || hasClaimedRef.current) return;
     hasClaimedRef.current = true;
     if (role === "cooperative" && submission.current_tier === "cooperative") {
-      claimCoopEdit.mutate({ id });
-    } else if (
-      role === "cooperative" &&
-      submission.current_tier === "apex" &&
-      submission.created_by_role === "apex"
-    ) {
       claimCoopEdit.mutate({ id });
     } else if (role === "apex" && submission.current_tier === "apex") {
       claimApexEdit.mutate({ id });
     }
-  }, [submission, isDraft, id, role, claimCoopEdit, claimApexEdit]);
+  }, [submission, isDraft, id, role, isOffline, claimCoopEdit, claimApexEdit]);
 
   useEffect(() => {
     if (isEditor && isDraft && !methodChosen) {
@@ -612,12 +627,7 @@ export const SubmissionDetailPage: React.FC = () => {
                         {replaceOrgTerms(`Created by ${submission.created_by_name} (Apex)`)}
                       </span>
                     )}
-                    {submission.edited_by_name && submission.status === "draft" && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 border border-border/60 rounded-lg px-2 py-1">
-                        <span className="size-1.5 rounded-full bg-warning animate-pulse" />
-                        Editing: {submission.edited_by_name}
-                      </span>
-                    )}
+                    <SubmissionAccessBadge access={access} />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {t("submissions.reportingYear")}{" "}
@@ -697,6 +707,9 @@ export const SubmissionDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* ── Who holds the draft, when it is read-only for this user ── */}
+          <SubmissionAccessBanner access={access} />
 
           {/* ── AI Extraction Banner — prominent and dismissable ── */}
           {isExtracting && (
@@ -1009,10 +1022,16 @@ export const SubmissionDetailPage: React.FC = () => {
                     </button>
                     <button
                       onClick={handleSubmit}
-                      disabled={!canSubmit || submitMutation.isPending}
-                      title={!allReady ? t("submissions.detail.pleaseMarkAll") : undefined}
+                      disabled={!canSubmit || submitMutation.isPending || isOffline}
+                      title={
+                        isOffline
+                          ? t("offline.actionRequiresConnection")
+                          : !allReady
+                            ? t("submissions.detail.pleaseMarkAll")
+                            : undefined
+                      }
                       className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold transition-all shadow-sm ${
-                        canSubmit
+                        canSubmit && !isOffline
                           ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md"
                           : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                       }`}
@@ -1038,6 +1057,7 @@ export const SubmissionDetailPage: React.FC = () => {
             submission.status === "submitted" &&
             submission.current_tier === "apex" && (
               <ReviewActionPanel
+                isOffline={isOffline}
                 title={t("submissions.detail.apexReviewTitle")}
                 description={t("submissions.detail.apexReviewDesc")}
                 comment={reviewComment}
@@ -1054,57 +1074,27 @@ export const SubmissionDetailPage: React.FC = () => {
               />
             )}
 
-          {/* Apex: Action Required — Fix myself or Delegate to Cooperative */}
+          {/* Apex: Coop currently holds the submission — Reclaim back */}
           {role === "apex" &&
-            submission.status === "submitted" &&
-            submission.created_by_role === "apex" &&
-            submission.current_tier === "apex" && (
-              <Card
-                title="Action Required"
-                subtitle="Fix this submission yourself or delegate to the cooperative"
-              >
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={async () => {
-                      if (!id) return;
-                      try {
-                        await apexReturn.mutateAsync({ id });
-                        toast.success("Returned to draft. You can now edit this submission.");
-                      } catch (err) {
-                        toast.error(
-                          err instanceof Error ? err.message : "Failed to return submission",
-                        );
-                      }
-                    }}
-                    disabled={apexReturn.isPending}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {apexReturn.isPending ? <Spinner size="sm" /> : <PenLine className="size-4" />}{" "}
-                    Fix Myself
-                  </button>
-                  <button
-                    onClick={() => setShowDelegateModal(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-warning/30/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning hover:bg-warning/10 transition-colors"
-                  >
-                    <Users className="size-4" /> Delegate to Cooperative
-                  </button>
-                </div>
-              </Card>
-            )}
-
-          {/* Apex: Delegated submission — Reclaim back */}
-          {role === "apex" &&
-            submission.status === "draft" &&
+            submission.status !== "approved" &&
+            submission.status !== "rejected" &&
             submission.current_tier === "cooperative" &&
-            submission.created_by_role === "apex" && (
+            wasDelegatedToCoop &&
+            submission.edited_by !== currentUserId && (
               <Card
                 title="Delegated to Cooperative"
-                subtitle="This submission is being fixed by the cooperative"
+                subtitle={
+                  submission.edited_by_name
+                    ? `Currently being edited by: ${submission.edited_by_name}`
+                    : "This submission is waiting for the cooperative to claim and edit"
+                }
               >
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setShowReclaimModal(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                    disabled={isOffline}
+                    title={isOffline ? t("offline.actionRequiresConnection") : undefined}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
                   >
                     <PenLine className="size-4" /> Reclaim Submission
                   </button>
@@ -1112,19 +1102,21 @@ export const SubmissionDetailPage: React.FC = () => {
               </Card>
             )}
 
-          {/* Apex: Reclaimed draft — Delegate to Cooperative */}
+          {/* Apex: Apex holds the submission (is current editor) — Delegate to Cooperative */}
           {role === "apex" &&
             submission.status === "draft" &&
-            submission.current_tier === "apex" &&
-            submission.created_by_role === "apex" && (
+            submission.created_by_role === "apex" &&
+            submission.edited_by === currentUserId && (
               <Card
                 title="Ready to Delegate"
-                subtitle="Delegate this submission to the cooperative for editing"
+                subtitle="You can fill this submission out yourself, or hand it off to the cooperative"
               >
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setShowDelegateModal(true)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-warning/30/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning hover:bg-warning/10 transition-colors"
+                    disabled={isOffline}
+                    title={isOffline ? t("offline.actionRequiresConnection") : undefined}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed border border-warning/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning hover:bg-warning/10 transition-colors"
                   >
                     <Users className="size-4" /> Delegate to Cooperative
                   </button>
@@ -1133,6 +1125,14 @@ export const SubmissionDetailPage: React.FC = () => {
             )}
 
           {/* Delegate Modal */}
+          {lost && (
+            <EditAccessLostDialog
+              access={access}
+              serverMessage={lost.serverMessage}
+              onClose={dismissLost}
+            />
+          )}
+
           {showDelegateModal && (
             <div
               className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
@@ -1178,7 +1178,7 @@ export const SubmissionDetailPage: React.FC = () => {
                         toast.error(err instanceof Error ? err.message : "Failed to delegate");
                       }
                     }}
-                    disabled={delegateSubmission.isPending}
+                    disabled={delegateSubmission.isPending || isOffline}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-warning px-4 py-2.5 text-sm font-semibold text-white hover:bg-warning disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
                     {delegateSubmission.isPending ? (
@@ -1238,7 +1238,7 @@ export const SubmissionDetailPage: React.FC = () => {
                         toast.error(err instanceof Error ? err.message : "Failed to reclaim");
                       }
                     }}
-                    disabled={reclaimSubmission.isPending}
+                    disabled={reclaimSubmission.isPending || isOffline}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   >
                     {reclaimSubmission.isPending ? (
@@ -1257,6 +1257,7 @@ export const SubmissionDetailPage: React.FC = () => {
             (submission.status === "in_review" || submission.status === "submitted") &&
             submission.current_tier === "federation" && (
               <ReviewActionPanel
+                isOffline={isOffline}
                 title={t("submissions.detail.fedReviewTitle")}
                 description={t("submissions.detail.fedReviewDesc")}
                 comment={reviewComment}
@@ -1280,6 +1281,7 @@ export const SubmissionDetailPage: React.FC = () => {
             submission.status === "in_review" &&
             submission.current_tier === "ministry" && (
               <ReviewActionPanel
+                isOffline={isOffline}
                 title={t("submissions.detail.minReviewTitle")}
                 description={t("submissions.detail.minReviewDesc")}
                 comment={reviewComment}
@@ -1391,6 +1393,7 @@ export const SubmissionDetailPage: React.FC = () => {
         open={methodModalOpen}
         submissionId={id ?? ""}
         currentMethod={submissionMethod}
+        cooperativeType={submission?.cooperative_institution_type}
         hasExistingData={
           fsLineItems.length > 0 ||
           (membersData?.total ?? 0) > 0 ||
@@ -1438,6 +1441,7 @@ function ReviewActionPanel({
   returnLabel,
   rejectLabel,
   isPending,
+  isOffline = false,
 }: {
   title: string;
   description: string;
@@ -1450,6 +1454,8 @@ function ReviewActionPanel({
   returnLabel?: string;
   rejectLabel?: string;
   isPending: boolean;
+  /** Review decisions need the server; block them offline. */
+  isOffline?: boolean;
 }) {
   const { t } = useOrganizationLabelsContext();
   const hasComment = comment.trim().length > 0;
@@ -1478,7 +1484,7 @@ function ReviewActionPanel({
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={onApprove}
-          disabled={isPending}
+          disabled={isPending || isOffline}
           className="inline-flex items-center gap-2 rounded-xl bg-success px-5 py-2.5 text-sm font-semibold text-success-foreground hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
         >
           {isPending ? <Spinner size="sm" /> : <CheckCircle2 className="size-4" />}
@@ -1487,7 +1493,7 @@ function ReviewActionPanel({
         {onReturn && (
           <button
             onClick={onReturn}
-            disabled={isPending || !hasComment}
+            disabled={isPending || !hasComment || isOffline}
             title={!hasComment ? t("submissions.detail.reviewTitleReturn") : undefined}
             className="inline-flex items-center gap-2 rounded-xl border border-warning/40 px-5 py-2.5 text-sm font-semibold text-warning-foreground hover:bg-warning/8 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
@@ -1498,7 +1504,7 @@ function ReviewActionPanel({
         {onReject && (
           <button
             onClick={onReject}
-            disabled={isPending || !hasComment}
+            disabled={isPending || !hasComment || isOffline}
             title={!hasComment ? t("submissions.detail.reviewTitleReject") : undefined}
             className="inline-flex items-center gap-2 rounded-xl border border-destructive/30 px-5 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
@@ -1506,7 +1512,12 @@ function ReviewActionPanel({
             {rejectLabel}
           </button>
         )}
-        {(onReturn || onReject) && !hasComment && (
+        {isOffline && (
+          <p className="text-xs text-muted-foreground ml-1">
+            {t("offline.actionRequiresConnection")}
+          </p>
+        )}
+        {!isOffline && (onReturn || onReject) && !hasComment && (
           <p className="text-xs text-muted-foreground ml-1">
             {t("submissions.detail.reviewCommentRequired")}
           </p>
