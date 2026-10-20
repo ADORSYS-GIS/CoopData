@@ -6,6 +6,7 @@ import {
   INDICATOR_GROUPS,
   buildStatementIndicators,
   type StatementIndicator,
+  type LikeForLike,
   type StatementPoint,
 } from "@/lib/statement-indicators";
 
@@ -53,12 +54,12 @@ const cardFor = (indicator: StatementIndicator, t: TFunction): MetricCard => {
  * the previous period of the same frequency.
  */
 export const buildStatementGroups = (
-  points: readonly StatementPoint[],
+  points: readonly (StatementPoint & { comparison?: LikeForLike | null })[],
   t: TFunction,
 ): MetricGroup[] => {
   const current = points[points.length - 1];
   const previous = points.length > 1 ? points[points.length - 2] : undefined;
-  const indicators = buildStatementIndicators(current, previous);
+  const indicators = buildStatementIndicators(current, previous, current?.comparison);
 
   return INDICATOR_GROUPS.map((group) => ({
     id: `stmt-${group}`,

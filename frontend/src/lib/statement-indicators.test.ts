@@ -103,3 +103,25 @@ describe("buildStatementIndicators", () => {
     expect(value(balanceSheetOnly, "totalAssets")).toBe(1000);
   });
 });
+
+describe("like-for-like growth", () => {
+  const change = (list: ReturnType<typeof buildStatementIndicators>, key: string) =>
+    list.find((i) => i.key === key)?.change;
+
+  it("shows the total of every cooperative but grows only those in both years", () => {
+    // 2024 vs 2023 in our data: 2023 had basic sacco (72,000) and saccocoop
+    // (170,340); 2024 only basic sacco (80,000).
+    const current = point({ net_income: 80000 });
+    const previous = point({ net_income: 242340 });
+    const comparison = {
+      current: point({ net_income: 80000 }),
+      previous: point({ net_income: 72000 }),
+    };
+
+    const indicators = buildStatementIndicators(current, previous, comparison);
+
+    expect(indicators.find((i) => i.key === "netIncome")?.value).toBe(80000);
+    expect(change(indicators, "netIncome")).toBeCloseTo(11.11, 2);
+    expect(change(buildStatementIndicators(current, previous), "netIncome")).toBeCloseTo(-66.99, 2);
+  });
+});

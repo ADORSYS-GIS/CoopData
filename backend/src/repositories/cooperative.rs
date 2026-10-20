@@ -26,6 +26,24 @@ impl CooperativeRepository {
         .await
     }
 
+    /// Cooperatives registered for these Keycloak groups, in one query.
+    pub async fn find_by_keycloak_ids(
+        &self,
+        kc_ids: Vec<String>,
+    ) -> AppResult<Vec<cooperative::Model>> {
+        if kc_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        db_query("cooperative", "find_by_keycloak_ids", async {
+            cooperative::Entity::find()
+                .filter(CooperativeColumn::KeycloakId.is_in(kc_ids))
+                .all(&self.db)
+                .await
+                .map_err(AppError::DatabaseError)
+        })
+        .await
+    }
+
     pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<cooperative::Model>> {
         db_query("cooperative", "find_by_id", async {
             cooperative::Entity::find_by_id(id)

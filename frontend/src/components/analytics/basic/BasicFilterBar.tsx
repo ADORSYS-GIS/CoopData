@@ -8,12 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ALL,
-  periodOptions,
-  periodTypeOptions,
-  type BasicFilterState,
-} from "@/lib/basic-dashboard-filters";
+import { ALL, type BasicFilterState } from "@/lib/basic-dashboard-filters";
 import { YearPickerFilter } from "@/components/shared/YearPickerFilter";
 import type { PeriodOption } from "@/types/basic-dashboard";
 
@@ -74,7 +69,6 @@ export function BasicFilterBar({
   state,
   onChange,
   onClear,
-  availablePeriods,
   cooperatives,
   regions,
   sectors,
@@ -83,14 +77,6 @@ export function BasicFilterBar({
   const { t } = useTranslation();
   const f = (key: string) => t(`basicDashboard.filters.${key}`);
   const latest = { value: ALL, label: f("allPeriods") };
-
-  const typeLabel = (type: string): string =>
-    ({
-      YEARLY: f("yearly"),
-      SEMI_ANNUAL: f("semiAnnual"),
-      QUARTERLY: f("quarterly"),
-      MONTHLY: f("monthly"),
-    })[type] ?? type;
 
   const filtered = state.year !== ALL || state.periodType !== ALL || state.periodValue !== ALL;
 
@@ -102,27 +88,6 @@ export function BasicFilterBar({
         onValueChange={(year) => onChange({ year, periodValue: ALL })}
         latestValue={ALL}
         latestLabel={latest.label}
-      />
-      <FilterSelect
-        label={f("periodType")}
-        value={state.periodType}
-        onValueChange={(periodType) => onChange({ periodType, periodValue: ALL })}
-        options={[
-          latest,
-          ...periodTypeOptions(availablePeriods).map((p) => ({ value: p, label: typeLabel(p) })),
-        ]}
-      />
-      <FilterSelect
-        label={f("period")}
-        value={state.periodValue}
-        onValueChange={(periodValue) => onChange({ periodValue })}
-        options={[
-          latest,
-          ...periodOptions(availablePeriods, state.year, state.periodType).map((p) => ({
-            value: p.period_value,
-            label: p.label,
-          })),
-        ]}
       />
       {showScopeFilters && (
         <>

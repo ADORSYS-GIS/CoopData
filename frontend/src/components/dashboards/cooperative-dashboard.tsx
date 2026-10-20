@@ -25,7 +25,8 @@ import { MetricBox } from "./MetricBox";
 import { QuestionnaireIndicatorBoxes } from "./QuestionnaireIndicatorBoxes";
 import { useBasicDashboard } from "@/hooks/analytics/useBasicDashboard";
 import { analyticsTrack } from "@/hooks/cooperatives/useAnalyticsTrackNav";
-import { dashboardSubmission } from "@/lib/dashboard-submission";
+import { dashboardYear } from "@/lib/dashboard-submission";
+import { YearPendingNotice } from "@/components/submissions/YearPendingNotice";
 import { questionnaireKpis } from "@/lib/questionnaire-kpis";
 import { loanQualityShares } from "@/lib/loan-quality";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,11 +51,15 @@ export function CooperativeDashboard() {
   // The dashboard is built from the kind of submission the cooperative's type uses:
   // financial statements for a SACCO, the questionnaire for a multipurpose cooperative.
   const track = profile ? analyticsTrack(profile) : undefined;
-  const latestSubmission = dashboardSubmission(realSubmissions, track);
+  // Only a complete year is shown: every period of it approved by the apex.
+  const dashboard = dashboardYear(realSubmissions, track);
+  const latestSubmission = dashboard?.submission;
   const isQuestionnaire =
     track === "basic" || latestSubmission?.submission_method === "questionnaire";
   const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(
     isQuestionnaire ? undefined : latestSubmission?.id,
+    undefined,
+    "year",
   );
   const { data: basicData, isLoading: basicLoading } = useBasicDashboard(
     { reportingYear: latestSubmission?.reporting_year },
@@ -167,6 +172,10 @@ export function CooperativeDashboard() {
             </>
           )}
         </div>
+
+        {dashboard?.pending && (
+          <YearPendingNotice pending={dashboard.pending} shownYear={dashboard.year?.year} />
+        )}
 
         {/* ── Profile & Core Financial Metrics Grid ── */}
         <div className="grid lg:grid-cols-3 gap-6">

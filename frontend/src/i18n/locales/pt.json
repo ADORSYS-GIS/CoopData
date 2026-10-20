@@ -1510,7 +1510,16 @@
     "draftSavedLocally": "Draft saved locally on this device",
     "draftSavedOffline": "Draft saved locally — will sync when you're back online",
     "stepIncomplete": "Etapa incompleta",
-    "financialIncomplete": "Dados financeiros incompletos"
+    "financialIncomplete": "Dados financeiros incompletos",
+    "periodBar": {
+      "yearly": "Declaração anual {{year}}",
+      "quarterly": "Trimestral",
+      "monthly": "Mensal",
+      "semiAnnual": "Semestral",
+      "fullYear": "12 meses completos {{year}}",
+      "yearStarts": "O ano começa em {{month}}",
+      "fixedHint": "O período de reporte é escolhido ao criar a submissão e não pode ser alterado aqui. Para reportar outro período, crie uma nova submissão na página Submissões."
+    }
   },
   "financial": {
     "liquidAssets": "Ativos Líquidos",
@@ -2646,7 +2655,13 @@
     "seriesLiquidAssets": "Ativos líquidos",
     "seriesGrossLoans": "Carteira de empréstimos bruta",
     "seriesMemberDeposits": "Depósitos de membros",
-    "totalSavingsBalanceNote": "Saldo total de poupança"
+    "totalSavingsBalanceNote": "Saldo total de poupança",
+    "growthCoverage": {
+      "compared_one": "As variações comparam a {{count}} cooperativa com números completos para {{previous}} e {{current}}.",
+      "compared_other": "As variações comparam as {{count}} cooperativas com números completos para {{previous}} e {{current}}.",
+      "added": "Não comparadas, sem {{previous}} completo: {{names}}.",
+      "missing": "Não comparadas, {{current}} ainda não completo: {{names}}."
+    }
   },
   "cooperativeDashboard": {
     "title": "Painel da Cooperativa",
@@ -5400,7 +5415,21 @@
       "semiAnnual": "semestralmente"
     },
     "lockedFrequency": "{{year}} já está definido para relatório {{frequency}}.",
-    "lockedFrequencyDrafts": "{{year}} está definido para relatório {{frequency}}. Elimine os rascunhos desse ano para alterar."
+    "lockedFrequencyDrafts": "{{year}} está definido para relatório {{frequency}}. Elimine os rascunhos desse ano para alterar.",
+    "block": {
+      "frequency": "{{year}} é reportado em {{frequency}}. Escolha essa frequência para adicionar outro período.",
+      "startMonth": "Os trimestres de {{year}} começam em {{month}}. Mantenha esse mês de início para que os períodos não se sobreponham.",
+      "taken": "{{period}} {{year}} já existe. Escolha outro período ou abra a submissão existente na lista.",
+      "fullYearOverlap": "{{year}} já tem declarações mensais; uma declaração do ano completo e meses isolados não podem ser misturados.",
+      "allTaken": {
+        "QUARTERLY": "Cada trimestre de {{year}} já tem uma submissão. Abra-as na lista para as completar ou rever.",
+        "SEMI_ANNUAL": "Os dois semestres de {{year}} já têm uma submissão. Abra-as na lista para as completar ou rever.",
+        "MONTHLY": "Cada mês de {{year}} já tem uma submissão. Abra-as na lista para as completar ou rever.",
+        "YEARLY": "{{year}} já tem uma submissão."
+      }
+    },
+    "lockedStartMonth": "{{year}} começa em {{month}}, como os seus outros períodos.",
+    "alreadyCreated": "Criado"
   },
   "legal": {
     "termsOfService": "Termos de Serviço",
@@ -6452,6 +6481,11 @@
         "Apex": "{{apex}}",
         "Federation": "{{federation}}",
         "Ministry": "{{ministry}}"
+      },
+      "like_for_like": {
+        "compared": "As variações sobre o ano anterior comparam a(s) {{count}} cooperativa(s) com números para {{prior}} e {{year}}.",
+        "added": "Não comparadas, sem {{prior}} completo: {{names}}.",
+        "missing": "Não comparadas, {{year}} ainda não completo: {{names}}."
       }
     },
     "roles": {
@@ -6820,5 +6854,33 @@
     "badge_other": "A sessão termina em {{count}} dias",
     "badgeToday": "A sessão termina hoje",
     "hint": "A sua sessão neste dispositivo termina em {{date}}. Depois disso, precisa de internet para iniciar sessão novamente com a sua palavra-passe. As alterações não enviadas são mantidas."
+  },
+  "reportingYears": {
+    "title": "Anos de reporte",
+    "subtitle": "Um ano é usado nos painéis, análises e relatórios quando todos os seus períodos estão aprovados.",
+    "periodsLabel": "Períodos do ano",
+    "counted": "Completo · contabilizado",
+    "approvedOf": "{{approved}} de {{expected}} aprovados",
+    "notCounted": "Ainda não contabilizado",
+    "state": {
+      "approved": "Aprovado",
+      "in_review": "Em revisão",
+      "draft": "Rascunho",
+      "missing": "Não iniciado"
+    },
+    "frequency": {
+      "yearly": "Anual",
+      "quarterly": "Trimestral",
+      "monthly": "Mensal",
+      "semiAnnual": "Semestral"
+    },
+    "pendingTitle": "{{year}} ainda não está completo",
+    "pendingBody": "{{approved}} de {{expected}} períodos aprovados. Um ano é mostrado quando todos os seus períodos estão aprovados.",
+    "showingYear": "A mostrar {{year}}, o seu último ano completo.",
+    "noCompleteYear": "Ainda não há nenhum ano completo para mostrar.",
+    "leftOut_one": "{{count}} cooperativa fica de fora: o seu ano ainda não está completo (nem todos os períodos aprovados).",
+    "leftOut_other": "{{count}} cooperativas ficam de fora: o seu ano ainda não está completo (nem todos os períodos aprovados).",
+    "reportAfterYear": "O relatório fica disponível quando todos os períodos do ano estiverem aprovados.",
+    "chooseAnotherYear": "Escolha outro ano para ver os seus números."
   }
 }

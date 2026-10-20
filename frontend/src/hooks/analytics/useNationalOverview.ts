@@ -73,6 +73,8 @@ export interface NfPortfolioSummary {
 export interface NationalOverviewResponse {
   total_cooperatives: number;
   cooperatives_with_data: number;
+  /** Cooperatives left out because their year is not complete yet. */
+  cooperatives_incomplete?: number;
   non_financial_summary: NfPortfolioSummary;
   distributions: Record<string, TrafficLightDistribution>;
   cooperatives: CoopKpiRow[];

@@ -19,7 +19,7 @@ use serde_json::Value;
 
 use crate::api::dto::basic_dashboard::IndicatorValue;
 
-const GRID_KEYS: &[&str] = &[
+pub(super) const GRID_KEYS: &[&str] = &[
     "coa_assets",
     "coa_liabilities",
     "coa_equity",

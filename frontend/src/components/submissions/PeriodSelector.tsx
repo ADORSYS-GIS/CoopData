@@ -1,22 +1,7 @@
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
-import type { YearLock } from "@/lib/period-rules";
+import { MONTH_NAMES, type YearLock } from "@/lib/period-rules";
 
 export type SubmissionPeriodType = "YEARLY" | "QUARTERLY" | "MONTHLY" | "SEMI_ANNUAL";
-
-export const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
 
 /** Quarter month ranges aligned to a fiscal-year start month (1-12, 1 = Jan). */
 export function quarterRanges(startMonth: number): { q: string; label: string }[] {
@@ -77,6 +62,14 @@ export function PeriodSelector({
   onFiscalStartChange,
 }: PeriodSelectorProps) {
   const { t } = useOrganizationLabelsContext();
+  const sameFrequency = lock !== null && lock.periodType === periodType;
+  const lockedStart = sameFrequency ? lock.fiscalStartMonth : undefined;
+  const isTaken = (value: string) => sameFrequency && lock.taken.includes(value);
+  const takenLabel = (
+    <span className="block text-[10px] font-semibold text-success">
+      {t("periodReminders.alreadyCreated")}
+    </span>
+  );
 
   return (
     <>
@@ -132,7 +125,8 @@ export function PeriodSelector({
                 key={m}
                 type="button"
                 onClick={() => onFiscalStartChange(idx + 1)}
-                className={`rounded-lg py-1.5 text-xs font-bold border transition-all ${
+                disabled={lockedStart !== undefined && lockedStart !== idx + 1}
+                className={`rounded-lg py-1.5 text-xs font-bold border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
                   fiscalStartMonth === idx + 1
                     ? "border-primary bg-primary/10 text-primary border-2"
                     : "border-border bg-surface text-muted-foreground hover:bg-muted"
@@ -143,9 +137,14 @@ export function PeriodSelector({
             ))}
           </div>
           <p className="text-[10px] text-muted-foreground mt-1">
-            {periodType === "QUARTERLY"
-              ? "Q1 begins in this month; the other quarters follow automatically."
-              : "H1 begins in this month; H2 follows automatically."}
+            {lockedStart !== undefined
+              ? t("periodReminders.lockedStartMonth", {
+                  year,
+                  month: MONTH_NAMES[lockedStart - 1],
+                })
+              : periodType === "QUARTERLY"
+                ? "Q1 begins in this month; the other quarters follow automatically."
+                : "H1 begins in this month; H2 follows automatically."}
           </p>
         </div>
       )}
@@ -162,16 +161,21 @@ export function PeriodSelector({
                 key={q.q}
                 type="button"
                 onClick={() => onValueChange(q.q)}
-                className={`rounded-xl py-2 text-xs font-bold border transition-all ${
+                disabled={isTaken(q.q)}
+                className={`rounded-xl py-2 text-xs font-bold border transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                   periodValue === q.q
                     ? "border-primary bg-primary/10 text-primary border-2"
                     : "border-border bg-surface text-muted-foreground hover:bg-muted"
                 }`}
               >
                 <span className="block">{q.q}</span>
-                <span className="block text-[10px] font-normal text-muted-foreground">
-                  {q.label}
-                </span>
+                {isTaken(q.q) ? (
+                  takenLabel
+                ) : (
+                  <span className="block text-[10px] font-normal text-muted-foreground">
+                    {q.label}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -203,7 +207,9 @@ export function PeriodSelector({
                 key={m.key}
                 type="button"
                 onClick={() => onValueChange(m.key)}
-                className={`rounded-lg py-1.5 text-xs font-bold border transition-all ${
+                disabled={isTaken(m.key)}
+                title={isTaken(m.key) ? t("periodReminders.alreadyCreated") : undefined}
+                className={`rounded-lg py-1.5 text-xs font-bold border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
                   periodValue === m.key
                     ? "border-primary bg-primary/10 text-primary border-2"
                     : "border-border bg-surface text-muted-foreground hover:bg-muted"
@@ -227,16 +233,21 @@ export function PeriodSelector({
                 key={h.h}
                 type="button"
                 onClick={() => onValueChange(h.h)}
-                className={`rounded-xl py-2 text-xs font-bold border transition-all ${
+                disabled={isTaken(h.h)}
+                className={`rounded-xl py-2 text-xs font-bold border transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                   periodValue === h.h
                     ? "border-primary bg-primary/10 text-primary border-2"
                     : "border-border bg-surface text-muted-foreground hover:bg-muted"
                 }`}
               >
                 <span className="block">{h.h}</span>
-                <span className="block text-[10px] font-normal text-muted-foreground">
-                  {h.label}
-                </span>
+                {isTaken(h.h) ? (
+                  takenLabel
+                ) : (
+                  <span className="block text-[10px] font-normal text-muted-foreground">
+                    {h.label}
+                  </span>
+                )}
               </button>
             ))}
           </div>

@@ -25,6 +25,8 @@ import {
 } from "@/lib/report-filename";
 
 import { REPORT_EXPORT_OPTIONS, FORMAT_ICONS, EXPORTABLE_STATUSES } from "./types";
+import { reportChoices } from "@/lib/report-years";
+import { yearProgress } from "@/lib/period-rules";
 import {
   countByMethod,
   methodsWithData,
@@ -80,6 +82,18 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     [rawSubmissions],
   );
 
+  // The last period's submission of every complete year: what consolidated
+  // reports count (incomplete years are left out of them).
+  const completeYearAnchors = useMemo(
+    () =>
+      new Set(
+        yearProgress(rawSubmissions)
+          .filter((year) => year.complete && year.anchorId)
+          .map((year) => year.anchorId),
+      ),
+    [rawSubmissions],
+  );
+
   const isLoadingSubmissions =
     (role === "cooperative" && cooperativeQuery.isLoading) ||
     (role === "apex" && apexQuery.isLoading) ||
@@ -119,7 +133,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const availableMethods = useMemo(() => {
     if (!needsMethodSelector || !selectedYear) return [];
     const inScope = rawSubmissions.filter((s) => {
-      if (s.status.toLowerCase() !== "approved") return false;
+      if (!completeYearAnchors.has(s.id)) return false;
       if (String(s.reporting_year) !== selectedYear) return false;
       if (needsFedSelector && selectedFedId && s.federation_id !== selectedFedId) return false;
       if (needsApexSelector && selectedApexId && s.apex_id !== selectedApexId) return false;
@@ -130,6 +144,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     needsMethodSelector,
     selectedYear,
     rawSubmissions,
+    completeYearAnchors,
     needsFedSelector,
     selectedFedId,
     needsApexSelector,
@@ -140,7 +155,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     return countByMethod(
       rawSubmissions.filter(
         (s) =>
-          s.status.toLowerCase() === "approved" &&
+          completeYearAnchors.has(s.id) &&
           String(s.reporting_year) === selectedYear &&
           (!needsFedSelector || !selectedFedId || s.federation_id === selectedFedId) &&
           (!needsApexSelector || !selectedApexId || s.apex_id === selectedApexId),
@@ -148,6 +163,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
     );
   }, [
     rawSubmissions,
+    completeYearAnchors,
     selectedYear,
     needsFedSelector,
     selectedFedId,
@@ -161,11 +177,11 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   const availableYears = useMemo(() => {
     const years = new Set<number>();
 
-    // For consolidated reports, we only aggregate "approved" submissions.
+    // Consolidated reports aggregate complete years only.
     // For other types, we look at all exportable submissions.
     const relevantSubmissions =
       selectedOption?.scope === "consolidated"
-        ? rawSubmissions.filter((s) => s.status.toLowerCase() === "approved")
+        ? rawSubmissions.filter((s) => completeYearAnchors.has(s.id))
         : allSubmissions;
 
     relevantSubmissions.forEach((s) => {
@@ -183,6 +199,7 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
       .map(String);
   }, [
     rawSubmissions,
+    completeYearAnchors,
     allSubmissions,
     selectedOption,
     needsFedSelector,
@@ -261,12 +278,17 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
   }, [role, rawSubmissions, selectedApexId, selectedFedId, apexList]);
 
   // Submissions filtered to the selected cooperative (for individual reports)
+  // One report per year: a year reported by periods has a single report, once
+  // every period is approved (listed with its progress until then).
   const filteredSubmissions = useMemo(() => {
     if (!isIndividual) return [];
-    if (role === "cooperative") return allSubmissions;
-    if (!selectedCoopId) return [];
-    return allSubmissions.filter((s) => s.cooperative_id === selectedCoopId);
-  }, [isIndividual, role, selectedCoopId, allSubmissions]);
+    if (role !== "cooperative" && !selectedCoopId) return [];
+    const ofCoop =
+      role === "cooperative"
+        ? rawSubmissions
+        : rawSubmissions.filter((s) => s.cooperative_id === selectedCoopId);
+    return reportChoices(ofCoop, EXPORTABLE_STATUSES);
+  }, [isIndividual, role, selectedCoopId, rawSubmissions]);
 
   // Steps configuration
   const steps = useMemo(() => {

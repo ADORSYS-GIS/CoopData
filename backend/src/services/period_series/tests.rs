@@ -137,3 +137,46 @@ fn statement_totals_returns_provisions_as_positive_amount() {
 
     assert_eq!(totals.provisions, 74.0);
 }
+
+mod like_for_like {
+    use uuid::Uuid;
+
+    use super::*;
+
+    fn totals(assets: f64, net_income: f64) -> StatementTotals {
+        StatementTotals {
+            assets,
+            net_income,
+            ..StatementTotals::default()
+        }
+    }
+
+    #[test]
+    fn growth_compares_only_cooperatives_present_in_both_periods() {
+        let (a, b, c) = (Uuid::from_u128(1), Uuid::from_u128(2), Uuid::from_u128(3));
+        let previous = [(a, totals(100.0, 10.0)), (b, totals(200.0, 20.0))];
+        let current = [(a, totals(110.0, 11.0)), (c, totals(500.0, 50.0))];
+
+        let comparison = compare(&current, &previous);
+
+        assert_eq!(comparison.cooperatives, 1);
+        assert_eq!(comparison.current.assets, 110.0);
+        assert_eq!(comparison.previous.assets, 100.0);
+        assert_eq!(comparison.new, vec![c]);
+        assert_eq!(comparison.missing, vec![b]);
+    }
+
+    #[test]
+    fn several_cooperatives_are_added_up_before_comparing() {
+        let (a, b) = (Uuid::from_u128(1), Uuid::from_u128(2));
+        let previous = [(a, totals(0.0, 100.0)), (b, totals(0.0, 80.0))];
+        let current = [(b, totals(0.0, 72.0)), (a, totals(0.0, 110.0))];
+
+        let comparison = compare(&current, &previous);
+
+        assert_eq!(comparison.cooperatives, 2);
+        assert_eq!(comparison.current.net_income, 182.0);
+        assert_eq!(comparison.previous.net_income, 180.0);
+        assert!(comparison.new.is_empty() && comparison.missing.is_empty());
+    }
+}

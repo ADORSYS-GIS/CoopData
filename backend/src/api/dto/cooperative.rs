@@ -77,6 +77,10 @@ pub struct CooperativeResponse {
     /// Reporting tier ("basic" cooperatives use the questionnaire). Set when read from the database.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tier: Option<String>,
+    /// Id of the cooperative in the database, as submissions refer to it
+    /// (`id` is the Keycloak group). Absent for a group not registered yet.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub database_id: Option<uuid::Uuid>,
 }
 
 impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
@@ -106,6 +110,7 @@ impl From<crate::models::keycloak::KeycloakGroup> for CooperativeResponse {
             institution_type: None,
             region: None,
             tier: None,
+            database_id: None,
         }
     }
 }

@@ -1510,7 +1510,16 @@
     "draftSavedLocally": "Lidrafti ligciniwe kulelidivayisi",
     "draftSavedOffline": "Lidrafti ligciniwe kulelidivayisi — litawuhlangana nangabe usuphindze uxhume",
     "stepIncomplete": "Sicela ucedzele lesinyatselo ngaphambi kwekuchubeka kulesilandzelako.",
-    "financialIncomplete": "Tonkhe tinsimu kufanele tigcwaliswe ngaphambi kwekufaka. Kusesele {{count}} yensimu(u) lengagcwele."
+    "financialIncomplete": "Tonkhe tinsimu kufanele tigcwaliswe ngaphambi kwekufaka. Kusesele {{count}} yensimu(u) lengagcwele.",
+    "periodBar": {
+      "yearly": "Umbiko wemnyaka {{year}}",
+      "quarterly": "Ngekota",
+      "monthly": "Ngenyanga",
+      "semiAnnual": "Ngehhafu yemnyaka",
+      "fullYear": "Tinyanga letili-12 {{year}}",
+      "yearStarts": "Umnyaka ucala nga-{{month}}",
+      "fixedHint": "Sikhatsi sembiko sikhetfwa nawudala lokutfunyelwa futsi asikwati kugucuka lapha. Kute ubike lesinye sikhatsi, dala lokutfunyelwa lokusha ekhasini leTitfunyelwa."
+    }
   },
   "financial": {
     "liquidAssets": "Imphahla Enyakazayo",
@@ -2646,6 +2655,12 @@
       "housing": "Tindlu",
       "transport": "Kutfutfusa",
       "manufacturing": "Kukhicita"
+    },
+    "growthCoverage": {
+      "compared_one": "Tinombolo tekukhula ticatsanisa libhizinisi lelilinye ({{count}}) lelinetinombolo letiphelele ta-{{previous}} na-{{current}}.",
+      "compared_other": "Tinombolo tekukhula ticatsanisa emabhizinisi langu-{{count}} lanetinombolo letiphelele ta-{{previous}} na-{{current}}.",
+      "added": "Akucatsaniswa, kute {{previous}} lophelele: {{names}}.",
+      "missing": "Akucatsaniswa, {{current}} akakaphele: {{names}}."
     }
   },
   "cooperativeDashboard": {
@@ -5400,7 +5415,21 @@
       "semiAnnual": "kabili ngemnyaka"
     },
     "lockedFrequency": "{{year}} sekuhleliwe kubika nge-{{frequency}}.",
-    "lockedFrequencyDrafts": "{{year}} kuhleliwe kubika nge-{{frequency}}. Susa emadrafti akho embiko waloyo nyaka kuze uguqule."
+    "lockedFrequencyDrafts": "{{year}} kuhleliwe kubika nge-{{frequency}}. Susa emadrafti akho embiko waloyo nyaka kuze uguqule.",
+    "block": {
+      "frequency": "{{year}} ubikwa {{frequency}}. Khetsa leso sikhatsi kute wengete lesinye sikhatsi.",
+      "startMonth": "Tikota ta-{{year}} tiyacala nga-{{month}}. Gcina leyo nyanga yekucala kute tikhatsi tingangeneli.",
+      "taken": "{{period}} {{year}} sewukhona. Khetsa lesinye sikhatsi, nome uvule lokutfunyelwa lokukhona kuluhlu.",
+      "fullYearOverlap": "{{year}} sewunemibiko yenyanga; umbiko wemnyaka wonkhe netinyanga letitimele akukwati kuhlanganiswa.",
+      "allTaken": {
+        "QUARTERLY": "Yonkhe ikota ya-{{year}} seyinekutfunyelwa. Tivule kuluhlu kute uticedze nome utibuketele.",
+        "SEMI_ANNUAL": "Tonkhe tingcenye ta-{{year}} setinekutfunyelwa. Tivule kuluhlu kute uticedze nome utibuketele.",
+        "MONTHLY": "Yonkhe inyanga ya-{{year}} seyinekutfunyelwa. Tivule kuluhlu kute uticedze nome utibuketele.",
+        "YEARLY": "{{year}} sewunekutfunyelwa."
+      }
+    },
+    "lockedStartMonth": "{{year}} ucala nga-{{month}}, njengaletinye tikhatsi tawo.",
+    "alreadyCreated": "Kwentiwe"
   },
   "legal": {
     "termsOfService": "Imigomo Yekusebentisa",
@@ -6442,6 +6471,11 @@
         "Apex": "{{apex}}",
         "Federation": "{{federation}}",
         "Ministry": "{{ministry}}"
+      },
+      "like_for_like": {
+        "compared": "Kugucuka kusukela emnyakeni lowendlulile kucatsanisa emabhizinisi langu-{{count}} lanetinombolo ta-{{prior}} na-{{year}}.",
+        "added": "Akucatsaniswa, kute {{prior}} lophelele: {{names}}.",
+        "missing": "Akucatsaniswa, {{year}} akakaphele: {{names}}."
       }
     },
     "roles": {
@@ -6810,5 +6844,33 @@
     "badge_other": "Kungena kuphela emalangeni langu-{{count}}",
     "badgeToday": "Kungena kuphela lamuhla",
     "hint": "Kungena kwakho kulelithuluzi kuphela nga-{{date}}. Ngemuva kwaloko udzinga i-inthanethi kute ungene futsi ngephasiwedi yakho. Lushintjo lolungakatfunyelwa luyagcinwa."
+  },
+  "reportingYears": {
+    "title": "Iminyaka yekubika",
+    "subtitle": "Umnyaka usetjentiswa emadeshibhodini, ekuhlatiyeni nasemibikweni nase tonkhe tikhatsi tawo tivunyiwe.",
+    "periodsLabel": "Tikhatsi temnyaka",
+    "counted": "Ugcwele · uyabalwa",
+    "approvedOf": "{{approved}} kwa-{{expected}} tivunyiwe",
+    "notCounted": "Akakabalwa",
+    "state": {
+      "approved": "Kuvunyiwe",
+      "in_review": "Kuyabuyeketwa",
+      "draft": "Lokusalungiswa",
+      "missing": "Akukacali"
+    },
+    "frequency": {
+      "yearly": "Ngemnyaka",
+      "quarterly": "Ngekota",
+      "monthly": "Ngenyanga",
+      "semiAnnual": "Ngehhafu yemnyaka"
+    },
+    "pendingTitle": "{{year}} akakagcwali",
+    "pendingBody": "Tikhatsi letingu-{{approved}} kwaleti-{{expected}} tivunyiwe. Umnyaka uyakhonjiswa nase tonkhe tikhatsi tawo tivunyiwe.",
+    "showingYear": "Kukhonjiswa {{year}}, umnyaka wakho wekugcina logcwele.",
+    "noCompleteYear": "Kute umnyaka logcwele lotawukhonjiswa okwamanje.",
+    "leftOut_one": "Libhizinisi lelilinye ({{count}}) alifakiwe: umnyaka walo akakagcwali (akusito tonkhe tikhatsi letivunyiwe).",
+    "leftOut_other": "Emabhizinisi langu-{{count}} awafakiwe: umnyaka wawo akakagcwali (akusito tonkhe tikhatsi letivunyiwe).",
+    "reportAfterYear": "Umbiko utawutfolakala nase tonkhe tikhatsi temnyaka tivunyiwe.",
+    "chooseAnotherYear": "Khetsa lomunye umnyaka kute ubone tinombolo tawo."
   }
 }

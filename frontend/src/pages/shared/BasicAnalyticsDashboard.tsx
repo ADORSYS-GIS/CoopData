@@ -15,7 +15,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/context/AuthContext";
 import { useBasicDashboard } from "@/hooks/analytics/useBasicDashboard";
 import { useCooperatives } from "@/hooks/cooperatives/useCooperatives";
+import { useAnalyticsYear } from "@/hooks/submissions/useLatestSubmission";
+import { YearPendingNotice } from "@/components/submissions/YearPendingNotice";
 import {
+  ALL,
   DEFAULT_FILTERS,
   REGIONS,
   SECTORS,
@@ -109,6 +112,7 @@ export function BasicAnalyticsDashboard() {
   const isCooperative = role === "cooperative";
 
   const params = useMemo(() => filtersToParams(filters), [filters]);
+  const { pending } = useAnalyticsYear(filters.year === ALL ? undefined : Number(filters.year));
   const { data, isLoading, error } = useBasicDashboard(params);
   const { data: cooperatives = [] } = useCooperatives();
 
@@ -131,6 +135,9 @@ export function BasicAnalyticsDashboard() {
           showScopeFilters={!isCooperative}
         />
         <IndicatorSearch value={query} onChange={setQuery} />
+        {isCooperative && pending && (
+          <YearPendingNotice pending={pending} chosenYear={filters.year !== ALL} />
+        )}
         {isLoading ? (
           <div className="flex items-center justify-center py-32 text-muted-foreground">
             <Spinner size="md" className="mr-2" /> {t("basicDashboard.loading")}

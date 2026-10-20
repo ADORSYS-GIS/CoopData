@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
+use crate::services::period_series::StatementTotals;
+
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
 pub struct PeriodSeriesParams {
     pub reporting_year: Option<i32>,
@@ -50,6 +52,23 @@ pub struct PeriodSeriesPoint {
     pub financial_expenses: f64,
     pub operating_expenses: f64,
     pub credit_loss_expense: f64,
+    /// Like-for-like comparison with the previous point of the series: the
+    /// totals of the cooperatives present in both. Growth is computed from
+    /// these, so a cooperative that is new or missing in one period does not
+    /// count as growth or decline. Absent for the first point.
+    pub comparison: Option<PeriodComparison>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PeriodComparison {
+    /// Cooperatives present in both periods.
+    pub cooperatives_compared: i64,
+    pub current: StatementTotals,
+    pub previous: StatementTotals,
+    /// Cooperatives in this period only (new, or the previous period not complete).
+    pub new_cooperatives: Vec<String>,
+    /// Cooperatives in the previous period only (this period not complete yet).
+    pub missing_cooperatives: Vec<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]

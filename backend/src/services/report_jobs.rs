@@ -659,27 +659,41 @@ async fn handle_approval(state: &AppState, approved: &submission::Model) -> AppR
         None => None,
     };
 
+    let cooperative_subs = state
+        .submission_repo
+        .find_by_cooperative(approved.cooperative_id)
+        .await?;
     let mut refreshed = vec![approved.clone()];
     refreshed.extend(
-        state
-            .submission_repo
-            .find_by_cooperative(approved.cooperative_id)
-            .await?
-            .into_iter()
+        cooperative_subs
+            .iter()
             .filter(|s| {
                 s.id != approved.id
                     && s.reporting_year > approved.reporting_year
                     && s.status == crate::entities::enums::SubmissionStatus::Approved
-            }),
+            })
+            .cloned(),
     );
 
     // (year, questionnaire) of every consolidated report variant to rebuild.
     let mut changed: Vec<(i32, bool)> = Vec::new();
+    let mut started: Vec<Uuid> = Vec::new();
     for sub in &refreshed {
         let questionnaire =
             crate::services::questionnaire_report::is_questionnaire_method(&sub.submission_method);
+        // Only a complete year has a report; the periods of a year reported by
+        // quarters, halves or months share one, kept under the last period.
+        let Ok(report_id) =
+            crate::services::reporting_year::report_submission(&cooperative_subs, sub)
+        else {
+            continue;
+        };
+        if started.contains(&report_id) {
+            continue;
+        }
+        started.push(report_id);
         let target = ReportTarget::Submission {
-            id: sub.id,
+            id: report_id,
             questionnaire,
         };
         if let Err(e) = start(state, target, ENGLISH, true).await {

@@ -1,6 +1,5 @@
 import { isReportedKpi } from "@/lib/kpi-reported";
 import { useMemo, useState } from "react";
-import { ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { IndicatorSearch } from "@/components/analytics/basic/IndicatorSearch";
@@ -11,10 +10,11 @@ import { buildStatementGroups } from "@/components/analytics/national/statementM
 import { buildMetricGroups } from "@/components/analytics/national/metrics";
 import { PanelSkeleton } from "@/components/ui/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePeriodSeries } from "@/hooks/analytics/usePeriodSeries";
+import { usePeriodSeries, yearSeriesQuery } from "@/hooks/analytics/usePeriodSeries";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
 import { useCooperativeKpis } from "@/hooks/submissions/useCooperativeKpis";
-import { useLatestSubmission } from "@/hooks/submissions/useLatestSubmission";
+import { useAnalyticsYear } from "@/hooks/submissions/useLatestSubmission";
+import { YearPendingNotice } from "@/components/submissions/YearPendingNotice";
 import { useUserRole } from "@/lib/auth";
 import { CooperativeCharts } from "./CooperativeCharts";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
@@ -48,8 +48,11 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
   const reportingYear = Number(filterValues.year);
   const isCooperative = useUserRole() === "cooperative";
 
-  const latest = useLatestSubmission(reportingYear, filterValues.cooperativeId);
-  const hasApproved = !!latest && (latest.status === "approved" || latest.status === "submitted");
+  const { submission: latest, pending } = useAnalyticsYear(
+    reportingYear,
+    filterValues.cooperativeId,
+  );
+  const hasApproved = !!latest;
   const scope = { reportingYear, cooperativeId: latest?.cooperative_id };
   const seriesQuery = {
     ...scope,
@@ -57,7 +60,11 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
     periodValue: filterValues.periodValue,
   };
 
-  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(latest?.id);
+  const { data: kpisData, isLoading: kpisLoading } = useCooperativeKpis(
+    latest?.id,
+    undefined,
+    "year",
+  );
   const { data: nfStats } = useNfStatistics(isCooperative, scope, hasApproved);
 
   const kpiMap = useMemo(
@@ -69,13 +76,18 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
   );
   const headline = useMemo(() => buildKpiCards(kpisData?.kpis ?? [], t), [kpisData, t]);
   const { data: series } = usePeriodSeries(seriesQuery, hasApproved);
+  // Cards compare whole years; the charts follow the chosen frequency.
+  const { data: yearSeries } = usePeriodSeries(yearSeriesQuery(seriesQuery), hasApproved);
   const groups = useMemo(
     () => [
       ...(nfStats ? buildMetricGroups(nfStats, t) : []),
-      ...buildStatementGroups(series?.points ?? [], t),
+      ...buildStatementGroups(yearSeries?.points ?? [], t),
     ],
-    [nfStats, series, t],
+    [nfStats, yearSeries, t],
   );
+  if (!latest && pending) {
+    return <YearPendingNotice pending={pending} chosenYear={!Number.isNaN(reportingYear)} />;
+  }
   if (!latest) {
     return (
       <Card
@@ -108,19 +120,6 @@ export function CooperativeAnalyticsView({ filterValues }: Props) {
           />
         }
       />
-      {!hasApproved && (
-        <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4 dark:border-warning/30 dark:bg-warning/20">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-warning" />
-          <div>
-            <p className="text-sm font-bold text-warning-foreground dark:text-warning">
-              {t("cooperativeAnalytics.pendingApprovalTitle")}
-            </p>
-            <p className="mt-0.5 text-xs text-warning">
-              {t("cooperativeAnalytics.pendingApprovalDesc")}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

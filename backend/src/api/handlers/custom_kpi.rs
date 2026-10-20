@@ -356,6 +356,9 @@ pub async fn evaluate_custom_kpi(
     if use_real_data {
         let mut kpi_values: HashMap<String, f64> = HashMap::new();
         let mut target_sub_id: Option<Uuid> = None;
+        // A cooperative is evaluated on its newest complete year; a year
+        // reported by periods is combined into one first.
+        let mut year_statement: Option<crate::services::year_figures::YearStatement> = None;
 
         if let Some(submission_id) = params.submission_id {
             target_sub_id = Some(submission_id);
@@ -365,16 +368,20 @@ pub async fn evaluate_custom_kpi(
                 .find_by_cooperative_ids(vec![cooperative_id])
                 .await
                 .unwrap_or_default();
-            let approved: Vec<_> = submissions
-                .into_iter()
-                .filter(|s| s.status == crate::entities::enums::SubmissionStatus::Approved)
-                .collect();
-            if let Some(latest) = approved
-                .iter()
-                .max_by_key(|s| (s.reporting_year, s.created_at))
-            {
-                target_sub_id = Some(latest.id);
-            }
+            let latest = crate::services::year_figures::latest_per_cooperative(
+                &submissions,
+                crate::services::year_figures::YearFilter::default(),
+            );
+            year_statement = crate::services::year_figures::load_statements(
+                &state,
+                latest.values(),
+                &submissions,
+            )
+            .await
+            .unwrap_or_default()
+            .into_values()
+            .next();
+            target_sub_id = year_statement.as_ref().map(|statement| statement.anchor.id);
         }
 
         // Initialize all raw codes to 0.0 for compiler safety
@@ -385,23 +392,28 @@ pub async fn evaluate_custom_kpi(
 
         if let Some(submission_id) = target_sub_id {
             // Load and insert raw account code values
-            if let Ok(Some(fs)) = state
-                .financial_statement_repo
-                .find_by_submission(submission_id)
-                .await
-            {
-                if let Ok(line_items) = state
-                    .line_item_repo
-                    .find_by_financial_statement(fs.id)
+            let line_items = match &year_statement {
+                Some(statement) => statement.line_items.clone(),
+                None => match state
+                    .financial_statement_repo
+                    .find_by_submission(submission_id)
                     .await
                 {
-                    for item in line_items {
-                        if let Some(code) = item.account_code {
-                            let val = item.value.and_then(|v| v.to_f64()).unwrap_or(0.0);
-                            ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(val))
-                                .unwrap();
-                        }
-                    }
+                    Ok(Some(fs)) => state
+                        .line_item_repo
+                        .find_by_financial_statement(fs.id)
+                        .await
+                        .unwrap_or_default(),
+                    _ => Vec::new(),
+                },
+            };
+            let mut ordered: Vec<_> = line_items.iter().collect();
+            ordered.sort_by_key(|item| item.month);
+            for item in ordered {
+                if let Some(code) = item.account_code {
+                    let val = item.value.and_then(|v| v.to_f64()).unwrap_or(0.0);
+                    ctx.set_value(format!("ac_{}", code), evalexpr::Value::Float(val))
+                        .unwrap();
                 }
             }
 
@@ -412,6 +424,14 @@ pub async fn evaluate_custom_kpi(
                 .unwrap_or_default();
             for rec in &records {
                 kpi_values.insert(rec.kpi_name.clone(), rec.value);
+            }
+            if let Some(statement) = year_statement
+                .as_ref()
+                .filter(|statement| statement.year.is_multi_period())
+            {
+                for kpi in crate::services::KpiEngine::compute(&statement.line_items).to_vec() {
+                    kpi_values.insert(kpi.name, kpi.value);
+                }
             }
 
             if let Ok(entries) = state

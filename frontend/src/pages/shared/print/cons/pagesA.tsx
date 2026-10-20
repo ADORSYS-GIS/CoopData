@@ -1,3 +1,4 @@
+import { LikeForLikeNote } from "@/pages/shared/print/cons/LikeForLikeNote";
 import type { Analysis } from "@/pages/shared/print/cons/analysis";
 import { concernsOf, strengthsOf, verdictOf } from "@/pages/shared/print/cons/text";
 import {
@@ -85,6 +86,7 @@ export const executivePage = (a: Analysis, no: string): PageSpec => ({
             },
           ]}
         />
+        <LikeForLikeNote a={a} />
         <div className="two">
           <div>
             <h3 style={{ marginTop: 0 }}>{tr("common.strengths")}</h3>
@@ -167,12 +169,17 @@ export const financialPage = (a: Analysis, no: string): PageSpec => ({
                 <td>{tr(`cons.financial.metrics.${key}`)}</td>
                 <td className="num">{integer(a.now[key])}</td>
                 <td className="num">{before ? integer(before[key]) : "—"}</td>
-                <td className="num">{before ? integer(a.now[key] - before[key]) : "—"}</td>
+                <td className="num">
+                  {a.likeForLike.priorTotals
+                    ? integer(a.likeForLike.nowTotals[key] - a.likeForLike.priorTotals[key])
+                    : "—"}
+                </td>
                 {changeCell(a.changes[key])}
               </tr>
             ))}
           </tbody>
         </table>
+        <LikeForLikeNote a={a} />
         <Figure
           caption={
             <>

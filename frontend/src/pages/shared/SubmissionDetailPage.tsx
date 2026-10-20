@@ -71,6 +71,7 @@ import { useLoans } from "@/hooks/non-financial/useLoans";
 import { useFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
+import { SubmissionPeriodTag } from "@/components/submissions/SubmissionPeriodTag";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { EditAccessLostDialog } from "@/components/submissions/EditAccessLostDialog";
 import { SubmissionAccessBadge } from "@/components/submissions/SubmissionAccessBadge";
@@ -634,6 +635,7 @@ export const SubmissionDetailPage: React.FC = () => {
                     <span className="font-semibold text-foreground">
                       {submission.reporting_year}
                     </span>
+                    <SubmissionPeriodTag submission={submission} />
                     {" · "}
                     <span className="capitalize font-medium">
                       {t("submissions.detail.tier", { tier: submission.current_tier })}
