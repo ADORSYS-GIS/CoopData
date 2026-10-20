@@ -7,6 +7,9 @@ use crate::services::kpi_engine::KpiValue;
 pub struct NationalOverviewResponse {
     pub total_cooperatives: u64,
     pub cooperatives_with_data: u64,
+    /// Cooperatives left out because their year is not complete yet (not every
+    /// period of it approved).
+    pub cooperatives_incomplete: u64,
     pub non_financial_summary: NfPortfolioSummary,
     /// KPI name → traffic light distribution
     pub distributions: HashMap<String, TrafficLightDistribution>,

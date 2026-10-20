@@ -59,12 +59,19 @@ export const tileGroupsOf = (a: Analysis, trend: readonly TrendRow[]): TileGroup
   const women = sumNf(filed, "women_borrowers");
   const youth = sumNf(filed, "youth_borrowers");
   const rural = sumNf(filed, "rural_borrowers");
-  const priorMembers = prior ? sumNf(prior, "total_members") : null;
-  const priorActive = prior ? sumNf(prior, "active_members") : null;
-  const priorBorrowers = prior ? sumNf(prior, "active_borrowers") : null;
+  // Changes compare the cooperatives with figures in both years only.
+  const same = a.likeForLike;
+  const comparable = prior !== null && same.prior.length > 0;
+  const priorMembers = comparable ? sumNf(same.prior, "total_members") : null;
+  const sameMembers = sumNf(same.now, "total_members");
+  const priorBorrowers = comparable ? sumNf(same.prior, "active_borrowers") : null;
+  const sameBorrowers = sumNf(same.now, "active_borrowers");
   const averageLoan = borrowers > 0 ? a.now.loans / borrowers : null;
+  const sameAverage = sameBorrowers > 0 ? same.nowTotals.loans / sameBorrowers : null;
   const priorAverage =
-    a.before && priorBorrowers && priorBorrowers > 0 ? a.before.loans / priorBorrowers : null;
+    same.priorTotals && priorBorrowers && priorBorrowers > 0
+      ? same.priorTotals.loans / priorBorrowers
+      : null;
 
   const groups: TileGroup[] = [
     {
@@ -73,7 +80,7 @@ export const tileGroupsOf = (a: Analysis, trend: readonly TrendRow[]): TileGroup
         {
           label: tr("cons.tiles.members"),
           value: integer(members),
-          ...withChange(priorMembers === null ? null : changeOf(members, priorMembers)),
+          ...withChange(priorMembers === null ? null : changeOf(sameMembers, priorMembers)),
         },
         {
           label: tr("cons.tiles.active_members"),
@@ -91,7 +98,7 @@ export const tileGroupsOf = (a: Analysis, trend: readonly TrendRow[]): TileGroup
         {
           label: tr("cons.tiles.active_borrowers"),
           value: integer(borrowers),
-          ...withChange(priorBorrowers === null ? null : changeOf(borrowers, priorBorrowers)),
+          ...withChange(priorBorrowers === null ? null : changeOf(sameBorrowers, priorBorrowers)),
         },
         {
           label: tr("cons.tiles.women_borrowers"),
@@ -127,8 +134,8 @@ export const tileGroupsOf = (a: Analysis, trend: readonly TrendRow[]): TileGroup
           label: tr("cons.tiles.average_loan"),
           value: averageLoan === null ? "—" : money(averageLoan),
           ...withChange(
-            averageLoan !== null && priorAverage !== null
-              ? changeOf(averageLoan, priorAverage)
+            sameAverage !== null && priorAverage !== null
+              ? changeOf(sameAverage, priorAverage)
               : null,
           ),
         },

@@ -91,107 +91,81 @@ impl ExportGenerator {
             .await?
             .ok_or_else(|| crate::error::AppError::NotFound("Cooperative not found".into()))?;
 
-        let kpi_records = state
-            .kpi_record_repo
-            .find_by_submission(submission_id)
-            .await?;
-
-        let prior_kpi_records = if submission.reporting_year > 2020 {
-            if let Some(prior_sub) = state
-                .submission_repo
-                .find_by_cooperative_and_year(
-                    submission.cooperative_id,
-                    submission.reporting_year - 1,
-                )
-                .await?
-            {
+        // The report describes the whole year the submission belongs to (a
+        // year reported by periods is combined) and compares it only with the
+        // previous complete year.
+        let year = crate::services::year_figures::for_submission(state, &submission, true).await?;
+        let kpi_records = match &year.current {
+            Some(current) => {
+                crate::services::year_figures::year_kpi_records(state, current).await?
+            }
+            None => {
                 state
                     .kpi_record_repo
-                    .find_by_submission(prior_sub.id)
+                    .find_by_submission(submission_id)
                     .await?
-            } else {
-                Vec::new()
             }
-        } else {
-            Vec::new()
+        };
+        let prior = year.prior.as_ref().filter(|_| year.current.is_some());
+        let prior_kpi_records = match prior {
+            Some(prior) => crate::services::year_figures::year_kpi_records(state, prior).await?,
+            None => Vec::new(),
         };
 
         // Fetch line items from financial statement
-        let line_items = match state
-            .financial_statement_repo
-            .find_by_submission(submission_id)
-            .await?
-        {
-            Some(fs) => {
-                let raw_items = state
-                    .line_item_repo
-                    .find_by_financial_statement(fs.id)
-                    .await?;
-                if raw_items.is_empty() {
-                    None
-                } else {
-                    let prior_line_items = if submission.reporting_year > 2020 {
-                        if let Some(prior_sub) = state
-                            .submission_repo
-                            .find_by_cooperative_and_year(
-                                submission.cooperative_id,
-                                submission.reporting_year - 1,
-                            )
-                            .await?
-                        {
-                            if let Some(pfs) = state
-                                .financial_statement_repo
-                                .find_by_submission(prior_sub.id)
-                                .await?
-                            {
-                                state
-                                    .line_item_repo
-                                    .find_by_financial_statement(pfs.id)
-                                    .await
-                                    .unwrap_or_default()
-                            } else {
-                                Vec::new()
-                            }
-                        } else {
-                            Vec::new()
-                        }
-                    } else {
-                        Vec::new()
-                    };
+        let current_items = match &year.current {
+            Some(current) => current.line_items.clone(),
+            None => match state
+                .financial_statement_repo
+                .find_by_submission(submission_id)
+                .await?
+            {
+                Some(fs) => {
+                    state
+                        .line_item_repo
+                        .find_by_financial_statement(fs.id)
+                        .await?
+                }
+                None => Vec::new(),
+            },
+        };
+        let line_items = if current_items.is_empty() {
+            None
+        } else {
+            let raw_items = current_items;
+            let prior_line_items: Vec<crate::entities::balance_sheet_line_item::Model> =
+                prior.map(|p| p.line_items.clone()).unwrap_or_default();
 
-                    let mut items: Vec<report_narrative::BalanceSheetLineItemData> = Vec::new();
-                    // Deduplicate by account_code, take latest month
-                    let mut by_code: std::collections::HashMap<
-                        i32,
-                        &crate::entities::balance_sheet_line_item::Model,
-                    > = std::collections::HashMap::new();
-                    for item in &raw_items {
-                        if let Some(code) = item.account_code {
-                            by_code.insert(code, item);
-                        }
-                    }
-                    let mut prior_map: std::collections::HashMap<i32, f64> =
-                        std::collections::HashMap::new();
-                    for item in &prior_line_items {
-                        if let (Some(code), Some(val)) = (item.account_code, item.value) {
-                            prior_map.insert(code, val.to_f64().unwrap_or(0.0));
-                        }
-                    }
-                    for (code, item) in &by_code {
-                        let current = item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
-                        let prior = prior_map.get(code).copied();
-                        items.push(report_narrative::BalanceSheetLineItemData {
-                            account_code: Some(*code),
-                            account_name: item.account_name.clone(),
-                            current_value: current,
-                            prior_value: prior,
-                        });
-                    }
-                    items.sort_by_key(|i| i.account_code.unwrap_or(0));
-                    Some(items)
+            let mut items: Vec<report_narrative::BalanceSheetLineItemData> = Vec::new();
+            // Deduplicate by account_code, take latest month
+            let mut by_code: std::collections::HashMap<
+                i32,
+                &crate::entities::balance_sheet_line_item::Model,
+            > = std::collections::HashMap::new();
+            for item in &raw_items {
+                if let Some(code) = item.account_code {
+                    by_code.insert(code, item);
                 }
             }
-            None => None,
+            let mut prior_map: std::collections::HashMap<i32, f64> =
+                std::collections::HashMap::new();
+            for item in &prior_line_items {
+                if let (Some(code), Some(val)) = (item.account_code, item.value) {
+                    prior_map.insert(code, val.to_f64().unwrap_or(0.0));
+                }
+            }
+            for (code, item) in &by_code {
+                let current = item.value.map(|v| v.to_f64().unwrap_or(0.0)).unwrap_or(0.0);
+                let prior = prior_map.get(code).copied();
+                items.push(report_narrative::BalanceSheetLineItemData {
+                    account_code: Some(*code),
+                    account_name: item.account_name.clone(),
+                    current_value: current,
+                    prior_value: prior,
+                });
+            }
+            items.sort_by_key(|i| i.account_code.unwrap_or(0));
+            Some(items)
         };
 
         // Compute NF stats (membership, savings, loans)
@@ -225,7 +199,7 @@ impl ExportGenerator {
                 active_members: nf.membership.active,
                 dormant_members: nf.membership.dormant,
                 women_members: nf.membership.female,
-                youth_members: nf.membership.age_18_35 + nf.membership.under_18,
+                youth_members: nf.membership.age_18_35,
                 rural_members: nf.membership.rural,
                 agm_participation_pct: nf.membership.agm_participation_pct,
                 leadership_count: nf.membership.leadership_count,
@@ -548,6 +522,39 @@ impl ExportGenerator {
             .map_err(|_| crate::error::AppError::InternalServerError("AI semaphore closed".into()))
     }
 
+    /// The last period's submission and the KPIs of a cooperative's year, once
+    /// the year is complete (every period approved); nothing otherwise.
+    async fn complete_year_kpis(
+        state: &AppState,
+        cooperative_id: Uuid,
+        reporting_year: i32,
+    ) -> AppResult<(
+        Option<crate::entities::submission::Model>,
+        Vec<crate::entities::kpi_record::Model>,
+    )> {
+        let submissions = state
+            .submission_repo
+            .find_by_cooperative(cooperative_id)
+            .await?;
+        let years = crate::services::year_figures::counted(
+            &submissions,
+            crate::services::year_figures::YearFilter {
+                reporting_year: Some(reporting_year),
+                period_type: None,
+            },
+        );
+        let statements =
+            crate::services::year_figures::load_statements(state, &years, &submissions).await?;
+        match statements.into_values().next() {
+            Some(statement) => {
+                let kpis =
+                    crate::services::year_figures::year_kpi_records(state, &statement).await?;
+                Ok((Some(statement.anchor), kpis))
+            }
+            None => Ok((None, Vec::new())),
+        }
+    }
+
     pub(crate) async fn compile_apex_data(
         state: &AppState,
         apex_id: Uuid,
@@ -570,15 +577,8 @@ impl ExportGenerator {
         let mut coops_data = Vec::new();
 
         for coop in cooperatives {
-            let submissions = state.submission_repo.find_by_cooperative(coop.id).await?;
-            let submission = submissions
-                .into_iter()
-                .find(|s| s.reporting_year == reporting_year);
-
-            let mut kpis = Vec::new();
-            if let Some(ref sub) = submission {
-                kpis = state.kpi_record_repo.find_by_submission(sub.id).await?;
-            }
+            let (submission, kpis) =
+                Self::complete_year_kpis(state, coop.id, reporting_year).await?;
             coops_data.push((coop, submission, kpis));
         }
 
@@ -614,15 +614,8 @@ impl ExportGenerator {
             let mut coops_data = Vec::new();
 
             for coop in cooperatives {
-                let submissions = state.submission_repo.find_by_cooperative(coop.id).await?;
-                let submission = submissions
-                    .into_iter()
-                    .find(|s| s.reporting_year == reporting_year);
-
-                let mut kpis = Vec::new();
-                if let Some(ref sub) = submission {
-                    kpis = state.kpi_record_repo.find_by_submission(sub.id).await?;
-                }
+                let (submission, kpis) =
+                    Self::complete_year_kpis(state, coop.id, reporting_year).await?;
                 coops_data.push((coop, submission, kpis));
             }
             apexes_data.push((apex, coops_data));
@@ -647,15 +640,8 @@ impl ExportGenerator {
         let mut national_data = Vec::new();
 
         for coop in cooperatives {
-            let submissions = state.submission_repo.find_by_cooperative(coop.id).await?;
-            let submission = submissions
-                .into_iter()
-                .find(|s| s.reporting_year == reporting_year);
-
-            let mut kpis = Vec::new();
-            if let Some(ref sub) = submission {
-                kpis = state.kpi_record_repo.find_by_submission(sub.id).await?;
-            }
+            let (submission, kpis) =
+                Self::complete_year_kpis(state, coop.id, reporting_year).await?;
             national_data.push((coop, submission, kpis));
         }
 

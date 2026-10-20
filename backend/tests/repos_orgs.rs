@@ -265,3 +265,43 @@ fn federation_active(id: Uuid) -> coop_data_backend::entities::federation::Activ
     m.keycloak_id = Set("kc-fed".to_string());
     m
 }
+
+#[tokio::test]
+async fn coop_find_by_keycloak_ids_uses_one_query() {
+    let rm = RecordingMock::postgres().query_empty().build();
+    let app = rm.app().await;
+
+    app.state
+        .cooperative_repo
+        .find_by_keycloak_ids(vec!["kc-a".to_string(), "kc-b".to_string()])
+        .await
+        .expect("query ok");
+
+    assert_eq!(rm.sql().len(), 1, "one query for all ids: {:?}", rm.sql());
+    assert!(
+        rm.sql()[0].contains("keycloak_id"),
+        "filter missing: {}",
+        rm.sql()[0]
+    );
+    assert!(
+        rm.binds(0).contains(&"kc-a".to_string()) && rm.binds(0).contains(&"kc-b".to_string()),
+        "ids bound: {:?}",
+        rm.binds(0)
+    );
+}
+
+#[tokio::test]
+async fn coop_find_by_keycloak_ids_empty_list_never_queries() {
+    let rm = RecordingMock::postgres().build();
+    let app = rm.app().await;
+
+    let rows = app
+        .state
+        .cooperative_repo
+        .find_by_keycloak_ids(vec![])
+        .await
+        .expect("short-circuits");
+
+    assert!(rows.is_empty());
+    assert!(rm.sql().is_empty());
+}

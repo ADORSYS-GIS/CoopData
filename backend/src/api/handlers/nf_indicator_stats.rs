@@ -47,22 +47,23 @@ pub async fn get_nf_statistics(
     let coop =
         crate::api::handlers::cooperative::resolve_caller_cooperative(&state, &claims).await?;
 
-    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
-    let mut query = crate::entities::submission::Entity::find()
-        .filter(crate::entities::submission::Column::CooperativeId.eq(coop.id))
-        .filter(
-            crate::entities::submission::Column::Status
-                .eq(crate::entities::enums::SubmissionStatus::Approved),
-        );
-
-    if let Some(year) = params.reporting_year {
-        query = query.filter(crate::entities::submission::Column::ReportingYear.eq(year));
-    }
-
-    let latest_approved = query
-        .order_by_desc(crate::entities::submission::Column::ReportingYear)
-        .one(&state.db)
+    // The registers of the newest complete year's last period: a year counts
+    // once every period of its frequency is approved.
+    let submissions = state
+        .submission_repo
+        .find_by_cooperative_ids(vec![coop.id])
         .await?;
+    let latest_approved = crate::services::year_figures::counted(
+        &submissions,
+        crate::services::year_figures::YearFilter {
+            reporting_year: params.reporting_year,
+            period_type: None,
+        },
+    )
+    .into_iter()
+    .next()
+    .and_then(|year| year.anchor_id)
+    .and_then(|anchor| submissions.iter().find(|s| s.id == anchor).cloned());
 
     let stats = if let Some(ref sub) = latest_approved {
         let db_records = state.kpi_record_repo.find_by_submission(sub.id).await?;
@@ -118,17 +119,21 @@ pub async fn get_nf_trend(
         .submission_repo
         .find_by_cooperative_ids(cooperative_ids)
         .await?;
+    // One entry per cooperative and complete year: the registers of the
+    // year's last period (they are year-end figures).
     let mut grouped: BTreeMap<i32, Vec<_>> = BTreeMap::new();
-    for submission in submissions.into_iter().filter(|submission| {
-        submission.status == crate::entities::enums::SubmissionStatus::Approved
-    }) {
-        if params.reporting_year.map_or(true, |reporting_year| {
-            submission.reporting_year == reporting_year
-        }) {
-            grouped
-                .entry(submission.reporting_year)
-                .or_default()
-                .push(submission);
+    for year in crate::services::year_figures::counted(
+        &submissions,
+        crate::services::year_figures::YearFilter {
+            reporting_year: params.reporting_year,
+            period_type: None,
+        },
+    ) {
+        if let Some(anchor) = year
+            .anchor_id
+            .and_then(|anchor| submissions.iter().find(|s| s.id == anchor))
+        {
+            grouped.entry(year.year).or_default().push(anchor.clone());
         }
     }
 
@@ -177,7 +182,7 @@ pub async fn get_nf_trend(
                 .await?
             };
             total_members += stats.membership.total;
-            youth_members += stats.membership.under_18 + stats.membership.age_18_35;
+            youth_members += stats.membership.age_18_35;
             women_members += stats.membership.female;
 
             if stats.membership.total > 0 {
@@ -292,44 +297,26 @@ pub async fn get_consolidated_nf_statistics(
         .find_by_cooperative_ids(coop_ids)
         .await?;
 
-    let year_filtered: Vec<_> = submissions
-        .into_iter()
-        .filter(|s| {
-            let matches_year = s.reporting_year == year;
-            let matches_pt = params
+    // Each cooperative's complete year counts once, through the registers of
+    // its last period; incomplete years are left out.
+    let year_filtered: Vec<_> = crate::services::year_figures::counted(
+        &submissions,
+        crate::services::year_figures::YearFilter {
+            reporting_year: Some(year),
+            period_type: params
                 .period_type
                 .as_deref()
-                .map(|pt| {
-                    if pt.eq_ignore_ascii_case("all") {
-                        true
-                    } else {
-                        let pt_str = match s.period_type {
-                            crate::entities::enums::PeriodType::Yearly => "YEARLY",
-                            crate::entities::enums::PeriodType::Quarterly => "QUARTERLY",
-                            crate::entities::enums::PeriodType::Monthly => "MONTHLY",
-                            crate::entities::enums::PeriodType::SemiAnnual => "SEMI_ANNUAL",
-                        };
-                        pt_str.eq_ignore_ascii_case(pt)
-                    }
-                })
-                .unwrap_or(true);
-            let matches_pv = params
-                .period_value
-                .as_deref()
-                .map(|pv| {
-                    if pv.eq_ignore_ascii_case("all") {
-                        true
-                    } else {
-                        s.period_value.eq_ignore_ascii_case(pv)
-                    }
-                })
-                .unwrap_or(true);
-            matches_year
-                && matches_pt
-                && matches_pv
-                && s.status == crate::entities::enums::SubmissionStatus::Approved
-        })
-        .collect();
+                .filter(|pt| !pt.eq_ignore_ascii_case("all"))
+                .and_then(crate::entities::enums::PeriodType::parse),
+        },
+    )
+    .into_iter()
+    .filter_map(|counted| {
+        counted
+            .anchor_id
+            .and_then(|anchor| submissions.iter().find(|s| s.id == anchor).cloned())
+    })
+    .collect();
 
     let year_filtered_ids: Vec<uuid::Uuid> = year_filtered.iter().map(|s| s.id).collect();
     let all_computed_records = state
@@ -478,7 +465,7 @@ pub async fn get_consolidated_nf_statistics(
                 0.0
             };
             m.youth_pct = if m.total > 0 {
-                ((m.under_18 + m.age_18_35) as f64 / m.total as f64) * 100.0
+                (m.age_18_35 as f64 / m.total as f64) * 100.0
             } else {
                 0.0
             };

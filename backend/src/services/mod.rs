@@ -23,8 +23,10 @@ pub mod questionnaire_kpi;
 pub mod questionnaire_report;
 pub mod report_jobs;
 pub mod report_narrative;
+pub mod reporting_year;
 pub mod submission_workflow;
 pub mod verification_token;
+pub mod year_figures;
 
 pub use ai_extraction::{Extractor, NfHeaderMapper};
 pub use audit::AuditService;

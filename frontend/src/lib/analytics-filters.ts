@@ -1,8 +1,10 @@
+import { yearProgress } from "@/lib/period-rules";
 import type { PeriodOption } from "@/types/basic-dashboard";
 
 export const LATEST = "all";
 
 export interface SubmissionPeriod {
+  cooperative_id?: string | null;
   reporting_year: number;
   period_type?: string | null;
   period_value?: string | null;
@@ -35,18 +37,25 @@ export const periodLabel = (type: string, value: string, year: number): string =
 };
 
 /**
- * Periods that have at least one approved submission, newest first. Methods in
- * `excludeMethods` are skipped: questionnaire returns carry no financial
- * statement, so the statement-based Analytics must not pick them as "latest".
+ * Periods of complete years (every period of the year approved), newest first.
+ * Methods in `excludeMethods` are skipped: questionnaire returns carry no
+ * financial statement, so the statement-based Analytics must not pick them as
+ * "latest".
  */
 export const toPeriodOptions = (
   submissions: readonly SubmissionPeriod[],
   excludeMethods: readonly string[] = [],
 ): PeriodOption[] => {
+  const ofKind = submissions.filter((s) => !excludeMethods.includes(s.submission_method ?? ""));
+  const complete = new Set(
+    yearProgress(ofKind)
+      .filter((year) => year.complete)
+      .map((year) => `${year.cooperativeId}|${year.year}`),
+  );
   const seen = new Map<string, PeriodOption>();
-  for (const submission of submissions) {
+  for (const submission of ofKind) {
     if ((submission.status ?? "").toLowerCase() !== "approved") continue;
-    if (excludeMethods.includes(submission.submission_method ?? "")) continue;
+    if (!complete.has(`${submission.cooperative_id ?? ""}|${submission.reporting_year}`)) continue;
     const type = (submission.period_type ?? "YEARLY").toUpperCase();
     const value = submission.period_value ?? String(submission.reporting_year);
     const key = `${submission.reporting_year}:${type}:${value.toUpperCase()}`;
@@ -64,7 +73,7 @@ export const toPeriodOptions = (
   );
 };
 
-/** "Latest available" resolves to the newest year with an approved submission. */
+/** "Latest available" resolves to the newest complete year. */
 export const resolveYear = (
   value: string,
   periods: readonly PeriodOption[],

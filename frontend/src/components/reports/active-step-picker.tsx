@@ -1,4 +1,6 @@
 import { Globe, CheckCircle2, Layers, Building2, FileText, type LucideIcon } from "lucide-react";
+import { YearPeriodPills } from "@/components/submissions/YearPeriodPills";
+import type { YearProgress } from "@/lib/period-rules";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -28,6 +30,8 @@ interface ActiveStepPickerProps {
     status: string;
     submitted_at?: string | null;
     created_at: string;
+    /** The year is not complete yet: no report to choose. */
+    pending?: YearProgress;
   }>;
   selectedSubmissionId: string;
   onSelectSubmission: (id: string) => void;
@@ -201,45 +205,70 @@ export function ActiveStepPicker({
           </div>
         ) : (
           <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
-            {filteredSubmissions.map((sub) => (
-              <button
-                key={sub.id}
-                type="button"
-                onClick={() => onSelectSubmission(sub.id)}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all press-feedback ${
-                  selectedSubmissionId === sub.id
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border hover:border-accent/40 hover:bg-muted/30"
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">
-                    {sub.reporting_year} {t("stepPicker.financialReport")}
-                  </p>
-                  <p
-                    className={`text-xs mt-0.5 capitalize ${
-                      selectedSubmissionId === sub.id ? "text-primary/70" : "text-muted-foreground"
-                    }`}
-                  >
-                    {sub.status} ·{" "}
-                    {sub.submitted_at
-                      ? new Date(sub.submitted_at).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : new Date(sub.created_at).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                  </p>
+            {filteredSubmissions.map((sub) =>
+              sub.pending ? (
+                <div
+                  key={sub.id}
+                  aria-disabled="true"
+                  data-testid={`report-year-pending-${sub.reporting_year}`}
+                  className="flex flex-col gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate text-foreground/70">
+                      {sub.reporting_year} {t("stepPicker.financialReport")}
+                    </p>
+                    <p className="text-xs mt-0.5">
+                      {t("reportingYears.approvedOf", {
+                        approved: sub.pending.approved,
+                        expected: sub.pending.expected,
+                      })}{" "}
+                      · {t("reportingYears.reportAfterYear")}
+                    </p>
+                  </div>
+                  <YearPeriodPills progress={sub.pending} />
                 </div>
-                {selectedSubmissionId === sub.id && (
-                  <CheckCircle2 className="size-4 shrink-0 text-primary" />
-                )}
-              </button>
-            ))}
+              ) : (
+                <button
+                  key={sub.id}
+                  type="button"
+                  onClick={() => onSelectSubmission(sub.id)}
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all press-feedback ${
+                    selectedSubmissionId === sub.id
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border hover:border-accent/40 hover:bg-muted/30"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">
+                      {sub.reporting_year} {t("stepPicker.financialReport")}
+                    </p>
+                    <p
+                      className={`text-xs mt-0.5 capitalize ${
+                        selectedSubmissionId === sub.id
+                          ? "text-primary/70"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {sub.status} ·{" "}
+                      {sub.submitted_at
+                        ? new Date(sub.submitted_at).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : new Date(sub.created_at).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                    </p>
+                  </div>
+                  {selectedSubmissionId === sub.id && (
+                    <CheckCircle2 className="size-4 shrink-0 text-primary" />
+                  )}
+                </button>
+              ),
+            )}
           </div>
         )}
       </div>

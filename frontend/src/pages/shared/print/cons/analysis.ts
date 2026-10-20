@@ -109,6 +109,24 @@ const aggregate = (coops: readonly CoopKpiRow[], key: string): number | null => 
   }
 };
 
+/**
+ * The cooperatives with figures in both years. Every change on the prior year
+ * is computed on them only, so a cooperative that is new, or whose year is
+ * not complete, does not count as growth or decline.
+ */
+export interface LikeForLike {
+  /** This year's figures of the cooperatives in both years. */
+  now: CoopKpiRow[];
+  /** Their prior-year figures. */
+  prior: CoopKpiRow[];
+  nowTotals: Totals;
+  priorTotals: Totals | null;
+  /** In this year only (new, or the prior year not complete). */
+  added: string[];
+  /** In the prior year only (this year not complete yet). */
+  missing: string[];
+}
+
 export interface Analysis {
   input: ConsInput;
   coops: CoopKpiRow[];
@@ -116,6 +134,7 @@ export interface Analysis {
   prior: CoopKpiRow[] | null;
   now: Totals;
   before: Totals | null;
+  likeForLike: LikeForLike;
   filing: ReturnType<typeof filingCounts>;
   ratios: RatioRow[];
   apexes: { name: string; coops: CoopKpiRow[]; filed: CoopKpiRow[] }[];
@@ -130,6 +149,20 @@ export const analyse = (input: ConsInput): Analysis => {
   const prior = priorData ? priorData.cooperatives.filter((c) => c.has_data) : null;
   const now = totalsOf(filed);
   const before = prior && prior.length > 0 ? totalsOf(prior) : null;
+
+  const priorIds = new Set((prior ?? []).map((c) => c.cooperative_id));
+  const nowIds = new Set(filed.map((c) => c.cooperative_id));
+  const sameNow = filed.filter((c) => priorIds.has(c.cooperative_id));
+  const samePrior = (prior ?? []).filter((c) => nowIds.has(c.cooperative_id));
+  const names = (rows: readonly CoopKpiRow[]) => rows.map((c) => c.name.trim()).sort();
+  const likeForLike: LikeForLike = {
+    now: sameNow,
+    prior: samePrior,
+    nowTotals: totalsOf(sameNow),
+    priorTotals: samePrior.length > 0 ? totalsOf(samePrior) : null,
+    added: prior ? names(filed.filter((c) => !priorIds.has(c.cooperative_id))) : [],
+    missing: names((prior ?? []).filter((c) => !nowIds.has(c.cooperative_id))),
+  };
 
   const ratios = RATIO_KEYS.map((key): RatioRow => {
     const meta = ratioMeta(key);
@@ -148,7 +181,9 @@ export const analyse = (input: ConsInput): Analysis => {
   const groups = groupBy(coops, (c) => c.apex_name || unaffiliated);
   const priorGroups = prior ? groupBy(prior, (c) => c.apex_name || unaffiliated) : new Map();
 
-  const change = (a: number, b: number | undefined) => (before ? changeOf(a, b) : null);
+  const cmpNow = likeForLike.nowTotals;
+  const cmpBefore = likeForLike.priorTotals;
+  const change = (key: keyof Totals) => (cmpBefore ? changeOf(cmpNow[key], cmpBefore[key]) : null);
   return {
     input,
     coops,
@@ -156,6 +191,7 @@ export const analyse = (input: ConsInput): Analysis => {
     prior,
     now,
     before,
+    likeForLike,
     filing: filingCounts(data),
     ratios,
     apexes: [...groups].map(([name, members]) => ({
@@ -165,12 +201,12 @@ export const analyse = (input: ConsInput): Analysis => {
     })),
     priorApexes: priorGroups,
     changes: {
-      assets: change(now.assets, before?.assets),
-      loans: change(now.loans, before?.loans),
-      deposits: change(now.deposits, before?.deposits),
-      equity: change(now.equity, before?.equity),
-      surplus: change(now.surplus, before?.surplus),
-      members: change(now.members, before?.members),
+      assets: change("assets"),
+      loans: change("loans"),
+      deposits: change("deposits"),
+      equity: change("equity"),
+      surplus: change("surplus"),
+      members: change("members"),
     },
   };
 };

@@ -7,6 +7,8 @@ import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContex
 import { usePeriodOptions } from "@/hooks/analytics/usePeriodOptions";
 import { useUserRole } from "@/lib/auth";
 import { LATEST } from "@/lib/analytics-filters";
+import { useAnalyticsYear } from "@/hooks/submissions/useLatestSubmission";
+import { YearPendingNotice } from "@/components/submissions/YearPendingNotice";
 
 export const BenchmarkingPage: React.FC = () => {
   const { t } = useOrganizationLabelsContext();
@@ -22,6 +24,9 @@ export const BenchmarkingPage: React.FC = () => {
 
   const [year, setYear] = useState<string>(LATEST);
   const selectedYear = year === LATEST ? latestDataYear : Number(year);
+  // A cooperative's own year is compared only once every period is approved.
+  const isCooperative = useUserRole() === "cooperative";
+  const { pending } = useAnalyticsYear(isCooperative ? selectedYear : undefined);
 
   return (
     <AppShell title={t("benchmarking.title")} subtitle={t("benchmarking.subtitle")}>
@@ -51,7 +56,11 @@ export const BenchmarkingPage: React.FC = () => {
         </div>
 
         {/* Benchmarking Comparison Widget */}
-        <CooperativeComparison reportingYear={selectedYear} />
+        {isCooperative && pending ? (
+          <YearPendingNotice pending={pending} chosenYear />
+        ) : (
+          <CooperativeComparison reportingYear={selectedYear} />
+        )}
       </div>
     </AppShell>
   );

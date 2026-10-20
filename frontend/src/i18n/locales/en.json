@@ -1511,7 +1511,16 @@
     "placeholderDepositId": "FD-001",
     "placeholderSavingsId": "SAV-001",
     "draftSavedLocally": "Draft saved locally on this device",
-    "draftSavedOffline": "Draft saved locally — will sync when you're back online"
+    "draftSavedOffline": "Draft saved locally — will sync when you're back online",
+    "periodBar": {
+      "yearly": "Yearly return {{year}}",
+      "quarterly": "Quarterly",
+      "monthly": "Monthly",
+      "semiAnnual": "Semi-annual",
+      "fullYear": "Full 12 months {{year}}",
+      "yearStarts": "Year starts in {{month}}",
+      "fixedHint": "The reporting period is chosen when the submission is created and cannot be changed here. To report another period, create a new submission from the Submissions page."
+    }
   },
   "financial": {
     "liquidAssets": "Liquid Assets",
@@ -2647,7 +2656,13 @@
       "manufacturing": "Manufacturing"
     },
     "periodFinancialBreakdown": "Your financial breakdown & variation by period",
-    "valueSzZar": "Value (ZAR)"
+    "valueSzZar": "Value (ZAR)",
+    "growthCoverage": {
+      "compared_one": "Growth figures compare the {{count}} cooperative with complete figures for both {{previous}} and {{current}}.",
+      "compared_other": "Growth figures compare the {{count}} cooperatives with complete figures for both {{previous}} and {{current}}.",
+      "added": "Not compared, no complete {{previous}}: {{names}}.",
+      "missing": "Not compared, {{current}} not complete yet: {{names}}."
+    }
   },
   "cooperativeDashboard": {
     "title": "Cooperative Dashboard",
@@ -5471,7 +5486,21 @@
       "semiAnnual": "semi-annually"
     },
     "lockedFrequency": "{{year}} is already set to {{frequency}} reporting.",
-    "lockedFrequencyDrafts": "{{year}} is set to {{frequency}} reporting. Delete your draft submissions for that year to change it."
+    "lockedFrequencyDrafts": "{{year}} is set to {{frequency}} reporting. Delete your draft submissions for that year to change it.",
+    "block": {
+      "frequency": "{{year}} is reported {{frequency}}. Choose that frequency to add another period.",
+      "startMonth": "The quarters of {{year}} start in {{month}}. Keep that start month so the periods do not overlap.",
+      "taken": "{{period}} {{year}} already exists. Choose another period, or open the existing submission from the list.",
+      "fullYearOverlap": "{{year}} already has monthly returns; a full-year return and single months cannot be mixed.",
+      "allTaken": {
+        "QUARTERLY": "Every quarter of {{year}} already has a submission. Open them from the list to complete or review them.",
+        "SEMI_ANNUAL": "Both halves of {{year}} already have a submission. Open them from the list to complete or review them.",
+        "MONTHLY": "Every month of {{year}} already has a submission. Open them from the list to complete or review them.",
+        "YEARLY": "{{year}} already has a submission."
+      }
+    },
+    "lockedStartMonth": "{{year}} starts in {{month}}, like its other periods.",
+    "alreadyCreated": "Created"
   },
   "legal": {
     "termsOfService": "Terms of Service",
@@ -6513,6 +6542,11 @@
         "Apex": "Report",
         "Federation": "Report",
         "Ministry": "Report"
+      },
+      "like_for_like": {
+        "compared": "Changes on the prior year compare the {{count}} cooperative(s) with figures for both {{prior}} and {{year}}.",
+        "added": "Not compared, no complete {{prior}}: {{names}}.",
+        "missing": "Not compared, {{year}} not complete yet: {{names}}."
       }
     },
     "roles": {
@@ -6881,5 +6915,33 @@
     "badge_other": "Sign-in ends in {{count}} days",
     "badgeToday": "Sign-in ends today",
     "hint": "Your sign-in on this device ends on {{date}}. After that you need internet to sign in again with your password. Unsent changes are kept."
+  },
+  "reportingYears": {
+    "title": "Reporting years",
+    "subtitle": "A year is used in dashboards, analytics and reports once every period of it is approved.",
+    "periodsLabel": "Periods of the year",
+    "counted": "Complete · counted",
+    "approvedOf": "{{approved}} of {{expected}} approved",
+    "notCounted": "Not counted yet",
+    "state": {
+      "approved": "Approved",
+      "in_review": "In review",
+      "draft": "Draft",
+      "missing": "Not started"
+    },
+    "frequency": {
+      "yearly": "Yearly",
+      "quarterly": "Quarterly",
+      "monthly": "Monthly",
+      "semiAnnual": "Semi-annual"
+    },
+    "pendingTitle": "{{year}} is not complete yet",
+    "pendingBody": "{{approved}} of {{expected}} periods approved. A year is shown once every period of it is approved.",
+    "showingYear": "Showing {{year}}, your latest complete year.",
+    "noCompleteYear": "There is no complete year to show yet.",
+    "leftOut_one": "{{count}} cooperative is left out: its year is not complete yet (not every period approved).",
+    "leftOut_other": "{{count}} cooperatives are left out: their year is not complete yet (not every period approved).",
+    "reportAfterYear": "The report is available once every period of the year is approved.",
+    "chooseAnotherYear": "Choose another year to see its figures."
   }
 }

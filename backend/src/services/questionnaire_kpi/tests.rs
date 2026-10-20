@@ -307,3 +307,52 @@ fn either_questionnaire_alone_still_gives_the_member_count() {
     assert_eq!(Derived::from_inputs(&financial_only).registered, 220.0);
     assert_eq!(Derived::from_inputs(&non_financial_only).registered, 220.0);
 }
+
+#[test]
+fn a_year_of_quarters_sums_income_and_keeps_year_end_counts() {
+    let q1 = json!({"current_total_income": 100.0, "current_total_expenditure": 60.0,
+        "registered_members_male": 10, "total_share_capital": 1000.0});
+    let q2 = json!({"current_total_income": 150.0, "current_total_expenditure": 70.0,
+        "registered_members_male": 12, "total_share_capital": 1100.0});
+
+    let year = merge_period_answers(&[&q1, &q2]);
+
+    assert_eq!(year["current_total_income"], json!(250.0));
+    assert_eq!(year["current_total_expenditure"], json!(130.0));
+    assert_eq!(year["registered_members_male"], json!(12));
+    assert_eq!(year["total_share_capital"], json!(1100.0));
+}
+
+#[test]
+fn a_year_of_quarters_rolls_the_accounts_grid_forward() {
+    let q1 = json!({"coa_revenue": {"4100": {"openingBalance": 0, "annualMovement": 40, "closingBalance": 40}},
+        "coa_assets": {"1100": {"openingBalance": 500, "annualMovement": 20, "closingBalance": 520}}});
+    let q2 = json!({"coa_revenue": {"4100": {"openingBalance": 40, "annualMovement": 35, "closingBalance": 75}},
+        "coa_assets": {"1100": {"openingBalance": 520, "annualMovement": -5, "closingBalance": 515}}});
+
+    let year = merge_period_answers(&[&q1, &q2]);
+
+    assert_eq!(year["coa_revenue"]["4100"]["openingBalance"], json!(0.0));
+    assert_eq!(year["coa_revenue"]["4100"]["annualMovement"], json!(75.0));
+    assert_eq!(year["coa_revenue"]["4100"]["closingBalance"], json!(75.0));
+    assert_eq!(year["coa_assets"]["1100"]["openingBalance"], json!(500.0));
+    assert_eq!(year["coa_assets"]["1100"]["closingBalance"], json!(515.0));
+}
+
+#[test]
+fn a_flow_answered_in_only_some_periods_sums_what_was_given() {
+    let q1 = json!({"other_activities_income": 30.0});
+    let q2 = json!({"registered_members_male": 5});
+
+    let year = merge_period_answers(&[&q1, &q2]);
+
+    assert_eq!(year["other_activities_income"], json!(30.0));
+    assert_eq!(year["registered_members_male"], json!(5));
+}
+
+#[test]
+fn a_single_period_is_returned_as_is() {
+    let only = json!({"current_total_income": "1,200", "note": "x"});
+
+    assert_eq!(merge_period_answers(&[&only]), only);
+}

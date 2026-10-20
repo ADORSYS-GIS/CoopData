@@ -64,6 +64,7 @@ export function ApexAnalyticsView({ filterValues }: Props) {
         networkTrend={networkTrend}
         totalCooperatives={overview?.total_cooperatives ?? 0}
         cooperativesWithData={overview?.cooperatives_with_data ?? 0}
+        cooperativesIncomplete={overview?.cooperatives_incomplete ?? 0}
         seriesQuery={params}
         extraCharts={
           <>

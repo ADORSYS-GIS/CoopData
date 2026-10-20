@@ -6,21 +6,25 @@ import {
 } from "@/hooks/submissions/useSubmissions";
 import type { SubmissionResponse } from "@/hooks/submissions/useSubmissions";
 import { useUserRole } from "@/lib/auth";
+import { yearProgress, type YearProgress } from "@/lib/period-rules";
 import { useMemo } from "react";
 
+export interface AnalyticsYear {
+  /** The last period's submission of the year, once the year is complete. */
+  submission?: SubmissionResponse;
+  /** The year's progress while it is not complete yet. */
+  pending?: YearProgress;
+}
+
 /**
- * Returns the cooperative's approved/submitted submission for the given reporting year.
- * If `reportingYear` is provided, only submissions matching that year are
- * considered. If none is approved for that year, returns undefined (so all
- * analytics show empty rather than stale data from a different year).
- *
- * This ensures that the executive analytics dashboard never displays
- * tentative or unapproved data that could later be rejected.
+ * The cooperative's complete year for the analytics: every period of
+ * `reportingYear` approved by the apex (a year reported by quarters, halves or
+ * months is combined by the backend from the last period's submission). Without
+ * a year, the newest complete one. While the year is incomplete nothing is
+ * shown and `pending` says where its periods stand, so analytics never display
+ * part of a year or figures that could still be rejected.
  */
-export const useLatestSubmission = (
-  reportingYear?: number,
-  cooperativeId?: string,
-): SubmissionResponse | undefined => {
+export const useAnalyticsYear = (reportingYear?: number, cooperativeId?: string): AnalyticsYear => {
   const role = useUserRole();
 
   const isCoop = role === "cooperative";
@@ -53,15 +57,14 @@ export const useLatestSubmission = (
     cooperativeId,
   ]);
 
-  const approvedSubmissions = useMemo(() => {
-    return submissions.filter((sub) => {
-      if (sub.status !== "approved" && sub.status !== "submitted") return false;
-      if (reportingYear !== undefined && sub.reporting_year !== reportingYear) return false;
-      return true;
-    });
+  return useMemo(() => {
+    const years = yearProgress(submissions);
+    const year =
+      reportingYear !== undefined && !Number.isNaN(reportingYear)
+        ? years.find((y) => y.year === reportingYear)
+        : (years.find((y) => y.complete) ?? years[0]);
+    if (!year) return {};
+    if (!year.complete) return { pending: year };
+    return { submission: submissions.find((s) => s.id === year.anchorId) };
   }, [submissions, reportingYear]);
-
-  if (approvedSubmissions.length === 0) return undefined;
-
-  return [...approvedSubmissions].sort((a, b) => b.reporting_year - a.reporting_year)[0];
 };
