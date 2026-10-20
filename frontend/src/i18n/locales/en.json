@@ -326,10 +326,6 @@
   },
   "landing": {
     "header": {
-      "about": "About",
-      "cooperatives": "Cooperatives",
-      "capabilities": "Capabilities",
-      "help": "Help",
       "signIn": "Sign in",
       "enterPlatform": "Enter platform"
     },
@@ -345,14 +341,7 @@
       "statCombinedAssets": "Combined assets"
     },
     "heroPanel": {
-      "liveOverview": "Live · National Overview",
-      "intelligence": "Cooperative Intelligence",
-      "synced": "Synced",
-      "activeSaccos": "Active SACCOs",
-      "loanPortfolio": "Loan portfolio",
-      "womenMembers": "Women members",
-      "compliance": "Compliance",
-      "membershipGrowth": "Membership growth — 2025"
+      "title": "National overview"
     },
     "partners": {
       "title": "Operated in partnership with"
@@ -369,13 +358,16 @@
       "govtTitle": "Built to government standards",
       "govtBody": "MFA, device management, WCAG accessibility, and resilient national-scale infrastructure."
     },
-    "stats": {
-      "combinedSavings": "Combined savings",
-      "nationalCompliance": "National compliance score",
-      "regionsSub": "Across 4 regions",
-      "membersSub": "54% women · 38% youth",
-      "savingsSub": "+7.2% year on year",
-      "complianceSub": "Median across sectors"
+    "howItWorks": {
+      "badge": "How it works",
+      "title": "From registration to national oversight.",
+      "stepLabel": "Step {{number}}",
+      "registerTitle": "Register",
+      "registerBody": "Cooperatives and federations are registered, verified and classified under national law.",
+      "reportTitle": "Report",
+      "reportBody": "Officers capture financial and non-financial returns in the field — online or offline.",
+      "overseeTitle": "Oversee",
+      "overseeBody": "Federations and the Ministry track compliance, growth and performance as returns arrive."
     },
     "sectors": {
       "badge": "Sectors served",
@@ -390,8 +382,7 @@
       "transportTitle": "Transport Unions",
       "transportDesc": "Operator unions, logistics and ride-share cooperatives.",
       "artisanTitle": "Artisans & Manufacturing",
-      "artisanDesc": "Producer collectives and craft federations.",
-      "active": "active"
+      "artisanDesc": "Producer collectives and craft federations."
     },
     "capabilities": {
       "badge": "Capabilities",
@@ -412,8 +403,6 @@
     "announcements": {
       "badge": "News & announcements",
       "title": "Updates from the Ministry.",
-      "allLink": "All announcements",
-      "readFull": "Read full update",
       "news1Title": "New compliance scoring methodology adopted for Q4 returns",
       "news1Body": "All federations must re-baseline their internal scoring against the updated rubric by November 15.",
       "news2Title": "CoopData v4.2 introduces offline questionnaires for field officers",
@@ -436,29 +425,13 @@
     "cta": {
       "badge": "Get access",
       "title": "Empower your cooperative or federation with CoopData today.",
-      "desc": "Federation officers issue access by invitation. If your organization is registered, contact your federation administrator.",
-      "explore": "Explore the platform"
+      "desc": "Federation officers issue access by invitation. If your organization is registered, contact your federation administrator."
     },
     "footer": {
       "badge": "A national digital service of the Ministry of Commerce & Cooperative Development.",
-      "platformCol": "Platform",
-      "resourcesCol": "Resources",
       "legalCol": "Legal",
       "copyright": "© {{year}} Ministry of Commerce & Cooperative Development. All rights reserved.",
-      "systemStatus": "System status:",
       "allOperational": "All systems operational",
-      "platform": {
-        "cooperatives": "Cooperatives",
-        "dataCollection": "Data Collection",
-        "reports": "Reports",
-        "analytics": "Analytics"
-      },
-      "resources": {
-        "documentation": "Documentation",
-        "helpCenter": "Help Center",
-        "onboardingGuides": "Onboarding Guides",
-        "apiReference": "API Reference"
-      },
       "legal": {
         "privacyPolicy": "Privacy Policy",
         "termsOfUse": "Terms of Use",
@@ -466,7 +439,9 @@
         "contact": "Contact",
         "cookiePolicy": "Cookie Policy",
         "acceptableUse": "Acceptable Use"
-      }
+      },
+      "exploreCol": "Explore",
+      "backToTop": "Back to top"
     }
   },
   "dashboard": {

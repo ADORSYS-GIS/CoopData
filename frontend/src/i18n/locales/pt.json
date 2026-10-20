@@ -326,10 +326,6 @@
   },
   "landing": {
     "header": {
-      "about": "Sobre",
-      "cooperatives": "Cooperativas",
-      "capabilities": "Capacidades",
-      "help": "Ajuda",
       "signIn": "Iniciar sessão",
       "enterPlatform": "Entrar na plataforma"
     },
@@ -345,14 +341,7 @@
       "statCombinedAssets": "Ativos combinados"
     },
     "heroPanel": {
-      "liveOverview": "Ao vivo · Visão Nacional",
-      "intelligence": "Inteligência Cooperativa",
-      "synced": "Sincronizado",
-      "activeSaccos": "SACCOs Ativos",
-      "loanPortfolio": "Carteira de empréstimos",
-      "womenMembers": "Membros mulheres",
-      "compliance": "Conformidade",
-      "membershipGrowth": "Crescimento de membros — 2025"
+      "title": "Visão nacional"
     },
     "partners": {
       "title": "Operado em parceria com"
@@ -369,13 +358,16 @@
       "govtTitle": "Construído segundo padrões governamentais",
       "govtBody": "MFA, gestão de dispositivos, acessibilidade WCAG e infraestrutura resiliente à escala nacional."
     },
-    "stats": {
-      "combinedSavings": "Poupanças combinadas",
-      "nationalCompliance": "Pontuação de conformidade nacional",
-      "regionsSub": "Em 4 regiões",
-      "membersSub": "54% mulheres · 38% jovens",
-      "savingsSub": "+7,2% ano a ano",
-      "complianceSub": "Mediana entre setores"
+    "howItWorks": {
+      "badge": "Como funciona",
+      "title": "Do registo à supervisão nacional.",
+      "stepLabel": "Passo {{number}}",
+      "registerTitle": "Registar",
+      "registerBody": "As cooperativas e federações são registadas, verificadas e classificadas ao abrigo da lei nacional.",
+      "reportTitle": "Reportar",
+      "reportBody": "Os agentes recolhem dados financeiros e não financeiros no terreno — online ou offline.",
+      "overseeTitle": "Supervisionar",
+      "overseeBody": "As federações e o Ministério acompanham a conformidade, o crescimento e o desempenho à medida que os dados chegam."
     },
     "sectors": {
       "badge": "Setores servidos",
@@ -390,8 +382,7 @@
       "transportTitle": "Uniões de Transporte",
       "transportDesc": "Uniões de operadores, logística e cooperativas de partilha de viagens.",
       "artisanTitle": "Artífices e Fabrico",
-      "artisanDesc": "Coletivos de produtores e federações artesanais.",
-      "active": "ativos"
+      "artisanDesc": "Coletivos de produtores e federações artesanais."
     },
     "capabilities": {
       "badge": "Capacidades",
@@ -412,8 +403,6 @@
     "announcements": {
       "badge": "Notícias e anúncios",
       "title": "Atualizações do Ministério.",
-      "allLink": "Todos os anúncios",
-      "readFull": "Ler atualização completa",
       "news1Title": "Nova metodologia de pontuação de conformidade adotada para as declarações do T4",
       "news1Body": "Todas as federações devem recalibrar a sua pontuação interna em relação à grelha atualizada até 15 de novembro.",
       "news2Title": "O CoopData v4.2 introduz questionários offline para oficiais de campo",
@@ -436,29 +425,13 @@
     "cta": {
       "badge": "Obter acesso",
       "title": "Capacite a sua cooperativa ou federação com o CoopData hoje.",
-      "desc": "Os oficiais de federação emitem acesso por convite. Se a sua organização está registada, contacte o administrador da sua federação.",
-      "explore": "Explorar a plataforma"
+      "desc": "Os oficiais de federação emitem acesso por convite. Se a sua organização está registada, contacte o administrador da sua federação."
     },
     "footer": {
       "badge": "Um serviço digital nacional do Ministério do Comércio e Desenvolvimento Cooperativo.",
-      "platformCol": "Plataforma",
-      "resourcesCol": "Recursos",
       "legalCol": "Legal",
       "copyright": "© {{year}} Ministério do Comércio e Desenvolvimento Cooperativo. Todos os direitos reservados.",
-      "systemStatus": "Estado do sistema:",
       "allOperational": "Todos os sistemas operacionais",
-      "platform": {
-        "cooperatives": "Cooperativas",
-        "dataCollection": "Recolha de Dados",
-        "reports": "Relatórios",
-        "analytics": "Análises"
-      },
-      "resources": {
-        "documentation": "Documentação",
-        "helpCenter": "Centro de Ajuda",
-        "onboardingGuides": "Guias de Integração",
-        "apiReference": "Referência da API"
-      },
       "legal": {
         "privacyPolicy": "Política de Privacidade",
         "termsOfUse": "Termos de Utilização",
@@ -466,7 +439,9 @@
         "contact": "Contacto",
         "cookiePolicy": "Política de Cookies",
         "acceptableUse": "Uso Aceitável"
-      }
+      },
+      "exploreCol": "Explorar",
+      "backToTop": "Voltar ao topo"
     }
   },
   "dashboard": {

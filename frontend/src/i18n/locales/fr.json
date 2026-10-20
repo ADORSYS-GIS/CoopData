@@ -326,10 +326,6 @@
   },
   "landing": {
     "header": {
-      "about": "À propos",
-      "cooperatives": "Coopératives",
-      "capabilities": "Capacités",
-      "help": "Aide",
       "signIn": "Se connecter",
       "enterPlatform": "Entrer dans la plateforme"
     },
@@ -345,14 +341,7 @@
       "statCombinedAssets": "Actifs combinés"
     },
     "heroPanel": {
-      "liveOverview": "En direct · Aperçu national",
-      "intelligence": "Intelligence coopérative",
-      "synced": "Synchronisé",
-      "activeSaccos": "SACCO actifs",
-      "loanPortfolio": "Portefeuille de prêts",
-      "womenMembers": "Membres femmes",
-      "compliance": "Conformité",
-      "membershipGrowth": "Croissance de l'adhésion — 2025"
+      "title": "Aperçu national"
     },
     "partners": {
       "title": "Exploité en partenariat avec"
@@ -369,13 +358,16 @@
       "govtTitle": "Conçu selon les normes gouvernementales",
       "govtBody": "MFA, gestion des appareils, accessibilité WCAG et infrastructure résiliente à l'échelle nationale."
     },
-    "stats": {
-      "combinedSavings": "Épargne combinée",
-      "nationalCompliance": "Score de conformité national",
-      "regionsSub": "Sur 4 régions",
-      "membersSub": "54 % de femmes · 38 % de jeunes",
-      "savingsSub": "+7,2 % d'une année sur l'autre",
-      "complianceSub": "Médiane entre les secteurs"
+    "howItWorks": {
+      "badge": "Comment ça marche",
+      "title": "De l'enregistrement à la supervision nationale.",
+      "stepLabel": "Étape {{number}}",
+      "registerTitle": "Enregistrer",
+      "registerBody": "Les coopératives et fédérations sont enregistrées, vérifiées et classées selon la loi nationale.",
+      "reportTitle": "Déclarer",
+      "reportBody": "Les agents saisissent les données financières et non financières sur le terrain — en ligne ou hors ligne.",
+      "overseeTitle": "Superviser",
+      "overseeBody": "Les fédérations et le Ministère suivent la conformité, la croissance et la performance au fil des déclarations."
     },
     "sectors": {
       "badge": "Secteurs desservis",
@@ -390,8 +382,7 @@
       "transportTitle": "Unions de transport",
       "transportDesc": "Unions d'opérateurs, logistique et coopératives de covoiturage.",
       "artisanTitle": "Artisans et fabrication",
-      "artisanDesc": "Collectifs de producteurs et fédérations artisanales.",
-      "active": "actifs"
+      "artisanDesc": "Collectifs de producteurs et fédérations artisanales."
     },
     "capabilities": {
       "badge": "Capacités",
@@ -412,8 +403,6 @@
     "announcements": {
       "badge": "Actualités et annonces",
       "title": "Mises à jour du Ministère.",
-      "allLink": "Toutes les annonces",
-      "readFull": "Lire la mise à jour complète",
       "news1Title": "Nouvelle méthodologie de notation de conformité adoptée pour les déclarations du T4",
       "news1Body": "Toutes les fédérations doivent recalibrer leur notation interne selon le barème mis à jour d'ici le 15 novembre.",
       "news2Title": "CoopData v4.2 introduit des questionnaires hors ligne pour les agents de terrain",
@@ -436,29 +425,13 @@
     "cta": {
       "badge": "Obtenir l'accès",
       "title": "Donnez du pouvoir à votre coopérative ou fédération avec CoopData dès aujourd'hui.",
-      "desc": "Les officiers de fédération délivrent l'accès par invitation. Si votre organisation est enregistrée, contactez l'administrateur de votre fédération.",
-      "explore": "Explorer la plateforme"
+      "desc": "Les officiers de fédération délivrent l'accès par invitation. Si votre organisation est enregistrée, contactez l'administrateur de votre fédération."
     },
     "footer": {
       "badge": "Un service numérique national du Ministère du Commerce et du Développement des Coopératives.",
-      "platformCol": "Plateforme",
-      "resourcesCol": "Ressources",
       "legalCol": "Légal",
       "copyright": "© {{year}} Ministère du Commerce et du Développement des Coopératives. Tous droits réservés.",
-      "systemStatus": "État du système :",
       "allOperational": "Tous les systèmes opérationnels",
-      "platform": {
-        "cooperatives": "Coopératives",
-        "dataCollection": "Collecte de données",
-        "reports": "Rapports",
-        "analytics": "Analytique"
-      },
-      "resources": {
-        "documentation": "Documentation",
-        "helpCenter": "Centre d'aide",
-        "onboardingGuides": "Guides d'intégration",
-        "apiReference": "Référence API"
-      },
       "legal": {
         "privacyPolicy": "Politique de confidentialité",
         "termsOfUse": "Conditions d'utilisation",
@@ -466,7 +439,9 @@
         "contact": "Contact",
         "cookiePolicy": "Politique de cookies",
         "acceptableUse": "Utilisation acceptable"
-      }
+      },
+      "exploreCol": "Explorer",
+      "backToTop": "Retour en haut"
     }
   },
   "dashboard": {

@@ -268,39 +268,90 @@
     transform: scale(0.97);
   }
 
-  /* ── Scroll-reveal ── */
+  /* ── Scroll-reveal ──
+     Animates `translate` (not `transform`) so hover transforms and their
+     timing stay independent of the staggered reveal delay. */
   [data-animate] {
     opacity: 0;
-    transform: translateY(18px);
-    transition:
-      opacity 550ms var(--ease-out-expo),
-      transform 550ms var(--ease-out-expo);
   }
   [data-animate].animate-in {
-    opacity: 1;
-    transform: translateY(0);
+    animation: revealUp 700ms var(--ease-out-expo) both;
   }
   [data-animate-delay="1"] {
-    transition-delay: 75ms;
+    animation-delay: 75ms;
   }
   [data-animate-delay="2"] {
-    transition-delay: 150ms;
+    animation-delay: 150ms;
   }
   [data-animate-delay="3"] {
-    transition-delay: 225ms;
+    animation-delay: 225ms;
   }
   [data-animate-delay="4"] {
-    transition-delay: 300ms;
+    animation-delay: 300ms;
   }
   [data-animate-delay="5"] {
-    transition-delay: 375ms;
+    animation-delay: 375ms;
   }
   [data-animate-delay="6"] {
-    transition-delay: 450ms;
+    animation-delay: 450ms;
+  }
+  [data-animate-delay="7"] {
+    animation-delay: 525ms;
+  }
+
+  /* ── Spokes that grow outward from the hub once their section is revealed ── */
+  .wipe-from-center {
+    clip-path: inset(0 50% 0 50%);
+  }
+  [data-animate].animate-in .wipe-from-center {
+    animation: wipeFromCenter 1200ms var(--ease-out-expo) 150ms forwards;
+  }
+
+  /* ── Animated underline for text links ── */
+  .link-underline {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    transition:
+      background-size 300ms var(--ease-out-expo),
+      color 200ms ease;
+  }
+  .link-underline:hover,
+  .link-underline:focus-visible {
+    background-size: 100% 1px;
+  }
+
+  /* ── Slow ambient drift for decorative glows ── */
+  .animate-drift {
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .animate-drift-reverse {
+    animation: drift 22s ease-in-out infinite alternate-reverse;
   }
 }
 
 /* ── Hero entrance animations ── */
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes drift {
+  from {
+    translate: 0 0;
+    scale: 1;
+  }
+  to {
+    translate: -40px 30px;
+    scale: 1.08;
+  }
+}
 @keyframes heroFadeUp {
   from {
     opacity: 0;
@@ -353,6 +404,40 @@
 }
 .animate-hero-delay-4 {
   animation-delay: 380ms;
+}
+/* Reveals via clip-path rather than stroke dashes: dash lengths drift from the
+   path length under vector-effect: non-scaling-stroke and leave lines unfinished. */
+@keyframes wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes wipeFromCenter {
+  from {
+    clip-path: inset(0 50% 0 50%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.animate-wipe {
+  clip-path: inset(0 100% 0 0);
+  animation: wipe 1600ms var(--ease-out-expo) 450ms forwards;
+}
+/* The latest-value marker lands once the line has reached it. */
+.animate-marker {
+  opacity: 0;
+  animation: fadeIn 400ms ease-out 1500ms forwards;
+}
+/* SVG bars grow from their own base, not from the top of the viewBox. */
+.animate-rise {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  transform: scaleY(0);
+  animation: barGrow 900ms var(--ease-out-expo) forwards;
 }
 .animate-panel {
   opacity: 0;
@@ -542,4 +627,39 @@
   height: 14px;
   border-radius: 2px;
   background: #2563eb;
+}
+
+/* ── Landing page: smooth in-page anchors and reduced-motion fallbacks ── */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.landing-page) {
+    scroll-behavior: smooth;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-animate] {
+    opacity: 1;
+  }
+  [data-animate].animate-in,
+  .animate-hero,
+  .animate-panel,
+  .animate-drift,
+  .animate-drift-reverse {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .animate-rise {
+    animation: none;
+    transform: none;
+  }
+  .animate-marker {
+    animation: none;
+    opacity: 1;
+  }
+  .animate-wipe,
+  .wipe-from-center,
+  [data-animate].animate-in .wipe-from-center {
+    animation: none;
+    clip-path: none;
+  }
 }
