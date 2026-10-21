@@ -413,6 +413,9 @@ jobs:
 
       - name: Notify Slack — Deployment FAILED
         if: failure()
+        # Slack is optional: without SLACK_WEBHOOK_URL configured this step must
+        # not fail the job (the Discord notification is the primary channel).
+        continue-on-error: true
         uses: slackapi/slack-github-action@v1.27.0
         with:
           payload: |
