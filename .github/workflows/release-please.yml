@@ -3,7 +3,9 @@ name: Automated Release & Semantic Tagging
 on:
   push:
     branches:
-      - main
+      # Releases are cut from the production deploy branch (what the server
+      # checks out), so every tag carries the server-placement config.
+      - deployed-20260716-1247
       - deploy-test
 
 permissions:
