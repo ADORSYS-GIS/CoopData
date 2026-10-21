@@ -348,9 +348,8 @@
       "liveOverview": "Ao vivo · Visão Nacional",
       "intelligence": "Inteligência Cooperativa",
       "synced": "Sincronizado",
-      "activeSaccos": "SACCOs Ativos",
-      "loanPortfolio": "Carteira de empréstimos",
-      "womenMembers": "Membros mulheres",
+      "registeredSaccos": "SACCOs registadas",
+      "activeAssets": "Ativos em atividade",
       "compliance": "Conformidade",
       "membershipGrowth": "Crescimento de membros — 2025"
     },
@@ -369,14 +368,6 @@
       "govtTitle": "Construído segundo padrões governamentais",
       "govtBody": "MFA, gestão de dispositivos, acessibilidade WCAG e infraestrutura resiliente à escala nacional."
     },
-    "stats": {
-      "combinedSavings": "Poupanças combinadas",
-      "nationalCompliance": "Pontuação de conformidade nacional",
-      "regionsSub": "Em 4 regiões",
-      "membersSub": "54% mulheres · 38% jovens",
-      "savingsSub": "+7,2% ano a ano",
-      "complianceSub": "Mediana entre setores"
-    },
     "sectors": {
       "badge": "Setores servidos",
       "title": "Cada cooperativa, um único registo.",
@@ -390,8 +381,7 @@
       "transportTitle": "Uniões de Transporte",
       "transportDesc": "Uniões de operadores, logística e cooperativas de partilha de viagens.",
       "artisanTitle": "Artífices e Fabrico",
-      "artisanDesc": "Coletivos de produtores e federações artesanais.",
-      "active": "ativos"
+      "artisanDesc": "Coletivos de produtores e federações artesanais."
     },
     "capabilities": {
       "badge": "Capacidades",
@@ -412,8 +402,6 @@
     "announcements": {
       "badge": "Notícias e anúncios",
       "title": "Atualizações do Ministério.",
-      "allLink": "Todos os anúncios",
-      "readFull": "Ler atualização completa",
       "news1Title": "Nova metodologia de pontuação de conformidade adotada para as declarações do T4",
       "news1Body": "Todas as federações devem recalibrar a sua pontuação interna em relação à grelha atualizada até 15 de novembro.",
       "news2Title": "O CoopData v4.2 introduz questionários offline para oficiais de campo",
@@ -442,23 +430,10 @@
     "footer": {
       "badge": "Um serviço digital nacional do Ministério do Comércio e Desenvolvimento Cooperativo.",
       "platformCol": "Plataforma",
-      "resourcesCol": "Recursos",
       "legalCol": "Legal",
       "copyright": "© {{year}} Ministério do Comércio e Desenvolvimento Cooperativo. Todos os direitos reservados.",
       "systemStatus": "Estado do sistema:",
       "allOperational": "Todos os sistemas operacionais",
-      "platform": {
-        "cooperatives": "Cooperativas",
-        "dataCollection": "Recolha de Dados",
-        "reports": "Relatórios",
-        "analytics": "Análises"
-      },
-      "resources": {
-        "documentation": "Documentação",
-        "helpCenter": "Centro de Ajuda",
-        "onboardingGuides": "Guias de Integração",
-        "apiReference": "Referência da API"
-      },
       "legal": {
         "privacyPolicy": "Política de Privacidade",
         "termsOfUse": "Termos de Utilização",
