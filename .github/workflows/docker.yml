@@ -310,8 +310,43 @@ jobs:
     # the gate; without them the environment has no effect.
     environment:
       name: ${{ github.event_name == 'workflow_dispatch' && 'production-manual' || 'production' }}
+    # Auth preference: password (PROD_PASSWORD) when configured, SSH key
+    # (PROD_SSH_KEY) otherwise. The secrets context is not available inside a
+    # step `if`, so it is resolved once at job level.
+    env:
+      PROD_HAS_PASSWORD: ${{ secrets.PROD_PASSWORD != '' }}
     steps:
-      - name: Deploy to Server via SSH
+      - name: Deploy to Server via SSH (password auth)
+        if: env.PROD_HAS_PASSWORD == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER || 'root' }}
+          password: ${{ secrets.PROD_PASSWORD }}
+          script: |
+            set -e
+            cd ${{ secrets.PROD_PATH || '/opt/coopdata' }}
+            REF_NAME="${{ github.ref_name }}"
+            git reset --hard HEAD || true
+            git fetch --all --tags
+            # On release/tag events REF_NAME is a tag (e.g. v1.1.0), which lives under
+            # refs/tags/, not refs/heads/ — so "origin/<tag>" is never a valid ref.
+            if git rev-parse --verify "refs/tags/${REF_NAME}" >/dev/null 2>&1; then
+                git checkout "refs/tags/${REF_NAME}"
+            else
+                git checkout "$REF_NAME" || git checkout -B "$REF_NAME" "origin/$REF_NAME"
+                git reset --hard "origin/$REF_NAME"
+            fi
+            TARGET_TAG="${{ github.event.inputs.target_tag || 'latest' }}"
+            if [ -f "./scripts/deploy.sh" ]; then
+                chmod +x ./scripts/deploy.sh
+                ./scripts/deploy.sh "$TARGET_TAG"
+            else
+                docker compose -f docker-compose.ghcr.yaml up -d
+            fi
+
+      - name: Deploy to Server via SSH (key auth)
+        if: env.PROD_HAS_PASSWORD != 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
@@ -319,7 +354,7 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             set -e
-            cd ${{ secrets.PROD_PATH || '/home/ubuntu/CoopData' }}
+            cd ${{ secrets.PROD_PATH || '/opt/coopdata' }}
             REF_NAME="${{ github.ref_name }}"
             git reset --hard HEAD || true
             git fetch --all --tags
@@ -396,7 +431,8 @@ jobs:
   #       uses: appleboy/ssh-action@v1.0.3
   #       with:
   #         host: ${{ secrets.PROD_HOST }}
-  #         username: ${{ secrets.PROD_USER || 'ubuntu' }}
+  #         username: ${{ secrets.PROD_USER || 'root' }}
+  #         password: ${{ secrets.PROD_PASSWORD }}
   #         key: ${{ secrets.PROD_SSH_KEY }}
   #         script: |
   #           set -e
