@@ -882,19 +882,21 @@
       "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
       "clientId": "coopdata-frontend",
       "name": "CoopData Frontend",
-      "rootUrl": "http://localhost:5173",
-      "baseUrl": "http://localhost:5173",
+      "rootUrl": "https://coopdata.dgrvcoop360.com",
+      "baseUrl": "https://coopdata.dgrvcoop360.com",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
+        "https://coopdata.dgrvcoop360.com/*",
         "http://localhost:5173/*",
         "http://localhost:5174/*",
         "http://localhost:4173/*"
       ],
       "webOrigins": [
-        "+"
+        "+",
+        "https://coopdata.dgrvcoop360.com"
       ],
       "notBefore": 0,
       "bearerOnly": false,

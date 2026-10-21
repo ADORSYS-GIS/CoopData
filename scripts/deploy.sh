@@ -144,7 +144,7 @@ while (( ELAPSED < MAX_WAIT )); do
     if curl -sf http://localhost:3000/api/v1/health &>/dev/null 2>&1; then
         BACKEND_OK=true
     fi
-    if curl -sf http://localhost:5174/ &>/dev/null 2>&1; then
+    if curl -sf http://localhost:5176/ &>/dev/null 2>&1; then
         FRONTEND_OK=true
     fi
 

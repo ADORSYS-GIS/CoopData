@@ -239,6 +239,28 @@ SMTP_JSON="{\"starttls\":\"${SMTP_STARTTLS}\",\"auth\":\"${SMTP_AUTH}\",\"host\"
 # SMTP delivery is verified implicitly: creating a user triggers a verification
 # email, and the backend now rolls back + returns a failure if that email fails.
 
+# ─── Backend client secret ───────────────────────────────────────────────────
+# The realm import JSON ships with a masked secret ("**********"); set the real
+# one from the environment so the backend can authenticate against Keycloak.
+# Idempotent: safe to re-run on an existing realm.
+if [ -n "${KEYCLOAK_CLIENT_SECRET:-}" ]; then
+  echo "[provision] Setting coopdata-backend client secret from environment..."
+  CLIENT_UUID=$(./kcadm.sh get clients -r "${REALM}" \
+    --server "${KEYCLOAK_SERVER}" \
+    -q clientId=coopdata-backend --fields id --format csv --noquotes 2>/dev/null | tail -n1)
+  if [ -n "${CLIENT_UUID}" ]; then
+    ./kcadm.sh update "clients/${CLIENT_UUID}" -r "${REALM}" \
+      --server "${KEYCLOAK_SERVER}" \
+      -s "secret=${KEYCLOAK_CLIENT_SECRET}" 2>&1 \
+      && echo "[provision] Backend client secret set." \
+      || echo "[provision] WARNING: Could not set backend client secret."
+  else
+    echo "[provision] WARNING: coopdata-backend client not found — secret not set."
+  fi
+else
+  echo "[provision] WARNING: KEYCLOAK_CLIENT_SECRET not set — backend client keeps its imported secret."
+fi
+
 # ─── MFA attribute backfill ──────────────────────────────────────────────────
 # The realm's "Browser - Conditional 2FA" flow now keys off the `mfa_enabled`
 # user attribute instead of credential existence. Users who configured MFA

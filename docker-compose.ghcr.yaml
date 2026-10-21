@@ -352,7 +352,7 @@ services:
     <<: *default-restart
     ports:
       - "127.0.0.1:3000:3000"   # backend API — host nginx proxies here
-      - "127.0.0.1:5174:5174"   # frontend    — host nginx proxies here
+      - "127.0.0.1:5176:5174"   # frontend    — host nginx proxies here
     volumes:
       - ./nginx-proxy.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -382,7 +382,7 @@ services:
     container_name: coopdata-gotenberg
     <<: *default-restart
     ports:
-      - "127.0.0.1:8081:3000"
+      - "127.0.0.1:8085:3000"
     environment:
       - CHROMIUM_DISABLE_SANDBOX=true
     healthcheck:
@@ -460,7 +460,7 @@ services:
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
       - SLACK_CHANNEL=${SLACK_CHANNEL:-#alerts}
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:3003:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
