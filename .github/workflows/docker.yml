@@ -411,22 +411,6 @@ jobs:
           color: 0xe74c3c
           username: CoopData CI
 
-      - name: Notify Slack — Deployment FAILED
-        if: failure()
-        # Slack is optional: without SLACK_WEBHOOK_URL configured this step must
-        # not fail the job (the Discord notification is the primary channel).
-        continue-on-error: true
-        uses: slackapi/slack-github-action@v1.27.0
-        with:
-          payload: |
-            {
-              "channel": "${{ secrets.SLACK_CHANNEL }}",
-              "text": "❌ *CoopData Deployment FAILED*\n*Release:* `${{ github.ref_name }}`\n*By:* ${{ github.actor }}\n⚠️ Old deployment is still running and protected!"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-
   # ─────────────────────────────────────────────────────────────────────────────
   # deploy-demo: Deploy to Demo Environment
   # DISABLED — automated demo deployment is intentionally commented out.
