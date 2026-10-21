@@ -348,9 +348,6 @@
       "liveOverview": "Live · Umbukiso Wesive",
       "intelligence": "Lwati Lwemakhopharethi",
       "synced": "Kuhlanganisiwe",
-      "activeSaccos": "AmaSACCO Lasebentako",
-      "loanPortfolio": "Iphothifoliyo yemaloli",
-      "womenMembers": "Emalunga abesifazane",
       "compliance": "Kuhambisana",
       "membershipGrowth": "Kukhula kwemalunga — 2025"
     },
@@ -369,14 +366,6 @@
       "govtTitle": "Yakhiwe ngekuya ngetindinganiso tahulumende",
       "govtBody": "MFA, kuphatsa emadivayisi, ukufinyelela nge-WCAG, nenhlalakahle yesive."
     },
-    "stats": {
-      "combinedSavings": "Imali yekonga lehibanganisiwe",
-      "nationalCompliance": "Izinga lekuhambisana nesive",
-      "regionsSub": "Ezifundzeni letine",
-      "membersSub": "54% besifazane · 38% bantfu labasha",
-      "savingsSub": "+7.2% unyaka nonyaka",
-      "complianceSub": "Isilinganiso sema sekta"
-    },
     "sectors": {
       "badge": "Ema sekta lasebentako",
       "title": "Wonke umkhopharethi, irejistri yinye.",
@@ -390,8 +379,7 @@
       "transportTitle": "Tinyunyana Tetekuthutha",
       "transportDesc": "Tinyunyana tebaphathi, i-logistics nemakhopharethi e-ride-share.",
       "artisanTitle": "Bacwebeshi Nekukhiqiza",
-      "artisanDesc": "Emakhopharethi ekukhiqiza netifederesheni tetakhiwo.",
-      "active": "kusebenta"
+      "artisanDesc": "Emakhopharethi ekukhiqiza netifederesheni tetakhiwo."
     },
     "capabilities": {
       "badge": "Emakhono",
@@ -412,8 +400,6 @@
     "announcements": {
       "badge": "Tindzaba netimemezelo",
       "title": "Tibuyekezo kuLitiko.",
-      "allLink": "Tonkhe timemezelo",
-      "readFull": "Funda sibuyekezo lesigcwele",
       "news1Title": "Indlela lensha yekulinganisa kuhambisana yamukelwe kwemibiko ye-Q4",
       "news1Body": "Tonkhe tifederesheni kumele tiphindze tisekele kulinganisa kwato nge-rubric lebuyeletiwe ngaphambi kwaNovember 15.",
       "news2Title": "CoopData v4.2 yethula imibuzo ye-offline kubasebentisi basemakhaya",
@@ -442,23 +428,10 @@
     "footer": {
       "badge": "Insebenzo yedijithali yesive yeLitiko Letekuhweba Nekutfutfukiswa Kwemakhopharethi.",
       "platformCol": "Ipulatifomu",
-      "resourcesCol": "Imithombo",
       "legalCol": "Semthethweni",
       "copyright": "© {{year}} Litiko Letekuhweba Nekutfutfukiswa Kwemakhopharethi. Wonke emalungelo agodliwe.",
       "systemStatus": "Simo seluhlelo:",
       "allOperational": "Tonkhe tinhlelo tiyasebenta",
-      "platform": {
-        "cooperatives": "Emakhopharethi",
-        "dataCollection": "Kuthwebula Data",
-        "reports": "Imibiko",
-        "analytics": "Luhlatiyo"
-      },
-      "resources": {
-        "documentation": "Umbhalo",
-        "helpCenter": "Isikhungo Sesito",
-        "onboardingGuides": "Tinkhombandlela Tekungena",
-        "apiReference": "Inkomba ye-API"
-      },
       "legal": {
         "privacyPolicy": "Inqubomgomo Yekuvikeleka",
         "termsOfUse": "Imigomo Yekusebentisa",
