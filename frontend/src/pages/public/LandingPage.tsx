@@ -24,6 +24,13 @@ import { ROLE_DEFAULT_ROUTE } from "@/constants/roles";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 
+const NAV_LINKS = [
+  { href: "#mission", labelKey: "landing.header.about" },
+  { href: "#sectors", labelKey: "landing.header.cooperatives" },
+  { href: "#capabilities", labelKey: "landing.header.capabilities" },
+  { href: "#faq", labelKey: "landing.header.help" },
+] as const;
+
 export const LandingPage: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -87,18 +94,11 @@ function PublicHeader() {
           />
         </Link>
         <nav className="hidden items-center gap-7 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:flex">
-          <a href="#mission" className="transition-colors hover:text-primary">
-            {t("landing.header.about")}
-          </a>
-          <a href="#sectors" className="transition-colors hover:text-primary">
-            {t("landing.header.cooperatives")}
-          </a>
-          <a href="#capabilities" className="transition-colors hover:text-primary">
-            {t("landing.header.capabilities")}
-          </a>
-          <a href="#faq" className="transition-colors hover:text-primary">
-            {t("landing.header.help")}
-          </a>
+          {NAV_LINKS.map((link) => (
+            <a key={link.href} href={link.href} className="transition-colors hover:text-primary">
+              {t(link.labelKey)}
+            </a>
+          ))}
         </nav>
         <div className="flex items-center gap-2.5">
           <LanguageSwitcher />
@@ -156,9 +156,9 @@ function Hero() {
           </div>
           <dl className="animate-hero animate-hero-delay-4 mt-12 grid max-w-lg grid-cols-3 gap-8 text-sm border-t border-border/80 pt-8">
             {[
-              ["12,842", t("landing.hero.statRegCoops")],
-              ["2.4M", t("landing.hero.statActiveMembers")],
-              ["SZL 1.2B", t("landing.hero.statCombinedAssets")],
+              ["653", t("landing.hero.statRegCoops")],
+              ["82,600", t("landing.hero.statActiveMembers")],
+              ["SZL 3.6B", t("landing.hero.statCombinedAssets")],
             ].map(([v, l]) => (
               <div key={l}>
                 <dt className="font-heading text-2xl font-bold tracking-tight text-foreground num">
@@ -199,21 +199,21 @@ function HeroPanel() {
       </div>
       <div className="grid grid-cols-2 gap-3 p-5">
         <MiniKpi
-          label={t("landing.heroPanel.activeSaccos")}
-          value="11,420"
-          delta="+4.2%"
+          label={t("landing.heroPanel.registeredSaccos")}
+          value="653"
+          delta="+3.1%"
           tone="success"
         />
         <MiniKpi
-          label={t("landing.heroPanel.loanPortfolio")}
-          value="SZL 842M"
-          delta="1.2% NPL"
-          tone="warning"
+          label={t("landing.heroPanel.activeAssets")}
+          value="SZL 3.6B"
+          delta="+6.8%"
+          tone="success"
         />
         <MiniKpi
-          label={t("landing.heroPanel.womenMembers")}
-          value="54.1%"
-          delta="+0.8 pts"
+          label={t("landing.hero.statActiveMembers")}
+          value="82,600"
+          delta="+2.4%"
           tone="success"
         />
         <MiniKpi
@@ -377,10 +377,9 @@ function Mission() {
 function Stats() {
   const { t } = useTranslation();
   const stats = [
-    { v: "12,842", l: t("landing.hero.statRegCoops"), s: t("landing.stats.regionsSub") },
-    { v: "2.4M", l: t("landing.hero.statActiveMembers"), s: t("landing.stats.membersSub") },
-    { v: "SZL 1.2B", l: t("landing.stats.combinedSavings"), s: t("landing.stats.savingsSub") },
-    { v: "92.4", l: t("landing.stats.nationalCompliance"), s: t("landing.stats.complianceSub") },
+    { v: "653", l: t("landing.hero.statRegCoops") },
+    { v: "82,600", l: t("landing.hero.statActiveMembers") },
+    { v: "SZL 3.6B", l: t("landing.hero.statCombinedAssets") },
   ];
   return (
     <section className="bg-primary py-20 text-primary-foreground relative overflow-hidden">
@@ -391,14 +390,13 @@ function Stats() {
           backgroundSize: "20px 20px",
         }}
       />
-      <div className="mx-auto grid max-w-7xl gap-8 px-6 sm:grid-cols-2 lg:grid-cols-4 lg:px-8 relative z-10">
+      <div className="mx-auto grid max-w-7xl gap-8 px-6 sm:grid-cols-3 lg:px-8 relative z-10">
         {stats.map((s) => (
           <div key={s.l} className="space-y-1">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary-foreground/50">
               {s.l}
             </p>
             <p className="font-heading text-4xl font-bold tracking-tight num text-white">{s.v}</p>
-            <p className="text-xs text-primary-foreground/75 font-medium">{s.s}</p>
           </div>
         ))}
       </div>
@@ -411,35 +409,30 @@ function Sectors() {
   const sectors = [
     {
       name: t("landing.sectors.agriTitle"),
-      count: "5,394",
       desc: t("landing.sectors.agriDesc"),
       icon: Building2,
       edge: "card-edge-primary" as const,
     },
     {
       name: t("landing.sectors.saccoTitle"),
-      count: "3,981",
       desc: t("landing.sectors.saccoDesc"),
       icon: Database,
       edge: "card-edge-success" as const,
     },
     {
       name: t("landing.sectors.housingTitle"),
-      count: "1,413",
       desc: t("landing.sectors.housingDesc"),
       icon: Building2,
       edge: "card-edge-info" as const,
     },
     {
       name: t("landing.sectors.transportTitle"),
-      count: "1,156",
       desc: t("landing.sectors.transportDesc"),
       icon: Building2,
       edge: "card-edge-warning" as const,
     },
     {
       name: t("landing.sectors.artisanTitle"),
-      count: "898",
       desc: t("landing.sectors.artisanDesc"),
       icon: Building2,
       edge: "card-edge" as const,
@@ -475,12 +468,6 @@ function Sectors() {
                   <h3 className="font-heading text-base font-bold text-foreground">{s.name}</h3>
                 </div>
                 <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
-              </div>
-              <div className="mt-6 pt-4 border-t border-border/50">
-                <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-success">
-                  <span className="size-1.5 rounded-full bg-success animate-pulse" />
-                  {s.count} {t("landing.sectors.active")}
-                </span>
               </div>
             </li>
           ))}
@@ -597,12 +584,6 @@ function Announcements() {
               {t("landing.announcements.title")}
             </h2>
           </div>
-          <a
-            href="#"
-            className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-accent hover:underline"
-          >
-            {t("landing.announcements.allLink")} <ChevronRight className="size-4" />
-          </a>
         </div>
         <ul className="mt-12 grid gap-6 md:grid-cols-3">
           {news.map((n) => (
@@ -622,14 +603,6 @@ function Announcements() {
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">
                 {n.body}
               </p>
-              <div className="mt-auto pt-4">
-                <a
-                  href="#"
-                  className="inline-flex items-center text-sm font-semibold text-accent hover:underline"
-                >
-                  {t("landing.announcements.readFull")} <ChevronRight className="ml-1 size-4" />
-                </a>
-              </div>
             </li>
           ))}
         </ul>
@@ -749,7 +722,7 @@ function PublicFooter() {
   const { t } = useTranslation();
   return (
     <footer className="border-t border-border bg-surface">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 text-sm md:grid-cols-4 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 text-sm md:grid-cols-[2fr_1fr_1fr] lg:px-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <img
@@ -765,21 +738,7 @@ function PublicFooter() {
         {[
           {
             h: t("landing.footer.platformCol"),
-            l: [
-              t("landing.footer.platform.cooperatives"),
-              t("landing.footer.platform.dataCollection"),
-              t("landing.footer.platform.reports"),
-              t("landing.footer.platform.analytics"),
-            ],
-          },
-          {
-            h: t("landing.footer.resourcesCol"),
-            l: [
-              t("landing.footer.resources.documentation"),
-              t("landing.footer.resources.helpCenter"),
-              t("landing.footer.resources.onboardingGuides"),
-              t("landing.footer.resources.apiReference"),
-            ],
+            anchors: NAV_LINKS.map((link) => ({ label: t(link.labelKey), href: link.href })),
           },
           {
             h: t("landing.footer.legalCol"),
@@ -812,11 +771,11 @@ function PublicFooter() {
               {c.h}
             </p>
             <ul className="space-y-2 text-xs font-semibold text-muted-foreground/90">
-              {c.l
-                ? c.l.map((i) => (
-                    <li key={i}>
-                      <a href="#" className="transition-colors hover:text-primary">
-                        {i}
+              {c.anchors
+                ? c.anchors.map((anchor) => (
+                    <li key={anchor.label}>
+                      <a href={anchor.href} className="transition-colors hover:text-primary">
+                        {anchor.label}
                       </a>
                     </li>
                   ))

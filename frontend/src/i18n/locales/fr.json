@@ -348,9 +348,8 @@
       "liveOverview": "En direct · Aperçu national",
       "intelligence": "Intelligence coopérative",
       "synced": "Synchronisé",
-      "activeSaccos": "SACCO actifs",
-      "loanPortfolio": "Portefeuille de prêts",
-      "womenMembers": "Membres femmes",
+      "registeredSaccos": "SACCO enregistrées",
+      "activeAssets": "Actifs en activité",
       "compliance": "Conformité",
       "membershipGrowth": "Croissance de l'adhésion — 2025"
     },
@@ -369,14 +368,6 @@
       "govtTitle": "Conçu selon les normes gouvernementales",
       "govtBody": "MFA, gestion des appareils, accessibilité WCAG et infrastructure résiliente à l'échelle nationale."
     },
-    "stats": {
-      "combinedSavings": "Épargne combinée",
-      "nationalCompliance": "Score de conformité national",
-      "regionsSub": "Sur 4 régions",
-      "membersSub": "54 % de femmes · 38 % de jeunes",
-      "savingsSub": "+7,2 % d'une année sur l'autre",
-      "complianceSub": "Médiane entre les secteurs"
-    },
     "sectors": {
       "badge": "Secteurs desservis",
       "title": "Chaque coopérative, un seul registre.",
@@ -390,8 +381,7 @@
       "transportTitle": "Unions de transport",
       "transportDesc": "Unions d'opérateurs, logistique et coopératives de covoiturage.",
       "artisanTitle": "Artisans et fabrication",
-      "artisanDesc": "Collectifs de producteurs et fédérations artisanales.",
-      "active": "actifs"
+      "artisanDesc": "Collectifs de producteurs et fédérations artisanales."
     },
     "capabilities": {
       "badge": "Capacités",
@@ -412,8 +402,6 @@
     "announcements": {
       "badge": "Actualités et annonces",
       "title": "Mises à jour du Ministère.",
-      "allLink": "Toutes les annonces",
-      "readFull": "Lire la mise à jour complète",
       "news1Title": "Nouvelle méthodologie de notation de conformité adoptée pour les déclarations du T4",
       "news1Body": "Toutes les fédérations doivent recalibrer leur notation interne selon le barème mis à jour d'ici le 15 novembre.",
       "news2Title": "CoopData v4.2 introduit des questionnaires hors ligne pour les agents de terrain",
@@ -442,23 +430,10 @@
     "footer": {
       "badge": "Un service numérique national du Ministère du Commerce et du Développement des Coopératives.",
       "platformCol": "Plateforme",
-      "resourcesCol": "Ressources",
       "legalCol": "Légal",
       "copyright": "© {{year}} Ministère du Commerce et du Développement des Coopératives. Tous droits réservés.",
       "systemStatus": "État du système :",
       "allOperational": "Tous les systèmes opérationnels",
-      "platform": {
-        "cooperatives": "Coopératives",
-        "dataCollection": "Collecte de données",
-        "reports": "Rapports",
-        "analytics": "Analytique"
-      },
-      "resources": {
-        "documentation": "Documentation",
-        "helpCenter": "Centre d'aide",
-        "onboardingGuides": "Guides d'intégration",
-        "apiReference": "Référence API"
-      },
       "legal": {
         "privacyPolicy": "Politique de confidentialité",
         "termsOfUse": "Conditions d'utilisation",
