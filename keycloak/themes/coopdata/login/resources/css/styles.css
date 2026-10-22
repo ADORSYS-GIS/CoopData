@@ -255,21 +255,6 @@ body {
     height: 16px;
 }
 
-.top-bar-help {
-    font-size: 0.75rem;
-    color: var(--muted-foreground);
-}
-
-.invitation-link {
-    font-weight: 600;
-    color: var(--accent);
-    text-decoration: none;
-}
-
-.invitation-link:hover {
-    text-decoration: underline;
-}
-
 /* Form container */
 .form-container {
     flex: 1;

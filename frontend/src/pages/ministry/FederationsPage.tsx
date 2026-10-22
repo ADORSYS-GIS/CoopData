@@ -29,7 +29,14 @@ import {
 } from "@tanstack/react-table";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { AppShell, Card, StatusPill, StatCard } from "@/components/app-shell";
-import { formatCurrency, formatNumber } from "@/lib/mock-data";
+import { zar } from "@/components/analytics/national/ledgerMetrics";
+import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
+import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
+import { usePeriodOptions } from "@/hooks/analytics/usePeriodOptions";
+import { resolveSelection } from "@/lib/analytics-filters";
+import { defaultFilterValues } from "@/pages/analytics/analyticsTypes";
+import { formatNumber } from "@/lib/mock-data";
+import { latestReportedMonth } from "@/lib/trend-latest";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -380,7 +387,18 @@ export const FederationsPage: React.FC = () => {
   });
 
   const activeCount = federationsList.filter((f) => f.enabled).length;
-  const totalMembers = federationsList.length * 600;
+  // National figures, from the same sources and the same default period as the
+  // Analytics page: the latest period with approved data. Both endpoints otherwise
+  // default to the calendar year, which is empty until that year is complete.
+  const periods = usePeriodOptions("ministry");
+  const nationalPeriod = useMemo(() => {
+    const { year, periodType, periodValue } = resolveSelection(defaultFilterValues, periods);
+    return { reportingYear: year, periodType, periodValue };
+  }, [periods]);
+  const { data: nfStats, isLoading: membersLoading } = useNfStatistics(false, nationalPeriod);
+  const { data: networkTrend, isLoading: assetsLoading } = useMonthlyTrend(nationalPeriod);
+  const totalMembers = nfStats?.membership.total ?? 0;
+  const latestAssets = latestReportedMonth(networkTrend?.months ?? [])?.assets;
 
   const handleCreateSubmit = (values: FederationFormValues) => {
     createMutation.mutate(
@@ -479,14 +497,14 @@ export const FederationsPage: React.FC = () => {
           <StatCard
             icon={Users}
             label={t("federationsPage.totalMembers")}
-            value={formatNumber(totalMembers)}
+            value={membersLoading ? "..." : totalMembers > 0 ? formatNumber(totalMembers) : "—"}
             subtitle={t("federationsPage.acrossAllFederations")}
             tone="accent"
           />
           <StatCard
             icon={Wallet}
             label={t("federationsPage.combinedPortfolio")}
-            value={formatCurrency(0)}
+            value={assetsLoading ? "..." : latestAssets ? zar(latestAssets) : "—"}
             subtitle={t("federationsPage.aggregateCapital")}
             tone="info"
           />

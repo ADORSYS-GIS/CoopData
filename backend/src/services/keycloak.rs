@@ -290,6 +290,17 @@ impl KeycloakService {
             .any(|c| c.get("type").and_then(|t| t.as_str()) == Some("otp")))
     }
 
+    /// Status of an invited user: `ACCEPTED` once they have joined the organisation,
+    /// otherwise `EMAIL_VERIFIED` (awaiting org acceptance) or `PENDING`
+    /// (awaiting email verification).
+    fn invitation_status(is_member: bool, email_verified: bool) -> &'static str {
+        match (is_member, email_verified) {
+            (true, _) => "ACCEPTED",
+            (false, true) => "EMAIL_VERIFIED",
+            (false, false) => "PENDING",
+        }
+    }
+
     /// Pure decision helper for `get_user_mfa_enabled`: given the user's
     /// `mfa_enabled` attribute (if any), whether a CONFIGURE_TOTP action is
     /// pending, and whether an OTP credential exists, returns whether MFA is on.
@@ -1604,25 +1615,18 @@ impl KeycloakService {
             "Found users with org.ro.active attribute matching org"
         );
 
-        // Call 2: Get current active org members so we can exclude them.
-        // pending = invited_users MINUS active_members
+        // Call 2: Get current active org members, so invitations that have been
+        // accepted (the user joined the org) can be told apart from pending ones.
         let members = self.get_organization_members(org_id).await?;
         let member_ids: std::collections::HashSet<String> =
             members.into_iter().map(|m| m.id).collect();
 
-        // Build the pending invitation list — only users NOT yet active members.
-        // Derive per-user status from Keycloak's emailVerified field:
-        //   emailVerified = false → "Awaiting email verification"
-        //   emailVerified = true  → "Email verified, awaiting org acceptance"
         let invitations = invited_users
             .into_iter()
-            .filter(|user| !member_ids.contains(&user.id))
             .map(|user| {
-                let status = if user.email_verified {
-                    "EMAIL_VERIFIED".to_string()
-                } else {
-                    "PENDING".to_string()
-                };
+                let status =
+                    Self::invitation_status(member_ids.contains(&user.id), user.email_verified)
+                        .to_string();
 
                 KeycloakInvitation {
                     id: user.id.clone(),
@@ -2434,6 +2438,21 @@ impl KeycloakService {
 #[cfg(test)]
 mod tests {
     use super::KeycloakService;
+
+    #[test]
+    fn invitation_status_is_accepted_once_user_is_a_member() {
+        assert_eq!(KeycloakService::invitation_status(true, true), "ACCEPTED");
+        assert_eq!(KeycloakService::invitation_status(true, false), "ACCEPTED");
+    }
+
+    #[test]
+    fn invitation_status_is_pending_until_user_joins() {
+        assert_eq!(
+            KeycloakService::invitation_status(false, true),
+            "EMAIL_VERIFIED"
+        );
+        assert_eq!(KeycloakService::invitation_status(false, false), "PENDING");
+    }
 
     #[test]
     fn mfa_enabled_from_parts_attribute_true() {

@@ -11,6 +11,7 @@ import {
 
 import type { MonthlyTrendResponse } from "@/hooks/analytics/useMonthlyTrend";
 import type { NfStatisticsResponse } from "@/hooks/analytics/useNfStatistics";
+import { latestReportedMonth } from "@/lib/trend-latest";
 
 export type Trend = "up" | "down" | "neutral";
 
@@ -72,8 +73,7 @@ export const buildHeadlineMetrics = ({
   totalCooperatives,
   t,
 }: HeadlineInput): MetricCard[] => {
-  const months = networkTrend?.months ?? [];
-  const latest = [...months].reverse().find((m) => m.assets !== 0 || (m.liabilities ?? 0) !== 0);
+  const latest = latestReportedMonth(networkTrend?.months ?? []);
   const groups = buildMetricGroups(nfStats, t);
   const pick = (groupId: MetricGroup["id"], key: string): MetricCard | undefined =>
     groups.find((g) => g.id === groupId)?.metrics.find((m) => m.key === key);
