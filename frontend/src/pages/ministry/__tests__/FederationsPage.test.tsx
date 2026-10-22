@@ -58,11 +58,15 @@ vi.mock("@/hooks/federations/useFederations", () => ({
 
 const nfStatistics = vi.fn();
 const monthlyTrend = vi.fn();
+const periodOptions = vi.fn();
 vi.mock("@/hooks/analytics/useNfStatistics", () => ({
-  useNfStatistics: () => nfStatistics(),
+  useNfStatistics: (isCooperative: boolean, params: unknown) => nfStatistics(isCooperative, params),
 }));
 vi.mock("@/hooks/analytics/useMonthlyTrend", () => ({
-  useMonthlyTrend: () => monthlyTrend(),
+  useMonthlyTrend: (params: unknown) => monthlyTrend(params),
+}));
+vi.mock("@/hooks/analytics/usePeriodOptions", () => ({
+  usePeriodOptions: () => periodOptions(),
 }));
 
 import { FederationsPage } from "../FederationsPage";
@@ -85,6 +89,22 @@ describe("FederationsPage stat cards", () => {
   beforeEach(() => {
     nfStatistics.mockReset();
     monthlyTrend.mockReset();
+    periodOptions.mockReturnValue([]);
+  });
+
+  it("asks for the latest period with approved data, not the calendar year", () => {
+    periodOptions.mockReturnValue([
+      { reporting_year: 2025, period_type: "YEARLY", period_value: "2025" },
+      { reporting_year: 2024, period_type: "YEARLY", period_value: "2024" },
+    ]);
+    nfStatistics.mockReturnValue({ data: { membership: { total: 0 } }, isLoading: false });
+    monthlyTrend.mockReturnValue({ data: { months: [] }, isLoading: false });
+
+    render(<FederationsPage />);
+
+    const expected = expect.objectContaining({ reportingYear: 2025, periodType: "YEARLY" });
+    expect(nfStatistics).toHaveBeenCalledWith(false, expected);
+    expect(monthlyTrend).toHaveBeenCalledWith(expected);
   });
 
   it("shows the national member total from member records, not a per-federation guess", () => {
