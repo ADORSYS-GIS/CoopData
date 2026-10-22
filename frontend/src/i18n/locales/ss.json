@@ -3643,7 +3643,7 @@
     "newInvitationBtn": "Isimemo Esisha",
     "totalInvitations": "Izimemo Zonke",
     "pending": "Kulindile",
-    "sent": "Kuthunyelwe",
+    "accepted": "Kwemukelwe",
     "last30Days": "Izinsuku ezingu-30 ezidlule",
     "invitationsFederationTitle": "Izimemo — {{name}}",
     "pendingInvitationsTitle": "Izimemo Ezilindile",

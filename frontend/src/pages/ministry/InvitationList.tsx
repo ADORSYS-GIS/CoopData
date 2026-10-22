@@ -63,6 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Plus, RefreshCw, Trash2, AlertCircle, Search, UserCog } from "lucide-react";
 import type { components } from "@/openapi-client/api";
 import { isAppOffline } from "@/services/shared/networkGuard";
+import { isPendingInvitation, summarizeInvitations } from "@/lib/invitation-summary";
 
 type Invitation = components["schemas"]["InvitationResponse"];
 type Federation = components["schemas"]["FederationResponse"];
@@ -313,6 +314,13 @@ export const InvitationList: React.FC = () => {
     error,
   } = useFederationInvitations(selectedFederationId);
 
+  const summary = useMemo(() => summarizeInvitations(invitations as Invitation[]), [invitations]);
+  // The table lists invitations that can still be resent or cancelled.
+  const pendingInvitations = useMemo(
+    () => (invitations as Invitation[]).filter(isPendingInvitation),
+    [invitations],
+  );
+
   const inviteMutation = useInviteUserToFederation();
   const resendMutation = useResendInvitation();
   const deleteMutation = useDeleteInvitation();
@@ -330,7 +338,7 @@ export const InvitationList: React.FC = () => {
   }, [t]);
 
   const table = useReactTable({
-    data: (invitations as Invitation[]) ?? [],
+    data: pendingInvitations,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -428,36 +436,24 @@ export const InvitationList: React.FC = () => {
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard
               label={t("invitationList.totalInvitations")}
-              value={isLoading ? "..." : invitations.length.toString()}
+              value={isLoading ? "..." : summary.total.toString()}
               icon={Mail}
             />
             <StatCard
               label={t("invitationList.pending")}
-              value={
-                isLoading
-                  ? "..."
-                  : invitations
-                      .filter(
-                        (i: Invitation) => i.status === "PENDING" || i.status === "EMAIL_VERIFIED",
-                      )
-                      .length.toString()
-              }
+              value={isLoading ? "..." : summary.pending.toString()}
               icon={AlertCircle}
               tone="warning"
             />
             <StatCard
-              label={t("invitationList.sent")}
-              value={
-                isLoading
-                  ? "..."
-                  : invitations.filter((i: Invitation) => i.email_sent).length.toString()
-              }
+              label={t("invitationList.accepted")}
+              value={isLoading ? "..." : summary.accepted.toString()}
               icon={RefreshCw}
               tone="success"
             />
             <StatCard
               label={t("invitationList.last30Days")}
-              value={isLoading ? "..." : invitations.length.toString()}
+              value={isLoading ? "..." : summary.last30Days.toString()}
               icon={Mail}
               tone="info"
             />
@@ -512,7 +508,7 @@ export const InvitationList: React.FC = () => {
           }
           subtitle={
             selectedFederationId
-              ? t("invitationList.invitationsCount", { count: invitations.length })
+              ? t("invitationList.invitationsCount", { count: pendingInvitations.length })
               : t("invitationList.selectFederationPrompt")
           }
         >
@@ -598,7 +594,7 @@ export const InvitationList: React.FC = () => {
                   <div className="text-sm text-muted-foreground text-center sm:text-left">
                     {t("invitationList.showingCount", {
                       filtered: table.getFilteredRowModel().rows.length,
-                      total: invitations.length,
+                      total: pendingInvitations.length,
                     })}
                   </div>
                   <div className="flex items-center gap-1 flex-wrap justify-center">

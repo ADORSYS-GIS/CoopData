@@ -3646,7 +3646,7 @@
     "newInvitationBtn": "New Invitation",
     "totalInvitations": "Total Invitations",
     "pending": "Pending",
-    "sent": "Sent",
+    "accepted": "Accepted",
     "last30Days": "Last 30 Days",
     "invitationsFederationTitle": "Invitations — {{name}}",
     "pendingInvitationsTitle": "Pending Invitations",
