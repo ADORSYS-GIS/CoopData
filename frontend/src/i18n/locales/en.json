@@ -215,8 +215,6 @@
     "featureAuditTrail": "Full audit trail on every action",
     "ministryName": "Ministry of Commerce & Cooperative Development",
     "backToHome": "Back to home",
-    "needAccess": "Need access?",
-    "requestInvitation": "Request invitation",
     "securePlatform": "Secure Platform",
     "signInTitle": "Sign in to CoopData",
     "authenticateViaIdp": "Authenticate via your organization's identity provider.",

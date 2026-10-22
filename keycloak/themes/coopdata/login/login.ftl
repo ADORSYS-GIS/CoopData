@@ -72,9 +72,6 @@
                         </svg>
                         ${msg("backToHome")}
                     </a>
-                    <p class="top-bar-help">
-                        ${msg("needAccess")} <a href="${url.registrationUrl}" class="invitation-link">${msg("requestInvitation")}</a>
-                    </p>
                 </div>
 
                 <#-- Form content -->
