@@ -25,6 +25,10 @@ import { CustomKpiDetailsSheet } from "@/components/analytics/custom-kpi/CustomK
 import { CustomKpiFormDialog } from "@/components/analytics/custom-kpi/CustomKpiFormDialog";
 import { CustomKpiBreakdownTable } from "@/components/analytics/custom-kpi/CustomKpiBreakdownTable";
 import { Spinner } from "@/components/ui/spinner";
+import { recentYears } from "@/lib/recent-years";
+
+/** How many reporting years the picker offers, counting back from the current one. */
+const YEAR_OPTIONS = 5;
 
 interface VariableDef {
   name: string;
@@ -602,7 +606,7 @@ export function CustomKpisPage() {
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="bg-transparent font-semibold focus:outline-none border-none text-white text-xs cursor-pointer"
               >
-                {["2026", "2025", "2024", "2023"].map((y) => (
+                {recentYears(YEAR_OPTIONS).map((y) => (
                   <option key={y} value={y} className="text-foreground">
                     {t("customKpis.reportingYear", { year: y })}
                   </option>
