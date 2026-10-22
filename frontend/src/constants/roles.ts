@@ -74,7 +74,6 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/configure-roles",
       "/app/questionnaire-templates",
       "/app/audit",
-      "/app/admin-legal",
       "/app/data-privacy",
       "/app/profile",
     ],
