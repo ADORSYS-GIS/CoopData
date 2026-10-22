@@ -40,12 +40,10 @@ services:
       AUTOHEAL_START_PERIOD: 0
       AUTOHEAL_DEFAULT_STOP_TIMEOUT: 10
       WEBHOOK_URL: ${AUTOHEAL_WEBHOOK_URL:-${SLACK_WEBHOOK_URL:-}}
-      # Talk to the filtered proxy, not the raw socket: this container may only
-      # list containers and stop unhealthy ones, nothing else.
-      DOCKER_HOST: tcp://docker-socket-proxy:2375
+      DOCKER_HOST: tcp://docker-socket-proxy:2375  # filtered proxy, see its definition
     depends_on:
       docker-socket-proxy:
-        condition: service_started
+        condition: service_healthy
     logging: *default-logging
     deploy:
       resources:
@@ -58,9 +56,10 @@ services:
 
   # ── PostgreSQL ───────────────────────────────────────────────────────────────
   # ── Docker Socket Proxy (filtered) ────────────────────────────────────────
-  # Only autoheal talks to it. Whitelisted API surface: list containers, watch
-  # events, stop containers. Everything else (exec, mounts, images, network...)
-  # is denied, so a compromised autoheal cannot control the host.
+  # Only autoheal talks to it (DOCKER_HOST above). Whitelisted API surface:
+  # list containers, watch events, stop containers. Everything else (exec,
+  # mounts, images, network...) is denied, so a compromised autoheal cannot
+  # control the host.
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:0.3.0
     container_name: coopdata-docker-socket-proxy
@@ -71,13 +70,22 @@ services:
       POST: 1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2375/_ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     logging: *default-logging
+    labels:
+      autoheal: "true"
     deploy:
       resources:
         limits:
           cpus: "0.10"
           memory: 64M
 
+  # ── Postgres ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: coopdata-postgres
@@ -141,8 +149,8 @@ services:
     <<: *default-restart
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?S3_ACCESS_KEY must be set in .env}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?S3_SECRET_KEY must be set in .env}
     ports:
       - "127.0.0.1:9100:9000"
       - "127.0.0.1:9101:9001"
@@ -501,7 +509,7 @@ services:
           memory: 128M
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: coopdata-postgres-exporter
     <<: *default-restart
     environment:
@@ -521,7 +529,7 @@ services:
           memory: 32M
 
   redis-exporter:
-    image: oliver006/redis_exporter:latest
+    image: oliver006/redis_exporter:v1.61.0
     container_name: coopdata-redis-exporter
     <<: *default-restart
     environment:
@@ -541,7 +549,7 @@ services:
           memory: 16M
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.8.1
     container_name: coopdata-node-exporter
     <<: *default-restart
     command:
