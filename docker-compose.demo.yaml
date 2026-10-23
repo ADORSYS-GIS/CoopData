@@ -96,7 +96,11 @@ services:
 
   # ── Demo MinIO Object Storage ─────────────────────────────────────────────
   demo-minio:
-    image: minio/minio:RELEASE.2024-01-18T22-51-28Z
+    # MinIO removed their public images from Docker Hub and quay.io (both now
+    # require auth), so this pins the digest of the version actually running —
+    # present on the server, immutable, and never re-pulled. For a FRESH
+    # deployment, mirror this image into GHCR first or load it from a dump.
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     container_name: coopdata-demo-minio
     <<: *default-restart
     command: server /data --console-address ":9001"
