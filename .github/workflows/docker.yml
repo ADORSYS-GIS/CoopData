@@ -21,8 +21,11 @@ on:
     types: [published]
 
 concurrency:
-  group: docker-${{ github.ref }}
-  cancel-in-progress: true
+  # Deploy dispatches get their own group and are never cancelled. The Release PR
+  # merge fires a push run and the release step dispatches a deploy ~20s later on
+  # the same ref; sharing one group let the push run cancel the deploy.
+  group: docker-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && 'deploy' || 'build' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
   REGISTRY: ghcr.io
