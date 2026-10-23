@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.4.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.3.0...v1.4.0) (2026-10-23)
+
+
+### Features
+
+* **invitations:** count accepted invitations and fix the stat cards ([de7c215](https://github.com/ADORSYS-GIS/CoopData/commit/de7c215353b6fb1c76a4ac4846f25690ae554b59))
+
+
+### Bug Fixes
+
+* **auth:** remove the "Need access? Request invitation" link from sign-in ([b562edd](https://github.com/ADORSYS-GIS/CoopData/commit/b562eddb2e8d2b5b26282eee3f062ed601aed254))
+* **custom-kpis:** build the reporting-year picker from the current year ([2b6501d](https://github.com/ADORSYS-GIS/CoopData/commit/2b6501d70fd3a70024d44288439573aa7f579436))
+* **federations:** read national totals for the latest approved period ([2381f96](https://github.com/ADORSYS-GIS/CoopData/commit/2381f966bae59480c7333cfc0970cad1d2792142))
+* **federations:** show national member and asset totals instead of placeholders ([068a654](https://github.com/ADORSYS-GIS/CoopData/commit/068a654204a335e03cda4cc05a1120691db3c04d))
+* **nav:** hide Legal Policies from the ministry sidebar ([9209745](https://github.com/ADORSYS-GIS/CoopData/commit/92097459e4ea02a54e3f317ce88da73870801829))
+* **security:** apply review follow-ups — probe, comment, banner ([1a1b9d7](https://github.com/ADORSYS-GIS/CoopData/commit/1a1b9d72de9f00d0c4897f92db2aeda3189587fd))
+* **security:** autoheal reads DOCKER_SOCK; provision needs DOMAIN_NAME ([cfc8d96](https://github.com/ADORSYS-GIS/CoopData/commit/cfc8d96caad9cceb3e02f53c3bacb4bac8b06f07))
+
 ## [1.3.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.2.0...v1.3.0) (2026-10-21)
 
 
