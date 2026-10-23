@@ -573,14 +573,17 @@ pub async fn invite_user_to_federation(
         .await
         .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
 
-    let already_invited = existing_invitations
+    let existing_invitation = existing_invitations
         .iter()
-        .any(|inv| inv.email.as_deref().map(|e| e.to_lowercase()).as_deref() == Some(&email));
+        .find(|inv| inv.email.as_deref().map(|e| e.to_lowercase()).as_deref() == Some(&email));
 
-    if already_invited {
-        return Err(crate::error::AppError::Conflict(
-            "This email has already been used to invite a user. You can either click on the Resend Invitation button on the dashboard or change the email.".to_string()
-        ));
+    if let Some(invitation) = existing_invitation {
+        let message = if invitation.status.as_deref() == Some("ACCEPTED") {
+            "This person has already accepted an invitation and is a member of this federation."
+        } else {
+            "This email has already been used to invite a user. You can either click on the Resend Invitation button on the dashboard or change the email."
+        };
+        return Err(crate::error::AppError::Conflict(message.to_string()));
     }
     // ─────────────────────────────────────────────────────────────────────────
 

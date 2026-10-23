@@ -103,6 +103,14 @@ describe("roles constants", () => {
       expect(coopItems).not.toContain("/app/users");
     });
 
+    it("hides Legal Policies from the ministry sidebar but keeps it for federations", () => {
+      const items = (role: keyof typeof ROLE_NAV_ITEMS) =>
+        Object.values(ROLE_NAV_ITEMS[role]).flat();
+
+      expect(items("ministry")).not.toContain("/app/admin-legal");
+      expect(items("federation")).toContain("/app/admin-legal");
+    });
+
     it("should include /app/settings only for ministry", () => {
       expect(ROLE_NAV_ITEMS.ministry.system).toContain("/app/settings");
       const fedItems = Object.values(ROLE_NAV_ITEMS.federation).flat();
