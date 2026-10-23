@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/ADORSYS-GIS/CoopData/compare/v1.4.0...v1.4.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deploy:** pin MinIO by digest of the running image ([c20d684](https://github.com/ADORSYS-GIS/CoopData/commit/c20d684e21f74e9cb55c30486282fbab9c75e381))
+
 ## [1.4.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.3.0...v1.4.0) (2026-10-23)
 
 
