@@ -30,19 +30,21 @@ services:
   # Monitors containers labeled autoheal=true. When a container transitions to
   # unhealthy it is restarted automatically within ~5 seconds.
   autoheal:
-    image: willfarrell/autoheal:latest
+    # Pinned: floating tags are a supply-chain risk.
+    image: willfarrell/autoheal:1.2.0
     container_name: coopdata-autoheal
     <<: *default-restart
-    env_file:
-      - .env
     environment:
       AUTOHEAL_CONTAINER_LABEL: autoheal
       AUTOHEAL_INTERVAL: 5
       AUTOHEAL_START_PERIOD: 0
       AUTOHEAL_DEFAULT_STOP_TIMEOUT: 10
       WEBHOOK_URL: ${AUTOHEAL_WEBHOOK_URL:-${SLACK_WEBHOOK_URL:-}}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # autoheal reads DOCKER_SOCK (not DOCKER_HOST) for the Docker API endpoint
+      DOCKER_SOCK: tcp://docker-socket-proxy:2375  # filtered proxy, see its definition
+    depends_on:
+      docker-socket-proxy:
+        condition: service_healthy
     logging: *default-logging
     deploy:
       resources:
@@ -53,13 +55,42 @@ services:
           cpus: "0.01"
           memory: 32M
 
+  # ── Docker Socket Proxy (filtered) ────────────────────────────────────────
+  # Only autoheal talks to it (via DOCKER_SOCK). Whitelisted API surface:
+  # list containers, watch events, stop containers. Everything else (exec,
+  # mounts, images, network...) is denied, so a compromised autoheal cannot
+  # control the host.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: coopdata-docker-socket-proxy
+    <<: *default-restart
+    environment:
+      CONTAINERS: 1
+      EVENTS: 1
+      POST: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2375/_ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+    labels:
+      autoheal: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 64M
+
+  # ── Postgres ──────────────────────────────────────────────────────────────
   # ── PostgreSQL ───────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: coopdata-postgres
     <<: *default-restart
-    env_file:
-      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -114,15 +145,13 @@ services:
 
   # ── MinIO (S3-compatible storage) ──────────────────────────────────────────
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2024-01-18T22-51-28Z
     container_name: coopdata-minio
     <<: *default-restart
     command: server /data --console-address ":9001"
-    env_file:
-      - .env
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?S3_ACCESS_KEY must be set in .env}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?S3_SECRET_KEY must be set in .env}
     ports:
       - "127.0.0.1:9100:9000"
       - "127.0.0.1:9101:9001"
@@ -151,9 +180,9 @@ services:
     image: quay.io/keycloak/keycloak:26.4.6
     container_name: coopdata-keycloak
     <<: *default-restart
-    command: start-dev --import-realm
-    env_file:
-      - .env
+    # Production mode (start) instead of start-dev: real security defaults.
+    # Requires KC_HOSTNAME + KC_PROXY_HEADERS, both set below.
+    command: start --import-realm
     environment:
       KC_DB: postgres
       KC_DB_URL_HOST: postgres
@@ -170,7 +199,7 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
       COOPDATA_SUPER_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
-      COOPDATA_SUPER_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:-Dgrv@Admin2026!}
+      COOPDATA_SUPER_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:?COOPDATA_DGRV_ADMIN_PASSWORD must be set in .env}
       COOPDATA_SUPER_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
       COOPDATA_SUPER_ADMIN_LASTNAME: ${COOPDATA_DGRV_ADMIN_LASTNAME:-Administrator}
     ports:
@@ -182,7 +211,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '200 OK' <&3"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
       interval: 15s
       timeout: 10s
       retries: 15
@@ -205,18 +234,18 @@ services:
     image: quay.io/keycloak/keycloak:26.4.6
     container_name: coopdata-keycloak-provision
     restart: "no"
-    env_file:
-      - .env
     environment:
       KEYCLOAK_SERVER: http://keycloak:8180
+      # provision.sh rewrites the frontend client's redirect URIs from this
+      DOMAIN_NAME: ${DOMAIN_NAME:?DOMAIN_NAME must be set in .env}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       COOPDATA_DGRV_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
-      COOPDATA_DGRV_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:-Dgrv@Admin2026!}
+      COOPDATA_DGRV_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:?COOPDATA_DGRV_ADMIN_PASSWORD must be set in .env}
       COOPDATA_DGRV_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
       COOPDATA_DGRV_ADMIN_LASTNAME: ${COOPDATA_DGRV_ADMIN_LASTNAME:-Administrator}
       COOPDATA_MINISTRY_ADMIN_EMAIL: ${COOPDATA_MINISTRY_ADMIN_EMAIL:-admin@ministry.gov}
-      COOPDATA_MINISTRY_ADMIN_PASSWORD: ${COOPDATA_MINISTRY_ADMIN_PASSWORD:-Ministry@Admin2026!}
+      COOPDATA_MINISTRY_ADMIN_PASSWORD: ${COOPDATA_MINISTRY_ADMIN_PASSWORD:?COOPDATA_MINISTRY_ADMIN_PASSWORD must be set in .env}
       COOPDATA_MINISTRY_ADMIN_FIRSTNAME: ${COOPDATA_MINISTRY_ADMIN_FIRSTNAME:-Ministry}
       COOPDATA_MINISTRY_ADMIN_LASTNAME: ${COOPDATA_MINISTRY_ADMIN_LASTNAME:-Administrator}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
@@ -444,8 +473,6 @@ services:
     image: grafana/grafana:11.1.0
     container_name: coopdata-grafana
     <<: *default-restart
-    env_file:
-      - .env
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       # GRAFANA_ADMIN_PASSWORD is REQUIRED — the container refuses to start without it,
@@ -485,7 +512,7 @@ services:
           memory: 128M
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: coopdata-postgres-exporter
     <<: *default-restart
     environment:
@@ -505,7 +532,7 @@ services:
           memory: 32M
 
   redis-exporter:
-    image: oliver006/redis_exporter:latest
+    image: oliver006/redis_exporter:v1.61.0
     container_name: coopdata-redis-exporter
     <<: *default-restart
     environment:
@@ -525,7 +552,7 @@ services:
           memory: 16M
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.8.1
     container_name: coopdata-node-exporter
     <<: *default-restart
     command:
