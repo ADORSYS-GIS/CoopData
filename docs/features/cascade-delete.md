@@ -55,9 +55,29 @@ HD_KIND=federation HD_ID=<keycloak id> \
   cargo test --test hierarchy_delete_real_db -- --ignored --nocapture
 ```
 
+## Finishing a delete that was only half done
+
+Before this fix, a delete could remove the logins, groups and organization from
+Keycloak and leave the database rows behind. Such leftovers are still in the
+database (and in the figures built from it) but no longer in Keycloak.
+
+A Keycloak "not found" while reading is treated as "nothing left to remove", so
+running the delete again now cleans the database side of such a leftover. Any
+other Keycloak failure (unreachable, server error) still stops the delete
+before it changes anything.
+
+The federation list in the app is built from Keycloak, so a federation whose
+organization is already gone is **not shown** and cannot be deleted from the
+screen. Delete it through the API with its Keycloak id:
+
+`DELETE /api/v1/ministry/federations/{keycloak id}` (identity verification
+required). The same holds for an apex (`/api/v1/federation/apexes/{id}`) and a
+cooperative (`/api/v1/apex/cooperatives/{id}`).
+
 ## Deploying
 
 `scripts/deploy.sh` applies migration 64 before the new backend rolls out. It
-only changes how seven keys behave on delete. Items that were half-deleted
-before it (logins gone, rows still present) are not repaired by it: delete them
-again after the deploy, or clean them up with a backup in place.
+only changes how seven keys behave on delete. It does not repair leftovers by
+itself: finish them as above. On a live server, take a backup first, do one
+federation at a time, and check the result (for example with the opt-in
+`hierarchy_delete_real_db` test against a restored copy of the backup).

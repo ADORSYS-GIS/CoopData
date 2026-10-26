@@ -33,6 +33,8 @@ struct Fake {
     failing: HashSet<String>,
     /// Ids whose delete answers 404 (already gone).
     gone: HashSet<String>,
+    /// Ids Keycloak no longer has: reading their members or children answers 404.
+    missing: HashSet<String>,
     /// Every read and delete, in order, as "METHOD kind id".
     calls: Vec<String>,
     reads_fail: bool,
@@ -123,6 +125,12 @@ async fn group_members(
 ) -> (StatusCode, Json<serde_json::Value>) {
     let mut s = s.lock().unwrap();
     s.calls.push(format!("GET members {id}"));
+    if s.missing.contains(&id) {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Could not find group by id"})),
+        );
+    }
     if s.reads_fail {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -143,6 +151,12 @@ async fn group_children(
 ) -> (StatusCode, Json<serde_json::Value>) {
     let mut s = s.lock().unwrap();
     s.calls.push(format!("GET children {id}"));
+    if s.missing.contains(&id) {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Could not find group by id"})),
+        );
+    }
     let children: Vec<_> = s
         .children
         .get(&id)
@@ -569,4 +583,57 @@ async fn an_item_keycloak_no_longer_has_counts_as_removed() {
     let result = hierarchy_delete::delete_cooperative(&app.state, "coop-1").await;
 
     assert!(result.is_ok(), "{result:?}");
+}
+
+// ── Finishing a delete that was only half done ───────────────────────────────
+
+/// Keycloak lost the federation, its apexes and its cooperatives (an earlier
+/// delete removed them), but the database still holds them.
+fn federation_gone_from_keycloak() -> Fake {
+    let mut fake = Fake::default();
+    fake.missing.insert("org-1".into());
+    fake.gone.insert("org-1".into());
+    fake
+}
+
+#[tokio::test]
+async fn a_federation_keycloak_already_lost_can_still_be_planned() {
+    let kc = FakeKeycloak::start(federation_gone_from_keycloak()).await;
+    let app =
+        TestApp::with_db_and_keycloak_url(sea_orm::DatabaseConnection::default(), kc.url()).await;
+
+    let plan = hierarchy_delete::plan_federation(&app.state.keycloak, "org-1")
+        .await
+        .expect("a missing organization is not an error");
+
+    assert!(plan.user_ids.is_empty());
+    assert!(plan.group_ids.is_empty());
+    assert_eq!(plan.organization_id.as_deref(), Some("org-1"));
+}
+
+#[tokio::test]
+async fn a_half_deleted_federation_is_finished_from_the_database_side() {
+    let t = tree();
+    let rm = federation_reads(&t)
+        .exec(0) // users: Keycloak knew none
+        .exec(1)
+        .exec(1)
+        .exec(1)
+        .exec(1)
+        .build();
+    let kc = FakeKeycloak::start(federation_gone_from_keycloak()).await;
+    let app = TestApp::build_with(rm.db.clone(), Some(kc.url())).await;
+
+    let removal = hierarchy_delete::delete_federation(&app.state, "org-1")
+        .await
+        .expect("the leftovers are removed");
+
+    assert_eq!(removal.cooperatives, 2);
+    assert_eq!(removal.submissions, 3);
+    assert!(
+        rm.sql()
+            .iter()
+            .any(|s| s.contains("delete from \"federations\"")),
+        "the federation row that Keycloak had lost is deleted"
+    );
 }

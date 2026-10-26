@@ -76,18 +76,30 @@ pub struct Removal {
     pub stored_files: usize,
 }
 
-fn unavailable(what: &str, e: AppError) -> AppError {
-    tracing::error!(error = %e, "Keycloak read failed before delete: {what}");
-    AppError::ExternalServiceError(format!(
-        "Could not read {what} from Keycloak; nothing was deleted. Please try again."
-    ))
+/// An item Keycloak no longer has counts as removed.
+fn already_gone(e: &AppError) -> bool {
+    let text = e.to_string().to_lowercase();
+    text.contains("could not find") || text.contains("not found") || text.contains("404")
+}
+
+/// What a Keycloak read returned, with "no longer there" turned into "nothing
+/// left to remove": a delete that was only half done can then be finished.
+/// Any other failure stops the delete before it changes anything.
+fn read_or_empty<T: Default>(result: AppResult<T>, what: &str) -> AppResult<T> {
+    match result {
+        Ok(value) => Ok(value),
+        Err(e) if already_gone(&e) => Ok(T::default()),
+        Err(e) => {
+            tracing::error!(error = %e, "Keycloak read failed before delete: {what}");
+            Err(AppError::ExternalServiceError(format!(
+                "Could not read {what} from Keycloak; nothing was deleted. Please try again."
+            )))
+        }
+    }
 }
 
 async fn member_ids(kc: &KeycloakService, group_id: &str) -> AppResult<Vec<String>> {
-    let members = kc
-        .get_group_members(group_id)
-        .await
-        .map_err(|e| unavailable("the group members", e))?;
+    let members = read_or_empty(kc.get_group_members(group_id).await, "the group members")?;
     Ok(members.into_iter().map(|m| m.id).collect())
 }
 
@@ -97,10 +109,10 @@ async fn add_apex(
     apex_group_id: &str,
 ) -> AppResult<()> {
     plan.add_users(member_ids(kc, apex_group_id).await?);
-    let children = kc
-        .get_group_children(apex_group_id)
-        .await
-        .map_err(|e| unavailable("the cooperative groups", e))?;
+    let children = read_or_empty(
+        kc.get_group_children(apex_group_id).await,
+        "the cooperative groups",
+    )?;
     for child in &children {
         plan.add_users(member_ids(kc, &child.id).await?);
         plan.group_ids.push(child.id.clone());
@@ -133,16 +145,13 @@ fn belongs_to_organization(group: &KeycloakGroup, org_id: &str) -> bool {
 
 pub async fn plan_federation(kc: &KeycloakService, org_id: &str) -> AppResult<KeycloakPlan> {
     let mut plan = KeycloakPlan::default();
-    let members = kc
-        .get_organization_members(org_id)
-        .await
-        .map_err(|e| unavailable("the federation members", e))?;
+    let members = read_or_empty(
+        kc.get_organization_members(org_id).await,
+        "the federation members",
+    )?;
     plan.add_users(members.into_iter().map(|m| m.id));
 
-    let groups = kc
-        .get_groups(None)
-        .await
-        .map_err(|e| unavailable("the apex groups", e))?;
+    let groups = read_or_empty(kc.get_groups(None).await, "the apex groups")?;
     for apex_group in groups.iter().filter(|g| belongs_to_organization(g, org_id)) {
         add_apex(&mut plan, kc, &apex_group.id).await?;
     }
@@ -330,12 +339,6 @@ async fn remove_stored_files(state: &AppState, keys: &[String]) {
             tracing::warn!(storage_key = %key, error = %e, "Failed to remove stored file of a deleted item");
         }
     }
-}
-
-/// An item Keycloak no longer has counts as removed.
-fn already_gone(e: &AppError) -> bool {
-    let text = e.to_string().to_lowercase();
-    text.contains("could not find") || text.contains("not found") || text.contains("404")
 }
 
 /// Removes the planned users, groups and organization from Keycloak. Returns
