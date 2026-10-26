@@ -636,29 +636,38 @@ pub struct LlmExtractor {
 /// CDNs can return full HTML error pages (tens of KB), which must never reach
 /// the UI verbatim: prefer a JSON `error.message`, else cap the length and flag
 /// HTML payloads.
+/// Caps a string at `n` characters (char-boundary safe).
+fn truncate_chars(s: &str, n: usize) -> String {
+    s.chars().take(n).collect()
+}
+
 fn summarise_error_body(text: &str) -> String {
     let trimmed = text.trim();
     if trimmed.is_empty() {
         return "(empty response body)".to_string();
     }
-    if trimmed.starts_with('<') {
-        let head: String = trimmed.chars().take(200).collect();
-        return format!("(HTML error page from provider) {}", head);
-    }
+    // JSON first: a body carrying a message beats shape-sniffing, and a
+    // leading-whitespace HTML page must not fall through to the plain cap.
     if let Ok(json) = serde_json::from_str::<serde_json::Value>(trimmed) {
         let msg = json
             .get("error")
             .and_then(|e| e.get("message"))
             .and_then(|m| m.as_str())
+            .or_else(|| json.get("error").and_then(|e| e.as_str()))
             .or_else(|| json.get("message").and_then(|m| m.as_str()));
-        if let Some(msg) = msg {
-            let msg = msg.trim();
-            if !msg.is_empty() {
-                return msg.chars().take(300).collect();
-            }
+        if let Some(msg) = msg.map(str::trim).filter(|m| !m.is_empty()) {
+            return truncate_chars(msg, 300);
         }
+        // Valid JSON without any message field: a shape the UI can't use.
+        return "(unparseable error body)".to_string();
     }
-    trimmed.chars().take(300).collect()
+    if trimmed.starts_with('<') {
+        return format!(
+            "(HTML error page from provider) {}",
+            truncate_chars(trimmed, 200)
+        );
+    }
+    truncate_chars(trimmed, 300)
 }
 
 /// Statuses worth retrying with a different API key. 400 (bad request) is
@@ -747,8 +756,8 @@ impl LlmExtractor {
                     "{label}: retryable error, trying next key"
                 );
                 last_err = Some(AppError::ExternalServiceError(format!(
-                    "{label} API error {status}: {}",
-                    summarise_error_body(&text)
+                    "{label} API error {status}: {summary}",
+                    summary = summarise_error_body(&text)
                 )));
             } else {
                 tracing::error!(
@@ -758,8 +767,8 @@ impl LlmExtractor {
                     "{label}: non-retryable error"
                 );
                 return Err(AppError::ExternalServiceError(format!(
-                    "{label} API error {status}: {}",
-                    summarise_error_body(&text)
+                    "{label} API error {status}: {summary}",
+                    summary = summarise_error_body(&text)
                 )));
             }
         }
@@ -1829,18 +1838,43 @@ mod tests {
         let body = "<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body>cloudflare error page with lots of content</body></html>";
         let out = summarise_error_body(body);
         assert!(out.starts_with("(HTML error page from provider)"));
-        assert!(out.len() <= 250);
+        assert!(out.chars().count() <= 250);
     }
 
     #[test]
     fn summarise_caps_long_plain_text() {
         let body = "x".repeat(1000);
-        assert_eq!(summarise_error_body(&body).len(), 300);
+        assert_eq!(summarise_error_body(&body).chars().count(), 300);
     }
 
     #[test]
     fn summarise_handles_empty_body() {
         assert_eq!(summarise_error_body("  "), "(empty response body)");
+    }
+
+    #[test]
+    fn summarise_detects_html_after_leading_whitespace() {
+        let body = "\n  <html><body>502 Bad Gateway</body></html>";
+        let out = summarise_error_body(body);
+        assert!(out.starts_with("(HTML error page from provider)"));
+    }
+
+    #[test]
+    fn summarise_pins_json_without_message_field() {
+        assert_eq!(summarise_error_body("{}"), "(unparseable error body)");
+    }
+
+    #[test]
+    fn summarise_supports_top_level_message() {
+        assert_eq!(
+            summarise_error_body(r#"{"message": "rate limited"}"#),
+            "rate limited"
+        );
+    }
+
+    #[test]
+    fn summarise_supports_error_as_string() {
+        assert_eq!(summarise_error_body(r#"{"error": "bad key"}"#), "bad key");
     }
 
     #[test]

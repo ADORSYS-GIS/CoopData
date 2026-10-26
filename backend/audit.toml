@@ -1,3 +1,5 @@
+# SOURCE OF TRUTH: the CI security workflow copies this file over
+# backend/.cargo/audit.toml before running cargo audit. Edit HERE.
 [advisories]
 ignore = [
   "RUSTSEC-2023-0071", # Marvin Attack: potential key recovery in rsa (no fixed upgrade available)
