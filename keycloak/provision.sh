@@ -176,7 +176,7 @@ if [ "${DOMAIN_NAME}" != "localhost" ] && [ -n "${DOMAIN_NAME}" ]; then
       -s "rootUrl=${FRONTEND_BASE_URL}" \
       -s "baseUrl=${FRONTEND_BASE_URL}" \
       -s "redirectUris=[\"${FRONTEND_BASE_URL}/*\"]" \
-      -s "attributes.post.logout.redirect.uris=${FRONTEND_BASE_URL}/*" 2>&1
+      -s "attributes.post.logout.redirect.uris=${FRONTEND_BASE_URL}/" 2>&1
     echo "[provision] Client coopdata-frontend updated successfully."
   else
     echo "[provision] WARNING: Client coopdata-frontend not found in Keycloak."

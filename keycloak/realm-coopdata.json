@@ -910,7 +910,7 @@
         "realm_client": "false",
         "backchannel.logout.session.enabled": "true",
         "tls.client.certificate.bound.access.tokens": "false",
-        "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:5174/*",
+        "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:5174/*##https://coopdata.dgrvcoop360.com/",
         "oauth2.device.authorization.grant.enabled": "false",
         "pkce.code.challenge.method": "S256",
         "backchannel.logout.revoke.offline.tokens": "false",
