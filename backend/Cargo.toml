@@ -50,7 +50,7 @@ pdf_oxide = "0.3"
 calamine = { version = "0.37", features = ["dates"] }
 base64 = "0.22"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
-aws-sdk-s3 = { version = "1", default-features = false, features = ["sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["http-1x", "default-https-client", "rt-tokio"] }
 aws-credential-types = "1"
 rust_xlsxwriter = "0.100"
 csv = "1.3"
