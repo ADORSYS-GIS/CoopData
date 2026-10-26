@@ -1,4 +1,4 @@
-<#macro emailLayout title>
+<#macro emailLayout title="">
 <!DOCTYPE html>
 <html lang="en">
 <head>
