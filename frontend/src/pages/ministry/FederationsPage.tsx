@@ -1,7 +1,6 @@
 import {
   Plus,
   Search,
-  Download,
   Globe,
   Landmark,
   ShieldAlert,
@@ -515,18 +514,9 @@ export const FederationsPage: React.FC = () => {
           title={t("federationsPage.directoryTitle")}
           subtitle={t("federationsPage.directorySubtitle")}
           action={
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toast.success(t("federationsPage.toastExporting"))}
-              >
-                <Download className="size-3.5" /> {t("federationsPage.exportCsv")}
-              </Button>
-              <Button size="sm" onClick={() => setIsCreateOpen(true)}>
-                <Plus className="size-4" /> {t("federationsPage.registerFedBtn")}
-              </Button>
-            </div>
+            <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="size-4" /> {t("federationsPage.registerFedBtn")}
+            </Button>
           }
         >
           {/* Search */}

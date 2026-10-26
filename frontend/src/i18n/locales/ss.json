@@ -3533,7 +3533,6 @@
     "aggregateCapital": "Isisekelo semali esihlanganisiwe",
     "directoryTitle": "Irejistri Yefederesheni Yesive",
     "directorySubtitle": "Sesha, hlunga, futsi uphatse emafederesheni ezifundza",
-    "exportCsv": "Khipha CSV",
     "searchPlaceholder": "Sesha ngegama, isizinda...",
     "failedLoad": "Kwehlulekile kulayisha emafederesheni",
     "noMatchQuery": "Akukho mafederesheni ahambisana nombuzo",
@@ -3552,7 +3551,6 @@
     "toastDeleted": "Kususwe \"{{name}}\"",
     "toastDeletedDesc": "Ifederesheni isusiwe kurejistri.",
     "toastDeleteFailed": "Kwehlulekile kususa ifederesheni",
-    "toastExporting": "Kukhipha data yefederesheni njenge-CSV...",
     "errorDuplicateFederation": "Ifederesheni lenalelibito nome lomdvwendvwe seyikhona. Sicela usebentise libito nome umdvwendvwe lohlukile.",
     "errorGenericCreate": "Kubhalisa akukwatiwanga kuchutjwa. Sicela uzame futsi nome utsindzele kulusito nangabe inkinga icholelela.",
     "pageOf": "Ikhasi {{page}} ya {{total}}"
