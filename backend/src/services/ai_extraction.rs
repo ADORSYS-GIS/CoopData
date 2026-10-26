@@ -632,6 +632,35 @@ pub struct LlmExtractor {
     semaphore: tokio::sync::Semaphore,
 }
 
+/// Summarises an upstream error body for user-facing messages. Providers behind
+/// CDNs can return full HTML error pages (tens of KB), which must never reach
+/// the UI verbatim: prefer a JSON `error.message`, else cap the length and flag
+/// HTML payloads.
+fn summarise_error_body(text: &str) -> String {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return "(empty response body)".to_string();
+    }
+    if trimmed.starts_with('<') {
+        let head: String = trimmed.chars().take(200).collect();
+        return format!("(HTML error page from provider) {}", head);
+    }
+    if let Ok(json) = serde_json::from_str::<serde_json::Value>(trimmed) {
+        let msg = json
+            .get("error")
+            .and_then(|e| e.get("message"))
+            .and_then(|m| m.as_str())
+            .or_else(|| json.get("message").and_then(|m| m.as_str()));
+        if let Some(msg) = msg {
+            let msg = msg.trim();
+            if !msg.is_empty() {
+                return msg.chars().take(300).collect();
+            }
+        }
+    }
+    trimmed.chars().take(300).collect()
+}
+
 /// Statuses worth retrying with a different API key. 400 (bad request) is
 /// excluded because the prompt is broken and another key will not help.
 fn is_retryable_status(status: reqwest::StatusCode) -> bool {
@@ -718,7 +747,8 @@ impl LlmExtractor {
                     "{label}: retryable error, trying next key"
                 );
                 last_err = Some(AppError::ExternalServiceError(format!(
-                    "{label} API error {status}: {text}"
+                    "{label} API error {status}: {}",
+                    summarise_error_body(&text)
                 )));
             } else {
                 tracing::error!(
@@ -728,7 +758,8 @@ impl LlmExtractor {
                     "{label}: non-retryable error"
                 );
                 return Err(AppError::ExternalServiceError(format!(
-                    "{label} API error {status}: {text}"
+                    "{label} API error {status}: {}",
+                    summarise_error_body(&text)
                 )));
             }
         }
@@ -1786,6 +1817,32 @@ pub fn create_extractor(config: &crate::config::AppConfig) -> std::sync::Arc<dyn
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn summarise_prefers_json_error_message() {
+        let body = r#"{"error": {"message": "Invalid API key provided", "code": 401}}"#;
+        assert_eq!(summarise_error_body(body), "Invalid API key provided");
+    }
+
+    #[test]
+    fn summarise_flags_html_error_pages() {
+        let body = "<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body>cloudflare error page with lots of content</body></html>";
+        let out = summarise_error_body(body);
+        assert!(out.starts_with("(HTML error page from provider)"));
+        assert!(out.len() <= 250);
+    }
+
+    #[test]
+    fn summarise_caps_long_plain_text() {
+        let body = "x".repeat(1000);
+        assert_eq!(summarise_error_body(&body).len(), 300);
+    }
+
+    #[test]
+    fn summarise_handles_empty_body() {
+        assert_eq!(summarise_error_body("  "), "(empty response body)");
+    }
+
 
     #[test]
     fn test_extract_docx_content_real_files() {
