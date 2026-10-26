@@ -12,7 +12,13 @@ RUN cargo build --release --bin coop-data-backend
 
 FROM debian:bookworm-slim AS runtime
 
-RUN apt-get update && \
+# CI passes the run id so the package upgrade below is redone on every build
+# instead of coming from a cached layer that predates the latest Debian fixes
+# (the image scan then reports vulnerabilities that are already fixed).
+ARG APT_CACHE_BUST=0
+
+RUN echo "$APT_CACHE_BUST" >/dev/null && \
+    apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*

@@ -181,6 +181,7 @@
     "apexes": "Apex",
     "cooperatives": "Coopératives",
     "memberAccounts": "Comptes membres",
+    "submissions": "Soumissions (avec leurs états financiers et registres)",
     "typeToConfirm": "Tapez",
     "continue": "Continuer",
     "verifyIdentity": "Vérifiez votre identité",
@@ -3535,7 +3536,6 @@
     "aggregateCapital": "Base de capital agrégée",
     "directoryTitle": "Répertoire national des fédérations",
     "directorySubtitle": "Rechercher, filtrer et gérer les fédérations régionales",
-    "exportCsv": "Exporter CSV",
     "searchPlaceholder": "Rechercher par nom, domaine…",
     "failedLoad": "Échec du chargement des fédérations",
     "noMatchQuery": "Aucune fédération ne correspond à la requête",
@@ -3554,7 +3554,6 @@
     "toastDeleted": "« {{name}} » supprimée",
     "toastDeletedDesc": "Fédération retirée du registre.",
     "toastDeleteFailed": "Échec de la suppression de la fédération",
-    "toastExporting": "Exportation des données de fédération en CSV…",
     "errorDuplicateFederation": "Une fédération portant ce nom existe déjà.",
     "errorGenericCreate": "Impossible de créer la fédération.",
     "pageOf": "Page {current} sur {total}"
