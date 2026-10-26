@@ -637,3 +637,41 @@ async fn a_half_deleted_federation_is_finished_from_the_database_side() {
         "the federation row that Keycloak had lost is deleted"
     );
 }
+
+#[tokio::test]
+async fn a_user_that_cannot_be_removed_keeps_its_group_so_a_repeat_can_find_it() {
+    let t = tree();
+    let rm = federation_reads(&t)
+        .exec(3)
+        .exec(1)
+        .exec(1)
+        .exec(1)
+        .exec(1)
+        .build();
+    let mut fake = federation_tree();
+    fake.failing.insert("coop-user-1".into());
+    let kc = FakeKeycloak::start(fake).await;
+    let app = TestApp::build_with(rm.db.clone(), Some(kc.url())).await;
+
+    let err = hierarchy_delete::delete_federation(&app.state, "org-1")
+        .await
+        .expect_err("a user could not be removed");
+
+    assert!(
+        err.to_string()
+            .to_lowercase()
+            .contains("run the delete again"),
+        "{err}"
+    );
+    let deletes = kc.deletes();
+    assert!(
+        deletes.contains(&"DELETE user coop-user-1".to_string()),
+        "the user was attempted: {deletes:?}"
+    );
+    assert!(
+        !deletes
+            .iter()
+            .any(|d| d.starts_with("DELETE group") || d.starts_with("DELETE org")),
+        "no group or organization is removed while a user is left: {deletes:?}"
+    );
+}

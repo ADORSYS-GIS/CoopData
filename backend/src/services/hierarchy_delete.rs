@@ -343,6 +343,10 @@ async fn remove_stored_files(state: &AppState, keys: &[String]) {
 
 /// Removes the planned users, groups and organization from Keycloak. Returns
 /// a description of each item that could not be removed.
+///
+/// If any user cannot be removed the groups and the organization are kept: a
+/// repeated delete finds the remaining users through their groups, so a group
+/// removed first would leave those accounts unreachable.
 pub async fn apply_keycloak_plan(kc: &KeycloakService, plan: &KeycloakPlan) -> Vec<String> {
     let mut failures = Vec::new();
     for id in &plan.user_ids {
@@ -351,6 +355,9 @@ pub async fn apply_keycloak_plan(kc: &KeycloakService, plan: &KeycloakPlan) -> V
                 failures.push(format!("user {id}: {e}"));
             }
         }
+    }
+    if !failures.is_empty() {
+        return failures;
     }
     for id in &plan.group_ids {
         if let Err(e) = kc.delete_group(id).await {
