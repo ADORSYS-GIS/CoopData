@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.5.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.4.1...v1.5.0) (2026-10-26)
+
+
+### Features
+
+* **delete:** show how many submissions a delete removes ([2fdbc68](https://github.com/ADORSYS-GIS/CoopData/commit/2fdbc6891ce1ce8e5cce336831aaf8a82b1a5ff2))
+
+
+### Bug Fixes
+
+* **ai:** sanitise upstream error bodies before surfacing them ([425abe1](https://github.com/ADORSYS-GIS/CoopData/commit/425abe1e87d6974a2becc93792bb69a92ac86cf3))
+* **auth:** register the production post-logout redirect URI ([d6e57c8](https://github.com/ADORSYS-GIS/CoopData/commit/d6e57c88b88fdc7cf3b365d3ff589b8135d70e7e))
+* **ci:** allow-list the advisories in the audit.toml the CI actually copies ([3cbdd0b](https://github.com/ADORSYS-GIS/CoopData/commit/3cbdd0be14e81d0cbf4424e74c356facf96c8355))
+* **ci:** clear the dependency audit and the stale image layer ([fbeb634](https://github.com/ADORSYS-GIS/CoopData/commit/fbeb6346321ed2841b664a8d1c40cacc1f64c48f))
+* **ci:** use the audit.toml the CI actually copies, and cargo fmt ([72b2523](https://github.com/ADORSYS-GIS/CoopData/commit/72b2523c49c8c63207c6eb228c5814c40eba5fad))
+* **delete:** keep the groups while a user is left in Keycloak ([8e1ca0b](https://github.com/ADORSYS-GIS/CoopData/commit/8e1ca0be840b7131da302b661d45f35021d60245))
+* **delete:** let a delete finish what an earlier one left half done ([4623e07](https://github.com/ADORSYS-GIS/CoopData/commit/4623e072f76bb6c0215abafafd27f1f6794cfb57))
+* **delete:** remove everything below a federation, apex or cooperative ([439693a](https://github.com/ADORSYS-GIS/CoopData/commit/439693acee8f3273531483d1f7cad501ec7be63c))
+* **keycloak:** make emailLayout title optional in the custom theme ([d2a1f22](https://github.com/ADORSYS-GIS/CoopData/commit/d2a1f22a560eaf1c2b613af964a40a77343fa4d8))
+* **reports:** stack the period pills under the text of an incomplete year ([6d2aefa](https://github.com/ADORSYS-GIS/CoopData/commit/6d2aefa6a9bd9afbbc1e8bdbe99f618eb01ab144))
+
 ## [1.4.1](https://github.com/ADORSYS-GIS/CoopData/compare/v1.4.0...v1.4.1) (2026-10-23)
 
 
