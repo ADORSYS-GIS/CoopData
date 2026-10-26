@@ -14,5 +14,14 @@ ignore = [
   # (by_name + read_to_end); neither it nor this codebase extracts archives. Remove once docx-rs uses zip >= 9.
   "RUSTSEC-2026-0367",
   "RUSTSEC-2026-0368",
-  "RUSTSEC-2026-0369"
+  "RUSTSEC-2026-0369",
+  # crypto-bigint < 0.7.6 / ctutils < 0.4.4 timing-variability issues — transitive
+  # via aws-sigv4 1.5.1 (pinned by aws-sdk-s3 ^1) and elliptic-curve 0.13/p256 0.13
+  # (JWT signature verification). Fixing requires a coordinated RustCrypto
+  # ecosystem major bump (elliptic-curve 0.14, p256 0.14, newer aws-sdk); the
+  # affected operations are signature verification/signing on a server workload,
+  # where the practical timing-attack surface is negligible. Revisit when the
+  # AWS SDK moves to crypto-bigint 0.7.
+  "RUSTSEC-2026-0387",
+  "RUSTSEC-2026-0385"
 ]
