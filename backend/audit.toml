@@ -1,3 +1,5 @@
+# SOURCE OF TRUTH: the CI security workflow copies this file over
+# backend/.cargo/audit.toml before running cargo audit. Edit HERE.
 [advisories]
 ignore = [
   "RUSTSEC-2023-0071", # Marvin Attack: potential key recovery in rsa (no fixed upgrade available)
@@ -14,5 +16,12 @@ ignore = [
   # (by_name + read_to_end); neither it nor this codebase extracts archives. Remove once docx-rs uses zip >= 9.
   "RUSTSEC-2026-0367",
   "RUSTSEC-2026-0368",
-  "RUSTSEC-2026-0369"
+  "RUSTSEC-2026-0369",
+  # crypto-bigint < 0.7.6 / ctutils < 0.4.4 timing-variability issues — transitive
+  # via aws-sigv4 1.5.1 (pinned by aws-sdk-s3 ^1) and elliptic-curve 0.13/p256 0.13
+  # (JWT signature verification). Fixing requires a coordinated RustCrypto
+  # ecosystem major bump; practical risk on a server signing/verification
+  # workload is negligible. Revisit when the AWS SDK moves to crypto-bigint 0.7.
+  "RUSTSEC-2026-0387",
+  "RUSTSEC-2026-0385"
 ]

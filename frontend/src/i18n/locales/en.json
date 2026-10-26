@@ -181,6 +181,7 @@
     "apexes": "Apexes",
     "cooperatives": "Cooperatives",
     "memberAccounts": "Member accounts",
+    "submissions": "Submissions (with their statements and registers)",
     "typeToConfirm": "Type",
     "continue": "Continue",
     "verifyIdentity": "Verify your identity",
@@ -3536,7 +3537,6 @@
     "aggregateCapital": "Aggregate capital base",
     "directoryTitle": "National Federation Directory",
     "directorySubtitle": "Search, filter, and manage regional federations",
-    "exportCsv": "Export CSV",
     "searchPlaceholder": "Search by name, domain...",
     "failedLoad": "Failed to load federations",
     "noMatchQuery": "No federations match query",
@@ -3555,7 +3555,6 @@
     "toastDeleted": "Deleted \"{{name}}\"",
     "toastDeletedDesc": "Federation removed from registry.",
     "toastDeleteFailed": "Failed to delete federation",
-    "toastExporting": "Exporting federation data as CSV...",
     "errorDuplicateFederation": "A federation with this name or domain already exists. Please use a different name or domain.",
     "errorGenericCreate": "Registration could not be completed. Please try again or contact support if the issue persists.",
     "pageOf": "Page {{page}} of {{total}}"
