@@ -1843,7 +1843,6 @@ mod tests {
         assert_eq!(summarise_error_body("  "), "(empty response body)");
     }
 
-
     #[test]
     fn test_extract_docx_content_real_files() {
         let base = std::path::Path::new("../doc/Testdata");
