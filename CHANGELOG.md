@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/ADORSYS-GIS/CoopData/compare/v1.4.1...v1.4.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **keycloak:** make emailLayout title optional in the custom theme ([d2a1f22](https://github.com/ADORSYS-GIS/CoopData/commit/d2a1f22a560eaf1c2b613af964a40a77343fa4d8))
+
 ## [1.4.1](https://github.com/ADORSYS-GIS/CoopData/compare/v1.4.0...v1.4.1) (2026-10-23)
 
 
