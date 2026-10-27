@@ -1,4 +1,17 @@
 <#import "template.ftl" as layout>
+
+<#-- One row of the live password checklist (see the policy block in the form). -->
+<#macro policyRule rule text>
+    <li class="password-rule" data-rule="${rule}" data-state="pending">
+        <span class="password-rule-icon" aria-hidden="true">
+            <svg class="icon-pending" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+            <svg class="icon-met" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 11 15.5 16 9.5"/></svg>
+            <svg class="icon-unmet" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+        </span>
+        <span class="password-rule-text">${text}</span>
+        <span class="sr-only password-rule-status"></span>
+    </li>
+</#macro>
 <@layout.registrationLayout displayMessage=!messagesPerField.existsError('password-new','password-confirm') displayInfo=false; section>
     <#if section = "header">
         <#-- Header handled inside form panel -->
@@ -86,7 +99,7 @@
                         <div class="form-group">
                             <label for="password-new">${msg("passwordNew")}</label>
                             <div class="password-input-group">
-                                <input tabindex="1" id="password-new" class="form-control" name="password-new" type="password" autofocus autocomplete="new-password"
+                                <input tabindex="1" id="password-new" class="form-control" name="password-new" type="password" autofocus autocomplete="new-password" aria-describedby="password-policy"
                                        aria-invalid="<#if messagesPerField.existsError('password-new')>true</#if>"
                                 />
                                 <button class="password-toggle" type="button" aria-label="${msg("showPassword")}" tabindex="3" data-password-toggle>
@@ -130,16 +143,31 @@
                             </div>
                         </#if>
 
-                        <div class="password-policy" style="margin-top: 0.25rem; padding: 0.875rem 1rem; background: var(--muted); border: 1px solid var(--border); border-radius: var(--radius);">
-                            <p style="margin: 0 0 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--foreground);">${msg("passwordPolicyTitle")}</p>
-                            <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8125rem; color: var(--foreground); line-height: 1.7;">
-                                <li>${msg("passwordPolicyMinLength")}</li>
-                                <li>${msg("passwordPolicyUpper")}</li>
-                                <li>${msg("passwordPolicyLower")}</li>
-                                <li>${msg("passwordPolicyDigit")}</li>
-                                <li>${msg("passwordPolicySpecial")}</li>
-                                <li>${msg("passwordPolicyNotUsername")}</li>
+                        <#--
+                            Live checklist (resources/js/login.js ticks each rule as the user types).
+                            Mirrors the realm policy set in keycloak/provision.sh:
+                            length(8), upperCase(1), lowerCase(1), digits(1), specialChars(1), notUsername.
+                            Keycloak still enforces the policy server-side; this only explains it.
+                        -->
+                        <div class="password-policy" id="password-policy"
+                             data-min-length="8"
+                             data-username="${(username)!''}"
+                             data-met-label="${msg("passwordRequirementMet")}"
+                             data-unmet-label="${msg("passwordRequirementNotMet")}">
+                            <p class="password-policy-title" id="password-policy-title">${msg("passwordPolicyTitle")}</p>
+                            <ul class="password-policy-list" aria-labelledby="password-policy-title">
+                                <@policyRule rule="length" text=msg("passwordPolicyMinLength") />
+                                <@policyRule rule="upper" text=msg("passwordPolicyUpper") />
+                                <@policyRule rule="lower" text=msg("passwordPolicyLower") />
+                                <@policyRule rule="digit" text=msg("passwordPolicyDigit") />
+                                <@policyRule rule="special" text=msg("passwordPolicySpecial") />
+                                <@policyRule rule="notUsername" text=msg("passwordPolicyNotUsername") />
+                                <@policyRule rule="match" text=msg("passwordPolicyMatch") />
                             </ul>
+                        </div>
+
+                        <div id="password-policy-error" class="alert-error" role="alert" hidden>
+                            ${msg("passwordPolicyNotMet")}
                         </div>
 
                         <div class="form-actions">
