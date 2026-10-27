@@ -17,6 +17,8 @@ export interface MinistryStatsParams {
   sector?: string;
   federationId?: string;
   apexId?: string;
+  /** Count only cooperatives of this type: `sacco` or `multipurpose`. */
+  institutionType?: "sacco" | "multipurpose";
 }
 
 function extractErrorMessage(err: unknown): string {
@@ -48,6 +50,7 @@ export const useMinistryStats = (params: MinistryStatsParams = {}, enabled = tru
             sector: params.sector,
             federation_id: params.federationId,
             apex_id: params.apexId,
+            institution_type: params.institutionType,
           },
         },
       });

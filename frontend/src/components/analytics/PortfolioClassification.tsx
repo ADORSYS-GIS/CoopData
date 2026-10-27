@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
+import { StatementDateSelect } from "@/components/analytics/StatementDateSelect";
+import { useStatementPeriod } from "@/hooks/analytics/useStatementPeriod";
 import { accountValuesAt } from "@/lib/statement-grid";
 import {
   useNationalOverview,
@@ -213,25 +215,6 @@ export function PortfolioClassification({
   filterParams,
 }: PortfolioClassificationProps) {
   const { t } = useTranslation();
-  const [selectedMonth, setSelectedMonth] = useState<string>("12");
-
-  const monthOptions = useMemo(
-    () => [
-      { value: "1", label: t("common.months.jan", "31. Jan ") },
-      { value: "2", label: t("common.months.feb", "28. Feb ") },
-      { value: "3", label: t("common.months.mar", "31. Mar ") },
-      { value: "4", label: t("common.months.apr", "30. Apr ") },
-      { value: "5", label: t("common.months.may", "31. May ") },
-      { value: "6", label: t("common.months.jun", "30. Jun ") },
-      { value: "7", label: t("common.months.jul", "31. Jul ") },
-      { value: "8", label: t("common.months.aug", "31. Aug ") },
-      { value: "9", label: t("common.months.sep", "30. Sep ") },
-      { value: "10", label: t("common.months.oct", "31. Oct ") },
-      { value: "11", label: t("common.months.nov", "30. Nov ") },
-      { value: "12", label: t("common.months.dec", "31. Dec ") },
-    ],
-    [t],
-  );
   const [selectedCoopIds, setSelectedCoopIds] = useState<string[]>([]);
 
   const classificationRows = useMemo(() => buildClassificationRows(t), [t]);
@@ -260,6 +243,11 @@ export function PortfolioClassification({
   );
 
   const isLoading = isOverviewLoading || isCompLoading;
+
+  const { months, selectedMonth, setSelectedMonth } = useStatementPeriod(
+    comparative?.grids,
+    selectedCoopIds,
+  );
 
   const formatCurrency = (val: number) => {
     if (val === 0) return "-";
@@ -323,24 +311,12 @@ export function PortfolioClassification({
 
         {/* Slicers Section */}
         <div className="flex items-center gap-3">
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[120px]">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80 block mb-1">
-              {t("analytics.date")}
-            </span>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-full bg-white text-slate-900 border-0 h-8 text-xs font-semibold">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((m) => (
-                  <SelectItem key={m.value} value={m.value} className="text-xs font-medium">
-                    {m.label}
-                    {reportingYear}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <StatementDateSelect
+            months={months}
+            value={selectedMonth}
+            year={reportingYear}
+            onChange={setSelectedMonth}
+          />
 
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[200px]">
             <span className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80 block mb-1">
