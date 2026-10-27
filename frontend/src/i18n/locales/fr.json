@@ -6878,5 +6878,11 @@
     "leftOut_other": "{{count}} coopératives sont exclues : leur année n'est pas encore complète (toutes les périodes ne sont pas approuvées).",
     "reportAfterYear": "Le rapport sera disponible une fois toutes les périodes de l'année approuvées.",
     "chooseAnotherYear": "Choisissez une autre année pour voir ses chiffres."
+  },
+  "scopeNotice": {
+    "analytics": "Tout ce qui figure sur cette page concerne les coopératives SACCO, qui déclarent par import d'états financiers ou saisie manuelle. Les coopératives polyvalentes se trouvent dans Analyses de base.",
+    "benchmarking": "Tout ce qui figure sur cette page concerne les coopératives SACCO, qui déclarent par import d'états financiers ou saisie manuelle. Les coopératives polyvalentes se trouvent dans Benchmarking de base.",
+    "basicAnalytics": "Tout ce qui figure sur cette page concerne les coopératives polyvalentes, qui déclarent via le questionnaire. Les coopératives SACCO se trouvent dans Analyses.",
+    "basicBenchmarking": "Tout ce qui figure sur cette page concerne les coopératives polyvalentes, qui déclarent via le questionnaire. Les coopératives SACCO se trouvent dans Benchmarking."
   }
 }

@@ -187,8 +187,11 @@ impl QuestionnaireRepository {
                 query = query.filter(crate::entities::cooperative::Column::Region.eq(reg));
             }
         }
-        if let Some(s) = sector {
-            query = query.filter(crate::entities::cooperative::Column::Sector.eq(s));
+        if let Some(s) = sector.filter(|s| !s.trim().eq_ignore_ascii_case("all")) {
+            let Some(parsed) = crate::entities::enums::CooperativeSector::parse(s.trim()) else {
+                return Ok(vec![]);
+            };
+            query = query.filter(crate::entities::cooperative::Column::Sector.eq(parsed));
         }
 
         let results = query.all(&self.db).await.map_err(AppError::DatabaseError)?;

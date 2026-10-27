@@ -8,7 +8,7 @@ use crate::entities::balance_sheet_line_item::Model as LineItem;
 use crate::entities::enums::PeriodType;
 use crate::entities::submission;
 use crate::error::AppResult;
-use crate::services::reporting_year::{self, year_line_items, YearProgress};
+use crate::services::reporting_year::{self, period_line_items, year_line_items, YearProgress};
 use crate::AppState;
 
 /// A complete year and the statement lines that describe it as one year.
@@ -19,6 +19,9 @@ pub struct YearStatement {
     /// give the year-end figures, and its stored non-financial KPIs apply.
     pub anchor: submission::Model,
     pub line_items: Vec<LineItem>,
+    /// The same lines kept month by month, for screens that read the year up
+    /// to a chosen period. Equal to `line_items` for a single return.
+    pub period_items: Vec<LineItem>,
     /// At least one period of the year has a financial statement.
     pub has_statement: bool,
     /// Every statement of the year passed validation.
@@ -134,6 +137,7 @@ pub async fn load_statements<'a>(
                 year: year.clone(),
                 anchor: anchor.clone(),
                 line_items: year_line_items(year, &by_id, &items_by_submission),
+                period_items: period_line_items(year, &by_id, &items_by_submission),
                 has_statement,
                 is_validated,
                 currency,
