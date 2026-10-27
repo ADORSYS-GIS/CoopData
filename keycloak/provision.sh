@@ -197,6 +197,40 @@ echo "[provision] Granting coopdata-backend service account roles..."
   --rolename manage-groups \
   --rolename query-users 2>&1 || echo "[provision] Note: service account roles may already be assigned"
 
+# ─── Backend client secret ───────────────────────────────────────────────────
+# The realm JSON is committed with Keycloak's masked placeholder ("**********")
+# instead of the real secret, so a freshly imported realm never matches the
+# secret the backend authenticates with ("Failed to get admin token").
+# Copy KEYCLOAK_CLIENT_SECRET from .env onto the client. The secret goes in
+# through stdin, never on a command line. Idempotent: re-running sets the same value.
+BACKEND_SECRET_SYNCED=true
+BACKEND_CLIENT_SECRET="${KEYCLOAK_CLIENT_SECRET:-}"
+echo ""
+if [ -z "${BACKEND_CLIENT_SECRET}" ]; then
+  echo "[provision] WARNING: KEYCLOAK_CLIENT_SECRET is not set — coopdata-backend client secret left unchanged"
+else
+  echo "[provision] Syncing coopdata-backend client secret from .env..."
+  BACKEND_CLIENT_ID=$(./kcadm.sh get clients -r "${REALM}" --server "${KEYCLOAK_SERVER}" -q clientId=coopdata-backend --fields id --format csv 2>/dev/null | tr -d '"' || echo "")
+  if [ -z "${BACKEND_CLIENT_ID}" ]; then
+    echo "[provision] ERROR: Client coopdata-backend not found in realm ${REALM}"
+    BACKEND_SECRET_SYNCED=false
+  else
+    ESCAPED_SECRET="${BACKEND_CLIENT_SECRET//\\/\\\\}"
+    ESCAPED_SECRET="${ESCAPED_SECRET//\"/\\\"}"
+    if printf '{"secret":"%s"}' "${ESCAPED_SECRET}" | ./kcadm.sh update "clients/${BACKEND_CLIENT_ID}" \
+      -r "${REALM}" \
+      --server "${KEYCLOAK_SERVER}" \
+      -f - 2>&1; then
+      echo "[provision] coopdata-backend client secret synced from .env"
+    else
+      echo "[provision] ERROR: Could not set the coopdata-backend client secret"
+      BACKEND_SECRET_SYNCED=false
+    fi
+    unset ESCAPED_SECRET
+  fi
+fi
+unset BACKEND_CLIENT_SECRET
+
 # ─── Login theme ─────────────────────────────────────────────────────────────
 echo "[provision] Setting login theme..."
 ./kcadm.sh update "realms/${REALM}" \
@@ -295,3 +329,11 @@ echo "[provision]     Password: (set — not printed to logs)"
 echo "[provision]"
 echo "[provision]   Both have: ministry role + realm-admin + realm-management client roles"
 echo "[provision] ========================================"
+
+# A backend that can't authenticate to Keycloak breaks federations, members and
+# invitations, so surface it as a failed provisioning run (start-prod.sh warns
+# on a non-zero exit) — after every other step has had its chance to run.
+if [ "${BACKEND_SECRET_SYNCED}" != "true" ]; then
+  echo "[provision] ERROR: coopdata-backend client secret was not synced (see above)"
+  exit 1
+fi

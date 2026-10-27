@@ -31,7 +31,9 @@ services:
   # unhealthy it is restarted automatically within ~5 seconds.
   autoheal:
     # Pinned: floating tags are a supply-chain risk.
-    image: willfarrell/autoheal:1.2.0
+    # Pinned by digest: the 1.2.0 tag (2021) crash-loops with "autoheal: not found".
+    # This digest is the image that ran healthily on production before the pin.
+    image: willfarrell/autoheal@sha256:8a79b7fc9654f8bc9785330c90791f4bb6688f4f749bb42a00844023f5c2ccd0
     container_name: coopdata-autoheal
     <<: *default-restart
     environment:
@@ -244,6 +246,10 @@ services:
       DOMAIN_NAME: ${DOMAIN_NAME:?DOMAIN_NAME must be set in .env}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # provision.sh copies this onto the coopdata-backend client: the realm JSON
+      # only holds Keycloak's masked placeholder, so a fresh realm would not match
+      # the secret the backend authenticates with.
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET must be set in .env}
       COOPDATA_DGRV_ADMIN_EMAIL: ${COOPDATA_DGRV_ADMIN_EMAIL:-admin@dgrv.coop}
       COOPDATA_DGRV_ADMIN_PASSWORD: ${COOPDATA_DGRV_ADMIN_PASSWORD:?COOPDATA_DGRV_ADMIN_PASSWORD must be set in .env}
       COOPDATA_DGRV_ADMIN_FIRSTNAME: ${COOPDATA_DGRV_ADMIN_FIRSTNAME:-DGRV}
