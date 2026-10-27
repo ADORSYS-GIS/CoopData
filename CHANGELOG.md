@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.6.0...v1.7.0) (2026-10-27)
+
+
+### Features
+
+* **keycloak-theme:** live password requirements checklist ([d04436e](https://github.com/ADORSYS-GIS/CoopData/commit/d04436e2315933c6cffcc28cf3c7a41c3f0262b6))
+
+
+### Bug Fixes
+
+* **deploy:** pin autoheal to a working image digest ([b665045](https://github.com/ADORSYS-GIS/CoopData/commit/b665045249def715151d9db5e20c11542d42f1a9))
+* **keycloak:** sync the backend client secret during provisioning ([4751e3a](https://github.com/ADORSYS-GIS/CoopData/commit/4751e3abcd27b8e9ec5e8382ea1f0971e3498937))
+
 ## [1.6.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.5.0...v1.6.0) (2026-10-27)
 
 
