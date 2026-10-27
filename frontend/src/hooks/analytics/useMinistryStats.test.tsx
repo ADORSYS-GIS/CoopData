@@ -80,4 +80,23 @@ describe("useMinistryStats", () => {
       }),
     );
   });
+
+  it("sends the cooperative type so each analytics page counts only its own cooperatives", async () => {
+    vi.mocked(apiClient.GET).mockResolvedValueOnce({
+      data: { total_cooperatives: 1 },
+      error: undefined,
+    } as any);
+
+    const { result } = renderHook(() => useMinistryStats({ institutionType: "multipurpose" }), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      "/api/v1/ministry/stats",
+      expect.objectContaining({
+        params: { query: expect.objectContaining({ institution_type: "multipurpose" }) },
+      }),
+    );
+  });
 });

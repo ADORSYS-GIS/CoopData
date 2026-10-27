@@ -6915,5 +6915,11 @@
     "leftOut_other": "{{count}} cooperatives are left out: their year is not complete yet (not every period approved).",
     "reportAfterYear": "The report is available once every period of the year is approved.",
     "chooseAnotherYear": "Choose another year to see its figures."
+  },
+  "scopeNotice": {
+    "analytics": "Everything on this page covers SACCO cooperatives, which report by statement upload or manual entry. Multipurpose cooperatives are in Basic Analytics.",
+    "benchmarking": "Everything on this page covers SACCO cooperatives, which report by statement upload or manual entry. Multipurpose cooperatives are in Basic Benchmarking.",
+    "basicAnalytics": "Everything on this page covers multipurpose cooperatives, which report through the questionnaire. SACCO cooperatives are in Analytics.",
+    "basicBenchmarking": "Everything on this page covers multipurpose cooperatives, which report through the questionnaire. SACCO cooperatives are in Benchmarking."
   }
 }

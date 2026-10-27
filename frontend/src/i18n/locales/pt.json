@@ -6854,5 +6854,11 @@
     "leftOut_other": "{{count}} cooperativas ficam de fora: o seu ano ainda não está completo (nem todos os períodos aprovados).",
     "reportAfterYear": "O relatório fica disponível quando todos os períodos do ano estiverem aprovados.",
     "chooseAnotherYear": "Escolha outro ano para ver os seus números."
+  },
+  "scopeNotice": {
+    "analytics": "Tudo nesta página refere-se às cooperativas SACCO, que reportam por carregamento de demonstrações ou introdução manual. As cooperativas polivalentes estão em Análises básicas.",
+    "benchmarking": "Tudo nesta página refere-se às cooperativas SACCO, que reportam por carregamento de demonstrações ou introdução manual. As cooperativas polivalentes estão em Benchmarking básico.",
+    "basicAnalytics": "Tudo nesta página refere-se às cooperativas polivalentes, que reportam através do questionário. As cooperativas SACCO estão em Análises.",
+    "basicBenchmarking": "Tudo nesta página refere-se às cooperativas polivalentes, que reportam através do questionário. As cooperativas SACCO estão em Benchmarking."
   }
 }

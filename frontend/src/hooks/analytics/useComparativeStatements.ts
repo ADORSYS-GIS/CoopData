@@ -17,6 +17,8 @@ export interface CooperativeStatementGrid {
   currency?: string;
   is_validated?: boolean;
   has_unmapped_items?: boolean;
+  /** How the cooperative reported the year; absent without a statement. */
+  period_type?: string | null;
 }
 
 export interface ComparativeStatementsResponse {
@@ -44,9 +46,9 @@ export const useComparativeStatements = (
   enabled = true,
 ) =>
   useOfflineQuery<ComparativeStatementsResponse>({
-    queryKey: ["comparative-statements", "v3", params],
+    queryKey: ["comparative-statements", "v4", params],
     cacheTable: "analytics",
-    cacheKey: `comparative-statements-v3-${JSON.stringify(params)}`,
+    cacheKey: `comparative-statements-v4-${JSON.stringify(params)}`,
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -229,7 +229,6 @@ async fn compute_coop_rows(
     let statement_by_coop: HashMap<Uuid, &crate::services::year_figures::YearStatement> =
         year_statements
             .values()
-            .filter(|statement| statement.has_statement)
             .map(|statement| (statement.year.cooperative_id, statement))
             .collect();
 
@@ -311,6 +310,9 @@ async fn compute_coop_rows(
             .unwrap_or(&[]);
         let multi_period = year_statement.is_some_and(|statement| statement.year.is_multi_period());
         let records_opt = submission_id.and_then(|sub_id| records_by_sub.get(&sub_id));
+        // A year reported only by questionnaire has no statement: it still
+        // supplies the non-financial figures, but no financial KPIs.
+        let has_statement = year_statement.is_some_and(|statement| statement.has_statement);
 
         let (kpi_map, non_financial) = if let Some(records) = records_opt {
             let get_nf_val = |name: &str| {
@@ -341,7 +343,7 @@ async fn compute_coop_rows(
             };
 
             let mut kpi_map = HashMap::new();
-            if multi_period {
+            if multi_period && has_statement {
                 let computed = KpiEngine::compute(year_items);
                 for name in &RATIO_NAMES {
                     if let Some(kpi) = computed.get_by_name(name) {
@@ -349,7 +351,7 @@ async fn compute_coop_rows(
                     }
                 }
             }
-            for r in records.iter().filter(|_| !multi_period) {
+            for r in records.iter().filter(|_| !multi_period && has_statement) {
                 if r.kpi_type == "financial" {
                     kpi_map.insert(
                         r.kpi_name.clone(),
@@ -547,8 +549,7 @@ async fn compute_coop_rows(
             }
         }
 
-        let has_financial_data =
-            year_statement.is_some() && (records_opt.is_some() || !year_items.is_empty());
+        let has_financial_data = has_statement && (records_opt.is_some() || !year_items.is_empty());
 
         coop_rows.push(CoopKpiRow {
             cooperative_id: coop.id,
@@ -886,13 +887,14 @@ pub async fn get_comparative_statements(
         let mut currency = crate::entities::enums::Currency::Szl;
         let mut is_validated = false;
         let mut has_unmapped_items = false;
+        let period_type = year_statement.map(|s| s.year.period_type.as_str().to_string());
 
         if let Some(statement) = year_statement {
             currency = statement.currency.clone();
             is_validated = statement.is_validated;
 
             {
-                let items = &statement.line_items;
+                let items = &statement.period_items;
                 has_unmapped_items = items.iter().any(|i| i.account_code.is_none());
 
                 // Group raw values by month so the rollup only ever sums
@@ -950,6 +952,7 @@ pub async fn get_comparative_statements(
             currency: currency.as_str().to_string(),
             is_validated,
             has_unmapped_items,
+            period_type,
         });
     }
 

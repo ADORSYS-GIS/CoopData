@@ -170,6 +170,9 @@ pub struct CooperativeStatementGrid {
     /// haven't been confirmed accurate.
     pub is_validated: bool,
     pub has_unmapped_items: bool,
+    /// How the cooperative reported the year (YEARLY, SEMI_ANNUAL, QUARTERLY or
+    /// MONTHLY); absent when it has no statement for the year.
+    pub period_type: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
