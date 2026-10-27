@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.6.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.5.0...v1.6.0) (2026-10-27)
+
+
+### Features
+
+* **analytics:** follow each cooperative's reporting frequency and scope by type ([16cd9c5](https://github.com/ADORSYS-GIS/CoopData/commit/16cd9c557a02d130e2da7f263cfc13eec66690c0))
+
+
+### Bug Fixes
+
+* **analytics:** match region and sector filters regardless of case ([ad01a22](https://github.com/ADORSYS-GIS/CoopData/commit/ad01a2298dd278abcee7bfaa9032c541dcb2b7d5))
+* **submissions:** show the back button at the top of a cooperative's submissions ([a3804a0](https://github.com/ADORSYS-GIS/CoopData/commit/a3804a07ecb0ecc5114b9e9d1154a811f66de245))
+
 ## [1.5.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.4.1...v1.5.0) (2026-10-26)
 
 
