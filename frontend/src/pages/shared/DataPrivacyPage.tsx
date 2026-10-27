@@ -32,7 +32,7 @@ export const DataPrivacyPage: React.FC = () => {
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
                   {t(
                     "privacy.bannerDesc",
-                    "CoopData protects personal data in line with the Eswatini Data Protection Act, 2022. Review what you have accepted and make requests about your data below.",
+                    "CoopData protects personal data in line with the Eswatini Data Protection Act, 2022. Review the documents that apply to you below.",
                   )}
                 </p>
               </div>
