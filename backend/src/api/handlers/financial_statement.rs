@@ -19,11 +19,21 @@ use crate::api::dto::financial::{
 };
 use crate::api::middleware::AuditContext;
 use crate::auth::claims::Claims;
+use crate::entities::enums::{CooperativeSector, EswatiniRegion};
 
 use crate::error::{AppError, AppResult};
 use crate::AppState;
 use rust_decimal::prelude::ToPrimitive;
 use serde::Deserialize;
+
+/// Reads a region or sector filter value. `None` means no filter was asked
+/// for; `Some(None)` means a value was given that names no known region or
+/// sector, so no cooperative can match it.
+fn parse_scope_filter<T>(raw: Option<&str>, parse: fn(&str) -> Option<T>) -> Option<Option<T>> {
+    raw.map(str::trim)
+        .filter(|v| !v.is_empty() && !v.eq_ignore_ascii_case("all"))
+        .map(parse)
+}
 
 #[utoipa::path(
     get,
@@ -104,16 +114,19 @@ pub(crate) async fn filter_cooperatives(
         }
     }
 
+    let wanted_region = parse_scope_filter(region.as_deref(), EswatiniRegion::parse);
+    let wanted_sector = parse_scope_filter(sector.as_deref(), CooperativeSector::parse);
+
     let filtered = coops
         .into_iter()
         .filter(|c| {
-            if let Some(ref r) = region {
-                if r != "all" && c.region.as_ref().map(|x| x.as_str()) != Some(r.as_str()) {
+            if let Some(ref wanted) = wanted_region {
+                if wanted.as_ref() != c.region.as_ref() {
                     return false;
                 }
             }
-            if let Some(ref s) = sector {
-                if s != "all" && c.sector.as_ref().map(|x| x.as_str()) != Some(s.as_str()) {
+            if let Some(ref wanted) = wanted_sector {
+                if wanted.as_ref() != c.sector.as_ref() {
                     return false;
                 }
             }
@@ -1580,6 +1593,9 @@ pub struct MinistryStatsQuery {
     pub sector: Option<String>,
     pub federation_id: Option<Uuid>,
     pub apex_id: Option<Uuid>,
+    /// Count only cooperatives of this type (`sacco` or `multipurpose`);
+    /// cooperatives with no type are left out. Omitted counts every cooperative.
+    pub institution_type: Option<String>,
 }
 
 #[utoipa::path(
@@ -1612,6 +1628,25 @@ pub async fn get_ministry_stats(
         query.apex_id,
     )
     .await?;
+    let all_coop_ids = match query
+        .institution_type
+        .as_deref()
+        .map(str::trim)
+        .filter(|t| !t.is_empty() && !t.eq_ignore_ascii_case("all"))
+    {
+        None => all_coop_ids,
+        Some(wanted) => {
+            let wanted = crate::entities::enums::CooperativeType::parse(&wanted.to_lowercase());
+            state
+                .cooperative_repo
+                .find_by_ids(all_coop_ids)
+                .await?
+                .into_iter()
+                .filter(|c| wanted.is_some() && c.institution_type == wanted)
+                .map(|c| c.id)
+                .collect()
+        }
+    };
     let total_cooperatives = all_coop_ids.len() as i64;
 
     let mut all_submissions = state
@@ -2502,4 +2537,30 @@ pub async fn list_chart_of_accounts(State(state): State<AppState>) -> AppResult<
         coa.into_iter().map(ChartOfAccountResponse::from).collect();
     resp.sort_by_key(|c| c.display_order);
     Ok((StatusCode::OK, Json(resp)))
+}
+
+#[cfg(test)]
+mod scope_filter_tests {
+    use super::*;
+
+    #[test]
+    fn no_filter_for_missing_blank_or_all() {
+        assert!(parse_scope_filter(None, CooperativeSector::parse).is_none());
+        assert!(parse_scope_filter(Some(" "), CooperativeSector::parse).is_none());
+        assert!(parse_scope_filter(Some("all"), EswatiniRegion::parse).is_none());
+    }
+
+    #[test]
+    fn sector_matches_regardless_of_case() {
+        let parsed = parse_scope_filter(Some("Finance"), CooperativeSector::parse);
+
+        assert_eq!(parsed, Some(Some(CooperativeSector::Finance)));
+    }
+
+    #[test]
+    fn unknown_value_matches_nothing() {
+        let parsed = parse_scope_filter(Some("Mars"), EswatiniRegion::parse);
+
+        assert_eq!(parsed, Some(None));
+    }
 }
