@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/form";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { MambuBranchField } from "@/components/mambu/MambuBranchField";
 import {
   COOP_TYPES,
   SECTOR_OPTIONS,
@@ -74,6 +75,7 @@ const profileSchema = z
     status: z.enum(COOP_STATUS),
     registered_on: z.string().min(1, "coopProfile.errors.registeredOnRequired"),
     accounting_year: z.enum(ACCOUNTING_YEAR),
+    mambu_branch_id: z.string().max(64).optional().or(z.literal("")),
   })
   .refine((v) => isConsistent(v.institution_type, v.sector), {
     path: ["sector"],
@@ -117,10 +119,11 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
       registered_on: existing?.registered_on ?? "",
       accounting_year:
         (existing?.accounting_year as (typeof ACCOUNTING_YEAR)[number]) ?? "calendar",
+      mambu_branch_id: "",
     },
   });
 
-  const onSubmit = (values: ProfileFormValues) => {
+  const onSubmit = ({ mambu_branch_id, ...values }: ProfileFormValues) => {
     setRegNoError(null);
     const payload = {
       ...values,
@@ -162,6 +165,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
         status: payload.status,
         registered_on: payload.registered_on,
         accounting_year: payload.accounting_year,
+        mambu_branch_id: mambu_branch_id?.trim() || undefined,
       };
       createMut.mutate(createPayload, {
         onSuccess: () => {
@@ -481,6 +485,28 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               )}
             />
           </div>
+
+          {!isEditing && (
+            <FormField
+              control={form.control}
+              name="mambu_branch_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {t("mambu.branchLabel", { defaultValue: "Mambu branch ID (optional)" })}
+                  </FormLabel>
+                  <MambuBranchField value={field.value ?? ""} onChange={field.onChange} />
+                  <FormDescription>
+                    {t("mambu.branchHelp", {
+                      defaultValue:
+                        "Links this cooperative to its Mambu branch so its data can be synced. Leave empty if it is not in Mambu.",
+                    })}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="submit" disabled={isSubmitting}>

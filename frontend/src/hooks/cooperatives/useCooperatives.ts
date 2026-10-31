@@ -86,6 +86,8 @@ export interface CreateCooperativeInput {
   status?: string;
   registered_on: string;
   accounting_year?: string;
+  /** Mambu branch ID of the SACCO. Links the cooperative to Mambu at creation. */
+  mambu_branch_id?: string;
 }
 
 export const useCreateCooperative = () => {

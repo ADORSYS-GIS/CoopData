@@ -46,8 +46,12 @@ describe("roles constants", () => {
       );
     });
 
-    it("gives cooperatives only their own privacy and profile pages under system", () => {
-      expect(ROLE_NAV_ITEMS.cooperative.system).toEqual(["/app/data-privacy", "/app/profile"]);
+    it("gives cooperatives only their Mambu sync, privacy and profile pages under system", () => {
+      expect(ROLE_NAV_ITEMS.cooperative.system).toEqual([
+        "/app/mambu",
+        "/app/data-privacy",
+        "/app/profile",
+      ]);
     });
   });
 

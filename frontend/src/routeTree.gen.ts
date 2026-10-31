@@ -25,6 +25,7 @@ import { Route as AppQuestionnaireTemplatesRouteImport } from './routes/app.ques
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppNonFinancialDataRouteImport } from './routes/app.non-financial-data'
 import { Route as AppMembersRouteImport } from './routes/app.members'
+import { Route as AppMambuRouteImport } from './routes/app.mambu'
 import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
 import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
@@ -135,6 +136,11 @@ const AppNonFinancialDataRoute = AppNonFinancialDataRouteImport.update({
 const AppMembersRoute = AppMembersRouteImport.update({
   id: '/members',
   path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMambuRoute = AppMambuRouteImport.update({
+  id: '/mambu',
+  path: '/mambu',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInvitationsRoute = AppInvitationsRouteImport.update({
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
   '/app/invitations': typeof AppInvitationsRoute
+  '/app/mambu': typeof AppMambuRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
@@ -356,6 +363,7 @@ export interface FileRoutesByTo {
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
   '/app/invitations': typeof AppInvitationsRoute
+  '/app/mambu': typeof AppMambuRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
@@ -402,6 +410,7 @@ export interface FileRoutesById {
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
   '/app/invitations': typeof AppInvitationsRoute
+  '/app/mambu': typeof AppMambuRoute
   '/app/members': typeof AppMembersRoute
   '/app/non-financial-data': typeof AppNonFinancialDataRoute
   '/app/profile': typeof AppProfileRoute
@@ -451,6 +460,7 @@ export interface FileRouteTypes {
     | '/app/federations'
     | '/app/financial-statement'
     | '/app/invitations'
+    | '/app/mambu'
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/app/federations'
     | '/app/financial-statement'
     | '/app/invitations'
+    | '/app/mambu'
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
@@ -542,6 +553,7 @@ export interface FileRouteTypes {
     | '/app/federations'
     | '/app/financial-statement'
     | '/app/invitations'
+    | '/app/mambu'
     | '/app/members'
     | '/app/non-financial-data'
     | '/app/profile'
@@ -694,6 +706,13 @@ declare module '@tanstack/react-router' {
       path: '/members'
       fullPath: '/app/members'
       preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/mambu': {
+      id: '/app/mambu'
+      path: '/mambu'
+      fullPath: '/app/mambu'
+      preLoaderRoute: typeof AppMambuRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/invitations': {
@@ -948,6 +967,7 @@ interface AppRouteChildren {
   AppFederationsRoute: typeof AppFederationsRoute
   AppFinancialStatementRoute: typeof AppFinancialStatementRoute
   AppInvitationsRoute: typeof AppInvitationsRoute
+  AppMambuRoute: typeof AppMambuRoute
   AppMembersRoute: typeof AppMembersRoute
   AppNonFinancialDataRoute: typeof AppNonFinancialDataRoute
   AppProfileRoute: typeof AppProfileRoute
@@ -980,6 +1000,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,
   AppInvitationsRoute: AppInvitationsRoute,
+  AppMambuRoute: AppMambuRoute,
   AppMembersRoute: AppMembersRoute,
   AppNonFinancialDataRoute: AppNonFinancialDataRoute,
   AppProfileRoute: AppProfileRoute,

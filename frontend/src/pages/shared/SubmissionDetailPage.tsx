@@ -298,7 +298,7 @@ export const SubmissionDetailPage: React.FC = () => {
     submission && CHOSEN_METHODS.includes(submission.submission_method as SubmissionMethod)
       ? (submission.submission_method as SubmissionMethod)
       : null;
-  const methodChosen = submissionMethod !== null;
+  const methodChosen = submissionMethod !== null || submission?.submission_method === "mambu";
 
   const sectionMeta = useMemo(
     () => [

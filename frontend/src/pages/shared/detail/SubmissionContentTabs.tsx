@@ -150,6 +150,8 @@ const ChangeMethodBanner: React.FC<{
   /** Multipurpose cooperatives are always questionnaire — there is no other
    * method to switch to, so the banner's "change method" action is hidden. */
   canChangeMethod: boolean;
+  /** The data was imported from Mambu: there is no other method to switch to. */
+  fromMambu?: boolean;
   onOpenMethodModal: () => void;
 }> = ({
   submissionMethod,
@@ -157,11 +159,28 @@ const ChangeMethodBanner: React.FC<{
   isCooperative,
   isDraft,
   canChangeMethod,
+  fromMambu = false,
   onOpenMethodModal,
 }) => {
   const { t } = useTranslation();
 
   if (!methodChosen || !isCooperative || !isDraft) return null;
+
+  if (fromMambu) {
+    return (
+      <div className="mb-4 rounded-xl border border-border bg-surface px-4 py-3 text-xs text-muted-foreground">
+        <p className="font-bold text-foreground">
+          {t("submissions.mambuBanner.title", { defaultValue: "Imported from Mambu" })}
+        </p>
+        <p>
+          {t("submissions.mambuBanner.hint", {
+            defaultValue:
+              "Check the numbers, fix what is wrong, then submit. Syncing again replaces this draft.",
+          })}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3">
@@ -344,6 +363,7 @@ export const SubmissionContentTabs: React.FC<SubmissionContentTabsProps> = ({
             isCooperative={!isReadOnly}
             isDraft={isDraft}
             canChangeMethod={submission.cooperative_institution_type !== "multipurpose"}
+            fromMambu={submission.submission_method === "mambu"}
             onOpenMethodModal={onOpenMethodModal}
           />
           <div className="mb-5">

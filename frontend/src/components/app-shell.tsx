@@ -25,6 +25,7 @@ import {
   UserPlus,
   UserCog,
   ScrollText,
+  RefreshCw,
   Users,
   Database,
   Scale,
@@ -84,6 +85,7 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/configure-roles", label: "Configure Levels", icon: Tags },
       { to: "/app/questionnaire-templates", label: "Questionnaire Forms", icon: ClipboardList },
       { to: "/app/users", label: "Users & Roles", icon: Users },
+      { to: "/app/mambu", label: "Mambu Sync", icon: RefreshCw },
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
       { to: "/app/admin-legal", label: "Legal Policies", icon: FileText },
       { to: "/app/data-privacy", label: "Data Privacy & Consents", icon: ShieldCheck },
@@ -135,6 +137,7 @@ function Sidebar({
     if (item.to === "/app/custom-kpis") return t("nav.customKpis");
 
     if (item.to === "/app/audit") return t("nav.auditLog");
+    if (item.to === "/app/mambu") return t("nav.mambuSync", { defaultValue: "Mambu Sync" });
     if (item.to === "/app/questionnaire-templates") return t("nav.questionnaireForms");
     if (item.to === "/app/users") return t("nav.usersAndRoles");
     if (item.to === "/app/settings") return t("nav.settings");
