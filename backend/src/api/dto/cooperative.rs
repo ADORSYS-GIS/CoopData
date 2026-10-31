@@ -55,6 +55,11 @@ pub struct CreateCooperativeRequest {
     pub accounting_year: String,
     #[serde(default = "default_tier")]
     pub tier: String,
+    /// Mambu branch ID of the SACCO. When set, the cooperative is linked to it
+    /// at creation and can be synced from Mambu.
+    #[serde(default)]
+    #[validate(length(max = 64, message = "Mambu branch ID must be under 64 characters"))]
+    pub mambu_branch_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Validate)]
@@ -167,6 +172,11 @@ pub struct CreateCooperativeProfileRequest {
     pub apex_group_id: Option<Uuid>,
     #[serde(default)]
     pub federation_org_id: Option<Uuid>,
+    /// Mambu branch ID of the SACCO. When set, the cooperative is linked to it
+    /// at creation and can be synced from Mambu.
+    #[serde(default)]
+    #[validate(length(max = 64, message = "Mambu branch ID must be under 64 characters"))]
+    pub mambu_branch_id: Option<String>,
 }
 
 fn default_status() -> String {

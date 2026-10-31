@@ -2302,6 +2302,12 @@ pub async fn update_submission_method(
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
+    if submission.submission_method == "mambu" {
+        return Err(AppError::BadRequest(
+            "This submission was imported from Mambu. Delete it to start another way.".into(),
+        ));
+    }
+
     if claims.has_role("apex") {
         let apex_db_id =
             crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims)

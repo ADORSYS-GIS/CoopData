@@ -88,6 +88,7 @@ pub fn ministry_routes() -> Router<AppState> {
         .route("/users/{id}/assign-role", post(assign_role_to_user))
         // Audit logs
         .route("/audit-logs", get(list_audit_logs))
+        .merge(crate::api::routes::mambu::mambu_routes())
         // Submission review
         .route(
             "/submissions",

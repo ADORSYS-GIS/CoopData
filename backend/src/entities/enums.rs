@@ -272,6 +272,8 @@ pub enum UrbanRural {
     Urban,
     #[sea_orm(string_value = "Rural")]
     Rural,
+    #[sea_orm(string_value = "Unknown")]
+    Unknown,
 }
 
 impl UrbanRural {
@@ -279,6 +281,7 @@ impl UrbanRural {
         match s.trim().to_lowercase().as_str() {
             "urban" | "u" | "city" | "town" => Some(Self::Urban),
             "rural" | "r" | "village" => Some(Self::Rural),
+            "unknown" | "n/a" => Some(Self::Unknown),
             _ => None,
         }
     }
@@ -287,6 +290,7 @@ impl UrbanRural {
         match self {
             Self::Urban => "Urban",
             Self::Rural => "Rural",
+            Self::Unknown => "Unknown",
         }
     }
 }
@@ -734,6 +738,8 @@ pub enum SubmissionCreatedByRole {
     Cooperative,
     #[sea_orm(string_value = "apex")]
     Apex,
+    #[sea_orm(string_value = "ministry")]
+    Ministry,
 }
 
 impl SubmissionCreatedByRole {
@@ -741,6 +747,7 @@ impl SubmissionCreatedByRole {
         match s {
             "cooperative" => Some(Self::Cooperative),
             "apex" => Some(Self::Apex),
+            "ministry" => Some(Self::Ministry),
             _ => None,
         }
     }
@@ -749,6 +756,7 @@ impl SubmissionCreatedByRole {
         match self {
             Self::Cooperative => "cooperative",
             Self::Apex => "apex",
+            Self::Ministry => "ministry",
         }
     }
 }

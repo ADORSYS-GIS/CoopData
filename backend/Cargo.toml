@@ -49,6 +49,7 @@ rust_decimal = { version = "1", features = ["serde-with-float", "serde"] }
 pdf_oxide = "0.3"
 calamine = { version = "0.37", features = ["dates"] }
 base64 = "0.22"
+sha2 = "0.10"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-s3 = { version = "1", default-features = false, features = ["sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 aws-credential-types = "1"

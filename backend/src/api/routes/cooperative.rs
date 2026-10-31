@@ -36,6 +36,7 @@ pub fn cooperative_routes() -> Router<AppState> {
             get(crate::api::handlers::submission::get_cooperative_stats),
         )
         .route("/members", get(list_cooperative_members))
+        .merge(crate::api::routes::mambu_scoped::mambu_cooperative_routes())
         .route("/dimensions", get(get_assigned_dimensions))
         .route(
             "/non-financial/upload",

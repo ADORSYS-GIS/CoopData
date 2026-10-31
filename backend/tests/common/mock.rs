@@ -99,6 +99,7 @@ impl TestApp {
             coop_data_backend::repositories::ReportExportRepository::new(db.clone());
         let narrative_store =
             coop_data_backend::repositories::ReportNarrativeStore::new(db.clone());
+        let mambu_repo = coop_data_backend::repositories::MambuRepository::new(db.clone());
         let questionnaire_repo = QuestionnaireRepository::new(db.clone());
         let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
         let consent_repo = ConsentRepository::new(db.clone());
@@ -149,6 +150,8 @@ impl TestApp {
             legal_policy_repo,
             report_export_repo,
             narrative_store,
+            mambu_repo,
+            mambu_client: None,
         };
 
         TestApp { state }
@@ -199,6 +202,12 @@ pub fn test_config() -> AppConfig {
         rate_limit_auth_max: 5,
         rate_limit_auth_window_secs: 60,
         report_job_timeout_secs: 600,
+        mambu_base_url: String::new(),
+        mambu_username: String::new(),
+        mambu_password: String::new(),
+        mambu_api_key: String::new(),
+        mambu_timeout_secs: 120,
+        mambu_page_size: 200,
     }
 }
 
@@ -293,6 +302,11 @@ impl TestRequestBuilder {
         self
     }
 
+    pub fn with_apex_auth(mut self) -> Self {
+        self.auth = Some(format!("Bearer {}", mint_test_token(&["apex"])));
+        self
+    }
+
     pub fn with_coop_admin_auth(mut self) -> Self {
         self.auth = Some(format!(
             "Bearer {}",
@@ -335,6 +349,10 @@ impl TestRequestBuilder {
 }
 
 impl TestResponse {
+    pub fn status(&self) -> u16 {
+        self.status
+    }
+
     pub fn assert_status(self, expected: u16) -> Self {
         assert_eq!(
             self.status, expected,

@@ -169,4 +169,5 @@ pub fn apex_routes() -> Router<AppState> {
             "/financial-statement/upload",
             post(upload_financial_statement).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),
         )
+        .merge(crate::api::routes::mambu_scoped::mambu_apex_routes())
 }

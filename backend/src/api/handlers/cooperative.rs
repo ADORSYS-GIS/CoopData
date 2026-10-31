@@ -159,6 +159,13 @@ pub async fn create_cooperative(
         )));
     }
 
+    let mambu_branch_id = match body.mambu_branch_id.as_deref().map(str::trim) {
+        Some(id) if !id.is_empty() => {
+            Some(crate::services::mambu::linking::ensure_branch_available(&state, id, None).await?)
+        }
+        _ => None,
+    };
+
     let apex_id_or_path = claims
         .get_apex_group_id()
         .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
@@ -315,6 +322,16 @@ pub async fn create_cooperative(
             ));
         }
     };
+
+    if let Some(branch_id) = &mambu_branch_id {
+        if let Err(e) = state
+            .mambu_repo
+            .upsert_link(created_coop.id, branch_id, Some(claims.sub.clone()))
+            .await
+        {
+            tracing::error!(coop_id = %created_coop.id, error = %e, "Could not link the new cooperative to its Mambu branch");
+        }
+    }
 
     if let Err(e) = state
         .audit
@@ -1331,6 +1348,13 @@ pub async fn create_cooperative_profile(
 
     let apex_id = resolve_caller_apex_db_id(&state, &claims).await?;
 
+    let mambu_branch_id = match body.mambu_branch_id.as_deref().map(str::trim) {
+        Some(id) if !id.is_empty() => {
+            Some(crate::services::mambu::linking::ensure_branch_available(&state, id, None).await?)
+        }
+        _ => None,
+    };
+
     let now = chrono::Utc::now();
     let model = cooperative::ActiveModel {
         id: sea_orm::Set(Uuid::new_v4()),
@@ -1367,6 +1391,16 @@ pub async fn create_cooperative_profile(
     };
 
     let created = state.cooperative_repo.create(model).await?;
+
+    if let Some(branch_id) = &mambu_branch_id {
+        if let Err(e) = state
+            .mambu_repo
+            .upsert_link(created.id, branch_id, Some(claims.sub.clone()))
+            .await
+        {
+            tracing::error!(coop_id = %created.id, error = %e, "Could not link the new cooperative to its Mambu branch");
+        }
+    }
 
     if let Err(e) = state
         .audit
