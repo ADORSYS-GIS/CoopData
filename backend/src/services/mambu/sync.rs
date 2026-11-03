@@ -142,7 +142,10 @@ impl SyncWarning {
 }
 
 struct ReferenceData {
+    /// Empty when the Mambu user may not list branches.
     branches: HashMap<String, MambuBranch>,
+    /// Lists the Mambu user may not read, so the sync can say what it did without.
+    unavailable: Vec<&'static str>,
     deposit_product_ids: HashMap<String, String>,
     deposit_product_terms: HashMap<String, u32>,
     loan_product_ids: HashMap<String, String>,
@@ -173,14 +176,16 @@ pub async fn start_run(
     let client = state.mambu_client.clone().ok_or_else(|| {
         AppError::BadRequest("The Mambu integration is not configured on this server".into())
     })?;
-    if !(1..=12).contains(&month) || !(2000..=2100).contains(&year) {
+    // Month 0 means the whole year.
+    if month > 12 || !(2000..=2100).contains(&year) {
         return Err(AppError::BadRequest("Invalid year or month".into()));
     }
-    let as_of = month_end(year, month)
+    let first_of_period = NaiveDate::from_ymd_opt(year, month.max(1), 1)
         .ok_or_else(|| AppError::BadRequest("Invalid year or month".into()))?;
-    let first_of_month = NaiveDate::from_ymd_opt(year, month, 1).unwrap_or(as_of);
-    if first_of_month > Utc::now().date_naive() {
-        return Err(AppError::BadRequest("The month has not started yet".into()));
+    if first_of_period > Utc::now().date_naive() {
+        return Err(AppError::BadRequest(
+            "The period has not started yet".into(),
+        ));
     }
 
     let mut active_runs = Vec::new();
@@ -408,13 +413,25 @@ async fn load_reference_data(
     state: &AppState,
     client: &MambuApiClient,
 ) -> AppResult<ReferenceData> {
-    let branches = client
-        .branches()
-        .await?
-        .into_iter()
-        .map(|b| (b.id.clone(), b))
-        .collect();
-    let deposit_products = client.deposit_products().await?;
+    // Branches and products only refine the data (region, product overrides, fixed
+    // deposit term). A Mambu user without the right to list them still syncs.
+    let mut unavailable: Vec<&'static str> = Vec::new();
+    let branches: HashMap<String, MambuBranch> = match client.branches().await {
+        Ok(list) => list.into_iter().map(|b| (b.id.clone(), b)).collect(),
+        Err(e) => {
+            tracing::warn!(error = %e, "Mambu branches are not readable, the cooperative region is used");
+            unavailable.push("branches");
+            HashMap::new()
+        }
+    };
+    let deposit_products = match client.deposit_products().await {
+        Ok(list) => list,
+        Err(e) => {
+            tracing::warn!(error = %e, "Mambu deposit products are not readable");
+            unavailable.push("deposit products");
+            Vec::new()
+        }
+    };
     let deposit_product_terms = deposit_products
         .iter()
         .filter_map(|p| {
@@ -426,12 +443,17 @@ async fn load_reference_data(
         .into_iter()
         .filter_map(|p| p.encoded_key.map(|k| (k, p.id)))
         .collect();
-    let loan_product_ids = client
-        .loan_products()
-        .await?
-        .into_iter()
-        .filter_map(|p| p.encoded_key.map(|k| (k, p.id)))
-        .collect();
+    let loan_product_ids = match client.loan_products().await {
+        Ok(list) => list
+            .into_iter()
+            .filter_map(|p| p.encoded_key.map(|k| (k, p.id)))
+            .collect(),
+        Err(e) => {
+            tracing::warn!(error = %e, "Mambu loan products are not readable");
+            unavailable.push("loan products");
+            HashMap::new()
+        }
+    };
     let mut deposit_overrides = HashMap::new();
     let mut loan_overrides = HashMap::new();
     for m in state.mambu_repo.list_product_mappings().await? {
@@ -457,6 +479,7 @@ async fn load_reference_data(
         .collect();
     Ok(ReferenceData {
         branches,
+        unavailable,
         deposit_product_ids,
         deposit_product_terms,
         loan_product_ids,
@@ -490,12 +513,28 @@ async fn sync_one(
         .ok_or_else(|| {
             AppError::InternalServerError("The linked cooperative no longer exists".into())
         })?;
-    let branch = refs.branches.get(&link.mambu_branch_id).ok_or_else(|| {
-        AppError::InternalServerError("The linked Mambu branch no longer exists".into())
-    })?;
-    let as_of = month_end(year, month)
+    let branch = refs.branches.get(&link.mambu_branch_id);
+    if branch.is_none() && refs.unavailable.is_empty() {
+        return Err(AppError::InternalServerError(
+            "The linked Mambu branch no longer exists".into(),
+        ));
+    }
+    let whole_year = month == 0;
+    let months: Vec<u32> = if whole_year {
+        (1..=last_started_month(year, Utc::now().date_naive())).collect()
+    } else {
+        vec![month]
+    };
+    let last_month = *months
+        .last()
+        .ok_or_else(|| AppError::InternalServerError("Invalid reporting period".into()))?;
+    let as_of = month_end(year, last_month)
         .ok_or_else(|| AppError::InternalServerError("Invalid reporting month".into()))?;
-    let period_value = month.to_string();
+    let period_value = if whole_year {
+        crate::services::period_rules::FULL_YEAR.to_string()
+    } else {
+        month.to_string()
+    };
 
     let existing = state
         .submission_repo
@@ -541,30 +580,53 @@ async fn sync_one(
     let clients = client.clients(&link.mambu_branch_id).await?;
     let deposits = client.deposits(&link.mambu_branch_id).await?;
     let loans = client.loans(&link.mambu_branch_id).await?;
-    let month_start = NaiveDate::from_ymd_opt(year, month, 1).unwrap_or(as_of);
-    let year_start = NaiveDate::from_ymd_opt(year, 1, 1).unwrap_or(month_start);
-    let month_report = client
-        .accounting_report(&link.mambu_branch_id, month_start, as_of)
-        .await?;
-    // Mambu answers long date ranges with inconsistent figures, so the balance sheet
-    // comes from the month report alone. The year-to-date report is only a helper to
-    // split the earnings, and a failure to read it must not fail the sync.
-    let ytd_report = if month > 1 {
+    // The month reports are essential and are read first, one at a time: Mambu refuses a
+    // new report while it is still building another. The report of the previous year end
+    // only splits the surplus, so it comes last and its failure is not an error.
+    let mut reports: Vec<(u32, crate::services::mambu::models::MambuReport)> = Vec::new();
+    let mut unreliable_months: Vec<u32> = Vec::new();
+    for &m in &months {
+        let start = NaiveDate::from_ymd_opt(year, m, 1).unwrap_or(as_of);
+        let end = month_end(year, m).unwrap_or(as_of);
         match client
-            .accounting_report(&link.mambu_branch_id, year_start, as_of)
+            .accounting_report(&link.mambu_branch_id, start, end)
             .await
         {
-            Ok(report) => Some(report),
-            Err(e) => {
-                tracing::warn!(branch = %link.mambu_branch_id, error = %e, "Mambu year-to-date report not available");
-                None
+            Ok(report) => reports.push((m, report)),
+            Err(e) if whole_year => {
+                tracing::warn!(branch = %link.mambu_branch_id, month = m, error = %e, "Mambu report not available for a month");
+                unreliable_months.push(m);
             }
+            Err(e) => return Err(e),
         }
-    } else {
-        None
-    };
+    }
+    let year_start_earnings = prior_year_end_earnings(client, &link.mambu_branch_id, year).await;
+    let mut ledgers: Vec<(i16, mapper::LedgerResult)> = Vec::new();
+    for (m, report) in &reports {
+        let ledger = map_ledger(&report.items, year_start_earnings, &refs.account_mappings);
+        let summary = mapper::summarize_earnings(&report.items);
+        tracing::info!(
+            branch = %link.mambu_branch_id,
+            month = m,
+            items = report.items.len(),
+            income_closing = %summary.income_closing,
+            expense_closing = %summary.expense_closing,
+            income_movement = %summary.income_movement,
+            expense_movement = %summary.expense_movement,
+            status = ?ledger.status,
+            surplus_split = ledger.surplus_split,
+            "Mambu ledger summary"
+        );
+        if matches!(ledger.status, mapper::LedgerStatus::Unbalanced { .. }) {
+            unreliable_months.push(*m);
+        }
+        ledgers.push((*m as i16, ledger));
+    }
+    unreliable_months.sort_unstable();
 
-    let fallback_region = branch_region(branch).or_else(|| coop.region.clone());
+    let fallback_region = branch
+        .and_then(branch_region)
+        .or_else(|| coop.region.clone());
     let mut drops: HashMap<&'static str, usize> = HashMap::new();
     let mut result = NfParseResult::default();
     let mut holder_codes: HashMap<String, String> = HashMap::new();
@@ -664,25 +726,6 @@ async fn sync_one(
         }
     }
 
-    let month_summary = mapper::summarize_earnings(&month_report.items);
-    let ytd_items = match &ytd_report {
-        Some(report) => Some(report.items.as_slice()),
-        None if month == 1 => Some(month_report.items.as_slice()),
-        None => None,
-    };
-    let ledger = map_ledger(&month_report.items, ytd_items, &refs.account_mappings);
-    tracing::info!(
-        branch = %link.mambu_branch_id,
-        month_items = month_report.items.len(),
-        ytd_items = ytd_report.as_ref().map_or(0, |r| r.items.len()),
-        income_closing = %month_summary.income_closing,
-        expense_closing = %month_summary.expense_closing,
-        income_movement = %month_summary.income_movement,
-        expense_movement = %month_summary.expense_movement,
-        status = ?ledger.status,
-        surplus_split = ledger.surplus_split,
-        "Mambu ledger summary"
-    );
     let approximate = as_of < month_end(Utc::now().year(), Utc::now().month()).unwrap_or(as_of);
 
     let submission_id = write_submission(
@@ -695,7 +738,7 @@ async fn sync_one(
         as_of,
         approximate,
         &result,
-        &ledger,
+        &ledgers,
         &refs.coa,
         actor,
         level,
@@ -724,6 +767,16 @@ async fn sync_one(
             "Balances and loan arrears are the values at sync time, not at the end of the requested month",
         ));
     }
+    if !refs.unavailable.is_empty() {
+        warnings.push(SyncWarning::info(
+            "REFERENCE_DATA_UNAVAILABLE",
+            refs.unavailable.len(),
+            &format!(
+                "The Mambu user may not read {}. The cooperative region, the product names and the maturity date of each deposit were used instead.",
+                refs.unavailable.join(", ")
+            ),
+        ));
+    }
     if ignored_deposits > 0 {
         warnings.push(SyncWarning::info(
             "DEPOSITS_IGNORED_BY_PRODUCT",
@@ -738,35 +791,60 @@ async fn sync_one(
             "Maturity date missing in Mambu; the product term (12 months if unknown) was used",
         ));
     }
-    if !ledger.unmapped.is_empty() {
+    let unmapped_codes: HashSet<&str> = ledgers
+        .iter()
+        .flat_map(|(_, l)| l.unmapped.iter().map(|u| u.gl_code.as_str()))
+        .collect();
+    if !unmapped_codes.is_empty() {
         warnings.push(SyncWarning::warning(
             "LEDGER_UNMAPPED",
-            ledger.unmapped.len(),
+            unmapped_codes.len(),
             "Ledger accounts with a balance have no mapping. Their balance went to the default account of their type. Ask the Ministry to map them.",
         ));
     }
-    match &ledger.status {
-        mapper::LedgerStatus::Unbalanced { gap } => warnings.push(SyncWarning::warning(
-            "LEDGER_DOES_NOT_BALANCE",
-            1,
-            &format!(
+    let ledger_lines: usize = ledgers.iter().map(|(_, l)| l.lines.len()).sum();
+    if unreliable_months.len() == months.len() {
+        let message = match ledgers.first().map(|(_, l)| &l.status) {
+            Some(mapper::LedgerStatus::Unbalanced { gap }) if !whole_year => format!(
                 "Mambu's accounting report for this period does not balance (difference {gap} SZL), so the ledger was left empty. Enter the financial statement by hand, or fix the data in Mambu."
             ),
-        )),
-        mapper::LedgerStatus::Balanced => {
-            if ledger.lines.is_empty() {
-                warnings.push(SyncWarning::warning(
-                    "LEDGER_EMPTY",
-                    1,
-                    "No ledger values were produced. Check the account mapping.",
-                ));
-            } else if !ledger.surplus_split {
-                warnings.push(SyncWarning::warning(
-                    "SURPLUS_NOT_SPLIT",
-                    1,
-                    "Mambu gives one figure for all earnings, so accumulated and current year surplus could not be split. All earnings are in the accumulated surplus line.",
-                ));
-            }
+            _ => "Mambu's accounting reports for this period do not balance, so the ledger was left empty. Enter the financial statement by hand, or fix the data in Mambu.".to_string(),
+        };
+        warnings.push(SyncWarning::warning(
+            "LEDGER_DOES_NOT_BALANCE",
+            unreliable_months.len(),
+            &message,
+        ));
+    } else {
+        if !unreliable_months.is_empty() {
+            let names: Vec<&str> = unreliable_months
+                .iter()
+                .filter_map(|m| MONTH_NAMES.get(*m as usize - 1).copied())
+                .collect();
+            warnings.push(SyncWarning::warning(
+                "LEDGER_MONTHS_UNRELIABLE",
+                unreliable_months.len(),
+                &format!(
+                    "Mambu's accounting report does not balance for {}. Those months have no ledger values.",
+                    names.join(", ")
+                ),
+            ));
+        }
+        if ledger_lines == 0 {
+            warnings.push(SyncWarning::warning(
+                "LEDGER_EMPTY",
+                1,
+                "No ledger values were produced. Check the account mapping.",
+            ));
+        } else if ledgers
+            .iter()
+            .any(|(_, l)| !l.lines.is_empty() && !l.surplus_split)
+        {
+            warnings.push(SyncWarning::warning(
+                "SURPLUS_NOT_SPLIT",
+                1,
+                "Mambu gives one figure for all earnings and the previous year end could not be read reliably, so accumulated and current year surplus could not be split. All earnings are in the accumulated surplus line.",
+            ));
         }
     }
 
@@ -778,11 +856,54 @@ async fn sync_one(
             result.savings_accounts.len() as i32,
             result.loans.len() as i32,
             result.fixed_deposits.len() as i32,
-            ledger.lines.len() as i32,
+            ledger_lines as i32,
         ],
-        unmapped: ledger.unmapped.len() as i32,
+        unmapped: unmapped_codes.len() as i32,
     })
 }
+
+/// Last month of `year` that has started, so a whole-year sync stops at the present.
+fn last_started_month(year: i32, today: NaiveDate) -> u32 {
+    use chrono::Datelike;
+    match year.cmp(&today.year()) {
+        std::cmp::Ordering::Less => 12,
+        std::cmp::Ordering::Equal => today.month(),
+        std::cmp::Ordering::Greater => 0,
+    }
+}
+
+/// All earnings at the end of the previous year, from a report that balances. Used to
+/// split the surplus; a failure only means the split is not done.
+async fn prior_year_end_earnings(
+    client: &MambuApiClient,
+    branch_id: &str,
+    year: i32,
+) -> Option<rust_decimal::Decimal> {
+    let start = NaiveDate::from_ymd_opt(year - 1, 12, 1)?;
+    let end = NaiveDate::from_ymd_opt(year - 1, 12, 31)?;
+    match client.accounting_report(branch_id, start, end).await {
+        Ok(report) => mapper::earnings_of_report(&report.items),
+        Err(e) => {
+            tracing::warn!(branch = %branch_id, error = %e, "Mambu previous year end report not available");
+            None
+        }
+    }
+}
+
+const MONTH_NAMES: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
 
 #[allow(clippy::too_many_arguments)]
 async fn write_submission(
@@ -795,7 +916,7 @@ async fn write_submission(
     as_of: NaiveDate,
     approximate: bool,
     result: &NfParseResult,
-    ledger: &mapper::LedgerResult,
+    ledgers: &[(i16, mapper::LedgerResult)],
     coa: &HashMap<i32, chart_of_account::Model>,
     actor: &Arc<Claims>,
     level: SyncLevel,
@@ -899,30 +1020,34 @@ async fn write_submission(
             updated_at: Set(now),
         })
         .await?;
-    let month: i16 = period_value.parse().unwrap_or(0);
-    for line in &ledger.lines {
-        let Some(account) = coa.get(&line.account_code) else {
-            continue;
-        };
-        state
-            .line_item_repo
-            .create(balance_sheet_line_item::ActiveModel {
-                id: Set(Uuid::new_v4()),
-                financial_statement_id: Set(statement.id),
-                account_code: Set(Some(line.account_code)),
-                account_name: Set(account.account_name.clone()),
-                account_category: Set(account.account_category.clone()),
-                account_subcategory: Set(account.account_subcategory.clone().unwrap_or_default()),
-                month: Set(month),
-                value: Set(Some(line.value)),
-                ai_confidence: Set(None),
-                ai_flagged: Set(false),
-                manually_edited: Set(false),
-                raw_label: Set(Some("mambu".to_string())),
-                created_at: Set(now),
-                updated_at: Set(now),
-            })
-            .await?;
+    for (month, ledger) in ledgers {
+        for line in &ledger.lines {
+            let Some(account) = coa.get(&line.account_code) else {
+                continue;
+            };
+            state
+                .line_item_repo
+                .create(balance_sheet_line_item::ActiveModel {
+                    id: Set(Uuid::new_v4()),
+                    financial_statement_id: Set(statement.id),
+                    account_code: Set(Some(line.account_code)),
+                    account_name: Set(account.account_name.clone()),
+                    account_category: Set(account.account_category.clone()),
+                    account_subcategory: Set(account
+                        .account_subcategory
+                        .clone()
+                        .unwrap_or_default()),
+                    month: Set(*month),
+                    value: Set(Some(line.value)),
+                    ai_confidence: Set(None),
+                    ai_flagged: Set(false),
+                    manually_edited: Set(false),
+                    raw_label: Set(Some("mambu".to_string())),
+                    created_at: Set(now),
+                    updated_at: Set(now),
+                })
+                .await?;
+        }
     }
 
     {
@@ -1019,7 +1144,7 @@ async fn write_submission(
                 "savings_accounts": result.savings_accounts.len(),
                 "loans": result.loans.len(),
                 "fixed_deposits": result.fixed_deposits.len(),
-                "ledger_lines": ledger.lines.len(),
+                "ledger_lines": ledgers.iter().map(|(_, l)| l.lines.len()).sum::<usize>(),
             })),
             None,
             None,

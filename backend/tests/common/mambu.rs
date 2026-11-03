@@ -18,6 +18,15 @@ pub async fn serve(app: Router) -> String {
 }
 
 pub fn fake_mambu() -> Router {
+    build(false)
+}
+
+/// A Mambu user that may read the data but not list branches or products (403).
+pub fn fake_mambu_restricted() -> Router {
+    build(true)
+}
+
+fn build(restricted: bool) -> Router {
     let branches = json!([{
         "encodedKey": "bk-es0006", "id": "ES0006", "name": "Asikhutulisane SACCO", "state": "ACTIVE",
         "addresses": [{"region": "Manzini", "city": "Manzini"}]
@@ -56,14 +65,6 @@ pub fn fake_mambu() -> Router {
     ]);
     let gl = |code: &str, kind: &str| json!({"glCode": code, "name": code, "type": kind, "usage": "DETAIL", "currency": {"currencyCode": "SZL"}});
     // The month report balances: assets 1005 = liabilities 400 + equity 325 + earnings 280.
-    // The year-to-date report agrees on every closing and only differs in the movement.
-    let ytd_report = json!({"reportKey": "rk-ytd", "status": "COMPLETE", "items": [
-        {"glAccount": gl("01101", "ASSET"), "amounts": {"closingBalance": 1000.0}},
-        {"glAccount": gl("9999", "ASSET"), "amounts": {"closingBalance": 5.0}},
-        {"glAccount": gl("5001", "LIABILITY"), "amounts": {"closingBalance": 400.0}},
-        {"glAccount": gl("6001", "EQUITY"), "amounts": {"closingBalance": 325.0}},
-        {"glAccount": gl("4001", "INCOME"), "amounts": {"openingBalance": 200.0, "debits": 10.0, "credits": 90.0, "closingBalance": 280.0}}
-    ]});
     let month_report = json!({"reportKey": "rk-month", "status": "COMPLETE", "items": [
         {"glAccount": gl("01101", "ASSET"), "amounts": {"closingBalance": 1000.0}},
         {"glAccount": gl("9999", "ASSET"), "amounts": {"closingBalance": 5.0}},
@@ -71,24 +72,83 @@ pub fn fake_mambu() -> Router {
         {"glAccount": gl("6001", "EQUITY"), "amounts": {"closingBalance": 325.0}},
         {"glAccount": gl("4001", "INCOME"), "amounts": {"debits": 10.0, "credits": 70.0, "closingBalance": 280.0}}
     ]});
+    // Report of the previous year end: earnings 200, so 80 of the 280 belong to the year.
+    let prev_report = json!({"reportKey": "rk-prev", "status": "COMPLETE", "items": [
+        {"glAccount": gl("01101", "ASSET"), "amounts": {"closingBalance": 920.0}},
+        {"glAccount": gl("9999", "ASSET"), "amounts": {"closingBalance": 5.0}},
+        {"glAccount": gl("5001", "LIABILITY"), "amounts": {"closingBalance": 400.0}},
+        {"glAccount": gl("6001", "EQUITY"), "amounts": {"closingBalance": 325.0}},
+        {"glAccount": gl("4001", "INCOME"), "amounts": {"closingBalance": 200.0}}
+    ]});
     let page = |data: Value| {
         get(move || {
             let data = data.clone();
             async move { Json(data) }
         })
     };
+    let search = |data: Value| {
+        axum::routing::post(move |Json(body): Json<Value>| {
+            let data = data.clone();
+            async move {
+                assert_eq!(body["filterCriteria"][0]["value"], "bk-es0006");
+                Json(data)
+            }
+        })
+    };
+    let forbidden = || {
+        get(|| async {
+            (
+                axum::http::StatusCode::FORBIDDEN,
+                Json(
+                    json!({"errors": [{"errorCode": 15, "errorSource": "not authorized", "errorReason": "INVALID_PERMISSIONS"}]}),
+                ),
+            )
+        })
+    };
     Router::new()
-        .route("/branches", page(branches))
-        .route("/clients", page(clients))
-        .route("/deposits", page(deposits))
-        .route("/loans", page(loans))
-        .route("/depositproducts", page(json!([])))
-        .route("/loanproducts", page(json!([])))
+        .route(
+            "/branches",
+            if restricted {
+                forbidden()
+            } else {
+                page(branches)
+            },
+        )
+        .route("/clients", page(clients.clone()))
+        .route("/deposits", page(deposits.clone()))
+        .route("/loans", page(loans.clone()))
+        .route("/clients:search", search(clients))
+        .route("/deposits:search", search(deposits))
+        .route("/loans:search", search(loans))
+        .route(
+            "/branches/ES0006",
+            if restricted {
+                forbidden()
+            } else {
+                get(|| async { Json(json!({"encodedKey": "bk-es0006", "id": "ES0006"})) })
+            },
+        )
+        .route(
+            "/depositproducts",
+            if restricted {
+                forbidden()
+            } else {
+                page(json!([]))
+            },
+        )
+        .route(
+            "/loanproducts",
+            if restricted {
+                forbidden()
+            } else {
+                page(json!([]))
+            },
+        )
         .route(
             "/accounting/reports",
             post(|Json(body): Json<Value>| async move {
-                let key = if body["startDate"].as_str() == Some("2026-01-01") {
-                    "rk-ytd"
+                let key = if body["startDate"].as_str() == Some("2025-12-01") {
+                    "rk-prev"
                 } else {
                     "rk-month"
                 };
@@ -98,8 +158,8 @@ pub fn fake_mambu() -> Router {
         .route(
             "/accounting/reports/{key}",
             get(move |Path(key): Path<String>| {
-                let report = if key == "rk-ytd" {
-                    ytd_report.clone()
+                let report = if key == "rk-prev" {
+                    prev_report.clone()
                 } else {
                     month_report.clone()
                 };

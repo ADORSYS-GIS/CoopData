@@ -58,7 +58,11 @@ pub struct UpsertMambuLinkRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct StartMambuSyncRequest {
     pub year: i32,
+    /// 1 to 12 for one month, 0 for the whole year (one "Full 12 Mo" return per SACCO).
     pub month: u32,
+    /// Sync only this cooperative. Every linked SACCO when empty.
+    #[serde(default)]
+    pub cooperative_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -241,6 +245,7 @@ pub struct MambuCooperativeStatusResponse {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct StartApexMambuSyncRequest {
     pub year: i32,
+    /// 1 to 12 for one month, 0 for the whole year (one "Full 12 Mo" return per SACCO).
     pub month: u32,
     /// Sync only this cooperative. All linked cooperatives of the apex when empty.
     pub cooperative_id: Option<Uuid>,

@@ -13,7 +13,11 @@ use crate::services::mambu::models::{
 
 const ACCEPT_V2: &str = "application/vnd.mambu.v2+json";
 const MAX_ATTEMPTS: u32 = 3;
-const REPORT_POLLS: u32 = 40;
+const REPORT_POLLS: u32 = 120;
+/// Mambu builds one accounting report at a time for the whole tenant and refuses a new
+/// one with ANOTHER_TASK_IN_PROGRESS. The client waits and asks again for up to 10 minutes.
+const BUSY_RETRIES: u32 = 40;
+const BUSY_DELAY: Duration = Duration::from_secs(15);
 const REPORT_POLL_DELAY: Duration = Duration::from_secs(3);
 
 #[derive(Clone)]
@@ -31,6 +35,7 @@ pub struct MambuApiClient {
     credentials: Credentials,
     page_size: u32,
     report_poll_delay: Duration,
+    busy_delay: Duration,
 }
 
 impl MambuApiClient {
@@ -64,6 +69,7 @@ impl MambuApiClient {
             credentials,
             page_size: config.mambu_page_size.clamp(10, 1000),
             report_poll_delay: REPORT_POLL_DELAY,
+            busy_delay: BUSY_DELAY,
         })
     }
 
@@ -76,6 +82,7 @@ impl MambuApiClient {
             credentials: Credentials::ApiKey(api_key.to_string()),
             page_size: page_size.max(1),
             report_poll_delay: Duration::from_millis(50),
+            busy_delay: Duration::from_millis(20),
         }
     }
 
@@ -108,9 +115,10 @@ impl MambuApiClient {
                         continue;
                     }
                     if !status.is_success() {
-                        tracing::warn!(status = %status, request = label, "Mambu request failed");
+                        let reason = error_reason(resp).await;
+                        tracing::warn!(status = %status, request = label, reason = %reason, "Mambu request failed");
                         return Err(AppError::InternalServerError(format!(
-                            "Mambu request {label} failed with status {status}"
+                            "Mambu request {label} failed with status {status}{reason}"
                         )));
                     }
                     return Ok(resp);
@@ -153,6 +161,7 @@ impl MambuApiClient {
                 AppError::InternalServerError("Unexpected response from Mambu".into())
             })?;
             let count = page.len() as u32;
+            tracing::info!(path, offset, count, "Mambu page read");
             all.extend(page);
             if count < self.page_size {
                 break;
@@ -167,37 +176,97 @@ impl MambuApiClient {
             .await
     }
 
+    /// Reads the records of one branch with the server-side search. The plain list
+    /// ignores its branch filter for deposits and loans and would read the whole tenant.
+    async fn search_pages<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        branch_field: &str,
+        branch_id: &str,
+    ) -> AppResult<Vec<T>> {
+        let Ok(branch_key) = self.branch_key(branch_id).await else {
+            tracing::warn!(
+                path,
+                "Branch key not readable, falling back to the plain list"
+            );
+            return self
+                .get_pages(
+                    path,
+                    &[
+                        ("branchId", branch_id.to_string()),
+                        ("detailsLevel", "FULL".to_string()),
+                    ],
+                )
+                .await;
+        };
+        let body = serde_json::json!({
+            "filterCriteria": [{"field": branch_field, "operator": "EQUALS", "value": branch_key}],
+            "sortingCriteria": {"field": "encodedKey", "order": "ASC"},
+        });
+        let url = format!("{}{}:search", self.base_url, path);
+        let mut all: Vec<T> = Vec::new();
+        let mut offset: u32 = 0;
+        loop {
+            let limit = self.page_size.to_string();
+            let off = offset.to_string();
+            let resp = self
+                .send(path, || {
+                    self.http
+                        .post(&url)
+                        .query(&[
+                            ("detailsLevel", "FULL"),
+                            ("limit", limit.as_str()),
+                            ("offset", off.as_str()),
+                        ])
+                        .json(&body)
+                })
+                .await?;
+            let page: Vec<T> = resp.json().await.map_err(|e| {
+                tracing::warn!(error = %e, path, "Unexpected Mambu response");
+                AppError::InternalServerError("Unexpected response from Mambu".into())
+            })?;
+            let count = page.len() as u32;
+            tracing::info!(path, offset, count, "Mambu page read");
+            all.extend(page);
+            if count < self.page_size {
+                break;
+            }
+            offset += count;
+        }
+        Ok(all)
+    }
+
+    async fn branch_key(&self, branch_id: &str) -> AppResult<String> {
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Key {
+            encoded_key: String,
+        }
+        let url = format!("{}/branches/{}", self.base_url, branch_id);
+        let resp = self
+            .send("/branches/{id}", || {
+                self.http.get(&url).query(&[("detailsLevel", "BASIC")])
+            })
+            .await?;
+        let key: Key = resp.json().await.map_err(|e| {
+            tracing::warn!(error = %e, "Unexpected Mambu branch response");
+            AppError::InternalServerError("Unexpected response from Mambu".into())
+        })?;
+        Ok(key.encoded_key)
+    }
+
     pub async fn clients(&self, branch_id: &str) -> AppResult<Vec<MambuClient>> {
-        self.get_pages(
-            "/clients",
-            &[
-                ("branchId", branch_id.to_string()),
-                ("detailsLevel", "FULL".to_string()),
-            ],
-        )
-        .await
+        self.search_pages("/clients", "branchKey", branch_id).await
     }
 
     pub async fn deposits(&self, branch_id: &str) -> AppResult<Vec<MambuDeposit>> {
-        self.get_pages(
-            "/deposits",
-            &[
-                ("branchId", branch_id.to_string()),
-                ("detailsLevel", "FULL".to_string()),
-            ],
-        )
-        .await
+        self.search_pages("/deposits", "assignedBranchKey", branch_id)
+            .await
     }
 
     pub async fn loans(&self, branch_id: &str) -> AppResult<Vec<MambuLoan>> {
-        self.get_pages(
-            "/loans",
-            &[
-                ("branchId", branch_id.to_string()),
-                ("detailsLevel", "FULL".to_string()),
-            ],
-        )
-        .await
+        self.search_pages("/loans", "assignedBranchKey", branch_id)
+            .await
     }
 
     pub async fn deposit_products(&self) -> AppResult<Vec<MambuProduct>> {
@@ -238,11 +307,25 @@ impl MambuApiClient {
             "currencyCode": "SZL",
             "balanceTypes": ["OPENING_BALANCE", "NET_CHANGE", "CLOSING_BALANCE"],
         });
-        let resp = self
-            .send("POST /accounting/reports", || {
-                self.http.post(&url).json(&body)
-            })
-            .await?;
+        let mut waited = 0;
+        let resp = loop {
+            match self
+                .send("POST /accounting/reports", || {
+                    self.http.post(&url).json(&body)
+                })
+                .await
+            {
+                Ok(resp) => break resp,
+                Err(AppError::InternalServerError(message))
+                    if message.contains("ANOTHER_TASK_IN_PROGRESS") && waited < BUSY_RETRIES =>
+                {
+                    waited += 1;
+                    tracing::info!(waited, "Mambu is building another report, waiting");
+                    tokio::time::sleep(self.busy_delay).await;
+                }
+                Err(e) => return Err(e),
+            }
+        };
         let started: MambuReport = resp
             .json()
             .await
@@ -275,6 +358,35 @@ impl MambuApiClient {
     }
 }
 
+/// Mambu's error codes of a failed response, for example " (INVALID_PERMISSIONS)". Only
+/// letters, digits and underscores are kept, so no personal data can slip in.
+async fn error_reason(resp: reqwest::Response) -> String {
+    let Ok(body) = resp.json::<serde_json::Value>().await else {
+        return String::new();
+    };
+    let reasons: Vec<String> = body
+        .get("errors")
+        .and_then(|e| e.as_array())
+        .map(|errors| {
+            errors
+                .iter()
+                .filter_map(|e| e.get("errorReason").and_then(|r| r.as_str()))
+                .map(|r| {
+                    r.chars()
+                        .filter(|c| c.is_ascii_alphanumeric() || *c == '_')
+                        .take(60)
+                        .collect::<String>()
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    if reasons.is_empty() {
+        String::new()
+    } else {
+        format!(" ({})", reasons.join(", "))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -295,9 +407,15 @@ mod tests {
 
     #[tokio::test]
     async fn clients_are_paged_until_a_short_page() {
-        let app = Router::new().route(
-            "/clients",
-            get(|Query(q): Query<HashMap<String, String>>| async move {
+        let app = Router::new()
+            .route(
+                "/branches/ES0006",
+                get(|| async { Json(json!({"encodedKey": "bk", "id": "ES0006"})) }),
+            )
+            .route(
+            "/clients:search",
+            post(|Query(q): Query<HashMap<String, String>>, Json(body): Json<Value>| async move {
+                assert_eq!(body["filterCriteria"][0]["value"], "bk");
                 let offset: usize = q.get("offset").and_then(|o| o.parse().ok()).unwrap_or(0);
                 let all = ["A", "B", "C"];
                 let page: Vec<Value> = all
@@ -365,5 +483,77 @@ mod tests {
             .await
             .unwrap_err();
         assert!(!err.to_string().contains("secret detail"));
+    }
+
+    #[tokio::test]
+    async fn mambu_error_code_is_added_to_the_error_without_other_text() {
+        let app = Router::new().route(
+            "/branches",
+            get(|| async {
+                (
+                    StatusCode::FORBIDDEN,
+                    axum::Json(serde_json::json!({"errors": [
+                        {"errorCode": 15, "errorSource": "Jane Doe 12345", "errorReason": "INVALID_PERMISSIONS"}
+                    ]})),
+                )
+            }),
+        );
+        let base = serve(app).await;
+        let err = MambuApiClient::with_api_key(&base, "test", 2)
+            .branches()
+            .await
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("(INVALID_PERMISSIONS)"), "{err}");
+        assert!(!err.contains("Jane"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn report_request_waits_while_mambu_is_busy_with_another_report() {
+        use std::sync::atomic::{AtomicU32, Ordering};
+        use std::sync::Arc;
+        let calls = Arc::new(AtomicU32::new(0));
+        let counter = calls.clone();
+        let app = Router::new()
+            .route(
+                "/accounting/reports",
+                post(move || {
+                    let counter = counter.clone();
+                    async move {
+                        if counter.fetch_add(1, Ordering::SeqCst) < 2 {
+                            (
+                                StatusCode::BAD_REQUEST,
+                                Json(json!({"errors": [{"errorCode": 1, "errorReason": "ANOTHER_TASK_IN_PROGRESS"}]})),
+                            )
+                        } else {
+                            (
+                                StatusCode::ACCEPTED,
+                                Json(json!({"reportKey": "rk9", "status": "QUEUED"})),
+                            )
+                        }
+                    }
+                }),
+            )
+            .route(
+                "/accounting/reports/rk9",
+                get(|| async {
+                    Json(json!({"reportKey": "rk9", "status": "COMPLETE", "items": []}))
+                }),
+            );
+        let base = serve(app).await;
+        let report = MambuApiClient::with_api_key(&base, "test", 2)
+            .accounting_report(
+                "ES0006",
+                NaiveDate::from_ymd_opt(2026, 9, 1).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 9, 30).unwrap(),
+            )
+            .await
+            .unwrap();
+        assert!(report.items.is_empty());
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            3,
+            "two refusals, then accepted"
+        );
     }
 }

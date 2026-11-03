@@ -826,39 +826,12 @@ fn normalized_totals(items: &[ReportItem], style: SignStyle) -> Totals {
     }
 }
 
-fn same_within_tolerance(a: Decimal, b: Decimal) -> bool {
-    (a - b).abs() <= Decimal::from(BALANCE_TOLERANCE)
-}
-
-/// Surplus of the year to the report date, from a year-to-date report. Used only when
-/// the report balances and agrees with the month report on every closing total;
-/// otherwise Mambu's long ranges are not reliable and `None` is returned.
-fn year_to_date_surplus(
-    ytd: &[ReportItem],
-    month_style: SignStyle,
-    month_items: &[ReportItem],
-) -> Option<Decimal> {
-    let ytd_style = detect_sign_style(ytd).ok()?;
-    let m = normalized_totals(month_items, month_style);
-    let y = normalized_totals(ytd, ytd_style);
-    let agrees = same_within_tolerance(m.assets, y.assets)
-        && same_within_tolerance(m.liabilities, y.liabilities)
-        && same_within_tolerance(m.equity, y.equity)
-        && same_within_tolerance(m.income, y.income)
-        && same_within_tolerance(m.expense, y.expense);
-    if !agrees {
-        return None;
-    }
-    let mut surplus = Decimal::ZERO;
-    for item in ytd.iter().filter(|i| reportable(i)) {
-        let a = &item.amounts;
-        match item.gl_account.account_type.as_str() {
-            "INCOME" => surplus += to_decimal(a.credits - a.debits),
-            "EXPENSE" => surplus -= to_decimal(a.debits - a.credits),
-            _ => {}
-        }
-    }
-    Some(surplus)
+/// All earnings since the start (income minus expenses, closing balances) of a report,
+/// or `None` when the report does not balance and so cannot be trusted.
+pub fn earnings_of_report(items: &[ReportItem]) -> Option<Decimal> {
+    let style = detect_sign_style(items).ok()?;
+    let t = normalized_totals(items, style);
+    Some(t.income - t.expense)
 }
 
 /// Maps the Mambu accounting report of one SACCO to CoopData accounts.
@@ -868,18 +841,17 @@ fn year_to_date_surplus(
 ///   earnings since the start. Its sign style is detected from the accounting
 ///   equation. When neither style balances the report is not used at all and the
 ///   result says so, rather than showing wrong figures.
-/// * `ytd_items`: optional report from 1 January. Mambu answers long ranges with
-///   inconsistent figures, so it is used only to split the earnings into accumulated
-///   and current year surplus, and only when it balances and agrees with the month
-///   report. Mambu itself shows one "Current Earnings" figure (all income minus all
-///   expenses since the start), which is what the accumulated line holds when the
-///   split is not possible.
+/// * `year_start_earnings`: all earnings at the end of the previous year, taken from a
+///   report that balances. With it the earnings are split into accumulated and
+///   current year surplus. Mambu itself shows one "Current Earnings" figure (all
+///   income minus all expenses since the start), which is what the accumulated line
+///   holds when the split is not possible.
 ///
 /// Header accounts are skipped, they only repeat their children. Only SZL (or
 /// currency-less) accounts are read.
 pub fn map_ledger(
     month_items: &[ReportItem],
-    ytd_items: Option<&[ReportItem]>,
+    year_start_earnings: Option<Decimal>,
     mappings: &HashMap<String, (i32, i16)>,
 ) -> LedgerResult {
     let style = match detect_sign_style(month_items) {
@@ -898,7 +870,6 @@ pub fn map_ledger(
         mappings,
         month_items
             .iter()
-            .chain(ytd_items.unwrap_or(&[]))
             .filter(|i| i.gl_account.usage.as_deref() == Some("HEADER"))
             .map(|i| {
                 (
@@ -926,9 +897,8 @@ pub fn map_ledger(
         add_mapped(&mut totals, &mut unmapped, &resolver, item, value);
     }
 
-    let current_year = ytd_items.and_then(|ytd| year_to_date_surplus(ytd, style, month_items));
-    let (accumulated, current_year, surplus_split) = match current_year {
-        Some(current) => (cumulative_earnings - current, current, true),
+    let (accumulated, current_year, surplus_split) = match year_start_earnings {
+        Some(at_year_start) => (at_year_start, cumulative_earnings - at_year_start, true),
         None => (cumulative_earnings, Decimal::ZERO, false),
     };
     for (code, value) in [
@@ -1466,11 +1436,9 @@ mod tests {
     }
 
     #[test]
-    fn surplus_is_split_with_a_year_to_date_report_that_agrees() {
-        // All earnings 350. Earnings of the year 80 - 30 = 50. Accumulated 300.
-        let month = balanced_month();
-        let ytd = balanced_month();
-        let r = map_ledger(&month, Some(&ytd), &surplus_map());
+    fn surplus_is_split_with_the_earnings_of_the_previous_year_end() {
+        // All earnings 350, of which 300 existed at the start of the year.
+        let r = map_ledger(&balanced_month(), Some(to_decimal(300.0)), &surplus_map());
         assert!(r.surplus_split);
         assert_eq!(
             ledger_value(&r, ACCUMULATED_SURPLUS_CODE),
@@ -1487,16 +1455,8 @@ mod tests {
     }
 
     #[test]
-    fn a_year_to_date_report_that_disagrees_is_not_used() {
-        // Balances on its own, but its closing totals differ from the month report.
-        let ytd = vec![
-            detail("1101", "ASSET", bal(1200.0)),
-            detail("5001", "LIABILITY", bal(500.0)),
-            detail("6001", "EQUITY", bal(350.0)),
-            detail("4001", "INCOME", mov(0.0, 80.0, 580.0)),
-            detail("5101", "EXPENSE", mov(30.0, 0.0, 230.0)),
-        ];
-        let r = map_ledger(&balanced_month(), Some(&ytd), &surplus_map());
+    fn without_the_year_start_earnings_all_earnings_stay_accumulated() {
+        let r = map_ledger(&balanced_month(), None, &surplus_map());
         assert_eq!(r.status, LedgerStatus::Balanced);
         assert!(!r.surplus_split);
         assert_eq!(
@@ -1507,17 +1467,16 @@ mod tests {
     }
 
     #[test]
-    fn a_year_to_date_report_that_does_not_balance_is_not_used() {
-        let ytd = vec![
+    fn earnings_of_a_report_need_a_report_that_balances() {
+        assert_eq!(
+            earnings_of_report(&balanced_month()),
+            Some(to_decimal(350.0))
+        );
+        let broken = vec![
             detail("1101", "ASSET", bal(1000.0)),
             detail("5001", "LIABILITY", bal(100.0)),
         ];
-        let r = map_ledger(&balanced_month(), Some(&ytd), &surplus_map());
-        assert!(!r.surplus_split);
-        assert_eq!(
-            ledger_value(&r, ACCUMULATED_SURPLUS_CODE),
-            to_decimal(350.0)
-        );
+        assert_eq!(earnings_of_report(&broken), None);
     }
 
     #[test]

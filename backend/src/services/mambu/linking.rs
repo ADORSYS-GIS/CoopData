@@ -27,6 +27,27 @@ pub fn clean_branch_id(raw: &str) -> AppResult<String> {
     Ok(id.to_string())
 }
 
+/// A Mambu branch ID always has a digit (ES0006, BUS001). Without the right to list
+/// branches an ID cannot be checked, so only text that looks like one is accepted and a
+/// name typed by mistake is never saved as a link.
+fn looks_like_branch_id(id: &str) -> bool {
+    id.len() >= 3 && id.chars().any(|c| c.is_ascii_digit())
+}
+
+const CANNOT_LIST_BRANCHES: &str = "The Mambu user may not list branches, so a SACCO cannot be found by name yet. Type its Mambu ID, for example ES0006.";
+
+async fn is_taken(
+    state: &AppState,
+    branch_id: &str,
+    for_cooperative: Option<Uuid>,
+) -> AppResult<bool> {
+    Ok(state
+        .mambu_repo
+        .find_link_by_branch(branch_id)
+        .await?
+        .is_some_and(|l| Some(l.cooperative_id) != for_cooperative))
+}
+
 /// Looks up a branch by ID. The name is only returned when the branch can be
 /// linked to `for_cooperative`, so nobody can list the SACCOs of other apexes by
 /// trying IDs.
@@ -39,17 +60,28 @@ pub async fn preview_branch(
     let client = state.mambu_client.clone().ok_or_else(|| {
         AppError::BadRequest("The Mambu integration is not configured on this server".into())
     })?;
-    let branch = client
-        .branches()
-        .await?
+    let list = match client.branches().await {
+        Ok(list) => list,
+        Err(e) => {
+            // The ID cannot be confirmed in Mambu. Accept it if it looks like one; the
+            // first sync tells if it is wrong.
+            tracing::warn!(error = %e, "Mambu branches are not readable");
+            if !looks_like_branch_id(&id) {
+                return Err(AppError::BadRequest(CANNOT_LIST_BRANCHES.into()));
+            }
+            let taken = is_taken(state, &id, for_cooperative).await?;
+            return Ok(BranchPreview {
+                id,
+                name: None,
+                available: !taken,
+            });
+        }
+    };
+    let branch = list
         .into_iter()
         .find(|b| b.id.eq_ignore_ascii_case(&id))
         .ok_or_else(|| AppError::NotFound("No Mambu branch has this ID".into()))?;
-    let taken = state
-        .mambu_repo
-        .find_link_by_branch(&branch.id)
-        .await?
-        .is_some_and(|l| Some(l.cooperative_id) != for_cooperative);
+    let taken = is_taken(state, &branch.id, for_cooperative).await?;
     Ok(BranchPreview {
         name: (!taken).then_some(branch.name),
         id: branch.id,
@@ -85,8 +117,27 @@ pub async fn search_branches(
     let client = state.mambu_client.clone().ok_or_else(|| {
         AppError::BadRequest("The Mambu integration is not configured on this server".into())
     })?;
+    let branches = match client.branches().await {
+        Ok(list) => list,
+        Err(e) => {
+            tracing::warn!(error = %e, "Mambu branches are not readable");
+            if !looks_like_branch_id(q) {
+                return Err(AppError::BadRequest(CANNOT_LIST_BRANCHES.into()));
+            }
+            let id = clean_branch_id(q)?;
+            return Ok(if is_taken(state, &id, for_cooperative).await? {
+                Vec::new()
+            } else {
+                vec![BranchPreview {
+                    id,
+                    name: None,
+                    available: true,
+                }]
+            });
+        }
+    };
     let mut found = Vec::new();
-    for branch in client.branches().await? {
+    for branch in branches {
         if found.len() >= MAX_SEARCH_RESULTS {
             break;
         }
@@ -168,6 +219,15 @@ mod tests {
         assert!(matches_query("ES0006", "Asikhutulisane SACCO", "khutuli"));
         assert!(!matches_query("ES0006", "Asikhutulisane SACCO", "ES000"));
         assert!(!matches_query("ES0006", "Asikhutulisane SACCO", "sambu"));
+    }
+
+    #[test]
+    fn only_text_with_a_digit_counts_as_an_unverifiable_branch_id() {
+        assert!(looks_like_branch_id("ES0006"));
+        assert!(looks_like_branch_id("BUS001"));
+        assert!(!looks_like_branch_id("khutu"));
+        assert!(!looks_like_branch_id("Asikhutulisane"));
+        assert!(!looks_like_branch_id("E6"));
     }
 
     #[test]

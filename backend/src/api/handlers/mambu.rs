@@ -166,10 +166,13 @@ pub async fn upsert_mambu_link(
         return Err(AppError::NotFound("Cooperative not found".into()));
     }
     if let Some(c) = &state.mambu_client {
-        if !c.branches().await?.iter().any(|b| b.id == branch_id) {
-            return Err(AppError::BadRequest(
-                "That branch does not exist in Mambu".into(),
-            ));
+        // When the Mambu user may not list branches the ID cannot be checked here.
+        if let Ok(list) = c.branches().await {
+            if !list.iter().any(|b| b.id == branch_id) {
+                return Err(AppError::BadRequest(
+                    "That branch does not exist in Mambu".into(),
+                ));
+            }
         }
     }
     if let Err(e) = state
@@ -253,7 +256,10 @@ pub async fn start_mambu_sync(
         body.month,
         claims.clone(),
         SyncLevel::Ministry,
-        SyncScope::All,
+        match body.cooperative_id {
+            Some(id) => SyncScope::Cooperatives(vec![id]),
+            None => SyncScope::All,
+        },
     )
     .await?;
     tracing::info!(run_id = %run.id, year = body.year, month = body.month, "Mambu sync started");
