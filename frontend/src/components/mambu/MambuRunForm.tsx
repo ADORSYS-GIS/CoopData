@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useStartMambuSync, type MambuScope } from "@/hooks/mambu/useMambu";
-import { MONTH_NAMES, periodLabel, previousMonth } from "./mambuFormat";
+import { MONTH_NAMES, WHOLE_YEAR, periodLabel, previousMonth } from "./mambuFormat";
 
 interface Props {
   scope?: MambuScope;
@@ -32,7 +32,19 @@ interface Props {
   onStarted: (runId: string) => void;
 }
 
-const confirmBody = (scope: MambuScope): string => {
+const wholeYearBody = (scope: MambuScope): string => {
+  const who =
+    scope === "cooperative"
+      ? "your SACCO"
+      : scope === "apex"
+        ? "your linked cooperatives"
+        : "every linked SACCO";
+  const result = scope === "ministry" ? "returns waiting for your review" : "drafts to check";
+  return `CoopData will read ${"{{period}}"} from Mambu for ${who}, month by month, and create one full-year return per SACCO with a column for each month: ${result}. Months where the Mambu report does not balance are left empty and flagged. A Mambu return for that year is replaced. Submitted or approved data is never changed.`;
+};
+
+const confirmBody = (scope: MambuScope, wholeYear: boolean): string => {
+  if (wholeYear) return wholeYearBody(scope);
   if (scope === "cooperative") {
     return "CoopData will read {{period}} from Mambu for your SACCO and create a draft for you to check and submit. A Mambu draft for that month is replaced. Submitted or approved data is never changed.";
   }
@@ -83,6 +95,9 @@ export const MambuRunForm: React.FC<Props> = ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value={String(WHOLE_YEAR)}>
+              {t("mambu.wholeYear", { defaultValue: "Whole year" })}
+            </SelectItem>
             {MONTH_NAMES.map((name, i) => (
               <SelectItem key={name} value={String(i + 1)}>
                 {name}
@@ -122,8 +137,8 @@ export const MambuRunForm: React.FC<Props> = ({
               {t("mambu.confirmTitle", { defaultValue: "Sync with Mambu?" })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t(`mambu.confirmBody.${scope}`, {
-                defaultValue: confirmBody(scope),
+              {t(`mambu.confirmBody.${scope}${Number(month) === WHOLE_YEAR ? ".year" : ""}`, {
+                defaultValue: confirmBody(scope, Number(month) === WHOLE_YEAR),
                 period: periodLabel(Number(year), Number(month)),
               })}
             </AlertDialogDescription>

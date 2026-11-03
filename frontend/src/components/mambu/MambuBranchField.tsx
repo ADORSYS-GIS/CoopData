@@ -87,7 +87,7 @@ export const MambuBranchField: React.FC<Props> = ({ value, onChange, cooperative
                 className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-muted"
                 onClick={() => choose(b)}
               >
-                <span>{b.name}</span>
+                <span>{b.name ?? b.id}</span>
                 <span className="text-xs text-muted-foreground">{b.id}</span>
               </button>
             </li>
@@ -102,12 +102,22 @@ export const MambuBranchField: React.FC<Props> = ({ value, onChange, cooperative
           })}
         </p>
       )}
-      {selected && (
+      {selected && selected.name && (
         <p className="flex items-center gap-1 text-sm text-green-700">
           <CheckCircle2 className="h-4 w-4" />
           {t("mambu.branchFound", {
             defaultValue: "Selected: {{name}} ({{id}}). Make sure this is the right SACCO.",
-            name: selected.name ?? selected.id,
+            name: selected.name,
+            id: selected.id,
+          })}
+        </p>
+      )}
+      {selected && !selected.name && (
+        <p className="flex items-center gap-1 text-sm text-amber-700">
+          <CheckCircle2 className="h-4 w-4" />
+          {t("mambu.branchUnverified", {
+            defaultValue:
+              "Using branch {{id}}. Mambu does not let CoopData read the branch name yet, so check that this ID is the right SACCO.",
             id: selected.id,
           })}
         </p>

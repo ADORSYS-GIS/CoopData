@@ -1,9 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { itemTone, periodLabel, previousMonth, runTone } from "./mambuFormat";
+import { WHOLE_YEAR, itemTone, periodLabel, previousMonth, runTone } from "./mambuFormat";
 
 describe("mambuFormat", () => {
   it("labels a period with the month name", () => {
     expect(periodLabel(2026, 9)).toBe("September 2026");
+  });
+
+  it("labels month 0 as the whole year", () => {
+    expect(WHOLE_YEAR).toBe(0);
+    expect(periodLabel(2025, WHOLE_YEAR)).toBe("Whole year 2025");
   });
 
   it("returns the previous month and wraps over the year", () => {

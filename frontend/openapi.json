@@ -16976,14 +16976,21 @@
       },
       "StartMambuSyncRequest": {
         "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Sync only this cooperative. Every linked SACCO when empty.",
+            "nullable": true
+          },
           "month": {
+            "type": "integer",
             "format": "int32",
-            "minimum": 0,
-            "type": "integer"
+            "description": "1 to 12 for one month, 0 for the whole year (one \"Full 12 Mo\" return per SACCO).",
+            "minimum": 0
           },
           "year": {
-            "format": "int32",
-            "type": "integer"
+            "type": "integer",
+            "format": "int32"
           }
         },
         "required": [
