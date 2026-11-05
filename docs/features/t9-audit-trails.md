@@ -1,6 +1,6 @@
 # T9 — Audit Trails & Tamper-Evident Logging
 
-**Status:** In Progress  
+**Status:** Mostly implemented. Open: audit of authentication events, audit of extraction events, and a test that proves a mutation writes an audit row.  
 **Labels:** `security`, `audit`, `logging`, `compliance`  
 **Priority:** High
 
@@ -195,13 +195,13 @@ Expected response:
 - [x] Audit entity and repository implemented
 - [x] Audit middleware extracts IP/User-Agent
 - [x] Core handlers (apex, cooperative, federation, users) have audit calls
-- [ ] `submission.rs` has audit calls for all mutations
-- [ ] `custom_kpi.rs` has audit calls for all mutations
-- [ ] `upload.rs` has audit calls for file uploads
-- [ ] `extraction.rs` has audit calls for extraction events
-- [ ] Authentication events are audited (login, logout, token refresh)
-- [ ] Integration tests verify audit logging works
-- [ ] Tamper-evidence approach documented
+- [x] `submission.rs` has audit calls for its mutations (create, submit, approve, return, section update, method update, delete)
+- [x] `custom_kpi.rs` has audit calls (create, delete)
+- [x] `upload.rs` has audit calls for file uploads
+- [ ] `extraction.rs` has audit calls for extraction events (the handler only reads a job; no audit call exists)
+- [ ] Authentication events are audited (login, logout, token refresh) (not implemented: sign-in happens in Keycloak and no auth event is written to the audit log)
+- [ ] Integration tests verify audit logging works (partly: `handlers_audit.rs` tests access control and DTOs, `repos_audit_and_farm_coop.rs` tests the repository filters; none checks that a mutation writes a row)
+- [x] Tamper-evidence approach documented (see "Tamper-Evidence Approach" above)
 
 ---
 

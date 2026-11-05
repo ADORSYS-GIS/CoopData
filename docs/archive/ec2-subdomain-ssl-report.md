@@ -1,3 +1,5 @@
+> **Historical:** these notes describe the former AWS demo server. Production runs on the client server; see [`../deployment/production-runbook.md`](../deployment/production-runbook.md).
+
 # EC2 Subdomain + SSL Report — `coopdata.dgrvcoop360.com`
 
 **Date:** 2026-09-22
@@ -12,10 +14,10 @@
 
 | Item | Value | Status |
 |------|-------|--------|
-| Type | `A` | ✅ Correct |
-| Name | `coopdata` | ✅ Correct (→ `coopdata.dgrvcoop360.com`) |
-| Value | `18.194.232.1` | ✅ Correct (your EC2 public IP) |
-| Proxy | **Proxied** (orange cloud) | ✅ Correct |
+| Type | `A` | Correct |
+| Name | `coopdata` | Correct (→ `coopdata.dgrvcoop360.com`) |
+| Value | `18.194.232.1` | Correct (your EC2 public IP) |
+| Proxy | **Proxied** (orange cloud) | Correct |
 
 Verified: `coopdata.dgrvcoop360.com` resolves to Cloudflare IPs (`188.114.96.3` / `188.114.97.3`), which confirms the record is proxied through Cloudflare. The origin is reachable on both port 80 (301 → https) and 443 (200).
 
@@ -42,8 +44,8 @@ The self-signed cert is the problem. Because your DNS is **proxied through Cloud
 
 | Approach | Pros | Cons | Recommendation |
 |----------|------|------|----------------|
-| **Cloudflare Origin Certificate** | Free, 15 years, no renewal, trusted by CF edge, perfect for proxied DNS | Must be created in CF dashboard | ✅ **Recommended** |
-| Let's Encrypt (certbot) | Free, standard | 90-day renewal; with proxied DNS you must use DNS-01 (or ensure HTTP-01 passes through CF); more moving parts | ⚠️ Alternative |
+| **Cloudflare Origin Certificate** | Free, 15 years, no renewal, trusted by CF edge, perfect for proxied DNS | Must be created in CF dashboard | **Recommended** |
+| Let's Encrypt (certbot) | Free, standard | 90-day renewal; with proxied DNS you must use DNS-01 (or ensure HTTP-01 passes through CF); more moving parts | Alternative |
 
 **Cloudflare SSL mode must be set to `Full (strict)`** for the origin cert to be trusted (not "Flexible" — that causes redirect loops).
 
@@ -82,14 +84,14 @@ After editing `.env`: restart **Keycloak** and **backend** (they read these valu
 
 ## 5. Verification results (before changes)
 
-- Origin port 80: `301` (redirect to https) ✅
-- Origin port 443: `200` ✅
-- Via Cloudflare https: `200` ✅
-- Current cert: self-signed, `CN = ec2-18-194-232-1.eu-central-1.compute.amazonaws.com`, valid Jul 2026 → Jul 2027 ⚠️ (replace)
+- Origin port 80: `301` (redirect to https)
+- Origin port 443: `200`
+- Via Cloudflare https: `200`
+- Current cert: self-signed, `CN = ec2-18-194-232-1.eu-central-1.compute.amazonaws.com`, valid Jul 2026 → Jul 2027 (replace)
 
 ---
 
-## 6. ✅ COMPLETED — certbot implementation (2026-09-22)
+## 6. COMPLETED — certbot implementation (2026-09-22)
 
 Production uses `start-prod.sh` → `docker-compose.ghcr.yaml` (not `docker-compose.yml`).
 
@@ -119,12 +121,12 @@ Production uses `start-prod.sh` → `docker-compose.ghcr.yaml` (not `docker-comp
 | Origin cert (direct to 18.194.232.1) | **Let's Encrypt**, CN=`coopdata.dgrvcoop360.com` |
 | Cert auto-renewal dry-run | success |
 
-### ⚠️ One remaining action for YOU (Cloudflare)
+### One remaining action for YOU (Cloudflare)
 Switch **SSL/TLS mode from `Full` → `Full (Strict)`** now that the origin has a trusted Let's Encrypt cert. This validates the origin cert and is the most secure option.
 
 ---
 
-## 7. ✅ FIXED — infinite refresh/login loop after refresh (2026-09-22)
+## 7. FIXED — infinite refresh/login loop after refresh (2026-09-22)
 
 ### Symptom
 Login works, but refreshing the app caused an infinite refresh/loading loop. Logs showed `Keycloak instance unauthenticated` on every reload.

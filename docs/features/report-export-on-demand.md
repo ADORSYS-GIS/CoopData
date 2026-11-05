@@ -67,8 +67,8 @@ CREATE TABLE IF NOT EXISTS report_exports (
 
 ### 4.2 Entity and repository
 
-- `src/entities/report_exports.rs`: the SeaORM entity, with a `ReportExportStatus` enum.
-- `src/repositories/report_export_repository.rs`, all methods returning `AppResult`:
+- `src/entities/report_export.rs`: the SeaORM entity, with a `ReportExportStatus` enum.
+- `src/repositories/report_export.rs`, all methods returning `AppResult`:
   - `claim(report_key, lang, timeout)` is the **single-flight lock**. It's one atomic statement:
     ```sql
     INSERT … VALUES (…, 'preparing') ON CONFLICT (report_key, lang) DO UPDATE
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS report_exports (
 
 - `ReportTarget` enum: `Submission(id)`, `Apex{id, year, variant}`, `Federation{…}`, `Ministry{year, variant}`, with `key()` and `pdf_key(lang)`.
 - `prepare(state, target, lang, regenerate) -> AppResult<ReportStatus>`:
-  1. Validate: `lang` is in `EXPORT_LOCALES`, questionnaire targets accept `en` only, and non-`en` requires English `ready`.
+  1. Validate: `lang` is in `EXPORT_LOCALES`, and non-`en` requires English `ready`.
   2. `claim`. If not claimed, return the current status.
   3. `tokio::spawn` the job, then return `preparing` straight away (the HTTP response is **202**).
 - The job:
@@ -187,7 +187,7 @@ the schemas are registered in OpenAPI.
 - **Backend unit tests:**
   - `ReportTarget::key` and `pdf_key`;
   - turning stale rows into `failed`;
-  - prepare validation (non-`en` before English is ready, questionnaire with a non-`en` language, unknown language);
+  - prepare validation (non-`en` before English is ready, unknown language);
   - the job state transitions, using the mock narrative generator (success to `ready`, LLM error to `failed`, with no
     half-translated PDF).
 - **Backend repository / integration tests:** `claim` returns ownership once, a second concurrent claim gets nothing, and a stale
@@ -211,7 +211,7 @@ the schemas are registered in OpenAPI.
 
 | # | Phase | Main files |
 |---|---|---|
-| 1 | Migration, entity, repository with `claim` | `migrations/49_report_exports.sql`, `entities/report_exports.rs`, `repositories/report_export_repository.rs` |
+| 1 | Migration, entity, repository with `claim` | `migrations/49_report_exports.sql`, `entities/report_export.rs`, `repositories/report_export.rs` |
 | 2 | Job service: English-only generation, single-language translation, failure handling | `services/report_jobs.rs`, `services/narrative_translation.rs`, `services/export_generator.rs` |
 | 3 | Approval flow: English cooperative report, English consolidated reports rebuilt | `services/report_jobs.rs`, `api/handlers/submission.rs` |
 | 4 | Status and prepare endpoints, download returns 409 when not ready, OpenAPI | `api/dto/report_export.rs`, `api/handlers/export.rs`, `api/routes/*.rs`, `api/openapi.rs`, `config.rs` |
