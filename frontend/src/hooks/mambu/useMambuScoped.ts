@@ -1,6 +1,5 @@
 /**
- * React Query hooks for the Mambu endpoints of cooperatives and apexes:
- * the SACCO sync status and the link between a cooperative and its Mambu branch.
+ * React Query hooks for the link between a cooperative and its Mambu branch (apex only).
  * Mambu actions are online-only, so no offline cache.
  */
 
@@ -10,12 +9,10 @@ import type { components } from "@/openapi-client/api";
 
 type Schemas = components["schemas"];
 
-export type MambuCooperativeStatus = Schemas["MambuCooperativeStatusResponse"];
 export type MambuBranchPreview = Schemas["MambuBranchPreviewResponse"];
 export type MambuCooperativeLink = Schemas["MambuCooperativeLinkResponse"];
 
 const KEY = "mambu-scoped";
-const POLL_MS = 5000;
 
 function errorMessage(err: unknown): string {
   if (err && typeof err === "object") {
@@ -25,21 +22,6 @@ function errorMessage(err: unknown): string {
   }
   return "Request failed";
 }
-
-export const useCooperativeMambuStatus = (enabled = true) =>
-  useQuery({
-    queryKey: [KEY, "status"],
-    enabled,
-    queryFn: async () => {
-      const { data, error } = await apiClient.GET("/api/v1/cooperative/mambu/status");
-      if (error) throw new Error(errorMessage(error));
-      return data as MambuCooperativeStatus;
-    },
-    refetchInterval: (query) =>
-      query.state.data?.running || (query.state.data?.cooldown_seconds_left ?? 0) > 0
-        ? POLL_MS
-        : false,
-  });
 
 /** Searches free Mambu branches by ID or part of the name (at least 3 letters, 8 results). */
 export const useSearchMambuBranches = () =>
@@ -77,7 +59,10 @@ export const useSetMambuLink = (cooperativeId: string) => {
       if (error) throw new Error(errorMessage(error));
       return data as MambuCooperativeLink;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY, "link", cooperativeId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY, "link", cooperativeId] });
+      qc.invalidateQueries({ queryKey: ["mambu", "cooperatives"] });
+    },
   });
 };
 
@@ -90,6 +75,9 @@ export const useClearMambuLink = (cooperativeId: string) => {
       });
       if (error) throw new Error(errorMessage(error));
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY, "link", cooperativeId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY, "link", cooperativeId] });
+      qc.invalidateQueries({ queryKey: ["mambu", "cooperatives"] });
+    },
   });
 };

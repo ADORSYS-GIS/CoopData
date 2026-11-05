@@ -493,7 +493,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    {t("mambu.branchLabel", { defaultValue: "Mambu branch ID (optional)" })}
+                    {t("mambu.branchLabel", {
+                      defaultValue: "Mambu branch (optional, search by name or ID)",
+                    })}
                   </FormLabel>
                   <MambuBranchField value={field.value ?? ""} onChange={field.onChange} />
                   <FormDescription>

@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { MambuSyncPage } from "@/pages/ministry/MambuSyncPage";
+import { MambuSyncPage } from "@/pages/apex/MambuSyncPage";
 
 function MambuRoute() {
   return (
-    <ProtectedRoute allowedRoles={["ministry", "apex", "cooperative"]}>
+    <ProtectedRoute allowedRoles={["apex"]}>
       <MambuSyncPage />
     </ProtectedRoute>
   );

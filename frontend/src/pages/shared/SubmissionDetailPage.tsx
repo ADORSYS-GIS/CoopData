@@ -78,6 +78,7 @@ import { SubmissionAccessBadge } from "@/components/submissions/SubmissionAccess
 import { SubmissionAccessBanner } from "@/components/submissions/SubmissionAccessBanner";
 import { useSubmissionAccess } from "@/hooks/submissions/useSubmissionAccess";
 import type { TFunction } from "i18next";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton } from "@/components/ui/skeletons";
@@ -199,6 +200,8 @@ export const SubmissionDetailPage: React.FC = () => {
   const currentUserId = user?.id;
   const { verifyIdentity } = useVerifyIdentity();
   const submitMutation = useSubmitSubmission();
+  // The apex confirms it read the warnings before it submits an import from Mambu.
+  const [ackWarnings, setAckWarnings] = useState(false);
   const deleteMutation = useDeleteSubmission();
   const apexApprove = useApexApprove();
   const apexReturn = useApexReturn();
@@ -434,6 +437,9 @@ export const SubmissionDetailPage: React.FC = () => {
   const allReady =
     requiredSections.length > 0 && requiredSections.every((s) => s.status === "ready");
   const canSubmit = isDraft && allReady && !isReadOnly && !isExtracting;
+  const fromMambu = submission?.submission_method === "mambu";
+  const mambuNeedsConfirm = fromMambu && role === "apex" && !ackWarnings;
+  const canSubmitNow = canSubmit && !mambuNeedsConfirm;
 
   const readyCount = requiredSections.filter((s) => s.status === "ready").length;
   const totalSectionsCount = requiredSections.length;
@@ -485,7 +491,11 @@ export const SubmissionDetailPage: React.FC = () => {
     }
 
     try {
-      await submitMutation.mutateAsync(id);
+      await submitMutation.mutateAsync(
+        submission?.submission_method === "mambu" && role === "apex"
+          ? { id, acknowledgeWarnings: ackWarnings }
+          : id,
+      );
       toast.success(
         role === "apex"
           ? "Submitted and approved — the regional office is the final approval level"
@@ -641,6 +651,14 @@ export const SubmissionDetailPage: React.FC = () => {
                       {t("submissions.detail.tier", { tier: submission.current_tier })}
                     </span>
                   </p>
+                  {fromMambu && role !== "apex" && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t("submissions.detail.mambuReadOnly", {
+                        defaultValue:
+                          "Imported from Mambu. You can read it, but only the apex can change, submit or approve it.",
+                      })}
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={handleDelete}
@@ -993,6 +1011,22 @@ export const SubmissionDetailPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    {fromMambu && role === "apex" && (
+                      <label className="flex max-w-56 cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+                        <Checkbox
+                          checked={ackWarnings}
+                          onCheckedChange={(v) => setAckWarnings(v === true)}
+                          aria-label={t("submissions.detail.ackMambu", {
+                            defaultValue: "I checked the warnings of this Mambu import",
+                          })}
+                        />
+                        <span>
+                          {t("submissions.detail.ackMambu", {
+                            defaultValue: "I checked the warnings of this Mambu import",
+                          })}
+                        </span>
+                      </label>
+                    )}
                     <button
                       onClick={handleDelete}
                       disabled={
@@ -1024,7 +1058,7 @@ export const SubmissionDetailPage: React.FC = () => {
                     </button>
                     <button
                       onClick={handleSubmit}
-                      disabled={!canSubmit || submitMutation.isPending || isOffline}
+                      disabled={!canSubmitNow || submitMutation.isPending || isOffline}
                       title={
                         isOffline
                           ? t("offline.actionRequiresConnection")
@@ -1033,7 +1067,7 @@ export const SubmissionDetailPage: React.FC = () => {
                             : undefined
                       }
                       className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold transition-all shadow-sm ${
-                        canSubmit && !isOffline
+                        canSubmitNow && !isOffline
                           ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md"
                           : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                       }`}

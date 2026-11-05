@@ -73,7 +73,6 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/settings",
       "/app/configure-roles",
       "/app/questionnaire-templates",
-      "/app/mambu",
       "/app/audit",
       "/app/data-privacy",
       "/app/profile",
@@ -99,7 +98,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
-    system: ["/app/mambu", "/app/data-privacy", "/app/profile"],
+    system: ["/app/data-privacy", "/app/profile"],
   },
   apex: {
     oversight: ["/app/dashboard", "/app/cooperatives", "/app/submissions"],

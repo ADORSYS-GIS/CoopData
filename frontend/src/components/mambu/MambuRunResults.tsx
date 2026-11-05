@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useMambuSync, type MambuScope, type MambuSyncItem } from "@/hooks/mambu/useMambu";
+import { useMambuSync, type MambuSyncItem } from "@/hooks/mambu/useMambu";
 import { itemTone, periodLabel, runTone } from "./mambuFormat";
 
 const warningText = (item: MambuSyncItem): string =>
@@ -19,12 +19,9 @@ const warningText = (item: MambuSyncItem): string =>
     .map((w) => w.message)
     .join(" · ");
 
-export const MambuRunResults: React.FC<{ runId: string; scope?: MambuScope }> = ({
-  runId,
-  scope = "ministry",
-}) => {
+export const MambuRunResults: React.FC<{ runId: string }> = ({ runId }) => {
   const { t } = useTranslation();
-  const { data, isLoading, error } = useMambuSync(runId, scope);
+  const { data, isLoading, error } = useMambuSync(runId);
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
   if (error || !data) {

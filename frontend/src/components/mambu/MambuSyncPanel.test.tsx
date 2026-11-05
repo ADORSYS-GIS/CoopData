@@ -1,111 +1,123 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MambuSyncPanel } from "./MambuSyncPanel";
-import { apiClient } from "@/openapi-client";
 
-vi.mock("@/openapi-client", () => ({
-  apiClient: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn(), DELETE: vi.fn() },
+const start = vi.fn();
+const cooperatives = [
+  {
+    id: "c1",
+    name: "Adorsys SACCO",
+    institution_type: "sacco",
+    mambu_branch_id: "ES0006",
+    auto_sync: true,
+    running: false,
+    last_synced_at: "2026-11-04T08:00:00Z",
+    last_status: "synced",
+    last_error: null,
+    last_submission_id: "s1",
+    last_warning_count: 0,
+    last_unmapped_accounts: 0,
+  },
+  {
+    id: "c2",
+    name: "Second SACCO",
+    institution_type: "sacco",
+    mambu_branch_id: "ES0007",
+    auto_sync: false,
+    running: false,
+    last_synced_at: null,
+    last_status: null,
+    last_error: null,
+    last_submission_id: null,
+    last_warning_count: 0,
+    last_unmapped_accounts: 0,
+  },
+  {
+    id: "c3",
+    name: "Unlinked SACCO",
+    institution_type: "sacco",
+    mambu_branch_id: null,
+    auto_sync: false,
+    running: false,
+    last_synced_at: null,
+    last_status: null,
+    last_error: null,
+    last_submission_id: null,
+    last_warning_count: 0,
+    last_unmapped_accounts: 0,
+  },
+];
+
+vi.mock("@/hooks/mambu/useMambu", () => ({
+  useMambuStatus: () => ({ data: { configured: true }, isLoading: false }),
+  useMambuCooperatives: () => ({ data: cooperatives, isLoading: false }),
+  useMambuSyncs: () => ({ data: [], isLoading: false }),
+  useSetMambuAutoSync: () => ({ mutate: vi.fn() }),
+  useStartMambuSync: () => ({ mutate: start, isPending: false }),
+  useMambuSync: () => ({ data: undefined, isLoading: false }),
 }));
-vi.mock("@/components/app-shell", () => ({
-  Card: ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <section>
-      <h2>{title}</h2>
-      {children}
-    </section>
-  ),
-  StatusPill: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-}));
-vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
+vi.mock("@/hooks/mambu/useMambuScoped", () => ({
+  useSearchMambuBranches: () => ({ mutate: vi.fn(), data: [], isSuccess: false, error: null }),
+  useSetMambuLink: () => ({ mutate: vi.fn(), isPending: false }),
+  useClearMambuLink: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (_key: string, opts?: { defaultValue?: string; minutes?: number }) =>
-      (opts?.defaultValue ?? _key).replace("{{minutes}}", String(opts?.minutes ?? "")),
+    t: (key: string, options?: Record<string, unknown>) =>
+      String(options?.defaultValue ?? key).replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
+        String(options?.[name] ?? ""),
+      ),
   }),
 }));
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children }: { children: React.ReactNode }) => <a href="/x">{children}</a>,
+}));
+vi.mock("@/components/app-shell", () => ({
+  Card: ({ title, action, children }: any) => (
+    <section>
+      <h2>{title}</h2>
+      {action}
+      {children}
+    </section>
+  ),
+  StatusPill: ({ children }: any) => <span>{children}</span>,
+}));
 
-const mockGet = (status: object) =>
-  vi.mocked(apiClient.GET).mockImplementation((async (path: string) => {
-    if (path === "/api/v1/cooperative/mambu/status") return { data: status };
-    if (path === "/api/v1/cooperative/mambu/syncs") return { data: [] };
-    return { error: { message: "unexpected " + path } };
-  }) as never);
-
-const renderPanel = () =>
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MambuSyncPanel scope="cooperative" />
-    </QueryClientProvider>,
-  );
-
-describe("MambuSyncPanel for a cooperative", () => {
+describe("MambuSyncPanel", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("tells a SACCO without a link to ask its apex and blocks the button", async () => {
-    mockGet({
-      configured: true,
-      linked: false,
-      mambu_branch_id: null,
-      running: false,
-      cooldown_seconds_left: 0,
-    });
-    renderPanel();
-    expect(await screen.findByText(/not linked to a mambu branch/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /sync with mambu/i })).toBeDisabled();
+  it("shows how many cooperatives are linked and which are not", () => {
+    render(<MambuSyncPanel />);
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    expect(screen.getByText("Not linked")).toBeInTheDocument();
+    expect(screen.getByText("Up to date")).toBeInTheDocument();
   });
 
-  it("blocks the button during the cooldown", async () => {
-    mockGet({
-      configured: true,
-      linked: true,
-      mambu_branch_id: "ES0006",
-      running: false,
-      cooldown_seconds_left: 120,
-    });
-    renderPanel();
-    expect(await screen.findByText(/can sync again in 2 minute/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /sync with mambu/i })).toBeDisabled();
+  it("selects every linked cooperative at first, and never an unlinked one", () => {
+    render(<MambuSyncPanel />);
+    expect(screen.getByRole("button", { name: /sync 2 selected/i })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: "Select Unlinked SACCO" })).toBeDisabled();
   });
 
-  it("allows the sync when linked and idle, and never calls the Ministry endpoints", async () => {
-    mockGet({
-      configured: true,
-      linked: true,
-      mambu_branch_id: "ES0006",
-      running: false,
-      cooldown_seconds_left: 0,
+  it("syncs only the cooperatives the apex chose", async () => {
+    const user = userEvent.setup();
+    render(<MambuSyncPanel />);
+    await user.click(screen.getByRole("checkbox", { name: "Select Second SACCO" }));
+    await user.click(screen.getByRole("button", { name: /sync 1 selected/i }));
+    await user.click(screen.getByRole("button", { name: "Sync with Mambu" }));
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(start.mock.calls[0][0]).toEqual({
+      year: new Date().getFullYear(),
+      cooperativeIds: ["c1"],
     });
-    renderPanel();
-    await screen.findByText(/no sync has been run yet/i);
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /sync with mambu/i })).toBeEnabled(),
-    );
-    const paths = vi.mocked(apiClient.GET).mock.calls.map((c) => String(c[0]));
-    expect(paths.some((p) => p.includes("/ministry/"))).toBe(false);
   });
-});
 
-describe("MambuSyncPanel for an apex", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("reads the apex status endpoint and enables the sync when Mambu is configured", async () => {
-    vi.mocked(apiClient.GET).mockImplementation((async (path: string) => {
-      if (path === "/api/v1/apex/mambu/status") return { data: { configured: true } };
-      if (path === "/api/v1/apex/mambu/syncs") return { data: [] };
-      return { error: { message: "unexpected " + path } };
-    }) as never);
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <MambuSyncPanel scope="apex" />
-      </QueryClientProvider>,
-    );
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /sync with mambu/i })).toBeEnabled(),
-    );
-    expect(screen.queryByText(/not configured/i)).not.toBeInTheDocument();
-    const paths = vi.mocked(apiClient.GET).mock.calls.map((c) => String(c[0]));
-    expect(paths.some((p) => p.includes("/ministry/"))).toBe(false);
+  it("cannot start without a chosen cooperative", async () => {
+    const user = userEvent.setup();
+    render(<MambuSyncPanel />);
+    await user.click(screen.getByRole("checkbox", { name: /select all linked cooperatives/i }));
+    expect(screen.getByRole("button", { name: /sync 0 selected/i })).toBeDisabled();
   });
 });
