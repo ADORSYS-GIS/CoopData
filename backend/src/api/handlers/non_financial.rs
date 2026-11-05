@@ -574,7 +574,18 @@ pub async fn list_savings_accounts(
         .savings_account_repo
         .find_by_cooperative_id(coop_id, params.submission_id, params.page, page_size)
         .await?;
-    let data: Vec<SavingsAccountResponse> = rows.into_iter().map(Into::into).collect();
+    let business_ids = state
+        .member_repo
+        .business_ids(rows.iter().map(|r| r.member_id).collect())
+        .await?;
+    let data: Vec<SavingsAccountResponse> = rows
+        .into_iter()
+        .map(|m| {
+            let mut response = SavingsAccountResponse::from(m);
+            response.member_business_id = business_ids.get(&response.member_id).cloned();
+            response
+        })
+        .collect();
     Ok((
         StatusCode::OK,
         Json(PaginatedSavingsAccountsResponse {
@@ -832,7 +843,18 @@ pub async fn list_loans(
         .loan_repo
         .find_by_cooperative_id(coop_id, params.submission_id, params.page, page_size)
         .await?;
-    let data: Vec<LoanResponse> = rows.into_iter().map(Into::into).collect();
+    let business_ids = state
+        .member_repo
+        .business_ids(rows.iter().map(|r| r.member_id).collect())
+        .await?;
+    let data: Vec<LoanResponse> = rows
+        .into_iter()
+        .map(|m| {
+            let mut response = LoanResponse::from(m);
+            response.member_business_id = business_ids.get(&response.member_id).cloned();
+            response
+        })
+        .collect();
     Ok((
         StatusCode::OK,
         Json(PaginatedLoansResponse {
@@ -1121,7 +1143,18 @@ pub async fn list_fixed_deposits(
         .fixed_deposit_repo
         .find_by_cooperative_id(coop_id, params.submission_id, params.page, page_size)
         .await?;
-    let data: Vec<FixedDepositResponse> = rows.into_iter().map(Into::into).collect();
+    let business_ids = state
+        .member_repo
+        .business_ids(rows.iter().map(|r| r.member_id).collect())
+        .await?;
+    let data: Vec<FixedDepositResponse> = rows
+        .into_iter()
+        .map(|m| {
+            let mut response = FixedDepositResponse::from(m);
+            response.member_business_id = business_ids.get(&response.member_id).cloned();
+            response
+        })
+        .collect();
     Ok((
         StatusCode::OK,
         Json(PaginatedFixedDepositsResponse {
