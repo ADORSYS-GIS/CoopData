@@ -1,4 +1,4 @@
-//! End-to-end test of the cooperative and apex Mambu sync rules against a real
+//! End-to-end test of the apex Mambu sync rules against a real
 //! Postgres database and a stand-in Mambu server. Ignored by default.
 //!
 //! Run: TEST_DATABASE_URL=postgres://postgres:test@localhost:55432/coopdata_test2 \
@@ -14,7 +14,7 @@ use coop_data_backend::services::mambu::client::MambuApiClient;
 use coop_data_backend::services::mambu::linking::{
     ensure_branch_available, link_cooperative, search_branches,
 };
-use coop_data_backend::services::mambu::sync::{start_run, SyncLevel, SyncScope};
+use coop_data_backend::services::mambu::sync::{start_run, SyncScope};
 use sea_orm::ConnectionTrait;
 use serde_json::json;
 use uuid::Uuid;
@@ -102,23 +102,18 @@ async fn cooperative_sync_makes_a_draft_and_the_guards_hold() {
         2026,
         9,
         claims.clone(),
-        SyncLevel::Cooperative,
         SyncScope::Cooperatives(vec![other]),
     )
     .await
     .unwrap_err();
-    assert!(
-        err.to_string().to_lowercase().contains("not linked"),
-        "{err}"
-    );
+    assert!(err.to_string().to_lowercase().contains("linked"), "{err}");
 
-    // The cooperative sync makes a draft owned by the cooperative.
+    // A sync makes a draft at the apex.
     let run = start_run(
         &state,
         2026,
         9,
         claims.clone(),
-        SyncLevel::Cooperative,
         SyncScope::Cooperatives(vec![coop]),
     )
     .await
@@ -129,8 +124,8 @@ async fn cooperative_sync_makes_a_draft_and_the_guards_hold() {
     let sid = items[0].submission_id.expect("submission created");
     let row = |col: &str| format!("SELECT {col}::text FROM submissions WHERE id='{sid}'");
     assert_eq!(text(&conn, &row("status")).await, "draft");
-    assert_eq!(text(&conn, &row("current_tier")).await, "cooperative");
-    assert_eq!(text(&conn, &row("created_by_role")).await, "cooperative");
+    assert_eq!(text(&conn, &row("current_tier")).await, "apex");
+    assert_eq!(text(&conn, &row("created_by_role")).await, "apex");
     assert_eq!(text(&conn, &row("submission_method")).await, "mambu");
     assert!(
         scalar(
@@ -147,43 +142,71 @@ async fn cooperative_sync_makes_a_draft_and_the_guards_hold() {
         2026,
         9,
         claims.clone(),
-        SyncLevel::Cooperative,
         SyncScope::Cooperatives(vec![coop]),
     )
     .await
     .unwrap_err();
     assert!(err.to_string().contains("minutes ago"), "{err}");
 
-    // The Ministry is not held back by the cooldown and replaces the draft.
+    // After the cooldown a new sync replaces the draft; the return stays one draft.
+    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+        .await
+        .unwrap();
     let run2 = start_run(
         &state,
         2026,
         9,
         claims.clone(),
-        SyncLevel::Ministry,
-        SyncScope::All,
-    )
-    .await
-    .unwrap();
-    assert_eq!(wait_for_run(&state, run2.id).await, "completed");
-    assert_eq!(text(&conn, &row("status")).await, "in_review");
-    assert_eq!(text(&conn, &row("current_tier")).await, "ministry");
-
-    // A submission already in review is not overwritten by a cooperative sync.
-    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
-        .await
-        .unwrap();
-    let claims_again = claims.clone();
-    let run3 = start_run(
-        &state,
-        2026,
-        9,
-        claims,
-        SyncLevel::Cooperative,
         SyncScope::Cooperatives(vec![coop]),
     )
     .await
     .unwrap();
+    assert_eq!(wait_for_run(&state, run2.id).await, "completed");
+    assert_eq!(text(&conn, &row("status")).await, "draft");
+    assert_eq!(
+        scalar(
+            &conn,
+            "SELECT count(*) FROM submissions WHERE submission_method='mambu'"
+        )
+        .await,
+        1
+    );
+
+    // An import left in review at the Ministry by an earlier version is replaced too.
+    conn.execute_unprepared(&format!(
+        "UPDATE submissions SET status='in_review', current_tier='ministry' WHERE id='{sid}'"
+    ))
+    .await
+    .unwrap();
+    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+        .await
+        .unwrap();
+    let run_legacy = start_run(
+        &state,
+        2026,
+        9,
+        claims.clone(),
+        SyncScope::Cooperatives(vec![coop]),
+    )
+    .await
+    .unwrap();
+    assert_eq!(wait_for_run(&state, run_legacy.id).await, "completed");
+    assert_eq!(text(&conn, &row("status")).await, "draft");
+    assert_eq!(text(&conn, &row("current_tier")).await, "apex");
+
+    // A submission that was submitted is not overwritten by a sync.
+    conn.execute_unprepared(&format!(
+        "UPDATE submissions SET status='approved' WHERE id='{sid}'"
+    ))
+    .await
+    .unwrap();
+    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+        .await
+        .unwrap();
+    let claims_again = claims.clone();
+    let run3 = start_run(&state, 2026, 9, claims, SyncScope::Cooperatives(vec![coop]))
+        .await
+        .unwrap();
     assert_eq!(wait_for_run(&state, run3.id).await, "completed");
     let items3 = state.mambu_repo.list_items(run3.id).await.unwrap();
     assert_eq!(items3[0].status, "skipped");
@@ -192,29 +215,27 @@ async fn cooperative_sync_makes_a_draft_and_the_guards_hold() {
             .error
             .as_deref()
             .unwrap_or("")
-            .contains("in review"),
+            .contains("approved"),
         "{:?}",
         items3[0].error
     );
+    conn.execute_unprepared(&format!(
+        "UPDATE submissions SET status='draft' WHERE id='{sid}'"
+    ))
+    .await
+    .unwrap();
+    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+        .await
+        .unwrap();
 
     // Two requests for the same SACCO at the same moment: exactly one starts, and
     // the loser leaves no running run and no pending item behind.
-    let starts = |level| {
+    let starts = || {
         let state = state.clone();
         let claims = claims_again.clone();
-        async move {
-            start_run(
-                &state,
-                2026,
-                9,
-                claims,
-                level,
-                SyncScope::Cooperatives(vec![coop]),
-            )
-            .await
-        }
+        async move { start_run(&state, 2026, 9, claims, SyncScope::Cooperatives(vec![coop])).await }
     };
-    let (a, b) = tokio::join!(starts(SyncLevel::Ministry), starts(SyncLevel::Ministry));
+    let (a, b) = tokio::join!(starts(), starts());
     let (winner, loser) = match (a, b) {
         (Ok(w), Err(l)) | (Err(l), Ok(w)) => (w, l),
         other => panic!("expected one start and one refusal, got {other:?}"),

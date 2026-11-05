@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use tokio::sync::Semaphore;
+use tokio::task::JoinSet;
+
 use chrono::{Datelike, NaiveDate, Utc};
 use sea_orm::Set;
 use serde::Serialize;
@@ -17,13 +20,17 @@ use crate::entities::{
 };
 use crate::error::{AppError, AppResult};
 use crate::repositories::mambu::{RUN_COMPLETED, RUN_FAILED};
+use crate::services::mambu::arrears;
 use crate::services::mambu::client::MambuApiClient;
+use crate::services::mambu::derived;
+use crate::services::mambu::ledger_source::{self, LedgerSource};
 use crate::services::mambu::mapper::{
     self, branch_region, classify_deposit, map_fixed_deposit, map_ledger, map_loan, map_member,
     map_savings, month_end, share_balance_for, DropReason, KIND_FIXED_DEPOSIT, KIND_IGNORE,
     KIND_SHARE,
 };
 use crate::services::mambu::models::MambuBranch;
+use crate::services::mambu::totals;
 use crate::services::nf_excel_parser::NfParseResult;
 use crate::services::nf_persist::persist_nf_parse_result;
 use crate::services::SubmissionWorkflow;
@@ -45,61 +52,55 @@ pub const MAX_CONCURRENT_RUNS: usize = 3;
 /// A cooperative or apex cannot start a new sync for the same SACCO sooner than this.
 pub const COOLDOWN_MINUTES: i64 = 5;
 
-/// Who asked for the sync. It decides where the result lands in the review workflow.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SyncLevel {
-    /// Bulk sync of all SACCOs. The result waits for the Ministry review.
-    Ministry,
-    /// Sync of the cooperatives of one apex. The result is a draft at the apex.
-    Apex,
-    /// Sync of one SACCO. The result is a draft the SACCO checks and submits.
-    Cooperative,
+/// The user id recorded for syncs started by the scheduler.
+pub const SYSTEM_ACTOR: &str = "00000000-0000-0000-0000-000000000000";
+
+/// A sync makes a draft at the apex. Only the apex checks it, submits it (which approves
+/// it, the apex being the last level) and changes it. Everyone else can only read it.
+fn created_by_role() -> SubmissionCreatedByRole {
+    SubmissionCreatedByRole::Apex
 }
 
-impl SyncLevel {
-    fn created_by_role(self) -> SubmissionCreatedByRole {
-        match self {
-            Self::Ministry => SubmissionCreatedByRole::Ministry,
-            Self::Apex => SubmissionCreatedByRole::Apex,
-            Self::Cooperative => SubmissionCreatedByRole::Cooperative,
-        }
-    }
+fn review_tier() -> ReviewTier {
+    ReviewTier::Apex
+}
 
-    fn tier(self) -> ReviewTier {
-        match self {
-            Self::Ministry => ReviewTier::Ministry,
-            Self::Apex => ReviewTier::Apex,
-            Self::Cooperative => ReviewTier::Cooperative,
-        }
-    }
+fn draft_status() -> SubmissionStatus {
+    SubmissionStatus::Draft
+}
 
-    fn status(self) -> SubmissionStatus {
-        match self {
-            Self::Ministry => SubmissionStatus::InReview,
-            Self::Apex | Self::Cooperative => SubmissionStatus::Draft,
+/// A new sync replaces a draft. It also replaces an import that an earlier version of the
+/// sync left in review at the Ministry, because only the apex handles imports now.
+/// Submitted and approved returns are never touched.
+fn may_replace(sub: &submission::Model) -> bool {
+    match sub.status {
+        SubmissionStatus::Draft => true,
+        SubmissionStatus::InReview => {
+            sub.submission_method == SUBMISSION_METHOD && sub.current_tier == ReviewTier::Ministry
         }
+        _ => false,
     }
+}
 
-    fn enforces_cooldown(self) -> bool {
-        self != Self::Ministry
-    }
+fn review_comment(as_of: NaiveDate, today: NaiveDate, trigger: &str) -> String {
+    let period = if as_of > today {
+        format!("{today} (the month to date; it ends {as_of})")
+    } else {
+        as_of.to_string()
+    };
+    let how = if trigger == "scheduler" {
+        "the automatic sync"
+    } else {
+        "a sync"
+    };
+    format!("Imported from Mambu by {how} for {period}. Check the numbers and the warnings, then submit.")
+}
 
-    fn may_replace(self, status: &SubmissionStatus) -> bool {
-        match self {
-            Self::Ministry => {
-                matches!(status, SubmissionStatus::Draft | SubmissionStatus::InReview)
-            }
-            Self::Apex | Self::Cooperative => matches!(status, SubmissionStatus::Draft),
-        }
-    }
-
-    fn review_comment(self, as_of: NaiveDate) -> String {
-        match self {
-            Self::Ministry => format!("Imported from Mambu for {as_of}. Review before approving."),
-            Self::Apex | Self::Cooperative => {
-                format!("Imported from Mambu for {as_of}. Check the numbers, then submit.")
-            }
-        }
+fn trigger_of(actor: &Claims) -> &'static str {
+    if actor.sub == SYSTEM_ACTOR {
+        "scheduler"
+    } else {
+        "apex"
     }
 }
 
@@ -152,6 +153,9 @@ struct ReferenceData {
     deposit_overrides: HashMap<String, String>,
     loan_overrides: HashMap<String, String>,
     account_mappings: HashMap<String, (i32, i16)>,
+    /// Header accounts of the Mambu chart as (type, code). A report lists detail
+    /// accounts only, so the headers are read here to map accounts through them.
+    gl_headers: Vec<(String, String)>,
     coa: HashMap<i32, chart_of_account::Model>,
 }
 
@@ -170,7 +174,6 @@ pub async fn start_run(
     year: i32,
     month: u32,
     actor: Arc<Claims>,
-    level: SyncLevel,
     scope: SyncScope,
 ) -> AppResult<mambu_sync_run::Model> {
     let client = state.mambu_client.clone().ok_or_else(|| {
@@ -216,18 +219,8 @@ pub async fn start_run(
     };
     if links.is_empty() {
         return Err(AppError::BadRequest(
-            match level {
-                SyncLevel::Ministry => {
-                    "No SACCO is linked to a Mambu branch yet. Link at least one SACCO first."
-                }
-                SyncLevel::Apex => {
-                    "None of your cooperatives is linked to a Mambu branch yet. Link them first."
-                }
-                SyncLevel::Cooperative => {
-                    "This cooperative is not linked to a Mambu branch yet. Ask your apex to link it."
-                }
-            }
-            .into(),
+            "None of the selected cooperatives is linked to a Mambu branch yet. Link them first."
+                .into(),
         ));
     }
 
@@ -235,19 +228,15 @@ pub async fn start_run(
         .mambu_repo
         .pending_cooperative_ids(active_runs.iter().map(|r| r.id).collect())
         .await?;
-    let recent: HashSet<Uuid> = if level.enforces_cooldown() {
-        state
-            .mambu_repo
-            .last_sync_starts(
-                links.iter().map(|l| l.cooperative_id).collect(),
-                Utc::now() - chrono::Duration::minutes(COOLDOWN_MINUTES),
-            )
-            .await?
-            .into_keys()
-            .collect()
-    } else {
-        HashSet::new()
-    };
+    let recent: HashSet<Uuid> = state
+        .mambu_repo
+        .last_sync_starts(
+            links.iter().map(|l| l.cooperative_id).collect(),
+            Utc::now() - chrono::Duration::minutes(COOLDOWN_MINUTES),
+        )
+        .await?
+        .into_keys()
+        .collect();
     let (ready, blocked): (Vec<_>, Vec<_>) = links
         .into_iter()
         .partition(|l| !busy.contains(&l.cooperative_id) && !recent.contains(&l.cooperative_id));
@@ -328,9 +317,81 @@ pub async fn start_run(
     let task_state = state.clone();
     let task_run = run.clone();
     tokio::spawn(async move {
-        execute_run(task_state, client, task_run, items, links, actor, level).await;
+        execute_run(task_state, client, task_run, items, links, actor).await;
     });
     Ok(run)
+}
+
+/// Claims for work the server does by itself: the automatic sync and a sync it picks
+/// up again after a restart.
+pub fn system_claims(sub: &str, name: &str) -> Arc<Claims> {
+    let claims = serde_json::from_value::<Claims>(serde_json::json!({
+        "sub": sub, "exp": 4102444800u64, "iat": 0, "iss": "coopdata", "name": name
+    }));
+    Arc::new(claims.unwrap_or_else(|_| {
+        // The shape above is fixed, so this cannot fail; keep a harmless fallback.
+        serde_json::from_value(serde_json::json!({
+            "sub": SYSTEM_ACTOR, "exp": 4102444800u64, "iat": 0, "iss": "coopdata"
+        }))
+        .expect("system claims")
+    }))
+}
+
+/// Called once at start-up. A sync that was running when the server stopped is carried
+/// on for the SACCOs that had not finished, instead of being thrown away.
+pub async fn resume_interrupted_runs(state: &AppState) {
+    let Some(client) = state.mambu_client.clone() else {
+        return;
+    };
+    let runs = match state.mambu_repo.list_running_runs().await {
+        Ok(runs) => runs,
+        Err(e) => {
+            tracing::error!(error = %e, "Could not look for interrupted Mambu syncs");
+            return;
+        }
+    };
+    for run in runs {
+        if Utc::now() - run.started_at >= chrono::Duration::hours(STALE_RUN_HOURS) {
+            continue;
+        }
+        let items = match state.mambu_repo.list_items(run.id).await {
+            Ok(items) => items,
+            Err(_) => continue,
+        };
+        let mut todo = Vec::new();
+        let mut links = Vec::new();
+        for item in items.into_iter().filter(|i| i.status == ITEM_PENDING) {
+            let link = match item.cooperative_id {
+                Some(id) => state.mambu_repo.find_link(id).await.ok().flatten(),
+                None => None,
+            };
+            match link {
+                Some(link) => {
+                    todo.push(item);
+                    links.push(link);
+                }
+                None => {
+                    let mut item = item;
+                    item.status = ITEM_FAILED.to_string();
+                    item.error = Some("The Mambu link was removed before the sync finished".into());
+                    let _ = state.mambu_repo.save_item(item).await;
+                }
+            }
+        }
+        if todo.is_empty() {
+            let _ = state
+                .mambu_repo
+                .finish_run(run.id, RUN_COMPLETED, None)
+                .await;
+            continue;
+        }
+        tracing::info!(run_id = %run.id, saccos = todo.len(), "Continuing an interrupted Mambu sync");
+        let actor = system_claims(run.started_by.as_deref().unwrap_or(SYSTEM_ACTOR), "Sync");
+        let (state, client) = (state.clone(), client.clone());
+        tokio::spawn(async move {
+            execute_run(state, client, run, todo, links, actor).await;
+        });
+    }
 }
 
 async fn execute_run(
@@ -340,7 +401,6 @@ async fn execute_run(
     items: Vec<mambu_sync_item::Model>,
     links: Vec<mambu_branch_link::Model>,
     actor: Arc<Claims>,
-    level: SyncLevel,
 ) {
     let refs = match load_reference_data(&state, &client).await {
         Ok(r) => r,
@@ -356,51 +416,26 @@ async fn execute_run(
         }
     };
 
-    let year = run.reporting_year;
-    let month = run.month as u32;
-    for (mut item, link) in items.into_iter().zip(links) {
-        let result = sync_one(
-            &state, &client, &refs, &run, &link, year, month, &actor, level,
-        )
-        .await;
-        match result {
-            Ok(Outcome::Done {
-                submission_id,
-                warnings,
-                counts,
-                unmapped,
-            }) => {
-                let flagged = warnings.iter().any(|w| w.severity == "warning");
-                item.status = if flagged { ITEM_FLAGGED } else { ITEM_SYNCED }.to_string();
-                item.submission_id = Some(submission_id);
-                item.members = counts[0];
-                item.savings_accounts = counts[1];
-                item.loans = counts[2];
-                item.fixed_deposits = counts[3];
-                item.ledger_lines = counts[4];
-                item.unmapped_ledger_accounts = unmapped;
-                item.warnings = serde_json::to_value(&warnings).unwrap_or_default();
-            }
-            Ok(Outcome::Skipped(reason)) => {
-                item.status = ITEM_SKIPPED.to_string();
-                item.error = Some(reason);
-            }
-            Err(e) => {
-                tracing::error!(
-                    run_id = %run.id,
-                    branch = %link.mambu_branch_id,
-                    error = %e,
-                    "Mambu sync failed for a SACCO"
-                );
-                item.status = ITEM_FAILED.to_string();
-                item.error = Some(match e {
-                    AppError::InternalServerError(msg) => msg,
-                    _ => "Unexpected error while syncing this SACCO".to_string(),
-                });
-            }
-        }
-        if let Err(e) = state.mambu_repo.save_item(item).await {
-            tracing::error!(error = %e, "Could not save a Mambu sync result");
+    let refs = Arc::new(refs);
+    let semaphore = Arc::new(Semaphore::new(
+        state.config.mambu_sync_concurrency.clamp(1, 16),
+    ));
+    let mut tasks: JoinSet<()> = JoinSet::new();
+    for (item, link) in items.into_iter().zip(links) {
+        let state = state.clone();
+        let client = client.clone();
+        let refs = refs.clone();
+        let run = run.clone();
+        let actor = actor.clone();
+        let semaphore = semaphore.clone();
+        tasks.spawn(async move {
+            let _permit = semaphore.acquire_owned().await;
+            process_item(&state, &client, &refs, &run, item, link, &actor).await;
+        });
+    }
+    while let Some(finished) = tasks.join_next().await {
+        if let Err(e) = finished {
+            tracing::error!(run_id = %run.id, error = %e, "A Mambu sync task stopped unexpectedly");
         }
     }
     let _ = state
@@ -470,6 +505,18 @@ async fn load_reference_data(
         .into_iter()
         .map(|m| (m.mambu_gl_code, (m.coop_account_code, m.sign)))
         .collect();
+    let gl_headers = match client.gl_accounts().await {
+        Ok(list) => list
+            .into_iter()
+            .filter(|a| a.usage.as_deref() == Some("HEADER"))
+            .map(|a| (a.account_type, a.gl_code))
+            .collect(),
+        Err(e) => {
+            tracing::warn!(error = %e, "Mambu chart of accounts is not readable");
+            unavailable.push("chart of accounts");
+            Vec::new()
+        }
+    };
     let coa = state
         .coa_repo
         .find_all()
@@ -486,12 +533,68 @@ async fn load_reference_data(
         deposit_overrides,
         loan_overrides,
         account_mappings,
+        gl_headers,
         coa,
     })
 }
 
 fn tally(counts: &mut HashMap<&'static str, usize>, reason: DropReason) {
     *counts.entry(reason.code()).or_default() += 1;
+}
+
+#[allow(clippy::too_many_arguments)]
+/// Syncs one SACCO and stores its result. A failure only fails this SACCO.
+async fn process_item(
+    state: &AppState,
+    client: &MambuApiClient,
+    refs: &ReferenceData,
+    run: &mambu_sync_run::Model,
+    mut item: mambu_sync_item::Model,
+    link: mambu_branch_link::Model,
+    actor: &Arc<Claims>,
+) {
+    let year = run.reporting_year;
+    let month = run.month as u32;
+    let result = sync_one(state, client, refs, run, &link, year, month, actor).await;
+    match result {
+        Ok(Outcome::Done {
+            submission_id,
+            warnings,
+            counts,
+            unmapped,
+        }) => {
+            let flagged = warnings.iter().any(|w| w.severity == "warning");
+            item.status = if flagged { ITEM_FLAGGED } else { ITEM_SYNCED }.to_string();
+            item.submission_id = Some(submission_id);
+            item.members = counts[0];
+            item.savings_accounts = counts[1];
+            item.loans = counts[2];
+            item.fixed_deposits = counts[3];
+            item.ledger_lines = counts[4];
+            item.unmapped_ledger_accounts = unmapped;
+            item.warnings = serde_json::to_value(&warnings).unwrap_or_default();
+        }
+        Ok(Outcome::Skipped(reason)) => {
+            item.status = ITEM_SKIPPED.to_string();
+            item.error = Some(reason);
+        }
+        Err(e) => {
+            tracing::error!(
+                run_id = %run.id,
+                branch = %link.mambu_branch_id,
+                error = %e,
+                "Mambu sync failed for a SACCO"
+            );
+            item.status = ITEM_FAILED.to_string();
+            item.error = Some(match e {
+                AppError::InternalServerError(msg) => msg,
+                _ => "Unexpected error while syncing this SACCO".to_string(),
+            });
+        }
+    }
+    if let Err(e) = state.mambu_repo.save_item(item).await {
+        tracing::error!(error = %e, "Could not save a Mambu sync result");
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -504,7 +607,6 @@ async fn sync_one(
     year: i32,
     month: u32,
     actor: &Arc<Claims>,
-    level: SyncLevel,
 ) -> AppResult<Outcome> {
     let coop = state
         .cooperative_repo
@@ -540,6 +642,7 @@ async fn sync_one(
         .submission_repo
         .find_by_cooperative_and_period(coop.id, year, PeriodType::Monthly, &period_value)
         .await?;
+    let mut superseded: Vec<Uuid> = Vec::new();
     match &existing {
         Some(s) if s.submission_method != SUBMISSION_METHOD => {
             return Ok(Outcome::Skipped(format!(
@@ -547,7 +650,7 @@ async fn sync_one(
                 s.submission_method
             )))
         }
-        Some(s) if !level.may_replace(&s.status) => {
+        Some(s) if !may_replace(s) => {
             return Ok(Outcome::Skipped(format!(
                 "The submission for this period is already {}. It was not changed.",
                 s.status.as_str().replace('_', " ")
@@ -555,10 +658,32 @@ async fn sync_one(
         }
         Some(_) => {}
         None => {
-            let year_submissions = state
+            let mut year_submissions = state
                 .submission_repo
                 .find_all_by_cooperative_and_year(coop.id, year)
                 .await?;
+            // A whole-year return takes the place of single months that an earlier sync
+            // made and that may still be replaced; any other return keeps blocking it.
+            if whole_year {
+                let mut held: Option<String> = None;
+                year_submissions.retain(|s| {
+                    let single_month = s.submission_method == SUBMISSION_METHOD
+                        && s.period_value != crate::services::period_rules::FULL_YEAR;
+                    if single_month && may_replace(s) {
+                        superseded.push(s.id);
+                        return false;
+                    }
+                    if single_month {
+                        held = Some(s.status.as_str().replace('_', " "));
+                    }
+                    true
+                });
+                if let Some(status) = held {
+                    return Ok(Outcome::Skipped(format!(
+                        "A single-month Mambu return for {year} is already {status} and cannot be replaced from here. It was not changed."
+                    )));
+                }
+            }
             if let Err(reason) = crate::services::period_rules::check_frequency(
                 &year_submissions,
                 PeriodType::Monthly,
@@ -577,38 +702,34 @@ async fn sync_one(
         }
     }
 
-    let clients = client.clients(&link.mambu_branch_id).await?;
-    let deposits = client.deposits(&link.mambu_branch_id).await?;
-    let loans = client.loans(&link.mambu_branch_id).await?;
-    // The month reports are essential and are read first, one at a time: Mambu refuses a
-    // new report while it is still building another. The report of the previous year end
-    // only splits the surplus, so it comes last and its failure is not an error.
-    let mut reports: Vec<(u32, crate::services::mambu::models::MambuReport)> = Vec::new();
-    let mut unreliable_months: Vec<u32> = Vec::new();
-    for &m in &months {
-        let start = NaiveDate::from_ymd_opt(year, m, 1).unwrap_or(as_of);
-        let end = month_end(year, m).unwrap_or(as_of);
-        match client
-            .accounting_report(&link.mambu_branch_id, start, end)
-            .await
-        {
-            Ok(report) => reports.push((m, report)),
-            Err(e) if whole_year => {
-                tracing::warn!(branch = %link.mambu_branch_id, month = m, error = %e, "Mambu report not available for a month");
-                unreliable_months.push(m);
-            }
-            Err(e) => return Err(e),
-        }
-    }
-    let year_start_earnings = prior_year_end_earnings(client, &link.mambu_branch_id, year).await;
+    let lists = client.branch_lists(&link.mambu_branch_id).await?;
+    let (clients, deposits, loans) = (lists.clients, lists.deposits, lists.loans);
+    let ledger_input = ledger_source::load_ledger(
+        client,
+        &state.mambu_repo,
+        &link.mambu_branch_id,
+        year,
+        &months,
+        whole_year,
+        as_of,
+    )
+    .await?;
+    let year_start_earnings = ledger_input.year_start_earnings;
+    let ledger_source = ledger_input.source;
+    let mut unreliable_months: Vec<u32> = ledger_input.failed_months.clone();
     let mut ledgers: Vec<(i16, mapper::LedgerResult)> = Vec::new();
-    for (m, report) in &reports {
-        let ledger = map_ledger(&report.items, year_start_earnings, &refs.account_mappings);
-        let summary = mapper::summarize_earnings(&report.items);
+    for (m, items) in &ledger_input.months {
+        let ledger = map_ledger(
+            items,
+            year_start_earnings,
+            &refs.account_mappings,
+            &refs.gl_headers,
+        );
+        let summary = mapper::summarize_earnings(items);
         tracing::info!(
             branch = %link.mambu_branch_id,
             month = m,
-            items = report.items.len(),
+            items = items.len(),
             income_closing = %summary.income_closing,
             expense_closing = %summary.expense_closing,
             income_movement = %summary.income_movement,
@@ -632,9 +753,13 @@ async fn sync_one(
     let mut holder_codes: HashMap<String, String> = HashMap::new();
     let mut member_index: HashMap<String, usize> = HashMap::new();
 
+    let mut region_assumed = 0usize;
     for c in &clients {
         match map_member(c, fallback_region.clone(), as_of) {
             Ok(record) => {
+                if !mapper::member_region_known(c) {
+                    region_assumed += 1;
+                }
                 holder_codes.insert(c.encoded_key.clone(), record.member_id.clone());
                 member_index.insert(record.member_id.clone(), result.members.len());
                 result.members.push(record);
@@ -643,6 +768,7 @@ async fn sync_one(
         }
     }
 
+    let mut loan_type_defaulted = 0usize;
     let mut fd_defaulted = 0usize;
     let mut ignored_deposits = 0usize;
     for d in &deposits {
@@ -706,7 +832,17 @@ async fn sync_one(
             continue;
         };
         match map_loan(l, holder, override_type.map(String::as_str), as_of) {
-            Ok(record) => result.loans.push(record),
+            Ok(record) => {
+                if override_type.is_none()
+                    && !mapper::loan_type_matched(
+                        l.loan_name.as_deref().unwrap_or(""),
+                        l.loan_info.as_ref().and_then(|i| i.loanp.as_deref()),
+                    )
+                {
+                    loan_type_defaulted += 1;
+                }
+                result.loans.push(record)
+            }
             Err(reason) => tally(&mut drops, reason),
         }
     }
@@ -728,6 +864,19 @@ async fn sync_one(
 
     let approximate = as_of < month_end(Utc::now().year(), Utc::now().month()).unwrap_or(as_of);
 
+    // The loan list is as at the sync time, so the arrears buckets only fit the month
+    // that is running now.
+    let today = Utc::now().date_naive();
+    let mut arrears_split = false;
+    for (m, ledger) in ledgers.iter_mut() {
+        if year == today.year()
+            && u32::try_from(*m).ok() == Some(today.month())
+            && !arrears::split_arrears(&mut ledger.lines, &result.loans).is_zero()
+        {
+            arrears_split = true;
+        }
+    }
+
     let submission_id = write_submission(
         state,
         &coop,
@@ -741,9 +890,21 @@ async fn sync_one(
         &ledgers,
         &refs.coa,
         actor,
-        level,
     )
     .await?;
+    for id in superseded {
+        state.submission_repo.delete(id).await?;
+    }
+    let period_start = if whole_year {
+        NaiveDate::from_ymd_opt(year, 1, 1).unwrap_or(as_of)
+    } else {
+        NaiveDate::from_ymd_opt(year, month, 1).unwrap_or(as_of)
+    };
+    if let Err(e) =
+        derived::save_indicators(state, submission_id, &result.members, period_start, as_of).await
+    {
+        tracing::warn!(error = %e, "Could not save the indicators counted from the member list");
+    }
 
     let mut warnings: Vec<SyncWarning> = Vec::new();
     let mut codes: Vec<_> = drops.into_iter().collect();
@@ -790,6 +951,44 @@ async fn sync_one(
             fd_defaulted,
             "Maturity date missing in Mambu; the product term (12 months if unknown) was used",
         ));
+    }
+    if arrears_split {
+        warnings.push(SyncWarning::info(
+            "ARREARS_SPLIT_CURRENT_MONTH",
+            1,
+            "Loans in arrears were split into the 1-30, 31-60, 61-90 and 91+ day lines from the loan list as at the sync time. This applies to the current month only; earlier months show all loans as performing, because Mambu's ledger does not classify arrears.",
+        ));
+    }
+    if region_assumed > 0 {
+        warnings.push(SyncWarning::info(
+            "MEMBER_REGION_ASSUMED",
+            region_assumed,
+            "These members have no region in Mambu. The region of the cooperative was used, so regional figures are approximate.",
+        ));
+    }
+    if loan_type_defaulted > 0 {
+        warnings.push(SyncWarning::info(
+            "LOAN_TYPE_DEFAULTED",
+            loan_type_defaulted,
+            "The product name and purpose of these loans say nothing about their type, so they are reported as Personal. Map the loan products under Mapping to change this.",
+        ));
+    }
+    warnings.push(SyncWarning::info(
+        "FIELDS_NOT_IN_MAMBU",
+        1,
+        "Mambu does not hold these fields, so they carry a fixed value and are not real data: members' urban or rural, AGM attendance and voting; savings contribution frequency, number of contributions, balance trend and withdrawal behaviour; fixed deposit renewals and rollover; loans' missed installments, early settlement, large borrower and rural borrower.",
+    ));
+    match ledger_source {
+        LedgerSource::Journal => warnings.push(SyncWarning::info(
+            "LEDGER_FROM_JOURNAL",
+            ledgers.len(),
+            "The ledger was rebuilt from the Mambu general ledger (journal entries), because Mambu's accounting reports do not balance for older periods.",
+        )),
+        LedgerSource::Reports => warnings.push(SyncWarning::warning(
+            "LEDGER_FROM_REPORTS",
+            ledgers.len(),
+            "The Mambu general ledger could not be read, so Mambu's accounting reports were used. Months where the report does not balance are left empty.",
+        )),
     }
     let unmapped_codes: HashSet<&str> = ledgers
         .iter()
@@ -872,24 +1071,6 @@ fn last_started_month(year: i32, today: NaiveDate) -> u32 {
     }
 }
 
-/// All earnings at the end of the previous year, from a report that balances. Used to
-/// split the surplus; a failure only means the split is not done.
-async fn prior_year_end_earnings(
-    client: &MambuApiClient,
-    branch_id: &str,
-    year: i32,
-) -> Option<rust_decimal::Decimal> {
-    let start = NaiveDate::from_ymd_opt(year - 1, 12, 1)?;
-    let end = NaiveDate::from_ymd_opt(year - 1, 12, 31)?;
-    match client.accounting_report(branch_id, start, end).await {
-        Ok(report) => mapper::earnings_of_report(&report.items),
-        Err(e) => {
-            tracing::warn!(branch = %branch_id, error = %e, "Mambu previous year end report not available");
-            None
-        }
-    }
-}
-
 const MONTH_NAMES: [&str; 12] = [
     "January",
     "February",
@@ -919,12 +1100,11 @@ async fn write_submission(
     ledgers: &[(i16, mapper::LedgerResult)],
     coa: &HashMap<i32, chart_of_account::Model>,
     actor: &Arc<Claims>,
-    level: SyncLevel,
 ) -> AppResult<Uuid> {
     let metadata = serde_json::json!({
         "source": "mambu",
         "sync_run_id": run.id,
-        "triggered_by": format!("{level:?}").to_lowercase(),
+        "triggered_by": trigger_of(actor),
         "as_of": as_of.to_string(),
         "lists_as_at_sync_time": approximate,
     });
@@ -946,16 +1126,10 @@ async fn write_submission(
                 period_type: Set(PeriodType::Monthly),
                 period_value: Set(period_value.to_string()),
                 fiscal_start_month: Set(1),
-                status: Set(level.status()),
-                current_tier: Set(level.tier()),
-                submitted_by: Set(match level {
-                    SyncLevel::Ministry => None,
-                    _ => created_by,
-                }),
-                submitted_at: Set(match level {
-                    SyncLevel::Ministry => Some(Utc::now()),
-                    _ => None,
-                }),
+                status: Set(draft_status()),
+                current_tier: Set(review_tier()),
+                submitted_by: Set(created_by),
+                submitted_at: Set(None),
                 last_reviewed_by: Set(None),
                 last_reviewed_at: Set(None),
                 rejection_reason: Set(None),
@@ -964,7 +1138,7 @@ async fn write_submission(
                 submission_method: Set(SUBMISSION_METHOD.to_string()),
                 created_at: Set(Utc::now()),
                 updated_at: Set(Utc::now()),
-                created_by_role: Set(level.created_by_role()),
+                created_by_role: Set(created_by_role()),
                 created_by_user_id: Set(created_by),
                 created_by_name: Set(actor
                     .name
@@ -1021,7 +1195,7 @@ async fn write_submission(
         })
         .await?;
     for (month, ledger) in ledgers {
-        for line in &ledger.lines {
+        for line in &totals::with_totals(&ledger.lines, coa) {
             let Some(account) = coa.get(&line.account_code) else {
                 continue;
             };
@@ -1098,17 +1272,21 @@ async fn write_submission(
 
     state
         .submission_repo
-        .update_status(submission_id, level.status(), level.tier())
+        .update_status(submission_id, draft_status(), review_tier())
         .await?;
     state
         .review_repo
         .create(submission_review::ActiveModel {
             id: Set(Uuid::new_v4()),
             submission_id: Set(submission_id),
-            tier: Set(level.tier()),
+            tier: Set(review_tier()),
             reviewer_id: Set(Uuid::parse_str(&actor.sub).ok()),
             action: Set(ReviewAction::Comment),
-            comment: Set(Some(level.review_comment(as_of))),
+            comment: Set(Some(review_comment(
+                as_of,
+                Utc::now().date_naive(),
+                trigger_of(actor),
+            ))),
             target_tier: Set(None),
             created_at: Set(Utc::now()),
         })

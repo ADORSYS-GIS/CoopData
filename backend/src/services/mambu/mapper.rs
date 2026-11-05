@@ -203,10 +203,43 @@ pub fn map_member(
         region,
         urban_rural: UrbanRural::Unknown,
         agm_attendance: false,
-        leadership_role: None,
+        leadership_role: (category == "board").then(|| "Board member".to_string()),
         voting_exercised: false,
         share_balance: Decimal::ZERO,
     })
+}
+
+/// Whether the member's own region is in Mambu. When it is not, the region of the
+/// cooperative is used.
+pub fn member_region_known(client: &MambuClient) -> bool {
+    client
+        .adl
+        .as_ref()
+        .and_then(|a| a.region.as_deref())
+        .and_then(EswatiniRegion::parse)
+        .is_some()
+}
+
+/// Whether a loan type could be worked out from the product name or the purpose, or
+/// whether it fell back to "Personal" because nothing matched.
+pub fn loan_type_matched(name: &str, purpose: Option<&str>) -> bool {
+    let hay = format!("{} {}", name, purpose.unwrap_or("")).to_lowercase();
+    [
+        "school",
+        "educat",
+        "study",
+        "agri",
+        "farm",
+        "crop",
+        "business",
+        "sme",
+        "enterprise",
+        "building",
+        "funeral",
+        "mortgage",
+    ]
+    .iter()
+    .any(|k| hay.contains(k))
 }
 
 pub fn classify_deposit(deposit: &MambuDeposit, override_type: Option<&str>) -> &'static str {
@@ -223,7 +256,9 @@ pub fn classify_deposit(deposit: &MambuDeposit, override_type: Option<&str>) -> 
     if name.contains("share") {
         return KIND_SHARE;
     }
-    const IGNORED: [&str; 11] = [
+    const IGNORED: [&str; 13] = [
+        "over-payment",
+        "over payment",
         "collection",
         "settlement",
         "overpayment",
@@ -241,6 +276,7 @@ pub fn classify_deposit(deposit: &MambuDeposit, override_type: Option<&str>) -> 
     }
     match deposit.account_type.as_deref().unwrap_or("") {
         "FIXED_DEPOSIT" | "SAVINGS_PLAN" => KIND_FIXED_DEPOSIT,
+        _ if name.contains("fixed deposit") => KIND_FIXED_DEPOSIT,
         _ if name.contains("mandatory") || name.contains("compulsory") => KIND_MANDATORY,
         _ => KIND_VOLUNTARY,
     }
@@ -412,7 +448,9 @@ pub fn map_fixed_deposit(
                 FdStatus::Matured
             }
         }
-        _ if maturity <= as_of => FdStatus::Matured,
+        // A maturity worked out from an assumed term must not overrule the state Mambu
+        // gives: an account Mambu calls active stays active.
+        _ if explicit_maturity.is_some() && maturity <= as_of => FdStatus::Matured,
         _ => FdStatus::Active,
     };
     let early_withdrawal =
@@ -853,6 +891,7 @@ pub fn map_ledger(
     month_items: &[ReportItem],
     year_start_earnings: Option<Decimal>,
     mappings: &HashMap<String, (i32, i16)>,
+    gl_headers: &[(String, String)],
 ) -> LedgerResult {
     let style = match detect_sign_style(month_items) {
         Ok(style) => style,
@@ -876,7 +915,8 @@ pub fn map_ledger(
                     i.gl_account.account_type.as_str(),
                     i.gl_account.gl_code.as_str(),
                 )
-            }),
+            })
+            .chain(gl_headers.iter().map(|(t, c)| (t.as_str(), c.as_str()))),
     );
 
     for item in month_items.iter().filter(|i| reportable(i)) {
@@ -1104,6 +1144,9 @@ mod tests {
         dep.account_type = Some("SAVINGS_PLAN".into());
         assert_eq!(classify_deposit(&dep, None), KIND_FIXED_DEPOSIT);
         assert_eq!(classify_deposit(&dep, Some("Mandatory")), KIND_MANDATORY);
+        dep.name = Some("FIXED DEPOSIT - PROPERTY".into());
+        dep.account_type = Some("REGULAR_SAVINGS".into());
+        assert_eq!(classify_deposit(&dep, None), KIND_FIXED_DEPOSIT);
     }
 
     #[test]
@@ -1153,6 +1196,57 @@ mod tests {
         assert_eq!(fd.maturity_date, d(2027, 1, 19));
         assert_eq!(fd.status, FdStatus::Active);
         assert_eq!(fd.tenure_category, "Medium");
+    }
+
+    #[test]
+    fn an_active_fixed_deposit_without_a_maturity_date_stays_active() {
+        // Started 2 years ago: the assumed 12-month term has passed, but Mambu says active.
+        let dep = MambuDeposit {
+            encoded_key: "fd3".into(),
+            account_state: Some("ACTIVE".into()),
+            activation_date: Some("2024-01-19T00:00:00+02:00".into()),
+            ..Default::default()
+        };
+        let (fd, defaulted) = map_fixed_deposit(&dep, "SAP1", d(2026, 9, 30), None).unwrap();
+        assert!(defaulted);
+        assert_eq!(fd.status, FdStatus::Active);
+    }
+
+    #[test]
+    fn member_over_payment_accounts_are_not_savings() {
+        let dep = MambuDeposit {
+            name: Some("Member Over-Payments".into()),
+            account_type: Some("CURRENT_ACCOUNT".into()),
+            ..Default::default()
+        };
+        assert_eq!(classify_deposit(&dep, None), KIND_IGNORE);
+    }
+
+    #[test]
+    fn a_board_member_gets_a_leadership_role() {
+        let client = MambuClient {
+            encoded_key: "k".into(),
+            id: "M1".into(),
+            state: Some("ACTIVE".into()),
+            birth_date: Some("1980-01-01".into()),
+            adl: Some(ClientAdl {
+                mcat: Some("Board".into()),
+                date_joined: Some("2020-01-01T00:00:00+02:00".into()),
+                region: Some("MANZINI".into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let member = map_member(&client, None, d(2026, 9, 30)).unwrap();
+        assert_eq!(member.leadership_role.as_deref(), Some("Board member"));
+        assert!(member_region_known(&client));
+    }
+
+    #[test]
+    fn a_loan_type_is_only_matched_by_a_known_word() {
+        assert!(loan_type_matched("School fees loan", None));
+        assert!(loan_type_matched("Quick Loan", Some("CATTLE FARM")));
+        assert!(!loan_type_matched("Quick Loan", None));
     }
 
     #[test]
@@ -1339,7 +1433,7 @@ mod tests {
         map.insert("4001".to_string(), (4101, 1i16));
         map.insert("5001".to_string(), (5201, 1i16));
         map.insert("1250".to_string(), (1251, -1i16));
-        let r = map_ledger(&month, None, &map);
+        let r = map_ledger(&month, None, &map, &[]);
         assert_eq!(r.status, LedgerStatus::Balanced);
         assert_eq!(ledger_value(&r, 1102), to_decimal(150.5));
         assert_eq!(
@@ -1384,7 +1478,7 @@ mod tests {
         map.insert("2050".to_string(), (1251, -1i16));
         map.insert("5000".to_string(), (2101, 1i16));
         map.insert("6001".to_string(), (3101, 1i16));
-        let r = map_ledger(&month, None, &map);
+        let r = map_ledger(&month, None, &map, &[]);
         assert_eq!(
             ledger_value(&r, 1102),
             to_decimal(100.0),
@@ -1411,7 +1505,7 @@ mod tests {
         let mut map = HashMap::new();
         map.insert("1100".to_string(), (1102, 1i16));
         map.insert("6001".to_string(), (3101, 1i16));
-        let r = map_ledger(&month, None, &map);
+        let r = map_ledger(&month, None, &map, &[]);
         assert_eq!(r.unmapped.len(), 1);
         assert_eq!(r.unmapped[0].gl_code, "1150");
     }
@@ -1436,9 +1530,27 @@ mod tests {
     }
 
     #[test]
+    fn accounts_are_mapped_through_headers_read_from_the_chart() {
+        // A report lists detail accounts only; header 1100 maps its sub-accounts.
+        let mut map = surplus_map();
+        map.remove("1101");
+        map.insert("1100".to_string(), (1102, 1i16));
+        let headers = vec![("ASSET".to_string(), "1100".to_string())];
+        let with = map_ledger(&balanced_month(), None, &map, &headers);
+        let without = map_ledger(&balanced_month(), None, &map, &[]);
+        assert!(with.unmapped.iter().all(|u| u.gl_code != "1101"));
+        assert!(without.unmapped.iter().any(|u| u.gl_code == "1101"));
+    }
+
+    #[test]
     fn surplus_is_split_with_the_earnings_of_the_previous_year_end() {
         // All earnings 350, of which 300 existed at the start of the year.
-        let r = map_ledger(&balanced_month(), Some(to_decimal(300.0)), &surplus_map());
+        let r = map_ledger(
+            &balanced_month(),
+            Some(to_decimal(300.0)),
+            &surplus_map(),
+            &[],
+        );
         assert!(r.surplus_split);
         assert_eq!(
             ledger_value(&r, ACCUMULATED_SURPLUS_CODE),
@@ -1456,7 +1568,7 @@ mod tests {
 
     #[test]
     fn without_the_year_start_earnings_all_earnings_stay_accumulated() {
-        let r = map_ledger(&balanced_month(), None, &surplus_map());
+        let r = map_ledger(&balanced_month(), None, &surplus_map(), &[]);
         assert_eq!(r.status, LedgerStatus::Balanced);
         assert!(!r.surplus_split);
         assert_eq!(
@@ -1491,7 +1603,7 @@ mod tests {
         ];
         assert_eq!(detect_sign_style(&month), Ok(SignStyle::Signed));
         assert_eq!(detect_sign_style(&balanced_month()), Ok(SignStyle::Natural));
-        let r = map_ledger(&month, None, &surplus_map());
+        let r = map_ledger(&month, None, &surplus_map(), &[]);
         assert_eq!(ledger_value(&r, 2101), to_decimal(500.0));
         assert_eq!(ledger_value(&r, 3101), to_decimal(150.0));
         assert_eq!(
@@ -1507,7 +1619,7 @@ mod tests {
             detail("5001", "LIABILITY", bal(400.0)),
             detail("6001", "EQUITY", bal(100.0)),
         ];
-        let r = map_ledger(&month, None, &surplus_map());
+        let r = map_ledger(&month, None, &surplus_map(), &[]);
         assert!(r.lines.is_empty());
         match r.status {
             LedgerStatus::Unbalanced { gap } => assert_eq!(gap, to_decimal(500.0)),
@@ -1525,7 +1637,7 @@ mod tests {
         ];
         let mut map = HashMap::new();
         map.insert("7001".to_string(), (ACCUMULATED_SURPLUS_CODE, 1i16));
-        let r = map_ledger(&month, None, &map);
+        let r = map_ledger(&month, None, &map, &[]);
         assert_eq!(ledger_value(&r, ACCUMULATED_SURPLUS_CODE), to_decimal(70.0));
     }
 

@@ -19,6 +19,8 @@ pub mod legal_policy;
 pub mod loan;
 pub mod mambu_account_mapping;
 pub mod mambu_branch_link;
+pub mod mambu_ledger_cache;
+pub mod mambu_ledger_month;
 pub mod mambu_product_mapping;
 pub mod mambu_sync_item;
 pub mod mambu_sync_run;

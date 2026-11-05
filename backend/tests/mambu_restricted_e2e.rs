@@ -13,7 +13,7 @@ use common::mambu::{fake_mambu_restricted, scalar, serve, wait_for_run};
 use coop_data_backend::auth::claims::Claims;
 use coop_data_backend::services::mambu::client::MambuApiClient;
 use coop_data_backend::services::mambu::linking::{link_cooperative, search_branches};
-use coop_data_backend::services::mambu::sync::{start_run, SyncLevel, SyncScope};
+use coop_data_backend::services::mambu::sync::{start_run, SyncScope};
 use sea_orm::ConnectionTrait;
 use serde_json::json;
 use uuid::Uuid;
@@ -70,7 +70,7 @@ async fn a_user_that_cannot_list_branches_and_products_still_links_and_syncs() {
         }))
         .unwrap(),
     );
-    let run = start_run(&state, 2026, 9, claims, SyncLevel::Ministry, SyncScope::All)
+    let run = start_run(&state, 2026, 9, claims, SyncScope::All)
         .await
         .unwrap();
     assert_eq!(wait_for_run(&state, run.id).await, "completed");

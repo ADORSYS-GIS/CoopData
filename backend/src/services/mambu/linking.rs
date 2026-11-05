@@ -200,7 +200,25 @@ pub async fn link_cooperative(
         }
         return Err(e);
     }
+    warm_ledger_cache(state, &branch_id);
     Ok(branch_id)
+}
+
+/// Reads the history of a newly linked branch in the background, so that its first
+/// sync is quick. A failure is only logged: the sync reads what is missing itself.
+fn warm_ledger_cache(state: &AppState, branch_id: &str) {
+    let Some(client) = state.mambu_client.clone() else {
+        return;
+    };
+    let repo = state.mambu_repo.clone();
+    let branch = branch_id.to_string();
+    tokio::spawn(async move {
+        if let Err(e) =
+            crate::services::mambu::ledger_source::warm_cache(&client, &repo, &branch).await
+        {
+            tracing::warn!(branch = %branch, error = %e, "Mambu ledger cache could not be warmed");
+        }
+    });
 }
 
 #[cfg(test)]

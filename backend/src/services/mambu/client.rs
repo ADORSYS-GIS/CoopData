@@ -1,4 +1,8 @@
+use std::sync::Arc;
 use std::time::Duration;
+
+use tokio::sync::Semaphore;
+use tokio::task::JoinSet;
 
 use chrono::NaiveDate;
 use reqwest::{Client, RequestBuilder, StatusCode};
@@ -8,11 +12,14 @@ use serde_json::json;
 use crate::config::AppConfig;
 use crate::error::{AppError, AppResult};
 use crate::services::mambu::models::{
-    MambuBranch, MambuClient, MambuDeposit, MambuLoan, MambuProduct, MambuReport,
+    MambuBranch, MambuClient, MambuDeposit, MambuJournalEntry, MambuLoan, MambuProduct, MambuReport,
 };
 
 const ACCEPT_V2: &str = "application/vnd.mambu.v2+json";
-const MAX_ATTEMPTS: u32 = 3;
+const MAX_ATTEMPTS: u32 = 6;
+const PAGE_ATTEMPTS: u32 = 3;
+/// Pages of one list asked for at the same time.
+const SEARCH_PARALLEL_PAGES: u64 = 4;
 const REPORT_POLLS: u32 = 120;
 /// Mambu builds one accounting report at a time for the whole tenant and refuses a new
 /// one with ANOTHER_TASK_IN_PROGRESS. The client waits and asks again for up to 10 minutes.
@@ -26,6 +33,25 @@ enum Credentials {
     ApiKey(String),
 }
 
+/// The three lists of a branch.
+pub struct BranchLists {
+    pub clients: Vec<MambuClient>,
+    pub deposits: Vec<MambuDeposit>,
+    pub loans: Vec<MambuLoan>,
+}
+
+fn from_values<T: DeserializeOwned>(values: Vec<serde_json::Value>) -> AppResult<Vec<T>> {
+    values
+        .into_iter()
+        .map(|v| {
+            serde_json::from_value(v).map_err(|e| {
+                tracing::warn!(error = %e, "Unexpected Mambu record");
+                AppError::InternalServerError("Unexpected response from Mambu".into())
+            })
+        })
+        .collect()
+}
+
 /// Read-only client for the Mambu REST API v2. It never issues a write: the only
 /// POST it makes starts an asynchronous accounting report.
 #[derive(Clone)]
@@ -36,6 +62,8 @@ pub struct MambuApiClient {
     page_size: u32,
     report_poll_delay: Duration,
     busy_delay: Duration,
+    /// Requests in flight at once over every sync that shares this client.
+    inflight: Arc<Semaphore>,
 }
 
 impl MambuApiClient {
@@ -70,6 +98,7 @@ impl MambuApiClient {
             page_size: config.mambu_page_size.clamp(10, 1000),
             report_poll_delay: REPORT_POLL_DELAY,
             busy_delay: BUSY_DELAY,
+            inflight: Arc::new(Semaphore::new(config.mambu_max_inflight.clamp(1, 64))),
         })
     }
 
@@ -83,6 +112,7 @@ impl MambuApiClient {
             page_size: page_size.max(1),
             report_poll_delay: Duration::from_millis(50),
             busy_delay: Duration::from_millis(20),
+            inflight: Arc::new(Semaphore::new(8)),
         }
     }
 
@@ -104,6 +134,7 @@ impl MambuApiClient {
         let mut attempt = 0;
         loop {
             attempt += 1;
+            let _permit = self.inflight.acquire().await.ok();
             let result = self.request(make()).send().await;
             match result {
                 Ok(resp) => {
@@ -111,7 +142,7 @@ impl MambuApiClient {
                     let retryable =
                         status == StatusCode::TOO_MANY_REQUESTS || status.is_server_error();
                     if retryable && attempt < MAX_ATTEMPTS {
-                        tokio::time::sleep(Duration::from_secs(u64::from(attempt) * 2)).await;
+                        tokio::time::sleep(Duration::from_secs(u64::from(attempt) * 5)).await;
                         continue;
                     }
                     if !status.is_success() {
@@ -125,7 +156,7 @@ impl MambuApiClient {
                 }
                 Err(e) => {
                     if attempt < MAX_ATTEMPTS {
-                        tokio::time::sleep(Duration::from_secs(u64::from(attempt) * 2)).await;
+                        tokio::time::sleep(Duration::from_secs(u64::from(attempt) * 5)).await;
                         continue;
                     }
                     tracing::warn!(error = %e, request = label, "Mambu request error");
@@ -134,6 +165,36 @@ impl MambuApiClient {
                     ));
                 }
             }
+        }
+    }
+
+    /// Sends one page request and decodes it. A body that is cut off or cannot be read is
+    /// asked for again a few times, because deep pages of a big branch sometimes fail once.
+    /// The log names the cause (transport or JSON position) but never the record data.
+    async fn read_page<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        offset: u32,
+        make: impl Fn() -> RequestBuilder,
+    ) -> AppResult<Vec<T>> {
+        let mut attempt = 0;
+        loop {
+            attempt += 1;
+            let resp = self.send(path, &make).await?;
+            let cause = match resp.bytes().await {
+                Ok(bytes) => match serde_json::from_slice::<Vec<T>>(&bytes) {
+                    Ok(page) => return Ok(page),
+                    Err(e) => format!("JSON line {} column {}: {}", e.line(), e.column(), e),
+                },
+                Err(e) => format!("body not received: {e}"),
+            };
+            tracing::warn!(path, offset, attempt, cause = %cause, "Unexpected Mambu response");
+            if attempt >= PAGE_ATTEMPTS {
+                return Err(AppError::InternalServerError(
+                    "Unexpected response from Mambu".into(),
+                ));
+            }
+            tokio::time::sleep(Duration::from_secs(u64::from(attempt) * 5)).await;
         }
     }
 
@@ -148,18 +209,14 @@ impl MambuApiClient {
             let url = format!("{}{}", self.base_url, path);
             let limit = self.page_size.to_string();
             let off = offset.to_string();
-            let resp = self
-                .send(path, || {
+            let page: Vec<T> = self
+                .read_page(path, offset, || {
                     self.http
                         .get(&url)
                         .query(query)
                         .query(&[("limit", limit.as_str()), ("offset", off.as_str())])
                 })
                 .await?;
-            let page: Vec<T> = resp.json().await.map_err(|e| {
-                tracing::warn!(error = %e, path, "Unexpected Mambu response");
-                AppError::InternalServerError("Unexpected response from Mambu".into())
-            })?;
             let count = page.len() as u32;
             tracing::info!(path, offset, count, "Mambu page read");
             all.extend(page);
@@ -178,7 +235,7 @@ impl MambuApiClient {
 
     /// Reads the records of one branch with the server-side search. The plain list
     /// ignores its branch filter for deposits and loans and would read the whole tenant.
-    async fn search_pages<T: DeserializeOwned>(
+    async fn search_pages<T: DeserializeOwned + Send + 'static>(
         &self,
         path: &str,
         branch_field: &str,
@@ -199,44 +256,153 @@ impl MambuApiClient {
                 )
                 .await;
         };
+        self.search_pages_by_key(path, branch_field, &branch_key)
+            .await
+    }
+
+    /// The records of one branch. The first request gives the total, then the pages are
+    /// read a few at a time. When Mambu gives no total the pages are read one by one.
+    async fn search_pages_by_key<T: DeserializeOwned + Send + 'static>(
+        &self,
+        path: &str,
+        branch_field: &str,
+        branch_key: &str,
+    ) -> AppResult<Vec<T>> {
         let body = serde_json::json!({
             "filterCriteria": [{"field": branch_field, "operator": "EQUALS", "value": branch_key}],
             "sortingCriteria": {"field": "encodedKey", "order": "ASC"},
         });
-        let url = format!("{}{}:search", self.base_url, path);
+        let page_size = u64::from(self.page_size);
+        let total = self.search_total(path, &body).await;
         let mut all: Vec<T> = Vec::new();
-        let mut offset: u32 = 0;
-        loop {
-            let limit = self.page_size.to_string();
-            let off = offset.to_string();
-            let resp = self
-                .send(path, || {
-                    self.http
-                        .post(&url)
-                        .query(&[
-                            ("detailsLevel", "FULL"),
-                            ("limit", limit.as_str()),
-                            ("offset", off.as_str()),
-                        ])
-                        .json(&body)
-                })
-                .await?;
-            let page: Vec<T> = resp.json().await.map_err(|e| {
-                tracing::warn!(error = %e, path, "Unexpected Mambu response");
-                AppError::InternalServerError("Unexpected response from Mambu".into())
-            })?;
-            let count = page.len() as u32;
-            tracing::info!(path, offset, count, "Mambu page read");
-            all.extend(page);
-            if count < self.page_size {
-                break;
+        match total {
+            Some(0) => {}
+            Some(total) if total > page_size => {
+                let pages = total.div_ceil(page_size);
+                let mut tasks: JoinSet<AppResult<(u64, Vec<T>)>> = JoinSet::new();
+                let mut next = 0u64;
+                let mut done: Vec<(u64, Vec<T>)> = Vec::new();
+                let start = |tasks: &mut JoinSet<AppResult<(u64, Vec<T>)>>, page: u64| {
+                    let client = self.clone();
+                    let body = body.clone();
+                    let path = path.to_string();
+                    tasks.spawn(async move {
+                        let offset = (page * page_size) as u32;
+                        let rows = client.search_page::<T>(&path, &body, offset).await?;
+                        Ok((page, rows))
+                    });
+                };
+                while next < pages.min(SEARCH_PARALLEL_PAGES) {
+                    start(&mut tasks, next);
+                    next += 1;
+                }
+                while let Some(finished) = tasks.join_next().await {
+                    done.push(finished.map_err(|e| {
+                        tracing::warn!(error = %e, path, "Mambu page task failed");
+                        AppError::InternalServerError("Could not read the Mambu data".into())
+                    })??);
+                    if next < pages {
+                        start(&mut tasks, next);
+                        next += 1;
+                    }
+                }
+                done.sort_by_key(|(page, _)| *page);
+                for (_, rows) in done {
+                    all.extend(rows);
+                }
             }
-            offset += count;
+            _ => {
+                let mut offset: u32 = 0;
+                loop {
+                    let page = self.search_page::<T>(path, &body, offset).await?;
+                    let count = page.len() as u32;
+                    all.extend(page);
+                    if count < self.page_size {
+                        break;
+                    }
+                    offset += count;
+                }
+            }
         }
+        tracing::info!(path, records = all.len(), "Mambu list read");
         Ok(all)
     }
 
-    async fn branch_key(&self, branch_id: &str) -> AppResult<String> {
+    async fn search_page<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        body: &serde_json::Value,
+        offset: u32,
+    ) -> AppResult<Vec<T>> {
+        let url = format!("{}{}:search", self.base_url, path);
+        let limit = self.page_size.to_string();
+        let off = offset.to_string();
+        let page: Vec<T> = self
+            .read_page(path, offset, || {
+                self.http
+                    .post(&url)
+                    .query(&[
+                        ("detailsLevel", "FULL"),
+                        ("limit", limit.as_str()),
+                        ("offset", off.as_str()),
+                    ])
+                    .json(body)
+            })
+            .await?;
+        tracing::debug!(path, offset, count = page.len(), "Mambu page read");
+        Ok(page)
+    }
+
+    async fn search_total(&self, path: &str, body: &serde_json::Value) -> Option<u64> {
+        let url = format!("{}{}:search", self.base_url, path);
+        let resp = self
+            .send(path, || {
+                self.http
+                    .post(&url)
+                    .query(&[("limit", "1"), ("paginationDetails", "ON")])
+                    .json(body)
+            })
+            .await
+            .ok()?;
+        resp.headers()
+            .get("items-total")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse().ok())
+    }
+
+    /// Clients, deposits and loans of a branch, read at the same time. The branch key is
+    /// asked once. When it cannot be read the plain lists are used.
+    pub async fn branch_lists(&self, branch_id: &str) -> AppResult<BranchLists> {
+        let Ok(key) = self.branch_key(branch_id).await else {
+            tracing::warn!("Branch key not readable, falling back to the plain lists");
+            let plain = |path: &'static str| {
+                let query = [
+                    ("branchId", branch_id.to_string()),
+                    ("detailsLevel", "FULL".to_string()),
+                ];
+                async move { self.get_pages::<serde_json::Value>(path, &query).await }
+            };
+            let (clients, deposits, loans) =
+                tokio::try_join!(plain("/clients"), plain("/deposits"), plain("/loans"))?;
+            return Ok(BranchLists {
+                clients: from_values(clients)?,
+                deposits: from_values(deposits)?,
+                loans: from_values(loans)?,
+            });
+        };
+        let (clients, deposits, loans) = tokio::try_join!(
+            self.search_pages_by_key::<MambuClient>("/clients", "branchKey", &key),
+            self.search_pages_by_key::<MambuDeposit>("/deposits", "assignedBranchKey", &key),
+            self.search_pages_by_key::<MambuLoan>("/loans", "assignedBranchKey", &key),
+        )?;
+        Ok(BranchLists {
+            clients,
+            deposits,
+            loans,
+        })
+    }
+
+    pub async fn branch_key(&self, branch_id: &str) -> AppResult<String> {
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Key {
@@ -253,6 +419,62 @@ impl MambuApiClient {
             AppError::InternalServerError("Unexpected response from Mambu".into())
         })?;
         Ok(key.encoded_key)
+    }
+
+    fn journal_filter(branch_key: &str, from: NaiveDate, to: NaiveDate) -> serde_json::Value {
+        json!({"filterCriteria": [
+            {"field": "assignedBranchKey", "operator": "EQUALS", "value": branch_key},
+            {"field": "bookingDate", "operator": "BETWEEN",
+             "value": from.format("%Y-%m-%d").to_string(),
+             "secondValue": to.format("%Y-%m-%d").to_string()},
+        ]})
+    }
+
+    /// Number of general ledger lines booked by a branch between two dates (inclusive).
+    pub async fn journal_count(
+        &self,
+        branch_key: &str,
+        from: NaiveDate,
+        to: NaiveDate,
+    ) -> AppResult<u64> {
+        let url = format!("{}/gljournalentries:search", self.base_url);
+        let body = Self::journal_filter(branch_key, from, to);
+        let resp = self
+            .send("/gljournalentries:search", || {
+                self.http
+                    .post(&url)
+                    .query(&[("limit", "1"), ("paginationDetails", "ON")])
+                    .json(&body)
+            })
+            .await?;
+        Ok(resp
+            .headers()
+            .get("items-total")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0))
+    }
+
+    /// One page of general ledger lines booked by a branch between two dates.
+    pub async fn journal_page(
+        &self,
+        branch_key: &str,
+        from: NaiveDate,
+        to: NaiveDate,
+        offset: u32,
+        limit: u32,
+    ) -> AppResult<Vec<MambuJournalEntry>> {
+        let url = format!("{}/gljournalentries:search", self.base_url);
+        let body = Self::journal_filter(branch_key, from, to);
+        let off = offset.to_string();
+        let lim = limit.to_string();
+        self.read_page("/gljournalentries", offset, || {
+            self.http
+                .post(&url)
+                .query(&[("limit", lim.as_str()), ("offset", off.as_str())])
+                .json(&body)
+        })
+        .await
     }
 
     pub async fn clients(&self, branch_id: &str) -> AppResult<Vec<MambuClient>> {

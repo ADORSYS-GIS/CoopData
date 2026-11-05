@@ -187,6 +187,21 @@ pub struct ReportItem {
     pub amounts: ReportAmounts,
 }
 
+/// One line of the Mambu general ledger: a debit or a credit on one GL account.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MambuJournalEntry {
+    #[serde(default)]
+    pub encoded_key: String,
+    #[serde(rename = "type", default)]
+    pub entry_type: String,
+    #[serde(default)]
+    pub amount: f64,
+    pub booking_date: Option<String>,
+    #[serde(default)]
+    pub gl_account: ReportGlAccount,
+}
+
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MambuReport {

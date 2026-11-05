@@ -1523,121 +1523,6 @@
         }
       }
     },
-    "/api/v1/apex/cooperatives/{id}/mambu-link": {
-      "delete": {
-        "operationId": "apex_clear_mambu_link",
-        "parameters": [
-          {
-            "description": "Cooperative id",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Link removed"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      },
-      "get": {
-        "operationId": "apex_get_mambu_link",
-        "parameters": [
-          {
-            "description": "Cooperative id",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuCooperativeLinkResponse"
-                }
-              }
-            },
-            "description": "Mambu branch of the cooperative"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      },
-      "put": {
-        "operationId": "apex_set_mambu_link",
-        "parameters": [
-          {
-            "description": "Cooperative id",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetMambuBranchRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuCooperativeLinkResponse"
-                }
-              }
-            },
-            "description": "Link saved"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Cooperative or branch not found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Branch already linked"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
     "/api/v1/apex/cooperatives/{id}/members": {
       "get": {
         "tags": [
@@ -1796,236 +1681,6 @@
             "description": "The report is not ready in this language"
           }
         }
-      }
-    },
-    "/api/v1/apex/mambu/branches": {
-      "get": {
-        "operationId": "apex_search_mambu_branches",
-        "parameters": [
-          {
-            "description": "Mambu branch ID or part of the SACCO name (at least 3 letters)",
-            "in": "query",
-            "name": "q",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Cooperative the branch is meant for. Lets its current link show as available.",
-            "in": "query",
-            "name": "cooperative_id",
-            "required": false,
-            "schema": {
-              "format": "uuid",
-              "nullable": true,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuBranchPreviewResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Free Mambu branches matching the text, at most 8"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Text too short or Mambu not configured"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/apex/mambu/branches/{branch_id}": {
-      "get": {
-        "operationId": "apex_preview_mambu_branch",
-        "parameters": [
-          {
-            "description": "Mambu branch ID",
-            "in": "path",
-            "name": "branch_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Cooperative the branch is meant for. Lets an existing link show as available.",
-            "in": "query",
-            "name": "cooperative_id",
-            "required": false,
-            "schema": {
-              "format": "uuid",
-              "nullable": true,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuBranchPreviewResponse"
-                }
-              }
-            },
-            "description": "Branch found. Name is empty when it is linked elsewhere"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "No such branch"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/apex/mambu/status": {
-      "get": {
-        "operationId": "apex_mambu_status",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuStatusResponse"
-                }
-              }
-            },
-            "description": "Whether the Mambu integration is configured"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/apex/mambu/syncs": {
-      "get": {
-        "operationId": "apex_list_mambu_syncs",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuSyncRunResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Recent syncs of the apex's cooperatives"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      },
-      "post": {
-        "operationId": "apex_start_mambu_sync",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartApexMambuSyncRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuSyncRunResponse"
-                }
-              }
-            },
-            "description": "Sync started. Results are drafts at the apex"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Syncs are running or the cooldown is active"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/apex/mambu/syncs/{id}": {
-      "get": {
-        "operationId": "apex_get_mambu_sync",
-        "parameters": [
-          {
-            "description": "Sync run id",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuSyncDetailResponse"
-                }
-              }
-            },
-            "description": "Results of the apex's cooperatives in this run"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Run not found"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
       }
     },
     "/api/v1/apex/profile": {
@@ -2606,6 +2261,16 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "acknowledge_warnings",
+            "in": "query",
+            "description": "Required for a return imported from Mambu that has warnings: the apex confirms it read them.",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
           }
         ],
         "responses": {
@@ -3020,139 +2685,6 @@
             "description": "Forbidden"
           }
         }
-      }
-    },
-    "/api/v1/cooperative/mambu/status": {
-      "get": {
-        "operationId": "coop_mambu_status",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuCooperativeStatusResponse"
-                }
-              }
-            },
-            "description": "Mambu link and sync state of the caller's SACCO"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/cooperative/mambu/syncs": {
-      "get": {
-        "operationId": "coop_list_mambu_syncs",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuSyncRunResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Recent syncs of the caller's SACCO"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      },
-      "post": {
-        "operationId": "coop_start_mambu_sync",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartMambuSyncRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuSyncRunResponse"
-                }
-              }
-            },
-            "description": "Sync started. The result is a draft for the SACCO to check and submit"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid request, not linked, or Mambu not configured"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "A sync is running or the cooldown is active"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/cooperative/mambu/syncs/{id}": {
-      "get": {
-        "operationId": "coop_get_mambu_sync",
-        "parameters": [
-          {
-            "description": "Sync run id",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuSyncDetailResponse"
-                }
-              }
-            },
-            "description": "Result of the SACCO in this run"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Run not found"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
       }
     },
     "/api/v1/cooperative/nf-statistics": {
@@ -7588,518 +7120,6 @@
         }
       }
     },
-    "/api/v1/ministry/mambu/account-mappings": {
-      "get": {
-        "operationId": "list_account_mappings",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuAccountMappingResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Ledger mappings"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      },
-      "put": {
-        "operationId": "upsert_account_mapping",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertMambuAccountMappingRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuAccountMappingResponse"
-                }
-              }
-            },
-            "description": "Mapping saved"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid mapping"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/account-mappings/{code}": {
-      "delete": {
-        "operationId": "delete_account_mapping",
-        "parameters": [
-          {
-            "description": "Mambu ledger code",
-            "in": "path",
-            "name": "code",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Mapping removed"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/branches": {
-      "get": {
-        "operationId": "list_mambu_branches",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuBranchResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Mambu branches with their CoopData link"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Mambu is not configured"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/coop-accounts": {
-      "get": {
-        "operationId": "list_coop_accounts",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CoopAccountOption"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "CoopData chart of accounts"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/cooperatives": {
-      "get": {
-        "operationId": "list_mambu_cooperatives",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuCooperativeOption"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "CoopData cooperatives available for linking"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/gl-accounts": {
-      "get": {
-        "operationId": "list_mambu_gl_accounts",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuGlAccountResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Mambu ledger accounts with their current mapping"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/links": {
-      "put": {
-        "operationId": "upsert_mambu_link",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertMambuLinkRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuLinkResponse"
-                }
-              }
-            },
-            "description": "Link saved"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Cooperative not found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Branch already linked"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/links/{cooperative_id}": {
-      "delete": {
-        "operationId": "delete_mambu_link",
-        "parameters": [
-          {
-            "description": "Cooperative id",
-            "in": "path",
-            "name": "cooperative_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Link removed"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/product-mappings": {
-      "get": {
-        "operationId": "list_product_mappings",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuProductMappingResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Product mappings"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      },
-      "put": {
-        "operationId": "upsert_product_mapping",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertMambuProductMappingRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuProductMappingResponse"
-                }
-              }
-            },
-            "description": "Mapping saved"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid mapping"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/product-mappings/{kind}/{id}": {
-      "delete": {
-        "operationId": "delete_product_mapping",
-        "parameters": [
-          {
-            "description": "deposit or loan",
-            "in": "path",
-            "name": "kind",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Mambu product id",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Mapping removed"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/products": {
-      "get": {
-        "operationId": "list_mambu_products",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuProductResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Mambu deposit and loan products with their mapping"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/status": {
-      "get": {
-        "operationId": "mambu_status",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuStatusResponse"
-                }
-              }
-            },
-            "description": "Whether the Mambu integration is configured"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/syncs": {
-      "get": {
-        "operationId": "list_mambu_syncs",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MambuSyncRunResponse"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Recent sync runs"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      },
-      "post": {
-        "operationId": "start_mambu_sync",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartMambuSyncRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuSyncRunResponse"
-                }
-              }
-            },
-            "description": "Sync started"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Invalid request or Mambu not configured"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "A sync is already running"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
-    "/api/v1/ministry/mambu/syncs/{id}": {
-      "get": {
-        "operationId": "get_mambu_sync",
-        "parameters": [
-          {
-            "description": "Sync run id",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MambuSyncDetailResponse"
-                }
-              }
-            },
-            "description": "Run with per-SACCO results"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Run not found"
-          }
-        },
-        "tags": [
-          "Mambu"
-        ]
-      }
-    },
     "/api/v1/ministry/non-financial-indicators/catalog": {
       "post": {
         "tags": [
@@ -9513,6 +8533,677 @@
           }
         }
       }
+    },
+    "/api/v1/apex/cooperatives/{id}/mambu-auto-sync": {
+      "put": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_set_mambu_auto_sync",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Cooperative id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMambuAutoSyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Setting saved"
+          },
+          "404": {
+            "description": "Cooperative not found or not linked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/cooperatives/{id}/mambu-link": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_get_mambu_link",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Cooperative id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mambu branch of the cooperative",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuCooperativeLinkResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_set_mambu_link",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Cooperative id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMambuBranchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Link saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuCooperativeLinkResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cooperative or branch not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Branch already linked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_clear_mambu_link",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Cooperative id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Link removed"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/account-mappings": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "list_account_mappings",
+        "responses": {
+          "200": {
+            "description": "Ledger mappings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MambuAccountMappingResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "upsert_account_mapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertMambuAccountMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Mapping saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuAccountMappingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid mapping",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/account-mappings/{code}": {
+      "delete": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "delete_account_mapping",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "description": "Mambu ledger code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Mapping removed"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/branches": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_search_mambu_branches",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Mambu branch ID or part of the SACCO name (at least 3 letters)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "description": "Cooperative the branch is meant for. Lets its current link show as available.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Free Mambu branches matching the text, at most 8",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MambuBranchPreviewResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Text too short or Mambu not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/branches/{branch_id}": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_preview_mambu_branch",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "in": "path",
+            "description": "Mambu branch ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cooperative_id",
+            "in": "query",
+            "description": "Cooperative the branch is meant for. Lets an existing link show as available.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branch found. Name is empty when it is linked elsewhere",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuBranchPreviewResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such branch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/coop-accounts": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "list_coop_accounts",
+        "responses": {
+          "200": {
+            "description": "CoopData chart of accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CoopAccountOption"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/cooperatives": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_list_mambu_cooperatives",
+        "responses": {
+          "200": {
+            "description": "The apex's cooperatives with their Mambu link and latest sync",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MambuApexCooperativeResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/gl-accounts": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "list_mambu_gl_accounts",
+        "responses": {
+          "200": {
+            "description": "Mambu ledger accounts with their current mapping",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MambuGlAccountResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/product-mappings": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "list_product_mappings",
+        "responses": {
+          "200": {
+            "description": "Product mappings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MambuProductMappingResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "upsert_product_mapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertMambuProductMappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Mapping saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuProductMappingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid mapping",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/product-mappings/{kind}/{id}": {
+      "delete": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "delete_product_mapping",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "description": "deposit or loan",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Mambu product id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Mapping removed"
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/products": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "list_mambu_products",
+        "responses": {
+          "200": {
+            "description": "Mambu deposit and loan products with their mapping",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MambuProductResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/status": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_mambu_status",
+        "responses": {
+          "200": {
+            "description": "Whether the Mambu integration is configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/syncs": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_list_mambu_syncs",
+        "responses": {
+          "200": {
+            "description": "Recent syncs of the apex's cooperatives",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MambuSyncRunResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_start_mambu_sync",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartMambuSyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Sync of the whole year started. Results are drafts at the apex",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuSyncRunResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request, nothing linked, or Mambu not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Syncs are running or the cooldown is active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/apex/mambu/syncs/{id}": {
+      "get": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_get_mambu_sync",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Sync run id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Results of the apex's cooperatives in this run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuSyncDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Run not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -10462,26 +10153,6 @@
             "format": "double"
           }
         }
-      },
-      "CoopAccountOption": {
-        "properties": {
-          "account_code": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "account_name": {
-            "type": "string"
-          },
-          "category": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "account_code",
-          "account_name",
-          "category"
-        ],
-        "type": "object"
       },
       "CoopKpiRow": {
         "type": "object",
@@ -12556,6 +12227,11 @@
             "type": "string",
             "format": "date"
           },
+          "member_business_id": {
+            "type": "string",
+            "description": "The ID the SACCO knows the member by, filled in by the list endpoints.",
+            "nullable": true
+          },
           "member_id": {
             "type": "string",
             "format": "uuid"
@@ -13249,6 +12925,11 @@
           "loan_status": {
             "$ref": "#/components/schemas/LoanStatus"
           },
+          "member_business_id": {
+            "type": "string",
+            "description": "The ID the SACCO knows the member by, filled in by the list endpoints.",
+            "nullable": true
+          },
           "member_id": {
             "type": "string",
             "format": "uuid"
@@ -13427,424 +13108,6 @@
           "Restructured",
           "WrittenOff"
         ]
-      },
-      "MambuAccountMappingResponse": {
-        "properties": {
-          "coop_account_code": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "mambu_gl_code": {
-            "type": "string"
-          },
-          "sign": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "mambu_gl_code",
-          "coop_account_code",
-          "sign"
-        ],
-        "type": "object"
-      },
-      "MambuBranchPreviewResponse": {
-        "description": "Result of a branch lookup by ID. The name is empty when the branch is already\nlinked to another cooperative.",
-        "properties": {
-          "available": {
-            "type": "boolean"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "available"
-        ],
-        "type": "object"
-      },
-      "MambuBranchResponse": {
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "linked_cooperative_id": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "region": {
-            "nullable": true,
-            "type": "string"
-          },
-          "state": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name"
-        ],
-        "type": "object"
-      },
-      "MambuCooperativeLinkResponse": {
-        "properties": {
-          "cooperative_id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "mambu_branch_id": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "cooperative_id"
-        ],
-        "type": "object"
-      },
-      "MambuCooperativeOption": {
-        "properties": {
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "institution_type": {
-            "nullable": true,
-            "type": "string"
-          },
-          "linked_mambu_branch_id": {
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name"
-        ],
-        "type": "object"
-      },
-      "MambuCooperativeStatusResponse": {
-        "properties": {
-          "configured": {
-            "type": "boolean"
-          },
-          "cooldown_seconds_left": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "linked": {
-            "type": "boolean"
-          },
-          "mambu_branch_id": {
-            "nullable": true,
-            "type": "string"
-          },
-          "running": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "configured",
-          "linked",
-          "running",
-          "cooldown_seconds_left"
-        ],
-        "type": "object"
-      },
-      "MambuGlAccountResponse": {
-        "properties": {
-          "account_type": {
-            "type": "string"
-          },
-          "currency": {
-            "nullable": true,
-            "type": "string"
-          },
-          "gl_code": {
-            "type": "string"
-          },
-          "mapped_to": {
-            "format": "int32",
-            "nullable": true,
-            "type": "integer"
-          },
-          "name": {
-            "nullable": true,
-            "type": "string"
-          },
-          "usage": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "gl_code",
-          "account_type"
-        ],
-        "type": "object"
-      },
-      "MambuLinkResponse": {
-        "properties": {
-          "cooperative_id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "linked_by": {
-            "nullable": true,
-            "type": "string"
-          },
-          "mambu_branch_id": {
-            "type": "string"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "cooperative_id",
-          "mambu_branch_id",
-          "updated_at"
-        ],
-        "type": "object"
-      },
-      "MambuProductMappingResponse": {
-        "properties": {
-          "mambu_product_id": {
-            "type": "string"
-          },
-          "mapped_type": {
-            "type": "string"
-          },
-          "product_kind": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "mambu_product_id",
-          "product_kind",
-          "mapped_type"
-        ],
-        "type": "object"
-      },
-      "MambuProductResponse": {
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "mapped_type": {
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "nullable": true,
-            "type": "string"
-          },
-          "product_kind": {
-            "type": "string"
-          },
-          "product_type": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "product_kind"
-        ],
-        "type": "object"
-      },
-      "MambuStatusResponse": {
-        "properties": {
-          "configured": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "configured"
-        ],
-        "type": "object"
-      },
-      "MambuSyncDetailResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/MambuSyncItemResponse"
-            },
-            "type": "array"
-          },
-          "run": {
-            "$ref": "#/components/schemas/MambuSyncRunResponse"
-          }
-        },
-        "required": [
-          "run",
-          "items"
-        ],
-        "type": "object"
-      },
-      "MambuSyncItemResponse": {
-        "properties": {
-          "cooperative_id": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "cooperative_name": {
-            "nullable": true,
-            "type": "string"
-          },
-          "error": {
-            "nullable": true,
-            "type": "string"
-          },
-          "fixed_deposits": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "ledger_lines": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "loans": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "mambu_branch_id": {
-            "type": "string"
-          },
-          "members": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "savings_accounts": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "status": {
-            "type": "string"
-          },
-          "submission_id": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "unmapped_ledger_accounts": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "warnings": {
-            "items": {
-              "$ref": "#/components/schemas/MambuSyncWarning"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "id",
-          "mambu_branch_id",
-          "status",
-          "members",
-          "savings_accounts",
-          "loans",
-          "fixed_deposits",
-          "ledger_lines",
-          "unmapped_ledger_accounts",
-          "warnings"
-        ],
-        "type": "object"
-      },
-      "MambuSyncRunResponse": {
-        "properties": {
-          "error": {
-            "nullable": true,
-            "type": "string"
-          },
-          "finished_at": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "month": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "reporting_year": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "started_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "started_by": {
-            "nullable": true,
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "total_saccos": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "reporting_year",
-          "month",
-          "status",
-          "total_saccos",
-          "started_at"
-        ],
-        "type": "object"
-      },
-      "MambuSyncWarning": {
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "count": {
-            "format": "int64",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "message": {
-            "type": "string"
-          },
-          "severity": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "severity",
-          "count",
-          "message"
-        ],
-        "type": "object"
       },
       "ManualFarmCoopEntry": {
         "type": "object",
@@ -16663,6 +15926,11 @@
             "type": "string",
             "format": "date"
           },
+          "member_business_id": {
+            "type": "string",
+            "description": "The ID the SACCO knows the member by, filled in by the list endpoints.",
+            "nullable": true
+          },
           "member_id": {
             "type": "string",
             "format": "uuid"
@@ -16876,66 +16144,6 @@
             }
           }
         }
-      },
-      "SetMambuBranchRequest": {
-        "properties": {
-          "mambu_branch_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "mambu_branch_id"
-        ],
-        "type": "object"
-      },
-      "StartApexMambuSyncRequest": {
-        "properties": {
-          "cooperative_id": {
-            "description": "Sync only this cooperative. All linked cooperatives of the apex when empty.",
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "month": {
-            "format": "int32",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "year": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "year",
-          "month"
-        ],
-        "type": "object"
-      },
-      "StartMambuSyncRequest": {
-        "properties": {
-          "cooperative_id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Sync only this cooperative. Every linked SACCO when empty.",
-            "nullable": true
-          },
-          "month": {
-            "type": "integer",
-            "format": "int32",
-            "description": "1 to 12 for one month, 0 for the whole year (one \"Full 12 Mo\" return per SACCO).",
-            "minimum": 0
-          },
-          "year": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "required": [
-          "year",
-          "month"
-        ],
-        "type": "object"
       },
       "StatementTotals": {
         "properties": {
@@ -18175,62 +17383,6 @@
           }
         }
       },
-      "UpsertMambuAccountMappingRequest": {
-        "properties": {
-          "coop_account_code": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "mambu_gl_code": {
-            "type": "string"
-          },
-          "sign": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "mambu_gl_code",
-          "coop_account_code",
-          "sign"
-        ],
-        "type": "object"
-      },
-      "UpsertMambuLinkRequest": {
-        "properties": {
-          "cooperative_id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "mambu_branch_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "cooperative_id",
-          "mambu_branch_id"
-        ],
-        "type": "object"
-      },
-      "UpsertMambuProductMappingRequest": {
-        "properties": {
-          "mambu_product_id": {
-            "type": "string"
-          },
-          "mapped_type": {
-            "type": "string"
-          },
-          "product_kind": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "mambu_product_id",
-          "product_kind",
-          "mapped_type"
-        ],
-        "type": "object"
-      },
       "UrbanRural": {
         "enum": [
           "Urban",
@@ -18420,6 +17572,487 @@
             "type": "boolean"
           },
           "verification_token": {
+            "type": "string"
+          }
+        }
+      },
+      "CoopAccountOption": {
+        "type": "object",
+        "required": [
+          "account_code",
+          "account_name",
+          "category"
+        ],
+        "properties": {
+          "account_code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          }
+        }
+      },
+      "MambuAccountMappingResponse": {
+        "type": "object",
+        "required": [
+          "mambu_gl_code",
+          "coop_account_code",
+          "sign"
+        ],
+        "properties": {
+          "coop_account_code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mambu_gl_code": {
+            "type": "string"
+          },
+          "sign": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MambuApexCooperativeResponse": {
+        "type": "object",
+        "description": "A cooperative of the apex with its Mambu link and its latest sync.",
+        "required": [
+          "id",
+          "name",
+          "auto_sync",
+          "running",
+          "last_warning_count",
+          "last_unmapped_accounts"
+        ],
+        "properties": {
+          "auto_sync": {
+            "type": "boolean",
+            "description": "Takes part in the automatic monthly sync."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institution_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_error": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_status": {
+            "type": "string",
+            "description": "Result of the latest sync: synced, flagged, failed or skipped.",
+            "nullable": true
+          },
+          "last_submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "last_synced_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_unmapped_accounts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "last_warning_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mambu_branch_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "running": {
+            "type": "boolean",
+            "description": "A sync of this cooperative is running now."
+          }
+        }
+      },
+      "MambuBranchPreviewResponse": {
+        "type": "object",
+        "description": "Result of a branch lookup by ID. The name is empty when the branch is already\nlinked to another cooperative.",
+        "required": [
+          "id",
+          "available"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MambuCooperativeLinkResponse": {
+        "type": "object",
+        "required": [
+          "cooperative_id"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mambu_branch_id": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MambuGlAccountResponse": {
+        "type": "object",
+        "required": [
+          "gl_code",
+          "account_type"
+        ],
+        "properties": {
+          "account_type": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          },
+          "gl_code": {
+            "type": "string"
+          },
+          "mapped_to": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "usage": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MambuProductMappingResponse": {
+        "type": "object",
+        "required": [
+          "mambu_product_id",
+          "product_kind",
+          "mapped_type"
+        ],
+        "properties": {
+          "mambu_product_id": {
+            "type": "string"
+          },
+          "mapped_type": {
+            "type": "string"
+          },
+          "product_kind": {
+            "type": "string"
+          }
+        }
+      },
+      "MambuProductResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "product_kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mapped_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "product_kind": {
+            "type": "string"
+          },
+          "product_type": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MambuStatusResponse": {
+        "type": "object",
+        "required": [
+          "configured"
+        ],
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MambuSyncDetailResponse": {
+        "type": "object",
+        "required": [
+          "run",
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MambuSyncItemResponse"
+            }
+          },
+          "run": {
+            "$ref": "#/components/schemas/MambuSyncRunResponse"
+          }
+        }
+      },
+      "MambuSyncItemResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "mambu_branch_id",
+          "status",
+          "members",
+          "savings_accounts",
+          "loans",
+          "fixed_deposits",
+          "ledger_lines",
+          "unmapped_ledger_accounts",
+          "warnings"
+        ],
+        "properties": {
+          "cooperative_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cooperative_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "fixed_deposits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ledger_lines": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "loans": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mambu_branch_id": {
+            "type": "string"
+          },
+          "members": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "savings_accounts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "unmapped_ledger_accounts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MambuSyncWarning"
+            }
+          }
+        }
+      },
+      "MambuSyncRunResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "reporting_year",
+          "month",
+          "status",
+          "total_saccos",
+          "started_at"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reporting_year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_by": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "total_saccos": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MambuSyncWarning": {
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "count",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          }
+        }
+      },
+      "SetMambuAutoSyncRequest": {
+        "type": "object",
+        "required": [
+          "auto_sync"
+        ],
+        "properties": {
+          "auto_sync": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SetMambuBranchRequest": {
+        "type": "object",
+        "required": [
+          "mambu_branch_id"
+        ],
+        "properties": {
+          "mambu_branch_id": {
+            "type": "string"
+          }
+        }
+      },
+      "StartMambuSyncRequest": {
+        "type": "object",
+        "description": "Starts a sync of a whole year. One return per SACCO, with a column for each month.",
+        "required": [
+          "year"
+        ],
+        "properties": {
+          "cooperative_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The cooperatives to sync. Every linked cooperative of the apex when empty.",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpsertMambuAccountMappingRequest": {
+        "type": "object",
+        "required": [
+          "mambu_gl_code",
+          "coop_account_code",
+          "sign"
+        ],
+        "properties": {
+          "coop_account_code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mambu_gl_code": {
+            "type": "string"
+          },
+          "sign": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpsertMambuProductMappingRequest": {
+        "type": "object",
+        "required": [
+          "mambu_product_id",
+          "product_kind",
+          "mapped_type"
+        ],
+        "properties": {
+          "mambu_product_id": {
+            "type": "string"
+          },
+          "mapped_type": {
+            "type": "string"
+          },
+          "product_kind": {
             "type": "string"
           }
         }

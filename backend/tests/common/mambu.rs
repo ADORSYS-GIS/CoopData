@@ -18,15 +18,40 @@ pub async fn serve(app: Router) -> String {
 }
 
 pub fn fake_mambu() -> Router {
-    build(false)
+    build(false, None)
+}
+
+/// A Mambu whose accounting reports do not balance but whose general ledger does, as the
+/// real one does for older periods. The journal gives the same books as `fake_mambu`:
+/// assets 1005 = liabilities 400 + equity 325 + earnings 280, of which 200 are from
+/// before 2026.
+pub fn fake_mambu_with_journal() -> Router {
+    let line = |date: &str, kind: &str, amount: f64, code: &str, account: &str| {
+        json!({
+            "encodedKey": format!("{date}-{kind}-{code}"), "type": kind, "amount": amount,
+            "bookingDate": format!("{date}T10:00:00+02:00"),
+            "glAccount": {"glCode": code, "name": code, "type": account, "usage": "DETAIL",
+                          "currency": {"currencyCode": "SZL"}}
+        })
+    };
+    let lines = vec![
+        line("2025-12-10", "DEBIT", 920.0, "01101", "ASSET"),
+        line("2025-12-10", "DEBIT", 5.0, "9999", "ASSET"),
+        line("2025-12-10", "CREDIT", 400.0, "5001", "LIABILITY"),
+        line("2025-12-10", "CREDIT", 325.0, "6001", "EQUITY"),
+        line("2025-12-10", "CREDIT", 200.0, "4001", "INCOME"),
+        line("2026-01-05", "DEBIT", 80.0, "01101", "ASSET"),
+        line("2026-01-05", "CREDIT", 80.0, "4001", "INCOME"),
+    ];
+    build(false, Some(lines))
 }
 
 /// A Mambu user that may read the data but not list branches or products (403).
 pub fn fake_mambu_restricted() -> Router {
-    build(true)
+    build(true, None)
 }
 
-fn build(restricted: bool) -> Router {
+fn build(restricted: bool, journal: Option<Vec<Value>>) -> Router {
     let branches = json!([{
         "encodedKey": "bk-es0006", "id": "ES0006", "name": "Asikhutulisane SACCO", "state": "ACTIVE",
         "addresses": [{"region": "Manzini", "city": "Manzini"}]
@@ -80,6 +105,14 @@ fn build(restricted: bool) -> Router {
         {"glAccount": gl("6001", "EQUITY"), "amounts": {"closingBalance": 325.0}},
         {"glAccount": gl("4001", "INCOME"), "amounts": {"closingBalance": 200.0}}
     ]});
+    let (month_report, prev_report) = if journal.is_some() {
+        let bad = json!({"reportKey": "rk-bad", "status": "COMPLETE", "items": [
+            {"glAccount": gl("01101", "ASSET"), "amounts": {"closingBalance": 7.0}}
+        ]});
+        (bad.clone(), bad)
+    } else {
+        (month_report, prev_report)
+    };
     let page = |data: Value| {
         get(move || {
             let data = data.clone();
@@ -105,7 +138,7 @@ fn build(restricted: bool) -> Router {
             )
         })
     };
-    Router::new()
+    let router = Router::new()
         .route(
             "/branches",
             if restricted {
@@ -117,6 +150,7 @@ fn build(restricted: bool) -> Router {
         .route("/clients", page(clients.clone()))
         .route("/deposits", page(deposits.clone()))
         .route("/loans", page(loans.clone()))
+        .route("/glaccounts", page(json!([])))
         .route("/clients:search", search(clients))
         .route("/deposits:search", search(deposits))
         .route("/loans:search", search(loans))
@@ -165,7 +199,41 @@ fn build(restricted: bool) -> Router {
                 };
                 async move { Json(report) }
             }),
-        )
+        );
+    match journal {
+        Some(lines) => router.route(
+            "/gljournalentries:search",
+            post(
+                move |axum::extract::Query(q): axum::extract::Query<
+                    std::collections::HashMap<String, String>,
+                >,
+                      Json(body): Json<Value>| {
+                    let lines = lines.clone();
+                    async move {
+                        assert_eq!(body["filterCriteria"][0]["value"], "bk-es0006");
+                        let between = &body["filterCriteria"][1];
+                        let from = between["value"].as_str().unwrap_or("").to_string();
+                        let to = between["secondValue"].as_str().unwrap_or("").to_string();
+                        let hits: Vec<Value> = lines
+                            .into_iter()
+                            .filter(|l| {
+                                let d = &l["bookingDate"].as_str().unwrap_or("")[..10];
+                                d >= from.as_str() && d <= to.as_str()
+                            })
+                            .collect();
+                        let offset: usize =
+                            q.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+                        let limit: usize =
+                            q.get("limit").and_then(|v| v.parse().ok()).unwrap_or(1000);
+                        let total = hits.len();
+                        let page: Vec<Value> = hits.into_iter().skip(offset).take(limit).collect();
+                        ([("items-total", total.to_string())], Json(page))
+                    }
+                },
+            ),
+        ),
+        None => router,
+    }
 }
 
 pub async fn scalar(db: &sea_orm::DatabaseConnection, sql: &str) -> i64 {

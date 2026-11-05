@@ -1,17 +1,17 @@
 use std::collections::{HashMap, HashSet};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use sea_orm::sea_query::OnConflict;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Set, Statement,
 };
 use uuid::Uuid;
 
 use crate::database::Database;
 use crate::entities::{
-    mambu_account_mapping, mambu_branch_link, mambu_product_mapping, mambu_sync_item,
-    mambu_sync_run,
+    mambu_account_mapping, mambu_branch_link, mambu_ledger_cache, mambu_ledger_month,
+    mambu_product_mapping, mambu_sync_item, mambu_sync_run,
 };
 use crate::error::{AppError, AppResult};
 
@@ -83,6 +83,7 @@ impl MambuRepository {
             linked_by: Set(linked_by),
             created_at: Set(now),
             updated_at: Set(now),
+            ..Default::default()
         };
         mambu_branch_link::Entity::insert(model)
             .on_conflict(
@@ -424,6 +425,163 @@ impl MambuRepository {
             .filter(mambu_sync_item::Column::RunId.eq(run_id))
             .order_by_asc(mambu_sync_item::Column::MambuBranchId)
             .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)
+    }
+    /// The closed months of the general ledger kept for a branch, with the date up to
+    /// which the cache is complete.
+    pub async fn ledger_cache(
+        &self,
+        mambu_branch_id: &str,
+    ) -> AppResult<Option<(NaiveDate, Vec<mambu_ledger_month::Model>)>> {
+        let Some(state) = mambu_ledger_cache::Entity::find_by_id(mambu_branch_id.to_string())
+            .one(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?
+        else {
+            return Ok(None);
+        };
+        let rows = mambu_ledger_month::Entity::find()
+            .filter(mambu_ledger_month::Column::MambuBranchId.eq(mambu_branch_id))
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(Some((state.cached_through, rows)))
+    }
+
+    /// Stores months of the general ledger and moves the date up to which the cache is
+    /// complete. Months stored again replace the earlier figures.
+    pub async fn save_ledger_cache(
+        &self,
+        mambu_branch_id: &str,
+        cached_through: NaiveDate,
+        rows: Vec<mambu_ledger_month::ActiveModel>,
+    ) -> AppResult<()> {
+        for chunk in rows.chunks(500) {
+            mambu_ledger_month::Entity::insert_many(chunk.to_vec())
+                .on_conflict(
+                    OnConflict::columns([
+                        mambu_ledger_month::Column::MambuBranchId,
+                        mambu_ledger_month::Column::MonthStart,
+                        mambu_ledger_month::Column::GlCode,
+                    ])
+                    .update_columns([
+                        mambu_ledger_month::Column::AccountType,
+                        mambu_ledger_month::Column::AccountName,
+                        mambu_ledger_month::Column::Debit,
+                        mambu_ledger_month::Column::Credit,
+                    ])
+                    .to_owned(),
+                )
+                .exec(&self.db)
+                .await
+                .map_err(AppError::DatabaseError)?;
+        }
+        mambu_ledger_cache::Entity::insert(mambu_ledger_cache::ActiveModel {
+            mambu_branch_id: Set(mambu_branch_id.to_string()),
+            cached_through: Set(cached_through),
+            updated_at: Set(Utc::now()),
+        })
+        .on_conflict(
+            OnConflict::column(mambu_ledger_cache::Column::MambuBranchId)
+                .update_columns([
+                    mambu_ledger_cache::Column::CachedThrough,
+                    mambu_ledger_cache::Column::UpdatedAt,
+                ])
+                .to_owned(),
+        )
+        .exec(&self.db)
+        .await
+        .map_err(AppError::DatabaseError)?;
+        Ok(())
+    }
+    pub async fn set_auto_sync(&self, cooperative_id: Uuid, auto_sync: bool) -> AppResult<bool> {
+        let result = mambu_branch_link::Entity::update_many()
+            .col_expr(
+                mambu_branch_link::Column::AutoSync,
+                sea_orm::sea_query::Expr::value(auto_sync),
+            )
+            .col_expr(
+                mambu_branch_link::Column::UpdatedAt,
+                sea_orm::sea_query::Expr::value(Utc::now()),
+            )
+            .filter(mambu_branch_link::Column::CooperativeId.eq(cooperative_id))
+            .exec(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(result.rows_affected > 0)
+    }
+
+    /// Claims, in one statement, the links that are due for the automatic sync of
+    /// `month` (YYYY-MM). Two servers running at once cannot claim the same link.
+    pub async fn claim_due_auto_syncs(&self, month: &str) -> AppResult<Vec<Uuid>> {
+        let rows = self
+            .db
+            .query_all(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "UPDATE mambu_branch_links SET last_auto_sync_month = $1 \
+                 WHERE auto_sync AND (last_auto_sync_month IS NULL OR last_auto_sync_month <> $1) \
+                 RETURNING cooperative_id",
+                vec![month.into()],
+            ))
+            .await
+            .map_err(AppError::DatabaseError)?;
+        rows.into_iter()
+            .map(|r| {
+                r.try_get_by_index::<Uuid>(0)
+                    .map_err(AppError::DatabaseError)
+            })
+            .collect()
+    }
+
+    /// Gives claimed links back when the run could not start, so the next check tries again.
+    pub async fn release_auto_sync_claims(
+        &self,
+        cooperative_ids: Vec<Uuid>,
+        month: &str,
+    ) -> AppResult<()> {
+        mambu_branch_link::Entity::update_many()
+            .col_expr(
+                mambu_branch_link::Column::LastAutoSyncMonth,
+                sea_orm::sea_query::Expr::value(Option::<String>::None),
+            )
+            .filter(mambu_branch_link::Column::CooperativeId.is_in(cooperative_ids))
+            .filter(mambu_branch_link::Column::LastAutoSyncMonth.eq(month))
+            .exec(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(())
+    }
+
+    /// The newest sync result of each cooperative.
+    pub async fn latest_items_for_cooperatives(
+        &self,
+        cooperative_ids: Vec<Uuid>,
+    ) -> AppResult<HashMap<Uuid, mambu_sync_item::Model>> {
+        let items = mambu_sync_item::Entity::find()
+            .filter(mambu_sync_item::Column::CooperativeId.is_in(cooperative_ids))
+            .order_by_desc(mambu_sync_item::Column::CreatedAt)
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        let mut latest: HashMap<Uuid, mambu_sync_item::Model> = HashMap::new();
+        for item in items {
+            if let Some(coop) = item.cooperative_id {
+                latest.entry(coop).or_insert(item);
+            }
+        }
+        Ok(latest)
+    }
+
+    /// The sync result that made or last replaced a submission.
+    pub async fn find_item_for_submission(
+        &self,
+        submission_id: Uuid,
+    ) -> AppResult<Option<mambu_sync_item::Model>> {
+        mambu_sync_item::Entity::find()
+            .filter(mambu_sync_item::Column::SubmissionId.eq(submission_id))
+            .order_by_desc(mambu_sync_item::Column::CreatedAt)
+            .one(&self.db)
             .await
             .map_err(AppError::DatabaseError)
     }

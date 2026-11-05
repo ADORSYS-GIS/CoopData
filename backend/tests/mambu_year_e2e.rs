@@ -12,7 +12,7 @@ use chrono::Datelike;
 use common::mambu::{fake_mambu, scalar, serve, text, wait_for_run};
 use coop_data_backend::auth::claims::Claims;
 use coop_data_backend::services::mambu::client::MambuApiClient;
-use coop_data_backend::services::mambu::sync::{start_run, SyncLevel, SyncScope};
+use coop_data_backend::services::mambu::sync::{start_run, SyncScope};
 use sea_orm::ConnectionTrait;
 use serde_json::json;
 use uuid::Uuid;
@@ -72,16 +72,9 @@ async fn a_whole_year_sync_makes_one_full_year_return_with_a_column_per_month() 
         now.month() as i64
     };
 
-    let run = start_run(
-        &state,
-        2026,
-        0,
-        claims.clone(),
-        SyncLevel::Ministry,
-        SyncScope::All,
-    )
-    .await
-    .unwrap();
+    let run = start_run(&state, 2026, 0, claims.clone(), SyncScope::All)
+        .await
+        .unwrap();
     assert_eq!(run.month, 0);
     assert_eq!(wait_for_run(&state, run.id).await, "completed");
     let items = state.mambu_repo.list_items(run.id).await.unwrap();
@@ -92,7 +85,7 @@ async fn a_whole_year_sync_makes_one_full_year_return_with_a_column_per_month() 
     let row = |col: &str| format!("SELECT {col}::text FROM submissions WHERE id='{sid}'");
     assert_eq!(text(&conn, &row("period_value")).await, "FULL_YEAR");
     assert_eq!(text(&conn, &row("period_type")).await, "MONTHLY");
-    assert_eq!(text(&conn, &row("status")).await, "in_review");
+    assert_eq!(text(&conn, &row("status")).await, "draft");
     assert_eq!(
         scalar(
             &conn,
@@ -127,16 +120,12 @@ async fn a_whole_year_sync_makes_one_full_year_return_with_a_column_per_month() 
     );
 
     // Syncing the year again replaces the return, and a single month cannot sit next to it.
-    let run2 = start_run(
-        &state,
-        2026,
-        0,
-        claims.clone(),
-        SyncLevel::Ministry,
-        SyncScope::All,
-    )
-    .await
-    .unwrap();
+    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+        .await
+        .unwrap();
+    let run2 = start_run(&state, 2026, 0, claims.clone(), SyncScope::All)
+        .await
+        .unwrap();
     assert_eq!(wait_for_run(&state, run2.id).await, "completed");
     assert_eq!(
         scalar(
@@ -146,7 +135,10 @@ async fn a_whole_year_sync_makes_one_full_year_return_with_a_column_per_month() 
         .await,
         1
     );
-    let run3 = start_run(&state, 2026, 1, claims, SyncLevel::Ministry, SyncScope::All)
+    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+        .await
+        .unwrap();
+    let run3 = start_run(&state, 2026, 1, claims, SyncScope::All)
         .await
         .unwrap();
     assert_eq!(wait_for_run(&state, run3.id).await, "completed");

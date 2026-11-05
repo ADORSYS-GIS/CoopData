@@ -9,14 +9,14 @@ mod common;
 use common::mambu::{fake_mambu, scalar, serve, text, wait_for_run};
 use coop_data_backend::auth::claims::Claims;
 use coop_data_backend::services::mambu::client::MambuApiClient;
-use coop_data_backend::services::mambu::sync::{start_run, SyncLevel, SyncScope};
+use coop_data_backend::services::mambu::sync::{start_run, SyncScope};
 use sea_orm::ConnectionTrait;
 use serde_json::json;
 use std::sync::Arc;
 
 #[tokio::test]
 #[ignore]
-async fn mambu_sync_creates_a_ministry_review_submission_from_mambu_data() {
+async fn mambu_sync_creates_an_apex_draft_from_mambu_data() {
     let Ok(url) = std::env::var("TEST_DATABASE_URL") else {
         eprintln!("TEST_DATABASE_URL not set, skipping");
         return;
@@ -75,16 +75,9 @@ async fn mambu_sync_creates_a_ministry_review_submission_from_mambu_data() {
     }))
     .unwrap();
 
-    let run = start_run(
-        &state,
-        2026,
-        9,
-        Arc::new(claims.clone()),
-        SyncLevel::Ministry,
-        SyncScope::All,
-    )
-    .await
-    .unwrap();
+    let run = start_run(&state, 2026, 9, Arc::new(claims.clone()), SyncScope::All)
+        .await
+        .unwrap();
     assert_eq!(wait_for_run(&state, run.id).await, "completed");
 
     let items = state.mambu_repo.list_items(run.id).await.unwrap();
@@ -126,7 +119,7 @@ async fn mambu_sync_creates_a_ministry_review_submission_from_mambu_data() {
             &format!("SELECT status::text FROM submissions WHERE id='{sid}'")
         )
         .await,
-        "in_review"
+        "draft"
     );
     assert_eq!(
         text(
@@ -134,7 +127,7 @@ async fn mambu_sync_creates_a_ministry_review_submission_from_mambu_data() {
             &format!("SELECT current_tier::text FROM submissions WHERE id='{sid}'")
         )
         .await,
-        "ministry"
+        "apex"
     );
     assert_eq!(
         scalar(
@@ -173,8 +166,9 @@ async fn mambu_sync_creates_a_ministry_review_submission_from_mambu_data() {
         "Active"
     );
     assert_eq!(
-        scalar(&conn, &format!("SELECT count(*) FROM balance_sheet_line_items i JOIN financial_statements f ON f.id=i.financial_statement_id WHERE f.submission_id='{sid}'")).await,
-        7
+        scalar(&conn, &format!("SELECT count(*) FROM balance_sheet_line_items i JOIN financial_statements f ON f.id=i.financial_statement_id WHERE f.submission_id='{sid}' AND i.account_code NOT IN (SELECT account_code FROM chart_of_accounts WHERE is_total OR is_section_header)")).await,
+        7,
+        "detail lines; subtotals and totals are added on top"
     );
     assert_eq!(
         scalar(&conn, &format!("SELECT (value*100)::bigint FROM balance_sheet_line_items i JOIN financial_statements f ON f.id=i.financial_statement_id WHERE f.submission_id='{sid}' AND account_code={income}")).await,
@@ -205,16 +199,12 @@ async fn mambu_sync_creates_a_ministry_review_submission_from_mambu_data() {
     );
 
     // Running the same month again replaces the data instead of duplicating it.
-    let run2 = start_run(
-        &state,
-        2026,
-        9,
-        Arc::new(claims.clone()),
-        SyncLevel::Ministry,
-        SyncScope::All,
-    )
-    .await
-    .unwrap();
+    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+        .await
+        .unwrap();
+    let run2 = start_run(&state, 2026, 9, Arc::new(claims.clone()), SyncScope::All)
+        .await
+        .unwrap();
     assert_eq!(wait_for_run(&state, run2.id).await, "completed");
     assert_eq!(
         scalar(
@@ -239,16 +229,12 @@ async fn mambu_sync_creates_a_ministry_review_submission_from_mambu_data() {
     ))
     .await
     .unwrap();
-    let run3 = start_run(
-        &state,
-        2026,
-        9,
-        Arc::new(claims),
-        SyncLevel::Ministry,
-        SyncScope::All,
-    )
-    .await
-    .unwrap();
+    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+        .await
+        .unwrap();
+    let run3 = start_run(&state, 2026, 9, Arc::new(claims), SyncScope::All)
+        .await
+        .unwrap();
     assert_eq!(wait_for_run(&state, run3.id).await, "completed");
     let items3 = state.mambu_repo.list_items(run3.id).await.unwrap();
     assert_eq!(items3[0].status, "skipped");

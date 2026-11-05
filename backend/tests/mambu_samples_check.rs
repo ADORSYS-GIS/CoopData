@@ -194,7 +194,7 @@ fn recorded_sandbox_responses_deserialize_and_map() {
                 ),
             );
         }
-        let ledger = map_ledger(&report.items, None, &map);
+        let ledger = map_ledger(&report.items, None, &map, &[]);
         let get = |c: i32| {
             ledger
                 .lines

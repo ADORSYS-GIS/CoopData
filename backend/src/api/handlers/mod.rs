@@ -12,7 +12,7 @@ pub mod financial_statement;
 pub mod health;
 pub mod legal_policy;
 pub mod mambu;
-pub mod mambu_scoped;
+pub mod mambu_apex;
 pub mod me;
 pub mod national_overview;
 pub mod nf_indicator_stats;

@@ -168,6 +168,11 @@ async fn main() -> anyhow::Result<()> {
         tracing::error!("Failed to backfill computed KPIs: {:?}", e);
     }
 
+    coop_data_backend::services::mambu::sync::resume_interrupted_runs(&state).await;
+    tokio::spawn(coop_data_backend::services::mambu::scheduler::run(
+        state.clone(),
+    ));
+
     let app = create_app(state);
     tracing::info!("Prometheus metrics endpoint available at /metrics");
 

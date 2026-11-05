@@ -11,8 +11,7 @@
 pub mod apex;
 pub mod cooperative;
 pub mod federation;
-pub mod mambu;
-pub mod mambu_scoped;
+pub mod mambu_apex;
 pub mod ministry;
 pub mod shared;
 mod users;

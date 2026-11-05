@@ -8,11 +8,9 @@ use axum::Json;
 use uuid::Uuid;
 
 use crate::api::dto::{
-    CoopAccountOption, MambuAccountMappingResponse, MambuBranchResponse, MambuCooperativeOption,
-    MambuGlAccountResponse, MambuLinkResponse, MambuProductMappingResponse, MambuProductResponse,
-    MambuStatusResponse, MambuSyncDetailResponse, MambuSyncItemResponse, MambuSyncRunResponse,
-    StartMambuSyncRequest, UpsertMambuAccountMappingRequest, UpsertMambuLinkRequest,
-    UpsertMambuProductMappingRequest,
+    CoopAccountOption, MambuAccountMappingResponse, MambuGlAccountResponse,
+    MambuProductMappingResponse, MambuProductResponse, MambuSyncDetailResponse,
+    MambuSyncItemResponse, UpsertMambuAccountMappingRequest, UpsertMambuProductMappingRequest,
 };
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
@@ -22,11 +20,9 @@ use crate::services::mambu::mapper::{
     KIND_VOLUNTARY,
 };
 use crate::services::mambu::models::MambuDeposit;
-use crate::services::mambu::sync::{SyncLevel, SyncScope};
 use crate::AppState;
 
 const TAG: &str = "Mambu";
-const MAX_RUNS: u64 = 30;
 const DEPOSIT_KINDS: [&str; 5] = [
     KIND_VOLUNTARY,
     KIND_MANDATORY,
@@ -58,264 +54,6 @@ async fn audit(
     }
 }
 
-#[utoipa::path(
-    get,
-    path = "/api/v1/ministry/mambu/status",
-    responses((status = 200, description = "Whether the Mambu integration is configured", body = MambuStatusResponse)),
-    tag = TAG,
-)]
-pub async fn mambu_status(State(state): State<AppState>) -> AppResult<impl IntoResponse> {
-    Ok(Json(MambuStatusResponse {
-        configured: state.mambu_client.is_some(),
-    }))
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/ministry/mambu/branches",
-    responses(
-        (status = 200, description = "Mambu branches with their CoopData link", body = Vec<MambuBranchResponse>),
-        (status = 400, description = "Mambu is not configured", body = ErrorResponse),
-    ),
-    tag = TAG,
-)]
-pub async fn list_mambu_branches(State(state): State<AppState>) -> AppResult<impl IntoResponse> {
-    let branches = client(&state)?.branches().await?;
-    let links: HashMap<String, Uuid> = state
-        .mambu_repo
-        .list_links()
-        .await?
-        .into_iter()
-        .map(|l| (l.mambu_branch_id, l.cooperative_id))
-        .collect();
-    let mut out: Vec<MambuBranchResponse> = branches
-        .into_iter()
-        .map(|b| MambuBranchResponse {
-            region: crate::services::mambu::mapper::branch_region(&b)
-                .map(|r| r.as_str().to_string()),
-            linked_cooperative_id: links.get(&b.id).copied(),
-            id: b.id,
-            name: b.name,
-            state: b.state,
-        })
-        .collect();
-    out.sort_by_key(|a| a.name.to_lowercase());
-    Ok(Json(out))
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/ministry/mambu/cooperatives",
-    responses((status = 200, description = "CoopData cooperatives available for linking", body = Vec<MambuCooperativeOption>)),
-    tag = TAG,
-)]
-pub async fn list_mambu_cooperatives(
-    State(state): State<AppState>,
-) -> AppResult<impl IntoResponse> {
-    let links: HashMap<Uuid, String> = state
-        .mambu_repo
-        .list_links()
-        .await?
-        .into_iter()
-        .map(|l| (l.cooperative_id, l.mambu_branch_id))
-        .collect();
-    let mut out: Vec<MambuCooperativeOption> = state
-        .cooperative_repo
-        .list_all()
-        .await?
-        .into_iter()
-        .map(|c| MambuCooperativeOption {
-            linked_mambu_branch_id: links.get(&c.id).cloned(),
-            id: c.id,
-            name: c.display_name,
-            institution_type: c.institution_type.map(|t| t.as_str().to_string()),
-        })
-        .collect();
-    out.sort_by_key(|a| a.name.to_lowercase());
-    Ok(Json(out))
-}
-
-#[utoipa::path(
-    put,
-    path = "/api/v1/ministry/mambu/links",
-    request_body = UpsertMambuLinkRequest,
-    responses(
-        (status = 200, description = "Link saved", body = MambuLinkResponse),
-        (status = 404, description = "Cooperative not found", body = ErrorResponse),
-        (status = 409, description = "Branch already linked", body = ErrorResponse),
-    ),
-    tag = TAG,
-)]
-pub async fn upsert_mambu_link(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Json(body): Json<UpsertMambuLinkRequest>,
-) -> AppResult<impl IntoResponse> {
-    let branch_id = body.mambu_branch_id.trim().to_string();
-    if branch_id.is_empty() || branch_id.len() > 64 {
-        return Err(AppError::BadRequest(
-            "mambu_branch_id is required (max 64 characters)".into(),
-        ));
-    }
-    if state
-        .cooperative_repo
-        .find_by_id(body.cooperative_id)
-        .await?
-        .is_none()
-    {
-        return Err(AppError::NotFound("Cooperative not found".into()));
-    }
-    if let Some(c) = &state.mambu_client {
-        // When the Mambu user may not list branches the ID cannot be checked here.
-        if let Ok(list) = c.branches().await {
-            if !list.iter().any(|b| b.id == branch_id) {
-                return Err(AppError::BadRequest(
-                    "That branch does not exist in Mambu".into(),
-                ));
-            }
-        }
-    }
-    if let Err(e) = state
-        .mambu_repo
-        .upsert_link(body.cooperative_id, &branch_id, Some(claims.sub.clone()))
-        .await
-    {
-        let text = e.to_string().to_lowercase();
-        if text.contains("duplicate") || text.contains("unique") {
-            return Err(AppError::Conflict(
-                "That Mambu branch is already linked to another cooperative".into(),
-            ));
-        }
-        return Err(e);
-    }
-    audit(
-        &state,
-        &claims,
-        "MAMBU_LINK",
-        "cooperative",
-        serde_json::json!({
-            "cooperative_id": body.cooperative_id, "mambu_branch_id": branch_id,
-        }),
-    )
-    .await;
-    let link = state
-        .mambu_repo
-        .list_links()
-        .await?
-        .into_iter()
-        .find(|l| l.cooperative_id == body.cooperative_id)
-        .ok_or_else(|| AppError::InternalServerError("Link was not saved".into()))?;
-    Ok(Json(MambuLinkResponse::from(link)))
-}
-
-#[utoipa::path(
-    delete,
-    path = "/api/v1/ministry/mambu/links/{cooperative_id}",
-    params(("cooperative_id" = Uuid, Path, description = "Cooperative id")),
-    responses((status = 204, description = "Link removed")),
-    tag = TAG,
-)]
-pub async fn delete_mambu_link(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Path(cooperative_id): Path<Uuid>,
-) -> AppResult<impl IntoResponse> {
-    state.mambu_repo.delete_link(cooperative_id).await?;
-    audit(
-        &state,
-        &claims,
-        "MAMBU_UNLINK",
-        "cooperative",
-        serde_json::json!({
-            "cooperative_id": cooperative_id,
-        }),
-    )
-    .await;
-    Ok(StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    post,
-    path = "/api/v1/ministry/mambu/syncs",
-    request_body = StartMambuSyncRequest,
-    responses(
-        (status = 202, description = "Sync started", body = MambuSyncRunResponse),
-        (status = 400, description = "Invalid request or Mambu not configured", body = ErrorResponse),
-        (status = 409, description = "A sync is already running", body = ErrorResponse),
-    ),
-    tag = TAG,
-)]
-pub async fn start_mambu_sync(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Json(body): Json<StartMambuSyncRequest>,
-) -> AppResult<impl IntoResponse> {
-    let run = crate::services::mambu::sync::start_run(
-        &state,
-        body.year,
-        body.month,
-        claims.clone(),
-        SyncLevel::Ministry,
-        match body.cooperative_id {
-            Some(id) => SyncScope::Cooperatives(vec![id]),
-            None => SyncScope::All,
-        },
-    )
-    .await?;
-    tracing::info!(run_id = %run.id, year = body.year, month = body.month, "Mambu sync started");
-    audit(
-        &state,
-        &claims,
-        "MAMBU_SYNC_START",
-        "mambu_sync",
-        serde_json::json!({
-            "run_id": run.id, "year": body.year, "month": body.month,
-        }),
-    )
-    .await;
-    Ok((StatusCode::ACCEPTED, Json(MambuSyncRunResponse::from(run))))
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/ministry/mambu/syncs",
-    responses((status = 200, description = "Recent sync runs", body = Vec<MambuSyncRunResponse>)),
-    tag = TAG,
-)]
-pub async fn list_mambu_syncs(State(state): State<AppState>) -> AppResult<impl IntoResponse> {
-    let runs: Vec<MambuSyncRunResponse> = state
-        .mambu_repo
-        .list_runs(MAX_RUNS)
-        .await?
-        .into_iter()
-        .map(Into::into)
-        .collect();
-    Ok(Json(runs))
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/ministry/mambu/syncs/{id}",
-    params(("id" = Uuid, Path, description = "Sync run id")),
-    responses(
-        (status = 200, description = "Run with per-SACCO results", body = MambuSyncDetailResponse),
-        (status = 404, description = "Run not found", body = ErrorResponse),
-    ),
-    tag = TAG,
-)]
-pub async fn get_mambu_sync(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> AppResult<impl IntoResponse> {
-    let run = state
-        .mambu_repo
-        .find_run(id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Sync run not found".into()))?;
-    let items = state.mambu_repo.list_items(id).await?;
-    Ok(Json(detail_response(&state, run, items).await?))
-}
-
 pub(crate) async fn detail_response(
     state: &AppState,
     run: crate::entities::mambu_sync_run::Model,
@@ -344,7 +82,7 @@ pub(crate) async fn detail_response(
 
 #[utoipa::path(
     get,
-    path = "/api/v1/ministry/mambu/gl-accounts",
+    path = "/api/v1/apex/mambu/gl-accounts",
     responses((status = 200, description = "Mambu ledger accounts with their current mapping", body = Vec<MambuGlAccountResponse>)),
     tag = TAG,
 )]
@@ -390,7 +128,7 @@ pub async fn list_mambu_gl_accounts(State(state): State<AppState>) -> AppResult<
 
 #[utoipa::path(
     get,
-    path = "/api/v1/ministry/mambu/coop-accounts",
+    path = "/api/v1/apex/mambu/coop-accounts",
     responses((status = 200, description = "CoopData chart of accounts", body = Vec<CoopAccountOption>)),
     tag = TAG,
 )]
@@ -412,7 +150,7 @@ pub async fn list_coop_accounts(State(state): State<AppState>) -> AppResult<impl
 
 #[utoipa::path(
     get,
-    path = "/api/v1/ministry/mambu/account-mappings",
+    path = "/api/v1/apex/mambu/account-mappings",
     responses((status = 200, description = "Ledger mappings", body = Vec<MambuAccountMappingResponse>)),
     tag = TAG,
 )]
@@ -429,7 +167,7 @@ pub async fn list_account_mappings(State(state): State<AppState>) -> AppResult<i
 
 #[utoipa::path(
     put,
-    path = "/api/v1/ministry/mambu/account-mappings",
+    path = "/api/v1/apex/mambu/account-mappings",
     request_body = UpsertMambuAccountMappingRequest,
     responses(
         (status = 200, description = "Mapping saved", body = MambuAccountMappingResponse),
@@ -482,7 +220,7 @@ pub async fn upsert_account_mapping(
 
 #[utoipa::path(
     delete,
-    path = "/api/v1/ministry/mambu/account-mappings/{code}",
+    path = "/api/v1/apex/mambu/account-mappings/{code}",
     params(("code" = String, Path, description = "Mambu ledger code")),
     responses((status = 204, description = "Mapping removed")),
     tag = TAG,
@@ -508,7 +246,7 @@ pub async fn delete_account_mapping(
 
 #[utoipa::path(
     get,
-    path = "/api/v1/ministry/mambu/products",
+    path = "/api/v1/apex/mambu/products",
     responses((status = 200, description = "Mambu deposit and loan products with their mapping", body = Vec<MambuProductResponse>)),
     tag = TAG,
 )]
@@ -566,7 +304,7 @@ pub async fn list_mambu_products(State(state): State<AppState>) -> AppResult<imp
 
 #[utoipa::path(
     get,
-    path = "/api/v1/ministry/mambu/product-mappings",
+    path = "/api/v1/apex/mambu/product-mappings",
     responses((status = 200, description = "Product mappings", body = Vec<MambuProductMappingResponse>)),
     tag = TAG,
 )]
@@ -583,7 +321,7 @@ pub async fn list_product_mappings(State(state): State<AppState>) -> AppResult<i
 
 #[utoipa::path(
     put,
-    path = "/api/v1/ministry/mambu/product-mappings",
+    path = "/api/v1/apex/mambu/product-mappings",
     request_body = UpsertMambuProductMappingRequest,
     responses(
         (status = 200, description = "Mapping saved", body = MambuProductMappingResponse),
@@ -634,7 +372,7 @@ pub async fn upsert_product_mapping(
 
 #[utoipa::path(
     delete,
-    path = "/api/v1/ministry/mambu/product-mappings/{kind}/{id}",
+    path = "/api/v1/apex/mambu/product-mappings/{kind}/{id}",
     params(
         ("kind" = String, Path, description = "deposit or loan"),
         ("id" = String, Path, description = "Mambu product id"),

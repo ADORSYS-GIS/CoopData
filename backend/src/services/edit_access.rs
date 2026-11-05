@@ -15,6 +15,8 @@ use crate::error::{AppError, AppResult};
 
 /// Fails with [`AppError::NotEditor`] unless the caller currently holds the draft.
 pub fn ensure_submission_editor(submission: &submission::Model, claims: &Claims) -> AppResult<()> {
+    mambu_import_is_apex_only(&submission.submission_method, claims.is_apex())
+        .map_err(AppError::NotEditor)?;
     let caller = Uuid::parse_str(&claims.sub).ok();
     check_editor(
         submission.edited_by,
@@ -24,6 +26,14 @@ pub fn ensure_submission_editor(submission: &submission::Model, claims: &Claims)
         caller_tier(claims),
     )
     .map_err(AppError::NotEditor)
+}
+
+/// A return imported from Mambu is read-only for everyone but the apex.
+pub fn mambu_import_is_apex_only(method: &str, is_apex: bool) -> Result<(), String> {
+    if method == "mambu" && !is_apex {
+        return Err("This submission was imported from Mambu. Only the apex can change it.".into());
+    }
+    Ok(())
 }
 
 /// The tier a user edits drafts at; reviewers above the apex never hold drafts.
@@ -77,6 +87,13 @@ fn check_editor(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_mambu_import_is_only_changed_by_the_apex() {
+        assert!(mambu_import_is_apex_only("mambu", true).is_ok());
+        assert!(mambu_import_is_apex_only("mambu", false).is_err());
+        assert!(mambu_import_is_apex_only("manual", false).is_ok());
+    }
 
     fn id(n: u128) -> Option<Uuid> {
         Some(Uuid::from_u128(n))

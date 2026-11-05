@@ -4,65 +4,12 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::entities::{
-    mambu_account_mapping, mambu_branch_link, mambu_product_mapping, mambu_sync_item,
-    mambu_sync_run,
+    mambu_account_mapping, mambu_product_mapping, mambu_sync_item, mambu_sync_run,
 };
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MambuStatusResponse {
     pub configured: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct MambuBranchResponse {
-    pub id: String,
-    pub name: String,
-    pub state: Option<String>,
-    pub region: Option<String>,
-    pub linked_cooperative_id: Option<Uuid>,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct MambuCooperativeOption {
-    pub id: Uuid,
-    pub name: String,
-    pub institution_type: Option<String>,
-    pub linked_mambu_branch_id: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct MambuLinkResponse {
-    pub cooperative_id: Uuid,
-    pub mambu_branch_id: String,
-    pub linked_by: Option<String>,
-    pub updated_at: DateTime<Utc>,
-}
-
-impl From<mambu_branch_link::Model> for MambuLinkResponse {
-    fn from(m: mambu_branch_link::Model) -> Self {
-        Self {
-            cooperative_id: m.cooperative_id,
-            mambu_branch_id: m.mambu_branch_id,
-            linked_by: m.linked_by,
-            updated_at: m.updated_at,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct UpsertMambuLinkRequest {
-    pub cooperative_id: Uuid,
-    pub mambu_branch_id: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct StartMambuSyncRequest {
-    pub year: i32,
-    /// 1 to 12 for one month, 0 for the whole year (one "Full 12 Mo" return per SACCO).
-    pub month: u32,
-    /// Sync only this cooperative. Every linked SACCO when empty.
-    #[serde(default)]
-    pub cooperative_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -234,28 +181,44 @@ pub struct SetMambuBranchRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct MambuCooperativeStatusResponse {
-    pub configured: bool,
-    pub linked: bool,
-    pub mambu_branch_id: Option<String>,
-    pub running: bool,
-    pub cooldown_seconds_left: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct StartApexMambuSyncRequest {
-    pub year: i32,
-    /// 1 to 12 for one month, 0 for the whole year (one "Full 12 Mo" return per SACCO).
-    pub month: u32,
-    /// Sync only this cooperative. All linked cooperatives of the apex when empty.
-    pub cooperative_id: Option<Uuid>,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MambuProductResponse {
     pub id: String,
     pub name: Option<String>,
     pub product_kind: String,
     pub product_type: Option<String>,
     pub mapped_type: Option<String>,
+}
+
+/// Starts a sync of a whole year. One return per SACCO, with a column for each month.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct StartMambuSyncRequest {
+    pub year: i32,
+    /// The cooperatives to sync. Every linked cooperative of the apex when empty.
+    #[serde(default)]
+    pub cooperative_ids: Option<Vec<Uuid>>,
+}
+
+/// A cooperative of the apex with its Mambu link and its latest sync.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct MambuApexCooperativeResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub institution_type: Option<String>,
+    pub mambu_branch_id: Option<String>,
+    /// Takes part in the automatic monthly sync.
+    pub auto_sync: bool,
+    /// A sync of this cooperative is running now.
+    pub running: bool,
+    pub last_synced_at: Option<DateTime<Utc>>,
+    /// Result of the latest sync: synced, flagged, failed or skipped.
+    pub last_status: Option<String>,
+    pub last_error: Option<String>,
+    pub last_submission_id: Option<Uuid>,
+    pub last_warning_count: i32,
+    pub last_unmapped_accounts: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct SetMambuAutoSyncRequest {
+    pub auto_sync: bool,
 }

@@ -1,29 +1,27 @@
-//! Mambu endpoints for cooperatives and apexes. They only ever reach the
-//! cooperatives the caller owns; the Mambu credentials stay on the server.
+//! Mambu endpoints of the apex. Only the apex links its cooperatives to Mambu branches,
+//! syncs them and reads the results; the Mambu credentials stay on the server.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
-use chrono::Utc;
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::api::dto::{
-    MambuBranchPreviewResponse, MambuCooperativeLinkResponse, MambuCooperativeStatusResponse,
-    MambuStatusResponse, MambuSyncRunResponse, SetMambuBranchRequest, StartApexMambuSyncRequest,
-    StartMambuSyncRequest,
+    MambuApexCooperativeResponse, MambuBranchPreviewResponse, MambuCooperativeLinkResponse,
+    MambuStatusResponse, MambuSyncDetailResponse, MambuSyncRunResponse, SetMambuAutoSyncRequest,
+    SetMambuBranchRequest, StartMambuSyncRequest,
 };
-use crate::api::handlers::cooperative::{
-    resolve_caller_cooperative, resolve_caller_cooperative_ids,
-};
+use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::api::handlers::mambu::detail_response;
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
 use crate::services::mambu::linking;
-use crate::services::mambu::sync::{start_run, SyncLevel, SyncScope, COOLDOWN_MINUTES};
+use crate::services::mambu::sync::{start_run, SyncScope, SYSTEM_ACTOR};
 use crate::AppState;
 
 const TAG: &str = "Mambu";
@@ -62,180 +60,16 @@ async fn ensure_owned(state: &AppState, claims: &Claims, cooperative_id: Uuid) -
     }
 }
 
-async fn start(
-    state: &AppState,
-    claims: &Arc<Claims>,
-    year: i32,
-    month: u32,
-    level: SyncLevel,
-    scope: SyncScope,
-) -> AppResult<(StatusCode, Json<MambuSyncRunResponse>)> {
-    let run = start_run(state, year, month, claims.clone(), level, scope).await?;
-    tracing::info!(run_id = %run.id, year, month, level = ?level, "Mambu sync started");
-    audit(
-        state,
-        claims,
-        "MAMBU_SYNC_START",
-        serde_json::json!({ "run_id": run.id, "year": year, "month": month, "level": format!("{level:?}") }),
-    )
-    .await;
-    Ok((StatusCode::ACCEPTED, Json(MambuSyncRunResponse::from(run))))
+/// A run as the apex sees it: who pressed the button is hidden, only an automatic run
+/// is marked, and the count is the apex's own part of the run.
+fn present_run(mut run: MambuSyncRunResponse, own: usize) -> MambuSyncRunResponse {
+    run.started_by = run
+        .started_by
+        .filter(|s| s == SYSTEM_ACTOR)
+        .map(|_| "automatic".to_string());
+    run.total_saccos = own as i32;
+    run
 }
-
-/// Runs that include one of the caller's cooperatives. The starter and the size
-/// of a bulk run are hidden: the caller only sees its own part of the run.
-async fn runs_for(
-    state: &AppState,
-    cooperative_ids: Vec<Uuid>,
-) -> AppResult<Vec<MambuSyncRunResponse>> {
-    let runs = state
-        .mambu_repo
-        .list_runs_for_cooperatives(cooperative_ids.clone(), MAX_RUNS)
-        .await?;
-    let mut out = Vec::with_capacity(runs.len());
-    for run in runs {
-        let own = state
-            .mambu_repo
-            .list_items_for_cooperatives(run.id, cooperative_ids.clone())
-            .await?
-            .len();
-        let mut response = MambuSyncRunResponse::from(run);
-        response.started_by = None;
-        response.total_saccos = own as i32;
-        out.push(response);
-    }
-    Ok(out)
-}
-
-async fn run_detail(
-    state: &AppState,
-    cooperative_ids: Vec<Uuid>,
-    id: Uuid,
-) -> AppResult<crate::api::dto::MambuSyncDetailResponse> {
-    let run = state
-        .mambu_repo
-        .find_run(id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Sync run not found".into()))?;
-    let items = state
-        .mambu_repo
-        .list_items_for_cooperatives(id, cooperative_ids)
-        .await?;
-    if items.is_empty() {
-        return Err(AppError::NotFound("Sync run not found".into()));
-    }
-    let mut detail = detail_response(state, run, items).await?;
-    detail.run.started_by = None;
-    detail.run.total_saccos = detail.items.len() as i32;
-    Ok(detail)
-}
-
-// ---- Cooperative ----------------------------------------------------------
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/cooperative/mambu/status",
-    responses((status = 200, description = "Mambu link and sync state of the caller's SACCO", body = MambuCooperativeStatusResponse)),
-    tag = TAG,
-)]
-pub async fn coop_mambu_status(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-) -> AppResult<impl IntoResponse> {
-    let coop = resolve_caller_cooperative(&state, &claims).await?;
-    let link = state.mambu_repo.find_link(coop.id).await?;
-    let running_ids: Vec<Uuid> = state
-        .mambu_repo
-        .list_running_runs()
-        .await?
-        .into_iter()
-        .map(|r| r.id)
-        .collect();
-    let running = state
-        .mambu_repo
-        .pending_cooperative_ids(running_ids)
-        .await?
-        .contains(&coop.id);
-    let window = chrono::Duration::minutes(COOLDOWN_MINUTES);
-    let last = state
-        .mambu_repo
-        .last_sync_starts(vec![coop.id], Utc::now() - window)
-        .await?
-        .remove(&coop.id);
-    let cooldown_seconds_left = last
-        .map(|t| (window - (Utc::now() - t)).num_seconds().max(0))
-        .unwrap_or(0);
-    Ok(Json(MambuCooperativeStatusResponse {
-        configured: state.mambu_client.is_some(),
-        linked: link.is_some(),
-        mambu_branch_id: link.map(|l| l.mambu_branch_id),
-        running,
-        cooldown_seconds_left,
-    }))
-}
-
-#[utoipa::path(
-    post,
-    path = "/api/v1/cooperative/mambu/syncs",
-    request_body = StartMambuSyncRequest,
-    responses(
-        (status = 202, description = "Sync started. The result is a draft for the SACCO to check and submit", body = MambuSyncRunResponse),
-        (status = 400, description = "Invalid request, not linked, or Mambu not configured", body = ErrorResponse),
-        (status = 409, description = "A sync is running or the cooldown is active", body = ErrorResponse),
-    ),
-    tag = TAG,
-)]
-pub async fn coop_start_mambu_sync(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Json(body): Json<StartMambuSyncRequest>,
-) -> AppResult<impl IntoResponse> {
-    let coop = resolve_caller_cooperative(&state, &claims).await?;
-    start(
-        &state,
-        &claims,
-        body.year,
-        body.month,
-        SyncLevel::Cooperative,
-        SyncScope::Cooperatives(vec![coop.id]),
-    )
-    .await
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/cooperative/mambu/syncs",
-    responses((status = 200, description = "Recent syncs of the caller's SACCO", body = Vec<MambuSyncRunResponse>)),
-    tag = TAG,
-)]
-pub async fn coop_list_mambu_syncs(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-) -> AppResult<impl IntoResponse> {
-    let coop = resolve_caller_cooperative(&state, &claims).await?;
-    Ok(Json(runs_for(&state, vec![coop.id]).await?))
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/cooperative/mambu/syncs/{id}",
-    params(("id" = Uuid, Path, description = "Sync run id")),
-    responses(
-        (status = 200, description = "Result of the SACCO in this run", body = MambuSyncDetailResponse),
-        (status = 404, description = "Run not found", body = ErrorResponse),
-    ),
-    tag = TAG,
-)]
-pub async fn coop_get_mambu_sync(
-    State(state): State<AppState>,
-    Extension(claims): Extension<Arc<Claims>>,
-    Path(id): Path<Uuid>,
-) -> AppResult<impl IntoResponse> {
-    let coop = resolve_caller_cooperative(&state, &claims).await?;
-    Ok(Json(run_detail(&state, vec![coop.id], id).await?))
-}
-
-// ---- Apex -----------------------------------------------------------------
 
 #[utoipa::path(
     get,
@@ -324,6 +158,67 @@ pub async fn apex_search_mambu_branches(
 
 #[utoipa::path(
     get,
+    path = "/api/v1/apex/mambu/cooperatives",
+    responses((status = 200, description = "The apex's cooperatives with their Mambu link and latest sync", body = Vec<MambuApexCooperativeResponse>)),
+    tag = TAG,
+)]
+pub async fn apex_list_mambu_cooperatives(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+) -> AppResult<impl IntoResponse> {
+    let ids = owned_cooperative_ids(&state, &claims).await?;
+    let cooperatives = state.cooperative_repo.find_by_ids(ids.clone()).await?;
+    let links: std::collections::HashMap<Uuid, _> = state
+        .mambu_repo
+        .list_links_for(ids.clone())
+        .await?
+        .into_iter()
+        .map(|l| (l.cooperative_id, l))
+        .collect();
+    let latest = state
+        .mambu_repo
+        .latest_items_for_cooperatives(ids.clone())
+        .await?;
+    let running_runs: Vec<Uuid> = state
+        .mambu_repo
+        .list_running_runs()
+        .await?
+        .into_iter()
+        .map(|r| r.id)
+        .collect();
+    let running: HashSet<Uuid> = state
+        .mambu_repo
+        .pending_cooperative_ids(running_runs)
+        .await?;
+    let mut out: Vec<MambuApexCooperativeResponse> = cooperatives
+        .into_iter()
+        .map(|c| {
+            let link = links.get(&c.id);
+            let item = latest.get(&c.id);
+            MambuApexCooperativeResponse {
+                id: c.id,
+                name: c.display_name,
+                institution_type: c.institution_type.map(|t| t.as_str().to_string()),
+                mambu_branch_id: link.map(|l| l.mambu_branch_id.clone()),
+                auto_sync: link.map(|l| l.auto_sync).unwrap_or(false),
+                running: running.contains(&c.id),
+                last_synced_at: item.map(|i| i.updated_at),
+                last_status: item.map(|i| i.status.clone()),
+                last_error: item.and_then(|i| i.error.clone()),
+                last_submission_id: item.and_then(|i| i.submission_id),
+                last_warning_count: item
+                    .and_then(|i| i.warnings.as_array().map(|a| a.len() as i32))
+                    .unwrap_or(0),
+                last_unmapped_accounts: item.map(|i| i.unmapped_ledger_accounts).unwrap_or(0),
+            }
+        })
+        .collect();
+    out.sort_by_key(|c| c.name.to_lowercase());
+    Ok(Json(out))
+}
+
+#[utoipa::path(
+    get,
     path = "/api/v1/apex/cooperatives/{id}/mambu-link",
     params(("id" = Uuid, Path, description = "Cooperative id")),
     responses((status = 200, description = "Mambu branch of the cooperative", body = MambuCooperativeLinkResponse)),
@@ -401,11 +296,45 @@ pub async fn apex_clear_mambu_link(
 }
 
 #[utoipa::path(
+    put,
+    path = "/api/v1/apex/cooperatives/{id}/mambu-auto-sync",
+    params(("id" = Uuid, Path, description = "Cooperative id")),
+    request_body = SetMambuAutoSyncRequest,
+    responses(
+        (status = 204, description = "Setting saved"),
+        (status = 404, description = "Cooperative not found or not linked", body = ErrorResponse),
+    ),
+    tag = TAG,
+)]
+pub async fn apex_set_mambu_auto_sync(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<SetMambuAutoSyncRequest>,
+) -> AppResult<impl IntoResponse> {
+    ensure_owned(&state, &claims, id).await?;
+    if !state.mambu_repo.set_auto_sync(id, body.auto_sync).await? {
+        return Err(AppError::NotFound(
+            "This cooperative is not linked to a Mambu branch".into(),
+        ));
+    }
+    audit(
+        &state,
+        &claims,
+        "MAMBU_AUTO_SYNC",
+        serde_json::json!({ "cooperative_id": id, "auto_sync": body.auto_sync }),
+    )
+    .await;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
     post,
     path = "/api/v1/apex/mambu/syncs",
-    request_body = StartApexMambuSyncRequest,
+    request_body = StartMambuSyncRequest,
     responses(
-        (status = 202, description = "Sync started. Results are drafts at the apex", body = MambuSyncRunResponse),
+        (status = 202, description = "Sync of the whole year started. Results are drafts at the apex", body = MambuSyncRunResponse),
+        (status = 400, description = "Invalid request, nothing linked, or Mambu not configured", body = ErrorResponse),
         (status = 409, description = "Syncs are running or the cooldown is active", body = ErrorResponse),
     ),
     tag = TAG,
@@ -413,24 +342,40 @@ pub async fn apex_clear_mambu_link(
 pub async fn apex_start_mambu_sync(
     State(state): State<AppState>,
     Extension(claims): Extension<Arc<Claims>>,
-    Json(body): Json<StartApexMambuSyncRequest>,
+    Json(body): Json<StartMambuSyncRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let ids = match body.cooperative_id {
-        Some(id) => {
-            ensure_owned(&state, &claims, id).await?;
-            vec![id]
+    let owned = owned_cooperative_ids(&state, &claims).await?;
+    let ids = match body.cooperative_ids.filter(|ids| !ids.is_empty()) {
+        Some(chosen) => {
+            let owned: HashSet<Uuid> = owned.into_iter().collect();
+            if chosen.iter().any(|id| !owned.contains(id)) {
+                return Err(AppError::NotFound("Cooperative not found".into()));
+            }
+            chosen
         }
-        None => owned_cooperative_ids(&state, &claims).await?,
+        None => owned,
     };
-    start(
+    let count = ids.len();
+    let run = start_run(
         &state,
-        &claims,
         body.year,
-        body.month,
-        SyncLevel::Apex,
+        0,
+        claims.clone(),
         SyncScope::Cooperatives(ids),
     )
-    .await
+    .await?;
+    tracing::info!(run_id = %run.id, year = body.year, cooperatives = count, "Mambu sync started");
+    audit(
+        &state,
+        &claims,
+        "MAMBU_SYNC_START",
+        serde_json::json!({ "run_id": run.id, "year": body.year, "cooperatives": count }),
+    )
+    .await;
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(present_run(MambuSyncRunResponse::from(run), count)),
+    ))
 }
 
 #[utoipa::path(
@@ -444,7 +389,20 @@ pub async fn apex_list_mambu_syncs(
     Extension(claims): Extension<Arc<Claims>>,
 ) -> AppResult<impl IntoResponse> {
     let ids = owned_cooperative_ids(&state, &claims).await?;
-    Ok(Json(runs_for(&state, ids).await?))
+    let runs = state
+        .mambu_repo
+        .list_runs_for_cooperatives(ids.clone(), MAX_RUNS)
+        .await?;
+    let mut out = Vec::with_capacity(runs.len());
+    for run in runs {
+        let own = state
+            .mambu_repo
+            .list_items_for_cooperatives(run.id, ids.clone())
+            .await?
+            .len();
+        out.push(present_run(MambuSyncRunResponse::from(run), own));
+    }
+    Ok(Json(out))
 }
 
 #[utoipa::path(
@@ -463,5 +421,20 @@ pub async fn apex_get_mambu_sync(
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     let ids = owned_cooperative_ids(&state, &claims).await?;
-    Ok(Json(run_detail(&state, ids, id).await?))
+    let run = state
+        .mambu_repo
+        .find_run(id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Sync run not found".into()))?;
+    let items = state
+        .mambu_repo
+        .list_items_for_cooperatives(id, ids)
+        .await?;
+    if items.is_empty() {
+        return Err(AppError::NotFound("Sync run not found".into()));
+    }
+    let mut detail: MambuSyncDetailResponse = detail_response(&state, run, items).await?;
+    let own = detail.items.len();
+    detail.run = present_run(detail.run, own);
+    Ok(Json(detail))
 }

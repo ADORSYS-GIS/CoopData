@@ -208,6 +208,12 @@ pub fn test_config() -> AppConfig {
         mambu_api_key: String::new(),
         mambu_timeout_secs: 120,
         mambu_page_size: 200,
+        mambu_sync_concurrency: 4,
+        mambu_max_inflight: 8,
+        mambu_auto_sync_enabled: false,
+        mambu_auto_sync_start_hour: 1,
+        mambu_auto_sync_end_hour: 6,
+        mambu_auto_sync_day: 2,
     }
 }
 

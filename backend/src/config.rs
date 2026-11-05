@@ -49,6 +49,17 @@ pub struct AppConfig {
     pub mambu_api_key: String,
     pub mambu_timeout_secs: u64,
     pub mambu_page_size: u32,
+    /// SACCOs of one sync run that are read from Mambu at the same time.
+    pub mambu_sync_concurrency: usize,
+    /// Requests to Mambu in flight at once, over all syncs.
+    pub mambu_max_inflight: usize,
+    /// Whether the automatic monthly sync runs.
+    pub mambu_auto_sync_enabled: bool,
+    /// UTC hours (start inclusive, end exclusive) in which the automatic sync may start.
+    pub mambu_auto_sync_start_hour: u32,
+    pub mambu_auto_sync_end_hour: u32,
+    /// Day of the month from which the automatic sync of the previous month runs.
+    pub mambu_auto_sync_day: u32,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -152,6 +163,29 @@ impl AppConfig {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(200),
+            mambu_sync_concurrency: env::var("MAMBU_SYNC_CONCURRENCY")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(4),
+            mambu_max_inflight: env::var("MAMBU_MAX_INFLIGHT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(8),
+            mambu_auto_sync_enabled: env::var("MAMBU_AUTO_SYNC_ENABLED")
+                .map(|v| !matches!(v.trim().to_lowercase().as_str(), "false" | "0" | "no"))
+                .unwrap_or(true),
+            mambu_auto_sync_start_hour: env::var("MAMBU_AUTO_SYNC_START_HOUR")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(1),
+            mambu_auto_sync_end_hour: env::var("MAMBU_AUTO_SYNC_END_HOUR")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(6),
+            mambu_auto_sync_day: env::var("MAMBU_AUTO_SYNC_DAY")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(2),
         })
     }
 
@@ -228,6 +262,12 @@ mod tests {
             mambu_api_key: String::new(),
             mambu_timeout_secs: 120,
             mambu_page_size: 200,
+            mambu_sync_concurrency: 4,
+            mambu_max_inflight: 8,
+            mambu_auto_sync_enabled: false,
+            mambu_auto_sync_start_hour: 1,
+            mambu_auto_sync_end_hour: 6,
+            mambu_auto_sync_day: 2,
         }
     }
 
