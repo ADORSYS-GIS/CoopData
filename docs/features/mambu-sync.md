@@ -184,4 +184,62 @@ Consequences in the sync:
 1. The balance sheet comes from the month report only (first day to last day of the month).
 2. The sign style of every report is detected from the accounting equation. A report that balances in neither style is not used: the ledger stays empty and the item is flagged `LEDGER_DOES_NOT_BALANCE`.
 3. The year-to-date report is only used to split the earnings, and only when it balances and agrees with the month report on every closing total. Otherwise all earnings sit in the accumulated surplus line and the item carries `SURPLUS_NOT_SPLIT`.
-4. Importing past years from the ledger is not reliable on this sandbox. It has to be re-checked on the real Mambu before it is built.
+4. Past years are read from the general ledger instead (section 16), because the report is not reliable on this sandbox.
+
+## 16. Ledger from the general ledger (journal entries)
+
+The accounting report does not balance for older periods on the sandbox, on every branch checked (ES0002, ES0003, SA0003 and ES0006). The general ledger does: for ES0006 in January 2026 the 6,471 lines had debits equal to credits (5,297,108.97 each).
+
+- Source: `POST /gljournalentries:search`, filtered by `assignedBranchKey` (the branch encoded key) and `bookingDate` BETWEEN two dates. `branchKey` is not a valid filter field. `limit` up to 1000, `paginationDetails=ON` gives `items-total`.
+- The lines are added up per account and month (`services/mambu/journal.rs`). The balance of an account at a month end is the sum of all months up to then. Assets and expenses are debit minus credit; liabilities, equity and income are credit minus debit, the natural signs of the Mambu balance sheet screen. The result is shaped like a report, so the report mapping (`map_ledger`) is reused unchanged.
+- Order of use (`services/mambu/ledger_source.rs`): the general ledger first; the monthly accounting reports only when the general ledger cannot be read or is empty. The item carries `LEDGER_FROM_JOURNAL` (info) or `LEDGER_FROM_REPORTS` (warning).
+- The earnings of the previous year end come from the same data, so the surplus is split into accumulated and current year without a Dec report.
+- A date range with more than 30,000 lines is split in two before it is read. Pages of a range are read four at a time. A range that returns fewer lines than `items-total` fails the read (and the sync falls back to the reports).
+- Cost: ES0006 has 640,432 lines before 2026 and 5,000 to 9,000 per month. Reading history takes about 16,000 lines a minute per request stream.
+- Cache (migration 68): months that ended more than 45 days ago are closed. Their totals are kept in `mambu_ledger_months`, with the date up to which the cache is complete in `mambu_ledger_cache`. The first sync of a branch reads the history once, a year at a time, saving after each year so a failure keeps what was read. Later syncs read only the recent months.
+- Limits: the Mambu user cannot read `/users` or `/centres` (403), and `/loans/transactions:search` timed out for the branch (500 `QUERY_TIMEOUT`).
+
+## 17. Whole year, replace rules and tolerance
+
+- A whole-year sync (month 0, migration 67) makes one `FULL_YEAR` monthly return per SACCO with a column for each month that has started.
+- It replaces single-month returns of that year made by an earlier Mambu sync, only those the level may replace (drafts; in review too for the Ministry). The old months are deleted after the new return is saved. Anything else (other methods, submitted or approved returns) blocks it with a message that says which status.
+- A Ministry sync can be limited to one cooperative (`cooperative_id` in the request).
+- Members, savings, fixed deposits and loans are read with the server-side search filtered by branch (`/clients:search` filters on `branchKey`; `/deposits:search` and `/loans:search` on `assignedBranchKey`). The plain list ignores its branch filter for deposits and loans and reads the whole tenant (472,691 deposits, 1,108,466 loans on the sandbox). If the branch key cannot be read, the plain list is the fallback.
+- A page that cannot be decoded is requested again (3 attempts), and a dropped connection is retried 6 times with growing waits. The log names the cause but never record data.
+- Branch and product lists that Mambu refuses (403) do not stop the sync (`REFERENCE_DATA_UNAVAILABLE`); a typed branch ID is then accepted without a name check.
+- A deposit product whose name contains "fixed deposit" is a fixed deposit even when Mambu types it as regular savings.
+- Indicators counted from the member list are saved on the return: `new_members_joined`, `members_exited` (in the period), `women_members_count`, `youth_members_count` (members still in the SACCO, youth is 18 to 35).
+
+## 18. What Mambu does not give
+
+Members: urban or rural, AGM attendance, leadership role, voting (defaults). Savings: number and frequency of contributions, balance trend and withdrawal frequency are defaults until they are computed from deposit transactions (`/deposits/transactions:search` is readable). Fixed deposits: renewals, rollover, tenure change. Governance and operations indicators (board, AGM held, audits, staff, systems, training, CSR) are not in Mambu and are entered by hand.
+
+## 19. Apex-only flow (current design)
+
+This replaces the Ministry, cooperative and monthly parts of sections 3, 13 and 15.
+
+**Who can do what**
+- Only the apex role has Mambu endpoints (`/api/v1/apex/mambu/...`, `/api/v1/apex/cooperatives/{id}/mambu-link`, `.../mambu-auto-sync`). The Ministry, federation and cooperative roles get 403 on them and have no Mambu menu item. The old `/ministry/mambu/*` and `/cooperative/mambu/*` routes are gone.
+- The apex creates its cooperatives, searches a Mambu branch by name or ID (at least 3 letters, at most 8 free branches, branches linked elsewhere are hidden), picks it and links it. A newly linked branch has its closed ledger months read into the cache in the background.
+- The apex chooses which linked cooperatives to sync (`cooperative_ids`, all when empty) and the year. Only a whole year can be synced: one `FULL_YEAR` return per SACCO. The single-month option is removed from the API and the screen (the service still accepts a month for tests).
+- A sync makes a **draft at apex tier**, created by the apex. Other roles may read it. Only the apex can change, delete, submit or approve it (`ensure_submission_editor`, `submit` and the apex submit handler). Submitting as apex approves it, as before.
+
+**Automatic sync** (`services/mambu/scheduler.rs`, migration 69)
+- Every link has `auto_sync` (default on, the apex switches it per cooperative).
+- Every 10 minutes the server checks whether it is the 2nd of the month or later and between `MAMBU_AUTO_SYNC_START_HOUR` and `MAMBU_AUTO_SYNC_END_HOUR` UTC. Then it claims, in one SQL statement, the links not yet done for this month (`last_auto_sync_month`), so two servers never start the same month twice, and starts a sync of the year for them. In January the year that has just ended is synced. A claim is released when the run cannot start, so the next check tries again.
+- Automatic runs are marked `automatic` in the history and have the nil user id.
+
+**Before the apex submits an import** (`services/mambu/review_gate.rs`)
+- The submit is refused while the import has ledger accounts without a mapping.
+- When the import has warnings, the request must carry `acknowledge_warnings=true`; the screen shows a checkbox "I checked the warnings of this Mambu import".
+
+**Speed**
+- SACCOs of a run are synced in parallel (`MAMBU_SYNC_CONCURRENCY`, default 4). One shared limit of requests in flight (`MAMBU_MAX_INFLIGHT`, default 8) protects Mambu, and the client retries 429 and 5xx.
+- Clients, deposits and loans of a branch are read at the same time, and the pages of each list four at a time (first request gives `items-total`).
+- A run that was running when the server stopped is continued at start-up for the SACCOs that had not finished.
+- Measured: 1,200 members, 10,000 deposits and 4,000 loans in about 2 minutes sequentially; the first journal read of a branch with 640,000 lines took about 30 minutes, later syncs about 3.
+
+**Not built yet**
+- Incremental refresh of the lists (read only records changed since the last sync).
+- Reopening an approved return after a correction in Mambu.
+- Mapping per apex: the ledger and product mappings are one global table, shared by every apex of the same Mambu tenant.
