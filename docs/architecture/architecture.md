@@ -3,7 +3,7 @@
 > **Document Version**: 1.0
 > **Date**: 2026-07-03
 > **Status**: Design — Source of Truth for Backend Data Layer
-> **Scope**: End-to-end backend architecture, PostgreSQL schema, AI-extraction pipeline, 4-tier review workflow, KPI computation, abnormality flagging
+> **Scope**: End-to-end backend architecture, PostgreSQL schema, AI-extraction pipeline, submission review workflow, KPI computation, abnormality flagging
 
 > **CRITICAL**: This is the authoritative architecture for the data-collection & financial-statement subsystem.
 > The earlier `BACKEND_DESIGN.md` (now removed) proposed a TanStack-Hono-Drizzle stack — that is **superseded** by the
@@ -15,7 +15,7 @@
 
 1. [Context & Reconciliation](#1-context--reconciliation)
 2. [System Overview](#2-system-overview)
-3. [The 4-Tier Hierarchical Review Workflow](#3-the-4-tier-hierarchical-review-workflow)
+3. [The Review Workflow](#3-the-review-workflow)
 4. [AI-Extraction Pipeline](#4-ai-extraction-pipeline)
 5. [Backend Layer Architecture](#5-backend-layer-architecture)
 6. [Database Schema (PostgreSQL / SeaORM)](#6-database-schema-postgresql--seaorm)
@@ -40,18 +40,18 @@
 | Backend | Rust, Axum 0.8, SeaORM 1.1, PostgreSQL via `sqlx-postgres` | `backend/Cargo.toml` |
 | Auth / IAM | Keycloak (OAuth2/OIDC), JWT validation, RBAC middleware | `src/auth/`, `src/services/keycloak.rs` |
 | Hierarchy | Ministry → Federation → Apex → Cooperative. Federations/Apexes/Cooperatives stored in **PostgreSQL** with `keycloak_id` FKs linking to Keycloak entities | `entities/federation.rs`, `entities/apex.rs`, `entities/cooperative.rs` |
-| Entities (33 total) | `federation`, `apex`, `cooperative`, `user`, `organization`, `submission`, `financial_statement`, `balance_sheet_line_item`, `chart_of_account`, `chart_of_accounts_coop_type`, `account_alias`, `member`, `savings_account`, `loan`, `fixed_deposit`, `farm_coop`, `kpi_record`, `abnormality_flag`, `extraction_job`, `uploaded_file`, `submission_review`, `submission_section`, `audit_log`, `custom_kpi`, `assessment`, `organization_label`, `non_financial_indicator_catalog`, `non_financial_indicator_entry`, `questionnaire_template`, `questionnaire_response`, `ministry_report_narratives`, `enums` | `src/entities/` |
+| Entities | `federation`, `apex`, `cooperative`, `user`, `organization`, `submission`, `financial_statement`, `balance_sheet_line_item`, `chart_of_account`, `chart_of_accounts_coop_type`, `account_alias`, `member`, `savings_account`, `loan`, `fixed_deposit`, `farm_coop`, `kpi_record`, `abnormality_flag`, `extraction_job`, `uploaded_file`, `submission_review`, `submission_section`, `audit_log`, `custom_kpi`, `assessment`, `organization_label`, `non_financial_indicator_catalog`, `non_financial_indicator_entry`, `questionnaire_template`, `questionnaire_response`, `ministry_report_narratives`, `enums` | `src/entities/` |
 | Frontend | React + TanStack Router/Query, shadcn/ui, OpenAPI-fetch client, Dexie (IndexedDB) offline-first | `frontend/src/` |
 | Financial data | Real chart of accounts (1000–6999) seeded in PostgreSQL, KPI engine in Rust (`kpi_engine.rs`), NF indicator engine (`nf_indicator_engine.rs`) | `services/kpi_engine.rs`, `services/nf_indicator_engine.rs` |
 | AI extraction | PDF/image/Excel → structured data pipeline with LLM mapping + validation | `services/ai_extraction.rs`, `services/extraction_pipeline.rs` |
 
 ### 1.2 What this document designs (implemented)
 
-1. A **persistent PostgreSQL schema** for financial & non-financial cooperative data — ✅ implemented in `backend/src/entities/` and migrations.
-2. The **submission + 4-tier review workflow** (Cooperative → Apex → Federation → Ministry) — ✅ implemented in `services/submission_workflow.rs`.
-3. The **AI-extraction pipeline** (PDF/image/Excel → structured chart-of-accounts data → human validation) — ✅ implemented in `services/ai_extraction.rs` and `services/extraction_pipeline.rs`.
-4. **KPI materialization** and **abnormality flagging** as backend services — ✅ KPI engine in `services/kpi_engine.rs`; abnormality detector exists but is not yet wired to the submission workflow.
-5. **Data-flow** from upload through approval and analytics — ✅ implemented across handlers, services, and frontend analytics pages.
+1. A **persistent PostgreSQL schema** for financial & non-financial cooperative data — implemented in `backend/src/entities/` and migrations.
+2. The **submission review workflow** (Cooperative → Apex, the apex being the final approval level) — implemented in `services/submission_workflow.rs`.
+3. The **AI-extraction pipeline** (PDF/image/Excel → structured chart-of-accounts data → human validation) — implemented in `services/ai_extraction.rs` and `services/extraction_pipeline.rs`.
+4. **KPI materialization** and **abnormality flagging** as backend services — KPI engine in `services/kpi_engine.rs`; abnormality detector exists but is not yet wired to the submission workflow.
+5. **Data-flow** from upload through approval and analytics — implemented across handlers, services, and frontend analytics pages.
 
 ### 1.3 Key reconciliation decision: Keycloak vs PostgreSQL for identity
 
@@ -97,56 +97,47 @@ The backend keeps the **Arizona/Azimuth layer separation** mandated by `AGENTS.m
 
 ---
 
-## 3. The 4-Tier Hierarchical Review Workflow
+## 3. The Review Workflow
 
-### 3.1 The flow you described, formalized
+> **Current behaviour (November 2026):** the apex is the final approval level. A cooperative submits to its apex; the apex approves it (final, status `approved`) or returns it to the cooperative as a draft with a comment. An apex's own submission is approved when it is submitted. Federation and Ministry do not hold or approve submissions: they see every non-draft submission and use the approved data. The original design had two more review tiers (Federation, then Ministry). Their code paths (`federation_approve`, `ministry_approve`, `ministry_reject`) and their routes still exist, but no submission ever reaches those tiers, so they cannot be used. See `services/submission_workflow.rs`.
 
-A cooperative submits a financial statement document. AI extracts values; the cooperative user validates; the submission then **escalates** up the hierarchy, where each tier either approves (forward) or returns (backward) for correction.
+### 3.1 The flow
+
+A cooperative prepares a return (uploading a financial statement and letting the AI extract it, entering it manually, or answering the questionnaire), checks the data, and submits it. The apex reviews it and either approves it or returns it.
 
 ```
- ┌──────────────┐         ┌──────────┐         ┌────────────┐         ┌──────────┐
- │ COOPERATIVE  │ submit  │   APEX   │ review  │ FEDERATION │ review  │ MINISTRY │
- │ (data owner) ├────────►│ (tier 3) ├────────►│  (tier 2)  ├────────►│ (tier 1) │
- │              │         │          │         │            │         │          │
- │ validate AI  │◄────────┤  return  │◄────────┤   return   │◄────────┤  reject  │
- │  extraction  │ request │ for      │ request │  request    │ request │          │
- └──────────────┘         └──────────┘  changes└────────────┘  changes└──────────┘
-        ▲                                                                        │
-        └──────────────────── return to cooperative for changes ────────────────────┘
+ ┌──────────────┐  submit  ┌──────────┐  approve   ┌──────────┐
+ │ COOPERATIVE  ├─────────►│   APEX   ├───────────►│ APPROVED │  (final, locked)
+ │ (data owner) │          │ (review) │            └──────────┘
+ │              │◄─────────┤          │
+ └──────────────┘  return  └──────────┘
+       draft + apex comment in the review history
 ```
+
+An apex can also create and fill a return on behalf of a cooperative. Submitting it approves it straight away (the apex is the reviewer). It can hand a draft it created to the cooperative (delegate) and take it back (reclaim).
 
 ### 3.2 Submission lifecycle (status values)
 
-A single `submission` moves through review tiers. The status reflects **both** phase and the tier currently holding it:
+The database enum `submission_status` has more values than are used. The ones the application sets today:
 
-| Status | Who holds it | Meaning |
+| Status | Current tier | Meaning |
 |---|---|---|
-| `draft` | Cooperative | AI extraction in progress / user editing; not yet sent |
-| `awaiting_coop_validation` | Cooperative | AI done; cooperative must validate data |
-| `submitted` | Cooperative | Sent upward — now awaiting **Apex** review |
-| `apex_review` | Apex | Apex is reviewing |
-| `apex_approved` | — (transient) | Apex approved → auto-forwarded to Federation → becomes `federation_review` |
-| `apex_returned` | Cooperative | Apex asked the cooperative to fix and resubmit |
-| `federation_review` | Federation | Federation is reviewing |
-| `federation_approved` | — (transient) | Federation approved → forwarded to Ministry → becomes `ministry_review` |
-| `federation_returned` | Apex | Federation asked Apex to fix (returns one tier down, not all the way to cooperative) |
-| `ministry_review` | Ministry | Ministry is reviewing |
-| `approved` | Ministry | Final approval — submission is locked, KPIs finalized |
-| `rejected` | — | Ministry rejected outright (terminal) |
+| `draft` | Cooperative, or Apex for an apex-created draft | Being filled in or corrected; not yet sent. A returned submission is a `draft` again |
+| `submitted` | Apex | Sent by the cooperative; waiting for the apex |
+| `approved` | Apex | Approved by the apex. Final: locked, KPIs computed |
 
-> **Return granularity**: When Federation returns to Apex, the submission goes back to `apex_review` with a review comment; the Apex can then either fix forwarding metadata or return it further to the cooperative (`apex_returned`). This keeps each tier able to request changes from **its immediate subordinate** rather than forcing a straight-to-cooperative bounce.
+The values `in_review`, `rejected`, `returned`, `escalated`, `withdrawn`, `archived`, `synced`, `sync_failed` and `needs_correction` exist in the enum. Only the unused Federation and Ministry paths set `in_review` and `rejected`; the others are not produced by the current workflow. The code still treats `rejected` and `returned` as non-counting statuses when it computes figures.
 
-### 3.3 Review record (audit trail at each tier)
+### 3.3 Review record (audit trail)
 
-Every review action (approve / return / reject / comment) appends a row to `submission_reviews` (see §6.7). This gives a full, immutable audit trail:
+Every review action appends a row to `submission_reviews` (see §6.7). This gives a full, immutable audit trail:
 
 ```
 submission_reviews
-  ├─ tier: cooperative | action: validated_extraction
-  ├─ tier: apex        | action: approved  | comment: "values look consistent"
-  ├─ tier: federation  | action: return    | comment: "PAR30 above threshold, verify 1202"
-  ├─ tier: apex        | action: return    | comment: "re-checking with coop"
-  └─ tier: federation  | action: approved
+  ├─ tier: cooperative | action: submitted
+  ├─ tier: apex        | action: return    | comment: "PAR30 above threshold, verify 1202"
+  ├─ tier: cooperative | action: submitted
+  └─ tier: apex        | action: approve   | comment: "values look consistent"
 ```
 
 ---
@@ -223,7 +214,7 @@ After mapping, before persisting, the backend runs deterministic checks (indepen
 - **Portfolio composition sanity** (the FINAN SHEET UPLOAD logic): each loan-portfolio code as % of total Loans (1200), Total Arrears = (1202+1203+1204+1205) as % of 1200 — flag implausible compositions.
 - **Cross-months** (TENDENCE logic): structure % per account/category and trend ($ and % delta month-over-month) computed by the backend; flagged only if sign flips or magnitude impossible. These derived % are **computed, never stored as inputs** (STARTING POINT row 3: *"the system calculates all the rest"*).
 
-Failures land in `abnormality_flags` (structured) and `financial_statements.validation_errors` (JSONB). The submission cannot leave `awaiting_coop_validation` until error-severity flags are resolved.
+Failures land in `abnormality_flags` (structured) and `financial_statements.validation_errors` (JSONB). A draft cannot be submitted while error-severity flags are unresolved.
 
 ### 4.6 Extraction job model
 
@@ -319,19 +310,22 @@ backend/src/
 │   ├── kpi_engine.rs               — KPI computation (18 financial KPIs)
 │   ├── nf_indicator_engine.rs      — NF indicator engine (5 categories)
 │   ├── nf_excel_parser.rs          — NF Excel parser
-│   ├── abnormality_detector.rs     — flagging rules (exists, not wired)
+│   ├── abnormality_detector/       — flagging rules (balance-sheet checks, ratios, sums)
 │   ├── object_storage.rs           — S3/MinIO abstraction
 │   ├── export_generator.rs         — report generation (XLSX/CSV/PDF)
 │   ├── pdf_templates.rs            — PDF template rendering
 │   ├── report_narrative.rs         — AI-generated report narratives
 │   ├── submission_workflow.rs      — state machine + authority matrix
+│   ├── report_jobs.rs              — background report PDFs and narratives after approval
+│   ├── reporting_year.rs           — complete-year rule
+│   ├── year_figures.rs             — full-year figures from several periods
 │   ├── benchmark.rs                — benchmark computation + diff. privacy
 │   ├── cache.rs                    — Redis/in-memory caching
 │   ├── audit.rs                    — audit logging service
 │   ├── localization.rs             — dynamic localization
 │   ├── keycloak.rs                 — Keycloak Admin API client
 │   └── verification_token.rs       — Redis-backed delete verification
-└── migration/                       — SeaORM migration files
+(SQL migrations live in backend/migrations/, outside src/)
 ```
 
 ### 5.2 `AppState`
@@ -420,10 +414,10 @@ cooperatives ──► benchmark_data (regional/sector/national)
 ### 6.2 Enums (Postgres enum types)
 
 ```sql
-submission_status: draft, awaiting_coop_validation, submitted, apex_review,
-                   apex_approved, apex_returned, federation_review,
-                   federation_approved, federation_returned, ministry_review,
-                   approved, rejected
+submission_status: draft, submitted, in_review, approved, rejected, returned,
+                   escalated, withdrawn, archived, synced, sync_failed,
+                   needs_correction
+                   (the application sets draft, submitted and approved; see section 3.2)
 
 review_tier:       cooperative, apex, federation, ministry
 review_action:     validated_extraction, submitted, approved, returned, rejected, commented
@@ -844,46 +838,32 @@ CREATE INDEX idx_audit_date     ON audit_logs(created_at);
 ```mermaid
 stateDiagram-v2
     [*] --> draft
-    draft --> awaiting_coop_validation: extraction complete
-    draft --> submitted: user enters data manually (no file)
-    awaiting_coop_validation --> submitted: user validates extraction
-    awaiting_coop_validation --> draft: user edits / re-extract
-    submitted --> apex_review: auto (assign to apex)
-    apex_review --> federation_review: apex approves
-    apex_review --> apex_returned: apex returns to coop
-    apex_returned --> draft: coop re-opens
-    federation_review --> ministry_review: federation approves
-    federation_review --> federation_returned: federation returns to apex
-    federation_returned --> apex_review: apex re-reviews
-    ministry_review --> approved: ministry approves (terminal)
-    ministry_review --> rejected: ministry rejects (terminal)
-    ministry_review --> federation_returned: ministry returns to federation
+    draft --> submitted: cooperative submits
+    draft --> approved: apex submits its own submission (auto-approved)
+    submitted --> approved: apex approves (terminal)
+    submitted --> draft: apex returns to the cooperative
     approved --> [*]
-    rejected --> [*]
 ```
+
+Extraction and validation happen while the submission is still a `draft`; there is no separate status for them. The server blocks submission while error-severity validation flags remain.
 
 ### 7.2 Transition authority matrix
 
 | Transition | Permitted role | Side effect |
 |---|---|---|
-| draft → awaiting_coop_validation | system (extraction job) | write draft line items |
-| → submitted | cooperative | append `submission_reviews(cooperative, submitted)` |
-| submitted → apex_review | cooperative (submit) | set `current_tier=apex`, assign |
-| apex_review → federation_review | apex | append review(apex, approved), `current_tier=federation` |
-| apex_review → apex_returned | apex | append review(apex, returned) |
-| federation_review → ministry_review | federation | append review(federation, approved), `current_tier=ministry` |
-| federation_review → federation_returned | federation | append review(federation, returned) |
-| ministry_review → approved | ministry | **trigger KPI finalize** |
-| ministry_review → rejected | ministry | append review(ministry, rejected) |
+| draft → submitted | cooperative (`POST /cooperative/submissions/{id}/submit`) | append review(cooperative, submitted), `current_tier=apex` |
+| draft → approved | apex (`POST /apex/submissions/{id}/submit`) | append review(apex, approve), compute KPIs |
+| submitted → approved | apex (`POST /apex/submissions/{id}/approve`) | append review(apex, approve), **compute and finalize KPIs** |
+| submitted → draft | apex (`POST /apex/submissions/{id}/return`) | append review(apex, return) with the comment; draft goes back to the cooperative (or stays with the apex if the apex created it) |
 
 ### 7.3 Implementation
 
-A `submission_workflow` service centralizes all transitions with a `match` on `(from_status, action, role)` — no handler mutates `status` directly. Each transition:
-1. Validates the caller's tier authority (from JWT role + scope).
+A `submission_workflow` service centralizes all transitions: no handler mutates `status` directly. Each transition:
+1. Validates the caller's authority (from JWT role and scope).
 2. Appends a `submission_reviews` row.
-3. Updates `submissions.status` + `current_tier` + `last_reviewed_*`.
-4. Emits a tracing event and invalidates the submission cache key.
-5. On `approved`: invokes the KPI engine to finalize + recalculation + benchmark update.
+3. Updates `submissions.status` and `current_tier`.
+4. Invalidates the cache and emits a tracing event.
+5. On `approved`: computes and stores the KPIs.
 
 ---
 
@@ -941,15 +921,14 @@ where `netSurplus = 6999`, `totalIncome = 4999`, `totalExpenses = 5999`.
 
 ### 8.5 When KPIs compute
 
-- **On `apex_approved`** (forward to federation): provisional KPIs computed for reviewer insight.
-- **On `approved` (ministry)**: KPIs finalized and locked; benchmark aggregates (regional/sector/national) recomputed.
-- **Nightly batch**: recompute any cooperative whose data changed in the last 24h; refresh `benchmark_data`.
+- **On `approved` (apex approval or an apex submitting its own return)**: KPIs are computed and stored (`kpi_records`). Benchmark figures (regional, sector, national) are computed on request by `services/benchmark.rs`; the `benchmark_data` table from the original design is not used by the code.
+- **Nightly batch**: planned, not implemented. KPIs are computed when a submission is approved.
 
 ---
 
 ## 9. Abnormality Flagging Rules
 
-The `abnormality_detector` service runs on submission validation and on `apex_review`/`ministry_review`. Each rule emits a row in `abnormality_flags`.
+The `abnormality_detector` service runs on submission validation. Each rule emits a row in `abnormality_flags`.
 
 ### 9.1 Balance-sheet integrity
 
@@ -1008,36 +987,45 @@ All under `/api/v1/`. RBAC enforced by `role_guard_layer` per existing pattern. 
 | POST | `/cooperative/financial-statement/upload` | cooperative | multipart upload → create submission (`draft`) + file + enqueue extraction |
 | GET | `/cooperative/submissions` | cooperative | list own submissions |
 | PATCH | `/cooperative/financial-statements/{id}/line-items` | cooperative | edit/validate AI-extracted values |
-| POST | `/cooperative/submissions/{id}/validate-extraction` | cooperative | `awaiting_coop_validation`→`submitted` |
-| POST | `/cooperative/submissions/{id}/submit` | cooperative | `submitted`→`apex_review` |
+| POST | `/cooperative/submissions/{id}/validate-extraction` | cooperative | mark the extraction as validated (submission stays `draft`) |
+| POST | `/cooperative/submissions/{id}/submit` | cooperative | `draft`→`submitted` (sent to the apex) |
 | GET | `/cooperative/extraction-jobs/{id}` | cooperative | poll extraction status |
 | POST | `/cooperative/non-financial/{type}` | cooperative | upsert members/savings/loans/fixed-deposits |
 
-### 10.2 Apex (review tier 3)
+### 10.2 Apex (final approval)
 
 | Method | Path | Role | Action |
 |---|---|---|---|
-| GET | `/apex/submissions` | apex | list submissions in `apex_review` |
-| POST | `/apex/submissions/{id}/approve` | apex | forward to federation |
-| POST | `/apex/submissions/{id}/return` | apex | return to cooperative |
-| GET | `/apex/submissions/{id}/flags` | apex | review abnormality flags + KPIs |
+| GET | `/apex/submissions` | apex | list the submissions of the apex's cooperatives |
+| POST | `/apex/submissions` | apex | create a submission on behalf of a cooperative |
+| POST | `/apex/submissions/{id}/approve` | apex | approve (final) |
+| POST | `/apex/submissions/{id}/return` | apex | return to the cooperative as a draft |
+| POST | `/apex/submissions/{id}/submit` | apex | submit an apex-created draft (auto-approved) |
+| POST | `/apex/submissions/{id}/delegate` | apex | hand an apex-created draft to the cooperative |
+| POST | `/apex/submissions/{id}/reclaim` | apex | take a delegated draft back |
+| POST | `/apex/submissions/{id}/claim-edit` | apex | take the single edit slot |
+| GET | `/apex/submissions/{id}/flags` | apex | review abnormality flags |
+| GET | `/apex/submissions/{id}/kpis` | apex | KPIs of the submission |
 
-### 10.3 Federation (review tier 2)
-
-| Method | Path | Role | Action |
-|---|---|---|---|
-| GET | `/federation/submissions` | federation | list `federation_review` |
-| POST | `/federation/submissions/{id}/approve` | federation | forward to ministry |
-| POST | `/federation/submissions/{id}/return` | federation | return to apex |
-
-### 10.4 Ministry (review tier 1)
+### 10.3 Federation (read-only follow-up)
 
 | Method | Path | Role | Action |
 |---|---|---|---|
-| GET | `/ministry/submissions` | ministry | list `ministry_review` |
-| POST | `/ministry/submissions/{id}/approve` | ministry | finalize → approved (KPI compute) |
-| POST | `/ministry/submissions/{id}/reject` | ministry | terminal reject |
+| GET | `/federation/submissions` | federation | list non-draft submissions below the federation |
+| GET | `/federation/submissions/{id}` | federation | submission detail with review history |
+| GET | `/federation/submissions/export` | federation | export the list |
+
+The routes `POST /federation/submissions/{id}/approve` and `/return` still exist but cannot act on any submission, because none is ever held by the federation tier.
+
+### 10.4 Ministry (read-only follow-up and national analytics)
+
+| Method | Path | Role | Action |
+|---|---|---|---|
+| GET | `/ministry/submissions` | ministry | list non-draft submissions nationwide |
+| GET | `/ministry/submissions/{id}` | ministry | submission detail with review history |
 | GET | `/dashboard/summary` | ministry | national KPI aggregates |
+
+The routes `POST /ministry/submissions/{id}/approve` and `/reject` still exist but cannot act on any submission, for the same reason.
 
 ### 10.5 Shared read
 
@@ -1079,17 +1067,7 @@ The frontend stores drafts in Dexie (IndexedDB) and pushes via a sync queue (per
 
 ## 13. Migration & Seed Strategy
 
-SeaORM-migration files in `backend/src/migration/` (new dir; currently absent). Order:
-
-1. `m20260703_000001_chart_of_accounts.sql` — create enums, seed full ADORSYS CoA (1000–6999) from the Excel, **plus** `chart_of_accounts_coop_types` applicability ("Depending on the kind of Coop") and `account_aliases` localization dictionary.
-2. `m20260703_000002_cooperatives.sql`
-3. `m20260703_000003_submissions.sql` (+ replaces the stub `assessments` table)
-4. `m20260703_000004_financial.sql` (financial_statements + line items)
-5. `m20260703_000005_non_financial.sql` (members, savings, loans, fixed deposits)
-6. `m20260703_000006_kpi.sql` (computed_kpis, benchmark_data, abnormality_flags)
-7. `m20260703_000007_extraction.sql` (uploaded_files, extraction_jobs, submission_reviews)
-8. `m20260703_000008_audit.sql` (audit_logs)
-9. `m20260703_000009_indexes.sql`
+Migrations are plain SQL files in `backend/migrations/`, numbered `00` to `64` (for example `01_initial.sql`, `03_enums.sql`, `04_chart_of_accounts.sql`, `06_submissions.sql`). On an empty database volume Postgres runs them in order through `docker-entrypoint-initdb.d`. On an existing database, `scripts/migrate-db.sh` applies the ones that are not yet recorded. To add one, create the next numbered file; never edit an applied file.
 
 Migrations run as a separate step at startup (not embedded in app code) per Twelve-Factor Factor XII. Seed script: the existing frontend mock data (`lib/mock-data.ts`) maps directly to these tables (see the seed data mapping section in the original backend design — still valid).
 
@@ -1107,10 +1085,10 @@ Mixing them would duplicate the org/group tree and require bidirectional sync. S
 PostgreSQL `numeric` is exact decimal — no floating-point rounding on financial values. 15 digits covers up to ~999 trillion SZL.
 
 ### D4 — Materialized KPIs
-Dashboards need 50+ values per cooperative. Computing on demand would do 10+ heavy joins per load. KPIs are materialized on approval/nightly into `computed_kpis` and benchmark aggregates into `benchmark_data`.
+Dashboards need 50+ values per cooperative. Computing on demand would do 10+ heavy joins per load. KPIs are materialized when a submission is approved (stored per submission); benchmark figures are computed on request.
 
-### D5 — 4-tier return granularity (return to immediate subordinate)
-Returning one tier down (Federation→Apex, Apex→Cooperative) keeps each tier responsible for its own review and avoids bouncing submissions straight to the cooperative across multiple tiers. The `submission_reviews` audit trail records every hop.
+### D5 — Return to the submitter
+With the apex as the only reviewer, a returned submission goes straight back to the person who created it (the cooperative, or the apex for an apex-created draft) as a draft, with the reviewer's comment. The `submission_reviews` audit trail records every submit, return and approval.
 
 ### D6 — Async extraction
 Upload returns `202` immediately; extraction runs as a background job. This keeps the upload endpoint fast and lets low-bandwidth mobile clients not hold a connection during AI processing.
@@ -1125,10 +1103,10 @@ Already chosen by the existing codebase (`Cargo.toml`). Consistent with `AGENTS.
 
 ## 15. Implementation Roadmap (Phases)
 
-Phases map onto `docs/architecture/progress.md` (to be extended). Build bottom-up per `AGENTS.md`.
+This is the original build plan, kept for reference. All of these phases are implemented; the current status is in [`progress.md`](progress.md).
 
-### Phase 6 — Database & Schema (next)
-- [ ] Create `migration/` dir + SeaORM-migration files (§13)
+### Phase 6 — Database & Schema (done)
+- [x] SQL migrations in `backend/migrations/` (§13)
 - [ ] Seed `chart_of_accounts` from the ADORSYS Excel
 - [ ] Create SeaORM entities for all new tables
 - [ ] Create `cooperatives` bridge + sync-on-create hook (Apex creates cooperative → upsert local row)
@@ -1159,9 +1137,9 @@ Phases map onto `docs/architecture/progress.md` (to be extended). Build bottom-u
 
 ### Phase 11 — KPI Engine & Abnormality Detection
 - [ ] Port `kpi-calculations.ts` → `kpi_engine.rs`
-- [ ] `abnormality_detector.rs` (rules §9)
+- [x] `abnormality_detector` (rules §9)
 - [ ] KPI read handlers + benchmark aggregation
-- [ ] Nightly batch (tokio task)
+- [ ] Nightly batch (tokio task), not implemented
 
 ### Phase 12 — Frontend Integration
 - [ ] Replace `lib/mock-data.ts` consumers with real hooks
@@ -1173,7 +1151,7 @@ Phases map onto `docs/architecture/progress.md` (to be extended). Build bottom-u
 - [ ] Repo unit tests, handler integration tests
 - [ ] State-machine transition tests (every illegal transition rejected)
 - [ ] Abnormality-rule tests
-- [ ] E2E: upload → extract → validate → apex → federation → ministry → approved
+- [ ] E2E: upload → extract → validate → submit → apex approves
 
 ---
 

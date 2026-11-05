@@ -4,6 +4,9 @@
 > **Scope**: Happy path testing first, then unhappy paths.
 > **Approach**: Test each submission method (Upload, Manual, Questionnaire) across all Reporting Frequencies.
 
+
+> **Outdated in part (November 2026):** this plan was written for the earlier four-level review (Apex, then Federation, then Ministry). The apex is now the final approval level: a submission is approved when the apex approves it, and Federation and Ministry do not approve. The "Federation approval" and "Ministry approval" steps, and the statuses `in_review` and "Pending Federation/Ministry Review", no longer apply. Use [`testing-guide.md`](testing-guide.md) for the current review steps.
+
 ---
 
 ## Table of Contents
