@@ -24,6 +24,7 @@ import {
   type CooperativeProfile,
 } from "@/hooks/cooperatives/useCooperativeProfile";
 import { useTranslation } from "react-i18next";
+import { CooperativeMambuLink } from "@/components/mambu/CooperativeMambuLink";
 
 const STATUS_TONE: Record<string, "default" | "secondary" | "destructive"> = {
   Active: "default",
@@ -194,6 +195,8 @@ export const CooperativeDetailPage: React.FC = () => {
               </p>
             </div>
           </Card>
+
+          <CooperativeMambuLink cooperativeId={coop.id} />
 
           <Card title={t("coopDetail.metadata")} subtitle={t("coopDetail.metadataSub")}>
             <InfoRow icon={Calendar} label={t("coopDetail.createdAt")} value={coop.created_at} />

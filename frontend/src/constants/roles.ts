@@ -109,7 +109,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
-    system: ["/app/users", "/app/data-privacy", "/app/profile"],
+    system: ["/app/users", "/app/mambu", "/app/data-privacy", "/app/profile"],
   },
 };
 

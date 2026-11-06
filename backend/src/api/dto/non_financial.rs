@@ -191,6 +191,9 @@ pub struct SavingsAccountResponse {
     pub cooperative_id: Uuid,
     pub submission_id: Option<Uuid>,
     pub member_id: Uuid,
+    /// The ID the SACCO knows the member by, filled in by the list endpoints.
+    #[serde(default)]
+    pub member_business_id: Option<String>,
     pub savings_account_id: String,
     pub account_type: AccountType,
     pub account_opening_date: NaiveDate,
@@ -215,6 +218,7 @@ impl From<crate::entities::savings_account::Model> for SavingsAccountResponse {
             cooperative_id: m.cooperative_id,
             submission_id: m.submission_id,
             member_id: m.member_id,
+            member_business_id: None,
             savings_account_id: m.savings_account_id,
             account_type: m.account_type,
             account_opening_date: m.account_opening_date,
@@ -327,6 +331,9 @@ pub struct LoanResponse {
     pub cooperative_id: Uuid,
     pub submission_id: Option<Uuid>,
     pub member_id: Uuid,
+    /// The ID the SACCO knows the member by, filled in by the list endpoints.
+    #[serde(default)]
+    pub member_business_id: Option<String>,
     pub loan_id: String,
     pub loan_product_type: String,
     pub loan_start_date: NaiveDate,
@@ -358,6 +365,7 @@ impl From<crate::entities::loan::Model> for LoanResponse {
             cooperative_id: m.cooperative_id,
             submission_id: m.submission_id,
             member_id: m.member_id,
+            member_business_id: None,
             loan_id: m.loan_id,
             loan_product_type: m.loan_product_type,
             loan_start_date: m.loan_start_date,
@@ -453,6 +461,9 @@ pub struct FixedDepositResponse {
     pub cooperative_id: Uuid,
     pub submission_id: Option<Uuid>,
     pub member_id: Uuid,
+    /// The ID the SACCO knows the member by, filled in by the list endpoints.
+    #[serde(default)]
+    pub member_business_id: Option<String>,
     pub fixed_deposit_id: String,
     pub deposit_type: String,
     pub start_date: NaiveDate,
@@ -478,6 +489,7 @@ impl From<crate::entities::fixed_deposit::Model> for FixedDepositResponse {
             cooperative_id: m.cooperative_id,
             submission_id: m.submission_id,
             member_id: m.member_id,
+            member_business_id: None,
             fixed_deposit_id: m.fixed_deposit_id,
             deposit_type: m.deposit_type,
             start_date: m.start_date,

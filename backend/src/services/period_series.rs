@@ -89,6 +89,30 @@ pub fn period_label(period_type: PeriodType, year: i32, value: &str) -> String {
 }
 
 /// Chronological key of a period; `None` when the value is not valid for the type.
+/// The lines of a whole-year return grouped by month. Lines of month 0 (a yearly figure) are
+/// not a period of their own and are left out.
+pub fn split_by_month<T: HasMonth>(items: Vec<T>) -> BTreeMap<i16, Vec<T>> {
+    let mut by_month: BTreeMap<i16, Vec<T>> = BTreeMap::new();
+    for item in items {
+        let month = item.month();
+        if (1..=12).contains(&month) {
+            by_month.entry(month).or_default().push(item);
+        }
+    }
+    by_month
+}
+
+/// A statement line that belongs to a month column.
+pub trait HasMonth {
+    fn month(&self) -> i16;
+}
+
+impl HasMonth for crate::entities::balance_sheet_line_item::Model {
+    fn month(&self) -> i16 {
+        self.month
+    }
+}
+
 pub fn period_key(period_type: PeriodType, year: i32, value: &str) -> Option<(i32, u32)> {
     period_index(period_type, value).map(|index| (year, index))
 }
@@ -236,3 +260,27 @@ pub fn compare(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod split_tests {
+    use super::*;
+
+    struct Line(i16);
+    impl HasMonth for Line {
+        fn month(&self) -> i16 {
+            self.0
+        }
+    }
+
+    #[test]
+    fn a_whole_year_return_is_split_into_its_months() {
+        let by_month = split_by_month(vec![Line(1), Line(1), Line(2), Line(12)]);
+        assert_eq!(by_month.keys().copied().collect::<Vec<_>>(), vec![1, 2, 12]);
+        assert_eq!(by_month[&1].len(), 2);
+    }
+
+    #[test]
+    fn a_yearly_line_of_month_zero_is_not_a_period() {
+        assert!(split_by_month(vec![Line(0), Line(13)]).is_empty());
+    }
+}

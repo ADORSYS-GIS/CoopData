@@ -5,6 +5,8 @@ use sea_orm::sea_query::OnConflict;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
 };
+use std::collections::HashMap;
+
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -48,6 +50,19 @@ impl MemberRepository {
             .await
             .map_err(AppError::DatabaseError)?;
         Ok((rows, total))
+    }
+
+    /// The business ID (the ID the SACCO knows the member by) of each member row.
+    pub async fn business_ids(&self, ids: Vec<Uuid>) -> AppResult<HashMap<Uuid, String>> {
+        if ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let rows = member::Entity::find()
+            .filter(MemberColumn::Id.is_in(ids))
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(rows.into_iter().map(|m| (m.id, m.member_id)).collect())
     }
 
     pub async fn create(&self, model: member::ActiveModel) -> AppResult<member::Model> {

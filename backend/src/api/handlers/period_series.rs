@@ -128,10 +128,30 @@ pub async fn get_period_series(
         }
         periods
             .into_iter()
-            .filter_map(|s| {
-                let key = period_key(period_type, s.reporting_year, &s.period_value)?;
-                let items = items_by_submission.remove(&s.id)?;
-                Some((key, s.period_value.clone(), s.cooperative_id, items))
+            .flat_map(|s| {
+                let Some(items) = items_by_submission.remove(&s.id) else {
+                    return Vec::new();
+                };
+                if period_type == PeriodType::Monthly
+                    && s.period_value == crate::services::period_rules::FULL_YEAR
+                {
+                    // A whole-year return carries a column per month: each month is a period.
+                    return crate::services::period_series::split_by_month(items)
+                        .into_iter()
+                        .map(|(month, lines)| {
+                            (
+                                (s.reporting_year, month as u32),
+                                month.to_string(),
+                                s.cooperative_id,
+                                lines,
+                            )
+                        })
+                        .collect();
+                }
+                match period_key(period_type, s.reporting_year, &s.period_value) {
+                    Some(key) => vec![(key, s.period_value.clone(), s.cooperative_id, items)],
+                    None => Vec::new(),
+                }
             })
             .collect()
     };
