@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.8.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.7.0...v1.8.0) (2026-11-09)
+
+
+### Features
+
+* **mambu:** apex sync page with cooperative selection, linking, automatic sync and mapping ([a6cd999](https://github.com/ADORSYS-GIS/CoopData/commit/a6cd999c7b26e2e299aaa3bf6d748e828bcaa1c8))
+* **mambu:** apex-only sync with a ledger from the general ledger, automatic monthly sync and import checks ([f2abcc4](https://github.com/ADORSYS-GIS/CoopData/commit/f2abcc45a8cfe1b349602fc4407a05fa2f878287))
+* **mambu:** Mambu sync screens for ministry, apex and cooperative ([fa55aab](https://github.com/ADORSYS-GIS/CoopData/commit/fa55aaba64202b2e3a0b37b792e5469219f01a35))
+* **mambu:** one import per year and a fixed link after the first sync ([beea922](https://github.com/ADORSYS-GIS/CoopData/commit/beea922e2f323bcb446fd55489c9ccece72b71c5))
+* **mambu:** sync SACCO data from Mambu into CoopData submissions ([08209ee](https://github.com/ADORSYS-GIS/CoopData/commit/08209ee90a4cfeccc5ff3673c1975e356bf38097))
+* **mambu:** whole-year option and unverified-branch message in the sync screens ([af2763c](https://github.com/ADORSYS-GIS/CoopData/commit/af2763c6495d925b85bdc32b651509538a277a17))
+* **mambu:** whole-year sync, branch-filtered reads, tolerance for limited Mambu rights ([e42b250](https://github.com/ADORSYS-GIS/CoopData/commit/e42b2503b45e8f3491ecd93902ebaa2d5a736de0))
+* **submissions:** return the member business ID in the saved savings, loan and fixed deposit lists ([d89f25c](https://github.com/ADORSYS-GIS/CoopData/commit/d89f25ca666d4f98e8a922ad0bae966e72a09394))
+
+
+### Bug Fixes
+
+* **analytics:** show a whole-year return as its twelve months in the period series ([6ad603b](https://github.com/ADORSYS-GIS/CoopData/commit/6ad603b24f790bd15e99c334f0b265f993982721))
+* **mambu:** detect a duplicate branch link by SQL state and log whether Mambu is configured ([248f53b](https://github.com/ADORSYS-GIS/CoopData/commit/248f53b02aa3bee9c25bed7192ceba906517b4e9))
+* **mambu:** use expect_err in the e2e tests to satisfy clippy ([d886a67](https://github.com/ADORSYS-GIS/CoopData/commit/d886a674c15f049e6775bf1b8ed68e7b159ba738))
+* **validation:** flag only a third decimal as a rounding problem ([76d2382](https://github.com/ADORSYS-GIS/CoopData/commit/76d2382810cc0226e3c546fda97c66c3ff328653))
+
 ## [1.7.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.6.0...v1.7.0) (2026-10-27)
 
 
