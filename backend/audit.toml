@@ -14,5 +14,8 @@ ignore = [
   # (by_name + read_to_end); neither it nor this codebase extracts archives. Remove once docx-rs uses zip >= 9.
   "RUSTSEC-2026-0367",
   "RUSTSEC-2026-0368",
-  "RUSTSEC-2026-0369"
+  "RUSTSEC-2026-0369",
+  # RUSTSEC-2026-0429: ZipArchive::extract aborts on a symlink entry with a large declared size; same
+  # reasoning as above (zip 8.6 only via docx-rs, which never calls extract).
+  "RUSTSEC-2026-0429"
 ]

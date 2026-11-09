@@ -47,7 +47,7 @@ async-trait = "0.1"
 urlencoding = "2"
 rust_decimal = { version = "1", features = ["serde-with-float", "serde"] }
 pdf_oxide = "0.3"
-calamine = { version = "0.37", features = ["dates"] }
+calamine = { version = "0.38", features = ["dates"] }
 base64 = "0.22"
 sha2 = "0.10"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
