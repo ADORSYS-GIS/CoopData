@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/ADORSYS-GIS/CoopData/compare/v1.8.0...v1.8.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* **db:** track migrations by filename and stop guessing a baseline ([e9bcacd](https://github.com/ADORSYS-GIS/CoopData/commit/e9bcacde2c8da825cc2525268143e1831491a35d))
+
 ## [1.8.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.7.0...v1.8.0) (2026-11-09)
 
 
