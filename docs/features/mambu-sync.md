@@ -1,6 +1,6 @@
-# Design: Mambu synchronisation (Ministry-triggered)
+# Design: Mambu synchronisation (apex-only)
 
-Status: DRAFT for approval. No code is written until this is approved.
+Status: implemented. This started as a Ministry-triggered design; sections 16 to 20 describe the final apex-only behaviour and take precedence over earlier sections.
 Source of facts: the Mambu sandbox (read-only calls, 26 Oct 2026) and Mambu's public API v2 specification.
 
 ## 1. Goal

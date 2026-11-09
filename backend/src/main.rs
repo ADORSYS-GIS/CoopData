@@ -96,6 +96,13 @@ async fn main() -> anyhow::Result<()> {
     let mambu_client =
         coop_data_backend::services::mambu::client::MambuApiClient::from_config(&config)
             .map(std::sync::Arc::new);
+    if mambu_client.is_some() {
+        tracing::info!("Mambu integration is configured");
+    } else {
+        tracing::info!(
+            "Mambu integration is off: MAMBU_BASE_URL or the Mambu credentials are not set"
+        );
+    }
     let questionnaire_repo = QuestionnaireRepository::new(db.clone());
     let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());

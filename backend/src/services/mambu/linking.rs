@@ -208,8 +208,11 @@ pub async fn link_cooperative(
         .upsert_link(cooperative_id, &branch_id, Some(linked_by.to_string()))
         .await
     {
-        let text = e.to_string().to_lowercase();
-        if text.contains("duplicate") || text.contains("unique") {
+        let unique = matches!(
+            &e,
+            AppError::DatabaseError(db) if matches!(db.sql_err(), Some(sea_orm::SqlErr::UniqueConstraintViolation(_)))
+        );
+        if unique {
             return Err(AppError::Conflict(
                 "That Mambu branch is already linked to another cooperative".into(),
             ));
