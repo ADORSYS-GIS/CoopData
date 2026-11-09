@@ -5072,7 +5072,8 @@
   },
   "errors": {
     "rateLimited": "Too many attempts. Please try again in {{seconds}}s.",
-    "rateLimitedTitle": "Slow down"
+    "rateLimitedTitle": "Slow down",
+    "serviceUnavailable": "The service is temporarily unavailable. Please try again in a few minutes."
   },
   "basicDashboard": {
     "title": "Basic Analytics",
