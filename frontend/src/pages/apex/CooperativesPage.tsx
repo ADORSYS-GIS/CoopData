@@ -83,7 +83,9 @@ export const CooperativesPage: React.FC = () => {
             resolve();
           },
           onError: (err) => {
-            toast.error(t("cooperativesPage.toastDeleteFailed"), { description: String(err) });
+            toast.error(t("cooperativesPage.toastDeleteFailed"), {
+              description: err instanceof Error ? err.message : String(err),
+            });
             reject(err);
           },
         },

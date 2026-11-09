@@ -5068,7 +5068,8 @@
   },
   "errors": {
     "rateLimited": "Imizamo leminyenti. Sicela uphindze emva kwemizuzwana {{seconds}}.",
-    "rateLimitedTitle": "Cala kancane"
+    "rateLimitedTitle": "Cala kancane",
+    "serviceUnavailable": "Insita ayitfolakali okwesikhashana. Sicela uzame futsi emaminithini lambalwa."
   },
   "basicDashboard": {
     "title": "Luhlatiyo Lolulula",

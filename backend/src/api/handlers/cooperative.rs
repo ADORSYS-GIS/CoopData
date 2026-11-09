@@ -33,15 +33,29 @@ use crate::AppState;
 
 // ─── Internal scope helper ──────────────────────────────────────────────────
 
-/// Verifies that a cooperative subgroup (by id) actually belongs to the
-/// calling apex user's group.
+/// Maps the id a client sends to the cooperative's Keycloak group id.
+/// The cooperatives page lists database ids while Keycloak knows the group id,
+/// so both are accepted.
+async fn resolve_cooperative_group_id(state: &AppState, id: &str) -> AppResult<String> {
+    if let Ok(db_id) = Uuid::parse_str(id) {
+        if let Some(coop) = state.cooperative_repo.find_by_id(db_id).await? {
+            return Ok(coop.keycloak_id);
+        }
+    }
+    Ok(id.to_string())
+}
+
+/// Verifies that a cooperative subgroup (database id or Keycloak group id)
+/// belongs to the calling apex user's group, and returns its Keycloak group id.
 /// Keycloak stores group paths using names (e.g. `/apex-name/coop-name`),
 /// so we compare using the apex group's own path as the prefix.
 async fn assert_cooperative_belongs_to_apex(
     state: &AppState,
     claims: &Claims,
     cooperative_id: &str,
-) -> AppResult<()> {
+) -> AppResult<String> {
+    let cooperative_id = resolve_cooperative_group_id(state, cooperative_id).await?;
+    let cooperative_id = cooperative_id.as_str();
     let apex_id_or_path = claims
         .get_apex_group_id()
         .ok_or_else(|| AppError::Forbidden("User is not associated with an apex group".into()))?;
@@ -57,7 +71,12 @@ async fn assert_cooperative_belongs_to_apex(
         .keycloak
         .get_group_by_id(cooperative_id)
         .await
-        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+        .map_err(|e| match e {
+            AppError::ExternalServiceError(msg) if msg.starts_with("Group not found") => {
+                AppError::NotFound("Cooperative not found".into())
+            }
+            other => AppError::ExternalServiceError(other.to_string()),
+        })?;
 
     // Keycloak paths use names: apex="/we", coop="/we/do"
     // Check by: apex UUID match OR apex path prefix match
@@ -86,7 +105,7 @@ async fn assert_cooperative_belongs_to_apex(
         ));
     }
 
-    Ok(())
+    Ok(cooperative_id.to_string())
 }
 
 // ─── Cooperative CRUD (Apex admin) ─────────────────────────────────────────
@@ -462,6 +481,7 @@ pub async fn get_cooperative(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
+    let id = resolve_cooperative_group_id(&state, &id).await?;
     // Cooperative users can only fetch their own cooperative
     if claims.is_cooperative() && !claims.is_apex() {
         let coop = resolve_caller_cooperative(&state, &claims).await?;
@@ -512,7 +532,7 @@ pub async fn update_cooperative(
     }
 
     // Scope: cooperative must belong to this apex
-    assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
+    let id = assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
 
     let existing = state
         .keycloak
@@ -584,7 +604,7 @@ pub async fn delete_cooperative_preview(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
-    assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
+    let id = assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
 
     let mut member_count = 0u64;
 
@@ -633,7 +653,7 @@ pub async fn delete_cooperative(
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
-    assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
+    let id = assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
 
     let token = headers
         .get("x-verification-token")
@@ -712,7 +732,7 @@ pub async fn add_cooperative_member(
     }
 
     // Scope: cooperative must belong to this apex
-    assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
+    let id = assert_cooperative_belongs_to_apex(&state, &claims, &id).await?;
 
     let user = state
         .keycloak
@@ -788,6 +808,7 @@ pub async fn list_cooperative_members(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
+    let id = resolve_cooperative_group_id(&state, &id).await?;
     // Cooperative users may only list members of their own cooperative
     if claims.is_cooperative() && !claims.is_apex() {
         let coop = resolve_caller_cooperative(&state, &claims).await?;
@@ -836,7 +857,7 @@ pub async fn update_cooperative_member(
     }
 
     // Scope: cooperative must belong to this apex
-    assert_cooperative_belongs_to_apex(&state, &claims, &group_id).await?;
+    let group_id = assert_cooperative_belongs_to_apex(&state, &claims, &group_id).await?;
 
     state
         .keycloak
@@ -906,7 +927,7 @@ pub async fn remove_cooperative_member(
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
-    assert_cooperative_belongs_to_apex(&state, &claims, &group_id).await?;
+    let group_id = assert_cooperative_belongs_to_apex(&state, &claims, &group_id).await?;
 
     state
         .keycloak
@@ -966,7 +987,7 @@ pub async fn resend_cooperative_member_verification(
     Path((group_id, user_id)): Path<(String, String)>,
 ) -> AppResult<impl IntoResponse> {
     // Scope: cooperative must belong to this apex
-    assert_cooperative_belongs_to_apex(&state, &claims, &group_id).await?;
+    let group_id = assert_cooperative_belongs_to_apex(&state, &claims, &group_id).await?;
 
     state
         .keycloak

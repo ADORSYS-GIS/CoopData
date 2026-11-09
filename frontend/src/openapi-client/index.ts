@@ -90,6 +90,22 @@ apiClient.use({
     return request;
   },
   onResponse({ response }) {
+    // A proxy or CDN error page (Cloudflare 502, nginx 504, ...) is HTML. Never
+    // hand that to the UI: replace it with a short, translated message.
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!response.ok && response.status !== 429 && contentType.includes("text/html")) {
+      return new Response(
+        JSON.stringify({
+          error: "service_unavailable",
+          message: i18n.t("errors.serviceUnavailable"),
+        }),
+        {
+          status: response.status,
+          statusText: response.statusText,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    }
     // Rate limited: surface a friendly countdown instead of a generic error.
     if (response.status === 429) {
       const retryAfter = Number(response.headers.get("Retry-After")) || 60;
