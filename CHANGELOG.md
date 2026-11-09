@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.2](https://github.com/ADORSYS-GIS/CoopData/compare/v1.8.1...v1.8.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* **cooperatives:** accept the database id on delete and show friendly gateway errors ([dd94369](https://github.com/ADORSYS-GIS/CoopData/commit/dd943695d2f4b5ed7958807703d78b8482805dba))
+* **cooperatives:** accept the database id when fetching a cooperative and its members ([bc557d4](https://github.com/ADORSYS-GIS/CoopData/commit/bc557d4ddaaf4096df4e03bc3db3809e475af6c9))
+
 ## [1.8.1](https://github.com/ADORSYS-GIS/CoopData/compare/v1.8.0...v1.8.1) (2026-11-09)
 
 
