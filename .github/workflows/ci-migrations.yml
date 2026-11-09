@@ -1,0 +1,28 @@
+name: Migrations CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "backend/migrations/**"
+      - "scripts/migrate-db.sh"
+      - "scripts/check-migrations.sh"
+      - "scripts/ci-migrations.sh"
+      - ".github/workflows/ci-migrations.yml"
+
+concurrency:
+  group: ci-migrations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrations:
+    name: Migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Numbering (no duplicates, no gaps)
+        run: scripts/check-migrations.sh
+
+      - name: Apply to an empty Postgres and run the runner
+        run: scripts/ci-migrations.sh
