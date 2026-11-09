@@ -116,11 +116,16 @@ export const useValidateExtraction = () => {
   });
 };
 
+/** A submission id, or the id with the apex's confirmation that it read the import warnings. */
+export type SubmitInput = string | { id: string; acknowledgeWarnings?: boolean };
+
 export const useSubmitSubmission = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (submissionId: string) => {
+    mutationFn: async (input: SubmitInput) => {
       assertOnline();
+      const submissionId = typeof input === "string" ? input : input.id;
+      const acknowledgeWarnings = typeof input === "string" ? false : !!input.acknowledgeWarnings;
       const userId = getUserProfile()?.id ?? "anon";
 
       // 1. Update single submission detail cache in IndexedDB
@@ -183,7 +188,11 @@ export const useSubmitSubmission = () => {
           const { data, error } = await apiClient.POST(
             basePath as "/api/v1/cooperative/submissions/{id}/submit",
             {
-              params: { path: { id: submissionId } },
+              // The apex confirms it read the warnings of an import from Mambu.
+              params: {
+                path: { id: submissionId },
+                ...(acknowledgeWarnings ? { query: { acknowledge_warnings: true } } : {}),
+              } as { path: { id: string } },
             },
           );
           if (error) throw new Error(extractErrorMessage(error));
@@ -191,7 +200,8 @@ export const useSubmitSubmission = () => {
         },
       });
     },
-    onSuccess: (_data, submissionId) => {
+    onSuccess: (_data, input) => {
+      const submissionId = typeof input === "string" ? input : input.id;
       queryClient.invalidateQueries({ queryKey: ["cooperative-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["apex-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["submission", submissionId] });

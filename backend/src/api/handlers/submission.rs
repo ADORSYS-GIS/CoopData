@@ -669,10 +669,17 @@ fn apex_may_submit(
         || *tier == crate::entities::enums::ReviewTier::Apex
 }
 
+/// Extra input of the apex submit.
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+pub struct ApexSubmitQuery {
+    /// Required for a return imported from Mambu that has warnings: the apex confirms it read them.
+    pub acknowledge_warnings: Option<bool>,
+}
+
 #[utoipa::path(
     post,
     path = "/api/v1/apex/submissions/{id}/submit",
-    params(("id" = Uuid, Path, description = "Submission ID")),
+    params(("id" = Uuid, Path, description = "Submission ID"), ApexSubmitQuery),
     responses(
         (status = 200, description = "Submitted — fully approved (apex is the final approval level)", body = SubmissionResponse),
         (status = 400, description = "Error flags must be resolved first"),
@@ -686,6 +693,7 @@ pub async fn apex_submit_submission(
     Extension(claims): Extension<Arc<Claims>>,
     Extension(audit_ctx): Extension<AuditContext>,
     Path(id): Path<Uuid>,
+    Query(query): Query<ApexSubmitQuery>,
 ) -> AppResult<impl IntoResponse> {
     let apex_db_id =
         crate::api::handlers::cooperative::resolve_caller_apex_db_id_pub(&state, &claims).await?;
@@ -712,6 +720,15 @@ pub async fn apex_submit_submission(
             "This submission is with the cooperative; reclaim it before submitting on its behalf"
                 .into(),
         ));
+    }
+
+    if submission.submission_method == "mambu" {
+        crate::services::mambu::review_gate::check_before_submit(
+            &state,
+            id,
+            query.acknowledge_warnings.unwrap_or(false),
+        )
+        .await?;
     }
 
     let workflow = SubmissionWorkflow::new(
@@ -1910,7 +1927,9 @@ pub async fn delete_submission(
                 "Only the apex that created this submission can delete it".into(),
             ));
         }
-        if submission.created_by_user_id != current_user_id {
+        if submission.created_by_user_id != current_user_id
+            && submission.submission_method != "mambu"
+        {
             return Err(AppError::Forbidden(
                 "Only the user who created this submission can delete it".into(),
             ));
@@ -2301,6 +2320,12 @@ pub async fn update_submission_method(
         .find_by_id(id)
         .await?
         .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
+
+    if submission.submission_method == "mambu" {
+        return Err(AppError::BadRequest(
+            "This submission was imported from Mambu. Delete it to start another way.".into(),
+        ));
+    }
 
     if claims.has_role("apex") {
         let apex_db_id =

@@ -11,6 +11,7 @@ pub mod federation;
 pub mod financial;
 pub mod invitation;
 pub mod legal_policy;
+pub mod mambu;
 pub mod member;
 pub mod national_overview;
 pub mod non_financial;
@@ -34,6 +35,7 @@ pub use custom_kpi::*;
 pub use federation::*;
 pub use invitation::*;
 pub use legal_policy::*;
+pub use mambu::*;
 pub use member::{
     AddMemberRequest, ChangePasswordRequest, ChangePasswordResponse,
     MemberResponse as KeycloakMemberResponse, UpdateMemberRequest as UpdateKeycloakMemberRequest,

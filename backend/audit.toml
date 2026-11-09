@@ -17,11 +17,11 @@ ignore = [
   "RUSTSEC-2026-0367",
   "RUSTSEC-2026-0368",
   "RUSTSEC-2026-0369",
-  # crypto-bigint < 0.7.6 / ctutils < 0.4.4 timing-variability issues — transitive
-  # via aws-sigv4 1.5.1 (pinned by aws-sdk-s3 ^1) and elliptic-curve 0.13/p256 0.13
-  # (JWT signature verification). Fixing requires a coordinated RustCrypto
-  # ecosystem major bump; practical risk on a server signing/verification
-  # workload is negligible. Revisit when the AWS SDK moves to crypto-bigint 0.7.
-  "RUSTSEC-2026-0387",
-  "RUSTSEC-2026-0385"
+  # RUSTSEC-2026-0429: ZipArchive::extract aborts on a symlink entry with a large declared size; same
+  # reasoning as above (zip 8.6 only via docx-rs, which never calls extract).
+  "RUSTSEC-2026-0429",
+  # RUSTSEC-2026-0459: libsqlite3-sys 0.30.1 is only an unused optional lockfile entry of the sqlx family
+  # (cargo tree -i libsqlite3-sys finds nothing); it is not compiled or linked. The fix (>= 0.39) needs a
+  # newer sqlx. Remove once sqlx is upgraded.
+  "RUSTSEC-2026-0459"
 ]

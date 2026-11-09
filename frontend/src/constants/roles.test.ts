@@ -46,8 +46,15 @@ describe("roles constants", () => {
       );
     });
 
-    it("gives cooperatives only their own privacy and profile pages under system", () => {
+    it("gives cooperatives only their privacy and profile pages under system", () => {
       expect(ROLE_NAV_ITEMS.cooperative.system).toEqual(["/app/data-privacy", "/app/profile"]);
+    });
+
+    it("gives the Mambu sync page to the apex only", () => {
+      expect(ROLE_NAV_ITEMS.apex.system).toContain("/app/mambu");
+      for (const role of ["ministry", "federation", "cooperative"] as const) {
+        expect(ROLE_NAV_ITEMS[role].system).not.toContain("/app/mambu");
+      }
     });
   });
 
