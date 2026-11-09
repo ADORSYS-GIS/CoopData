@@ -243,3 +243,10 @@ This replaces the Ministry, cooperative and monthly parts of sections 3, 13 and 
 - Incremental refresh of the lists (read only records changed since the last sync).
 - Reopening an approved return after a correction in Mambu.
 - Mapping per apex: the ledger and product mappings are one global table, shared by every apex of the same Mambu tenant.
+
+## 20. Import rules (one import per year, fixed link)
+
+- A year that already has any submission for the cooperative in CoopData is never imported. The sync answers "A submission for {year} already exists in CoopData". To import again, delete the draft first. The automatic monthly sync follows the same rule and leaves such cooperatives alone.
+- A year for which Mambu holds no ledger value for the branch is not imported ("Mambu has no accounting data for this SACCO in {year}").
+- Once a sync has imported data for a cooperative (item status synced or flagged), its Mambu link cannot be changed or removed (409). The cooperative list and link endpoints return `link_locked`, and the screens hide the change and remove actions.
+- A Mambu branch can be linked to one cooperative only: checked before saving, and enforced by a unique index on `mambu_branch_links.mambu_branch_id`.

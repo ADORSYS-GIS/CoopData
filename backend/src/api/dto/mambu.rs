@@ -173,6 +173,8 @@ pub struct MambuBranchPreviewResponse {
 pub struct MambuCooperativeLinkResponse {
     pub cooperative_id: Uuid,
     pub mambu_branch_id: Option<String>,
+    /// Already synced once: the link can no longer be changed or removed.
+    pub link_locked: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -205,6 +207,8 @@ pub struct MambuApexCooperativeResponse {
     pub name: String,
     pub institution_type: Option<String>,
     pub mambu_branch_id: Option<String>,
+    /// Already synced once: the link can no longer be changed or removed.
+    pub link_locked: bool,
     /// Takes part in the automatic monthly sync.
     pub auto_sync: bool,
     /// A sync of this cooperative is running now.

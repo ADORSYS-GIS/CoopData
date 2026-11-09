@@ -159,14 +159,18 @@ async fn the_ledger_is_rebuilt_from_the_general_ledger_when_the_reports_do_not_b
         expected_months
     );
 
-    // Syncing the year again replaces the return, and a single month cannot sit next to it.
+    // The year now has a submission, so it is not imported again, whole or by month.
     conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
         .await
         .unwrap();
-    let run2 = start_run(&state, 2026, 0, claims.clone(), SyncScope::All)
-        .await
-        .unwrap();
-    assert_eq!(wait_for_run(&state, run2.id).await, "completed");
+    for month in [0, 1] {
+        let again = start_run(&state, 2026, month, claims.clone(), SyncScope::All).await;
+        let message = again
+            .err()
+            .expect("a second sync must be refused")
+            .to_string();
+        assert!(message.contains("already exists"), "{message}");
+    }
     assert_eq!(
         scalar(
             &conn,
@@ -175,13 +179,4 @@ async fn the_ledger_is_rebuilt_from_the_general_ledger_when_the_reports_do_not_b
         .await,
         1
     );
-    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
-        .await
-        .unwrap();
-    let run3 = start_run(&state, 2026, 1, claims, SyncScope::All)
-        .await
-        .unwrap();
-    assert_eq!(wait_for_run(&state, run3.id).await, "completed");
-    let items3 = state.mambu_repo.list_items(run3.id).await.unwrap();
-    assert_eq!(items3[0].status, "skipped");
 }

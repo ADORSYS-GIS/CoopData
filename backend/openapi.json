@@ -8690,6 +8690,16 @@
         "responses": {
           "204": {
             "description": "Link removed"
+          },
+          "409": {
+            "description": "Already synced, the link is fixed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -17621,12 +17631,13 @@
         "type": "object",
         "description": "A cooperative of the apex with its Mambu link and its latest sync.",
         "required": [
-          "id",
-          "name",
           "auto_sync",
-          "running",
+          "id",
+          "last_unmapped_accounts",
           "last_warning_count",
-          "last_unmapped_accounts"
+          "link_locked",
+          "name",
+          "running"
         ],
         "properties": {
           "auto_sync": {
@@ -17678,6 +17689,10 @@
           "running": {
             "type": "boolean",
             "description": "A sync of this cooperative is running now."
+          },
+          "link_locked": {
+            "type": "boolean",
+            "description": "Already synced once: the link can no longer be changed or removed."
           }
         }
       },
@@ -17704,7 +17719,8 @@
       "MambuCooperativeLinkResponse": {
         "type": "object",
         "required": [
-          "cooperative_id"
+          "cooperative_id",
+          "link_locked"
         ],
         "properties": {
           "cooperative_id": {
@@ -17714,6 +17730,10 @@
           "mambu_branch_id": {
             "type": "string",
             "nullable": true
+          },
+          "link_locked": {
+            "type": "boolean",
+            "description": "Already synced once: the link can no longer be changed or removed."
           }
         }
       },

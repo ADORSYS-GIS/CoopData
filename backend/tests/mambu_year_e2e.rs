@@ -119,14 +119,18 @@ async fn a_whole_year_sync_makes_one_full_year_return_with_a_column_per_month() 
         expected_months
     );
 
-    // Syncing the year again replaces the return, and a single month cannot sit next to it.
+    // A year that already has a submission is never imported again, whole or by month.
     conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
         .await
         .unwrap();
-    let run2 = start_run(&state, 2026, 0, claims.clone(), SyncScope::All)
-        .await
-        .unwrap();
-    assert_eq!(wait_for_run(&state, run2.id).await, "completed");
+    for month in [0, 1] {
+        let again = start_run(&state, 2026, month, claims.clone(), SyncScope::All).await;
+        let message = again
+            .err()
+            .expect("a second sync must be refused")
+            .to_string();
+        assert!(message.contains("already exists"), "{message}");
+    }
     assert_eq!(
         scalar(
             &conn,
@@ -135,13 +139,11 @@ async fn a_whole_year_sync_makes_one_full_year_return_with_a_column_per_month() 
         .await,
         1
     );
-    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+
+    // The link is fixed once the cooperative has been synced.
+    assert!(state
+        .mambu_repo
+        .has_synced(COOP.parse().unwrap())
         .await
-        .unwrap();
-    let run3 = start_run(&state, 2026, 1, claims, SyncScope::All)
-        .await
-        .unwrap();
-    assert_eq!(wait_for_run(&state, run3.id).await, "completed");
-    let items3 = state.mambu_repo.list_items(run3.id).await.unwrap();
-    assert_eq!(items3[0].status, "skipped");
+        .unwrap());
 }

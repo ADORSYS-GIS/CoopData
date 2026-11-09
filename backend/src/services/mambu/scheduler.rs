@@ -9,7 +9,9 @@ use chrono::{DateTime, Datelike, Timelike, Utc};
 
 use crate::config::AppConfig;
 use crate::error::AppResult;
-use crate::services::mambu::sync::{start_run, system_claims, SyncScope, SYSTEM_ACTOR};
+use crate::services::mambu::sync::{
+    existing_submission_reason, start_run, system_claims, SyncScope, SYSTEM_ACTOR,
+};
 use crate::AppState;
 
 const CHECK_EVERY: Duration = Duration::from_secs(600);
@@ -64,10 +66,23 @@ pub async fn tick(state: &AppState, now: DateTime<Utc>) -> AppResult<usize> {
     if ids.is_empty() {
         return Ok(0);
     }
+    // A year that already has a submission is never imported, so those SACCOs keep their
+    // claim for this month and are not tried again.
+    let year = year_to_sync(now);
+    let mut ids_to_sync = Vec::new();
+    for id in ids {
+        if existing_submission_reason(state, id, year).await?.is_none() {
+            ids_to_sync.push(id);
+        }
+    }
+    let ids = ids_to_sync;
+    if ids.is_empty() {
+        return Ok(0);
+    }
     let count = ids.len();
     let started = start_run(
         state,
-        year_to_sync(now),
+        year,
         0,
         system_claims(SYSTEM_ACTOR, "Automatic sync"),
         SyncScope::Cooperatives(ids.clone()),

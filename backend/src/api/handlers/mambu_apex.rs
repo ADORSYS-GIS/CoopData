@@ -190,6 +190,7 @@ pub async fn apex_list_mambu_cooperatives(
         .mambu_repo
         .pending_cooperative_ids(running_runs)
         .await?;
+    let locked = state.mambu_repo.synced_cooperative_ids(ids.clone()).await?;
     let mut out: Vec<MambuApexCooperativeResponse> = cooperatives
         .into_iter()
         .map(|c| {
@@ -200,6 +201,7 @@ pub async fn apex_list_mambu_cooperatives(
                 name: c.display_name,
                 institution_type: c.institution_type.map(|t| t.as_str().to_string()),
                 mambu_branch_id: link.map(|l| l.mambu_branch_id.clone()),
+                link_locked: locked.contains(&c.id),
                 auto_sync: link.map(|l| l.auto_sync).unwrap_or(false),
                 running: running.contains(&c.id),
                 last_synced_at: item.map(|i| i.updated_at),
@@ -234,6 +236,7 @@ pub async fn apex_get_mambu_link(
     Ok(Json(MambuCooperativeLinkResponse {
         cooperative_id: id,
         mambu_branch_id: link.map(|l| l.mambu_branch_id),
+        link_locked: state.mambu_repo.has_synced(id).await?,
     }))
 }
 
@@ -268,6 +271,7 @@ pub async fn apex_set_mambu_link(
     Ok(Json(MambuCooperativeLinkResponse {
         cooperative_id: id,
         mambu_branch_id: Some(branch_id),
+        link_locked: false,
     }))
 }
 
@@ -275,7 +279,10 @@ pub async fn apex_set_mambu_link(
     delete,
     path = "/api/v1/apex/cooperatives/{id}/mambu-link",
     params(("id" = Uuid, Path, description = "Cooperative id")),
-    responses((status = 204, description = "Link removed")),
+    responses(
+        (status = 204, description = "Link removed"),
+        (status = 409, description = "Already synced, the link is fixed", body = ErrorResponse),
+    ),
     tag = TAG,
 )]
 pub async fn apex_clear_mambu_link(
@@ -284,6 +291,7 @@ pub async fn apex_clear_mambu_link(
     Path(id): Path<Uuid>,
 ) -> AppResult<impl IntoResponse> {
     ensure_owned(&state, &claims, id).await?;
+    linking::ensure_link_unlocked(&state, id).await?;
     state.mambu_repo.delete_link(id).await?;
     audit(
         &state,

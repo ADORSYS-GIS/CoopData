@@ -12,7 +12,7 @@ use common::mambu::{fake_mambu, scalar, serve, text, wait_for_run};
 use coop_data_backend::auth::claims::Claims;
 use coop_data_backend::services::mambu::client::MambuApiClient;
 use coop_data_backend::services::mambu::linking::{
-    ensure_branch_available, link_cooperative, search_branches,
+    ensure_branch_available, ensure_link_unlocked, link_cooperative, search_branches,
 };
 use coop_data_backend::services::mambu::sync::{start_run, SyncScope};
 use sea_orm::ConnectionTrait;
@@ -87,6 +87,14 @@ async fn cooperative_sync_makes_a_draft_and_the_guards_hold() {
     assert!(ensure_branch_available(&state, "ES0006", Some(coop))
         .await
         .is_ok());
+    let stolen = link_cooperative(&state, other, "ES0006", "tester")
+        .await
+        .unwrap_err();
+    assert!(stolen.to_string().contains("already linked"), "{stolen}");
+    assert!(
+        ensure_link_unlocked(&state, coop).await.is_ok(),
+        "not synced yet"
+    );
 
     let claims = Arc::new(
         serde_json::from_value::<Claims>(json!({
@@ -148,11 +156,12 @@ async fn cooperative_sync_makes_a_draft_and_the_guards_hold() {
     .unwrap_err();
     assert!(err.to_string().contains("minutes ago"), "{err}");
 
-    // After the cooldown a new sync replaces the draft; the return stays one draft.
+    // After the cooldown the year still has its submission, so it is refused and the
+    // draft is left as it is.
     conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
         .await
         .unwrap();
-    let run2 = start_run(
+    let again = start_run(
         &state,
         2026,
         9,
@@ -160,73 +169,21 @@ async fn cooperative_sync_makes_a_draft_and_the_guards_hold() {
         SyncScope::Cooperatives(vec![coop]),
     )
     .await
-    .unwrap();
-    assert_eq!(wait_for_run(&state, run2.id).await, "completed");
+    .unwrap_err();
+    assert!(again.to_string().contains("already exists"), "{again}");
     assert_eq!(text(&conn, &row("status")).await, "draft");
-    assert_eq!(
-        scalar(
-            &conn,
-            "SELECT count(*) FROM submissions WHERE submission_method='mambu'"
-        )
-        .await,
-        1
-    );
 
-    // An import left in review at the Ministry by an earlier version is replaced too.
-    conn.execute_unprepared(&format!(
-        "UPDATE submissions SET status='in_review', current_tier='ministry' WHERE id='{sid}'"
-    ))
-    .await
-    .unwrap();
-    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
-        .await
-        .unwrap();
-    let run_legacy = start_run(
-        &state,
-        2026,
-        9,
-        claims.clone(),
-        SyncScope::Cooperatives(vec![coop]),
-    )
-    .await
-    .unwrap();
-    assert_eq!(wait_for_run(&state, run_legacy.id).await, "completed");
-    assert_eq!(text(&conn, &row("status")).await, "draft");
-    assert_eq!(text(&conn, &row("current_tier")).await, "apex");
-
-    // A submission that was submitted is not overwritten by a sync.
-    conn.execute_unprepared(&format!(
-        "UPDATE submissions SET status='approved' WHERE id='{sid}'"
-    ))
-    .await
-    .unwrap();
-    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
-        .await
-        .unwrap();
-    let claims_again = claims.clone();
-    let run3 = start_run(&state, 2026, 9, claims, SyncScope::Cooperatives(vec![coop]))
-        .await
-        .unwrap();
-    assert_eq!(wait_for_run(&state, run3.id).await, "completed");
-    let items3 = state.mambu_repo.list_items(run3.id).await.unwrap();
-    assert_eq!(items3[0].status, "skipped");
+    // The link is fixed once the cooperative has been synced.
+    assert!(state.mambu_repo.has_synced(coop).await.unwrap());
+    let locked = ensure_link_unlocked(&state, coop).await.unwrap_err();
     assert!(
-        items3[0]
-            .error
-            .as_deref()
-            .unwrap_or("")
-            .contains("approved"),
-        "{:?}",
-        items3[0].error
+        locked.to_string().contains("already been synced"),
+        "{locked}"
     );
-    conn.execute_unprepared(&format!(
-        "UPDATE submissions SET status='draft' WHERE id='{sid}'"
-    ))
-    .await
-    .unwrap();
-    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
-        .await
-        .unwrap();
+
+    // With the draft deleted the year can be imported again.
+    let claims_again = claims.clone();
+    state.submission_repo.delete(sid).await.unwrap();
 
     // Two requests for the same SACCO at the same moment: exactly one starts, and
     // the loser leaves no running run and no pending item behind.

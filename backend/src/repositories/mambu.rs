@@ -101,6 +101,29 @@ impl MambuRepository {
         Ok(())
     }
 
+    /// True once a sync has imported data for the cooperative. From then on its link to
+    /// Mambu is fixed.
+    pub async fn has_synced(&self, cooperative_id: Uuid) -> AppResult<bool> {
+        let count = mambu_sync_item::Entity::find()
+            .filter(mambu_sync_item::Column::CooperativeId.eq(cooperative_id))
+            .filter(mambu_sync_item::Column::Status.is_in(["synced", "flagged"]))
+            .count(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(count > 0)
+    }
+
+    /// The cooperatives among `ids` that a sync has already imported data for.
+    pub async fn synced_cooperative_ids(&self, ids: Vec<Uuid>) -> AppResult<HashSet<Uuid>> {
+        let items = mambu_sync_item::Entity::find()
+            .filter(mambu_sync_item::Column::CooperativeId.is_in(ids))
+            .filter(mambu_sync_item::Column::Status.is_in(["synced", "flagged"]))
+            .all(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(items.into_iter().filter_map(|i| i.cooperative_id).collect())
+    }
+
     pub async fn delete_link(&self, cooperative_id: Uuid) -> AppResult<()> {
         mambu_branch_link::Entity::delete_by_id(cooperative_id)
             .exec(&self.db)

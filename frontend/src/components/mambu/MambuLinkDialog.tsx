@@ -46,6 +46,17 @@ const LinkForm: React.FC<{ cooperative: MambuApexCooperative; onClose: () => voi
       onError: (e) => toast.error(e.message),
     });
 
+  if (cooperative.link_locked) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {t("mambu.linkLocked", {
+          defaultValue:
+            "This cooperative has already been synced from Mambu, so its link is fixed and cannot be changed or removed.",
+        })}
+      </p>
+    );
+  }
+
   return (
     <>
       <MambuBranchField value={branchId} onChange={setBranchId} cooperativeId={cooperative.id} />

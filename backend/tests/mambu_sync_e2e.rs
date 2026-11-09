@@ -198,14 +198,26 @@ async fn mambu_sync_creates_an_apex_draft_from_mambu_data() {
         "KPIs were computed for the synced submission"
     );
 
-    // Running the same month again replaces the data instead of duplicating it.
-    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
+    // A period that already has a submission is refused, so nothing is duplicated or
+    // overwritten, whatever the status of the submission.
+    for status in ["draft", "approved"] {
+        conn.execute_unprepared(&format!(
+            "UPDATE submissions SET status='{status}' WHERE id='{sid}'"
+        ))
         .await
         .unwrap();
-    let run2 = start_run(&state, 2026, 9, Arc::new(claims.clone()), SyncScope::All)
+        conn.execute_unprepared(
+            "UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'",
+        )
         .await
         .unwrap();
-    assert_eq!(wait_for_run(&state, run2.id).await, "completed");
+        let again = start_run(&state, 2026, 9, Arc::new(claims.clone()), SyncScope::All).await;
+        let message = again
+            .err()
+            .expect("a second sync must be refused")
+            .to_string();
+        assert!(message.contains("already exists"), "{message}");
+    }
     assert_eq!(
         scalar(
             &conn,
@@ -222,20 +234,4 @@ async fn mambu_sync_creates_an_apex_draft_from_mambu_data() {
         .await,
         1
     );
-
-    // An approved submission is never overwritten.
-    conn.execute_unprepared(&format!(
-        "UPDATE submissions SET status='approved' WHERE id='{sid}'"
-    ))
-    .await
-    .unwrap();
-    conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
-        .await
-        .unwrap();
-    let run3 = start_run(&state, 2026, 9, Arc::new(claims), SyncScope::All)
-        .await
-        .unwrap();
-    assert_eq!(wait_for_run(&state, run3.id).await, "completed");
-    let items3 = state.mambu_repo.list_items(run3.id).await.unwrap();
-    assert_eq!(items3[0].status, "skipped");
 }

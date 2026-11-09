@@ -69,17 +69,35 @@ fn draft_status() -> SubmissionStatus {
     SubmissionStatus::Draft
 }
 
-/// A new sync replaces a draft. It also replaces an import that an earlier version of the
-/// sync left in review at the Ministry, because only the apex handles imports now.
-/// Submitted and approved returns are never touched.
-fn may_replace(sub: &submission::Model) -> bool {
-    match sub.status {
-        SubmissionStatus::Draft => true,
-        SubmissionStatus::InReview => {
-            sub.submission_method == SUBMISSION_METHOD && sub.current_tier == ReviewTier::Ministry
-        }
-        _ => false,
-    }
+/// A year that already has a submission in CoopData is never imported: the import would
+/// overwrite or duplicate what people already entered. Delete the draft first to import again.
+pub(crate) async fn existing_submission_reason(
+    state: &AppState,
+    cooperative_id: Uuid,
+    year: i32,
+) -> AppResult<Option<String>> {
+    let existing = state
+        .submission_repo
+        .find_all_by_cooperative_and_year(cooperative_id, year)
+        .await?;
+    Ok((!existing.is_empty()).then(|| {
+        format!(
+            "A submission for {year} already exists in CoopData. It was not imported or changed."
+        )
+    }))
+}
+
+/// Mambu has data for a SACCO when at least one ledger account has a balance or a movement.
+fn has_ledger_data(months: &[(u32, Vec<crate::services::mambu::models::ReportItem>)]) -> bool {
+    months.iter().any(|(_, items)| {
+        items.iter().any(|i| {
+            let a = &i.amounts;
+            a.opening_balance != 0.0
+                || a.debits != 0.0
+                || a.credits != 0.0
+                || a.closing_balance != 0.0
+        })
+    })
 }
 
 fn review_comment(as_of: NaiveDate, today: NaiveDate, trigger: &str) -> String {
@@ -253,6 +271,19 @@ pub async fn start_run(
         return Err(AppError::Conflict(message));
     }
     let links = ready;
+    let mut reasons = Vec::new();
+    for link in &links {
+        if let Some(reason) = existing_submission_reason(state, link.cooperative_id, year).await? {
+            reasons.push(reason);
+        }
+    }
+    if reasons.len() == links.len() {
+        return Err(AppError::Conflict(if single {
+            reasons.swap_remove(0)
+        } else {
+            format!("A submission for {year} already exists in CoopData for every selected cooperative. Nothing was imported.")
+        }));
+    }
 
     let run = state
         .mambu_repo
@@ -638,68 +669,8 @@ async fn sync_one(
         month.to_string()
     };
 
-    let existing = state
-        .submission_repo
-        .find_by_cooperative_and_period(coop.id, year, PeriodType::Monthly, &period_value)
-        .await?;
-    let mut superseded: Vec<Uuid> = Vec::new();
-    match &existing {
-        Some(s) if s.submission_method != SUBMISSION_METHOD => {
-            return Ok(Outcome::Skipped(format!(
-                "A submission for this period already exists ({} method). It was not changed.",
-                s.submission_method
-            )))
-        }
-        Some(s) if !may_replace(s) => {
-            return Ok(Outcome::Skipped(format!(
-                "The submission for this period is already {}. It was not changed.",
-                s.status.as_str().replace('_', " ")
-            )))
-        }
-        Some(_) => {}
-        None => {
-            let mut year_submissions = state
-                .submission_repo
-                .find_all_by_cooperative_and_year(coop.id, year)
-                .await?;
-            // A whole-year return takes the place of single months that an earlier sync
-            // made and that may still be replaced; any other return keeps blocking it.
-            if whole_year {
-                let mut held: Option<String> = None;
-                year_submissions.retain(|s| {
-                    let single_month = s.submission_method == SUBMISSION_METHOD
-                        && s.period_value != crate::services::period_rules::FULL_YEAR;
-                    if single_month && may_replace(s) {
-                        superseded.push(s.id);
-                        return false;
-                    }
-                    if single_month {
-                        held = Some(s.status.as_str().replace('_', " "));
-                    }
-                    true
-                });
-                if let Some(status) = held {
-                    return Ok(Outcome::Skipped(format!(
-                        "A single-month Mambu return for {year} is already {status} and cannot be replaced from here. It was not changed."
-                    )));
-                }
-            }
-            if let Err(reason) = crate::services::period_rules::check_frequency(
-                &year_submissions,
-                PeriodType::Monthly,
-                None,
-            )
-            .and_then(|_| {
-                crate::services::period_rules::check_period_overlap(
-                    &year_submissions,
-                    PeriodType::Monthly,
-                    &period_value,
-                    None,
-                )
-            }) {
-                return Ok(Outcome::Skipped(reason));
-            }
-        }
+    if let Some(reason) = existing_submission_reason(state, coop.id, year).await? {
+        return Ok(Outcome::Skipped(reason));
     }
 
     let lists = client.branch_lists(&link.mambu_branch_id).await?;
@@ -714,6 +685,11 @@ async fn sync_one(
         as_of,
     )
     .await?;
+    if ledger_input.failed_months.is_empty() && !has_ledger_data(&ledger_input.months) {
+        return Ok(Outcome::Skipped(format!(
+            "Mambu has no accounting data for this SACCO in {year}. Nothing was imported."
+        )));
+    }
     let year_start_earnings = ledger_input.year_start_earnings;
     let ledger_source = ledger_input.source;
     let mut unreliable_months: Vec<u32> = ledger_input.failed_months.clone();
@@ -881,7 +857,6 @@ async fn sync_one(
         state,
         &coop,
         run,
-        existing,
         year,
         &period_value,
         as_of,
@@ -892,9 +867,6 @@ async fn sync_one(
         actor,
     )
     .await?;
-    for id in superseded {
-        state.submission_repo.delete(id).await?;
-    }
     let period_start = if whole_year {
         NaiveDate::from_ymd_opt(year, 1, 1).unwrap_or(as_of)
     } else {
@@ -1091,7 +1063,6 @@ async fn write_submission(
     state: &AppState,
     coop: &cooperative::Model,
     run: &mambu_sync_run::Model,
-    existing: Option<submission::Model>,
     year: i32,
     period_value: &str,
     as_of: NaiveDate,
@@ -1108,76 +1079,60 @@ async fn write_submission(
         "as_of": as_of.to_string(),
         "lists_as_at_sync_time": approximate,
     });
-    let submission_id = match existing {
-        Some(sub) => {
-            state
-                .submission_repo
-                .update_metadata(sub.id, metadata)
-                .await?;
-            sub.id
-        }
-        None => {
-            let created_by = Uuid::parse_str(&actor.sub).ok();
-            let mut model = submission::ActiveModel {
-                id: Set(Uuid::new_v4()),
-                reference: Set(None),
-                cooperative_id: Set(coop.id),
-                reporting_year: Set(year),
-                period_type: Set(PeriodType::Monthly),
-                period_value: Set(period_value.to_string()),
-                fiscal_start_month: Set(1),
-                status: Set(draft_status()),
-                current_tier: Set(review_tier()),
-                submitted_by: Set(created_by),
-                submitted_at: Set(None),
-                last_reviewed_by: Set(None),
-                last_reviewed_at: Set(None),
-                rejection_reason: Set(None),
-                priority: Set("Routine".to_string()),
-                metadata: Set(metadata),
-                submission_method: Set(SUBMISSION_METHOD.to_string()),
-                created_at: Set(Utc::now()),
-                updated_at: Set(Utc::now()),
-                created_by_role: Set(created_by_role()),
-                created_by_user_id: Set(created_by),
-                created_by_name: Set(actor
-                    .name
-                    .clone()
-                    .or_else(|| actor.preferred_username.clone())),
-                edited_by: Set(None),
-                edited_by_name: Set(None),
-            };
-            let mut attempts = 0;
-            let created = loop {
-                let seq = state.submission_repo.next_reference_seq(year).await?;
-                model.reference = Set(Some(format!("SUB-{year}-{seq:05}")));
-                match state.submission_repo.create(model.clone()).await {
-                    Ok(s) => break s,
-                    Err(e) if attempts < 3 => {
-                        attempts += 1;
-                        tracing::warn!(error = %e, "Submission reference collision, retrying");
-                    }
-                    Err(e) => return Err(e),
+    let submission_id = {
+        let created_by = Uuid::parse_str(&actor.sub).ok();
+        let mut model = submission::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            reference: Set(None),
+            cooperative_id: Set(coop.id),
+            reporting_year: Set(year),
+            period_type: Set(PeriodType::Monthly),
+            period_value: Set(period_value.to_string()),
+            fiscal_start_month: Set(1),
+            status: Set(draft_status()),
+            current_tier: Set(review_tier()),
+            submitted_by: Set(created_by),
+            submitted_at: Set(None),
+            last_reviewed_by: Set(None),
+            last_reviewed_at: Set(None),
+            rejection_reason: Set(None),
+            priority: Set("Routine".to_string()),
+            metadata: Set(metadata),
+            submission_method: Set(SUBMISSION_METHOD.to_string()),
+            created_at: Set(Utc::now()),
+            updated_at: Set(Utc::now()),
+            created_by_role: Set(created_by_role()),
+            created_by_user_id: Set(created_by),
+            created_by_name: Set(actor
+                .name
+                .clone()
+                .or_else(|| actor.preferred_username.clone())),
+            edited_by: Set(None),
+            edited_by_name: Set(None),
+        };
+        let mut attempts = 0;
+        let created = loop {
+            let seq = state.submission_repo.next_reference_seq(year).await?;
+            model.reference = Set(Some(format!("SUB-{year}-{seq:05}")));
+            match state.submission_repo.create(model.clone()).await {
+                Ok(s) => break s,
+                Err(e) if attempts < 3 => {
+                    attempts += 1;
+                    tracing::warn!(error = %e, "Submission reference collision, retrying");
                 }
-            };
-            let sections = crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
-                created.id,
-                SUBMISSION_METHOD,
-            );
-            state.section_repo.create_many(sections).await?;
-            created.id
-        }
+                Err(e) => return Err(e),
+            }
+        };
+        let sections = crate::repositories::submission_section::SubmissionSectionRepository::new_section_models(
+            created.id,
+            SUBMISSION_METHOD,
+        );
+        state.section_repo.create_many(sections).await?;
+        created.id
     };
 
     persist_nf_parse_result(state, coop.id, submission_id, None, result).await?;
 
-    if let Some(old) = state
-        .financial_statement_repo
-        .find_by_submission(submission_id)
-        .await?
-    {
-        state.financial_statement_repo.delete(old.id).await?;
-    }
     let now = Utc::now();
     let statement = state
         .financial_statement_repo
@@ -1332,4 +1287,38 @@ async fn write_submission(
         tracing::error!(error = %e, "Failed to log audit for Mambu sync");
     }
     Ok(submission_id)
+}
+
+#[cfg(test)]
+mod import_guard_tests {
+    use super::*;
+    use crate::services::mambu::models::{ReportAmounts, ReportGlAccount, ReportItem};
+
+    fn item(opening: f64, debits: f64, credits: f64, closing: f64) -> ReportItem {
+        ReportItem {
+            gl_account: ReportGlAccount::default(),
+            amounts: ReportAmounts {
+                opening_balance: opening,
+                debits,
+                credits,
+                closing_balance: closing,
+            },
+        }
+    }
+
+    #[test]
+    fn a_year_without_any_ledger_value_has_no_data() {
+        assert!(!has_ledger_data(&[]));
+        assert!(!has_ledger_data(&[(1, vec![])]));
+        assert!(!has_ledger_data(&[(1, vec![item(0.0, 0.0, 0.0, 0.0)])]));
+    }
+
+    #[test]
+    fn a_balance_or_a_movement_counts_as_data() {
+        assert!(has_ledger_data(&[(1, vec![item(5.0, 0.0, 0.0, 5.0)])]));
+        assert!(has_ledger_data(&[
+            (1, vec![]),
+            (2, vec![item(0.0, 3.0, 0.0, 0.0)])
+        ]));
+    }
 }

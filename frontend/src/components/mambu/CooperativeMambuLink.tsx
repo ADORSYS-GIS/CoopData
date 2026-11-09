@@ -20,6 +20,7 @@ export const CooperativeMambuLink: React.FC<{ cooperativeId: string }> = ({ coop
   const [branchId, setBranchId] = useState("");
 
   const current = link.data?.mambu_branch_id ?? null;
+  const locked = link.data?.link_locked ?? false;
 
   const save = () =>
     setLink.mutate(branchId, {
@@ -57,19 +58,34 @@ export const CooperativeMambuLink: React.FC<{ cooperativeId: string }> = ({ coop
             </>
           )}
         </p>
-        <MambuBranchField value={branchId} onChange={setBranchId} cooperativeId={cooperativeId} />
-        <div className="flex gap-2">
-          <Button size="sm" disabled={!branchId.trim() || setLink.isPending} onClick={save}>
-            {current
-              ? t("mambu.changeLink", { defaultValue: "Change link" })
-              : t("mambu.link", { defaultValue: "Link" })}
-          </Button>
-          {current && (
-            <Button size="sm" variant="outline" disabled={clearLink.isPending} onClick={remove}>
-              {t("mambu.unlink", { defaultValue: "Remove link" })}
-            </Button>
-          )}
-        </div>
+        {locked ? (
+          <p className="text-sm text-muted-foreground">
+            {t("mambu.linkLocked", {
+              defaultValue:
+                "This cooperative has already been synced from Mambu, so its link is fixed and cannot be changed or removed.",
+            })}
+          </p>
+        ) : (
+          <>
+            <MambuBranchField
+              value={branchId}
+              onChange={setBranchId}
+              cooperativeId={cooperativeId}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" disabled={!branchId.trim() || setLink.isPending} onClick={save}>
+                {current
+                  ? t("mambu.changeLink", { defaultValue: "Change link" })
+                  : t("mambu.link", { defaultValue: "Link" })}
+              </Button>
+              {current && (
+                <Button size="sm" variant="outline" disabled={clearLink.isPending} onClick={remove}>
+                  {t("mambu.unlink", { defaultValue: "Remove link" })}
+                </Button>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );

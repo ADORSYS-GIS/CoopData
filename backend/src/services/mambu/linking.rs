@@ -180,6 +180,17 @@ pub async fn ensure_branch_available(
     Ok(preview.id)
 }
 
+/// A cooperative that has been synced once keeps its Mambu link: the imported data
+/// belongs to that branch.
+pub async fn ensure_link_unlocked(state: &AppState, cooperative_id: Uuid) -> AppResult<()> {
+    if state.mambu_repo.has_synced(cooperative_id).await? {
+        return Err(AppError::Conflict(
+            "This cooperative has already been synced from Mambu, so its Mambu link can no longer be changed or removed".into(),
+        ));
+    }
+    Ok(())
+}
+
 pub async fn link_cooperative(
     state: &AppState,
     cooperative_id: Uuid,
@@ -187,6 +198,11 @@ pub async fn link_cooperative(
     linked_by: &str,
 ) -> AppResult<String> {
     let branch_id = ensure_branch_available(state, raw_id, Some(cooperative_id)).await?;
+    if let Some(current) = state.mambu_repo.find_link(cooperative_id).await? {
+        if !current.mambu_branch_id.eq_ignore_ascii_case(&branch_id) {
+            ensure_link_unlocked(state, cooperative_id).await?;
+        }
+    }
     if let Err(e) = state
         .mambu_repo
         .upsert_link(cooperative_id, &branch_id, Some(linked_by.to_string()))

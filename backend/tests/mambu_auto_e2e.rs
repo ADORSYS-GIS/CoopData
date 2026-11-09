@@ -97,12 +97,12 @@ async fn the_automatic_sync_runs_once_a_month_for_the_linked_cooperatives_that_o
 
     // The month is claimed: a second check in the same month starts nothing.
     assert_eq!(tick(&state, night).await.unwrap(), 0);
-    // The next month it runs again.
+    // The next month nothing is started: the year already has its submission.
     conn.execute_unprepared("UPDATE mambu_sync_items SET created_at = now() - interval '1 hour'")
         .await
         .unwrap();
     let next_month = Utc.with_ymd_and_hms(2026, 12, 3, 2, 0, 0).unwrap();
-    assert_eq!(tick(&state, next_month).await.unwrap(), 1);
+    assert_eq!(tick(&state, next_month).await.unwrap(), 0);
 
     // Before the apex submits, the warnings must be confirmed.
     let warning_level = items[0]
