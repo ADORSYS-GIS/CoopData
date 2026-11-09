@@ -92,6 +92,17 @@ async fn main() -> anyhow::Result<()> {
     let report_export_repo =
         coop_data_backend::repositories::ReportExportRepository::new(db.clone());
     let narrative_store = coop_data_backend::repositories::ReportNarrativeStore::new(db.clone());
+    let mambu_repo = coop_data_backend::repositories::MambuRepository::new(db.clone());
+    let mambu_client =
+        coop_data_backend::services::mambu::client::MambuApiClient::from_config(&config)
+            .map(std::sync::Arc::new);
+    if mambu_client.is_some() {
+        tracing::info!("Mambu integration is configured");
+    } else {
+        tracing::info!(
+            "Mambu integration is off: MAMBU_BASE_URL or the Mambu credentials are not set"
+        );
+    }
     let questionnaire_repo = QuestionnaireRepository::new(db.clone());
     let questionnaire_template_repo = QuestionnaireTemplateRepository::new(db.clone());
     let audit = AuditService::new(AuditLogRepository::new(db.clone()), user_repo.clone());
@@ -155,12 +166,19 @@ async fn main() -> anyhow::Result<()> {
         legal_policy_repo,
         report_export_repo,
         narrative_store,
+        mambu_repo,
+        mambu_client,
     };
 
     // Backfill computed KPIs for existing submissions
     if let Err(e) = backfill_computed_kpis(&state).await {
         tracing::error!("Failed to backfill computed KPIs: {:?}", e);
     }
+
+    coop_data_backend::services::mambu::sync::resume_interrupted_runs(&state).await;
+    tokio::spawn(coop_data_backend::services::mambu::scheduler::run(
+        state.clone(),
+    ));
 
     let app = create_app(state);
     tracing::info!("Prometheus metrics endpoint available at /metrics");

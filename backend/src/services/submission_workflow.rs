@@ -56,6 +56,12 @@ impl SubmissionWorkflow {
             .await?
             .ok_or_else(|| AppError::NotFound("Submission not found".into()))?;
 
+        if sub.submission_method == "mambu" && !claims.is_apex() {
+            return Err(AppError::Forbidden(
+                "This submission was imported from Mambu. Only the apex can submit it.".into(),
+            ));
+        }
+
         if sub.status != SubmissionStatus::Draft {
             return Err(AppError::BadRequest(format!(
                 "Submission is in '{}' status and cannot be submitted",

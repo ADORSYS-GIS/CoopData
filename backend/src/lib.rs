@@ -82,6 +82,8 @@ pub struct AppState {
     pub legal_policy_repo: LegalPolicyRepository,
     pub report_export_repo: crate::repositories::ReportExportRepository,
     pub narrative_store: crate::repositories::ReportNarrativeStore,
+    pub mambu_repo: crate::repositories::MambuRepository,
+    pub mambu_client: Option<std::sync::Arc<crate::services::mambu::client::MambuApiClient>>,
 }
 
 impl AppState {

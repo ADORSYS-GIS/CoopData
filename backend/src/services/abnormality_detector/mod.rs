@@ -105,8 +105,7 @@ impl AbnormalityDetector {
         // MED-014: rounding inconsistency (values with > 2 decimal places)
         for item in &line_items {
             if let Some(val) = item.value {
-                let frac = val.fract().abs();
-                if frac > rust_decimal::Decimal::new(1, 2) {
+                if has_extra_decimals(val) {
                     all_flags.push(calculations::flag(
                         "MED-014",
                         "medium",
@@ -197,5 +196,28 @@ mod month_label_tests {
     fn column_zero_beside_monthly_figures_is_the_prior_year_end() {
         assert_eq!(month_label(0, false), "Dec (Prev)");
         assert_eq!(month_label(12, false), "Dec");
+    }
+}
+
+/// True when a value carries more than two decimal places, such as 12.345. Cents
+/// (12.48) are not a rounding problem.
+fn has_extra_decimals(value: rust_decimal::Decimal) -> bool {
+    value.round_dp(2) != value
+}
+
+#[cfg(test)]
+mod rounding_tests {
+    use super::has_extra_decimals;
+    use rust_decimal::Decimal;
+    use std::str::FromStr;
+
+    #[test]
+    fn cents_are_fine_and_a_third_decimal_is_not() {
+        assert!(!has_extra_decimals(
+            Decimal::from_str("2836963.48").unwrap()
+        ));
+        assert!(!has_extra_decimals(Decimal::from_str("12.50").unwrap()));
+        assert!(!has_extra_decimals(Decimal::from(100)));
+        assert!(has_extra_decimals(Decimal::from_str("12.345").unwrap()));
     }
 }
