@@ -7,13 +7,15 @@
 # table so each migration runs exactly once, even against an existing DB
 # (the docker-entrypoint-initdb.d mount only runs on a fresh data volume).
 #
-# Baseline behaviour: if the DB is already initialized (e.g. `organizations`
-# table exists) but has no migration history, all current migration files are
-# marked as applied so they are NOT re-run on an existing production DB. Only
-# migrations added after this point will be applied.
+# Identity: a migration is tracked by its full filename, so two files may share
+# a number prefix. Baselining: a database that has tables but no history is
+# NOT guessed at. Pass BASELINE_UP_TO=<number> to stamp migrations up to that
+# number as applied and run the rest. A fresh volume is stamped by
+# backend/migrations/99_record_migrations.sh during initdb.
 #
 # Usage:
 #   ./scripts/migrate-db.sh
+#   BASELINE_UP_TO=63 ./scripts/migrate-db.sh   # legacy DB with no history
 # =============================================================================
 set -euo pipefail
 
@@ -72,42 +74,63 @@ apply_sql_file() {
         psql -U "$PG_USER" -d "$APP_DB" -v ON_ERROR_STOP=1 < "$file"
 }
 
-# ── 1. Ensure tracking table exists ──────────────────────────────────────────
+# ── 1. Ensure tracking table exists, keyed by filename ───────────────────────
+# Two files may share a number prefix (64_a.sql, 64_b.sql), so the filename is
+# the identity of a migration, not the prefix. Older databases keyed the table
+# on `version`; move the key to `filename` without losing history.
 psql -c "CREATE TABLE IF NOT EXISTS schema_migrations (
-    version    TEXT PRIMARY KEY,
+    version    TEXT NOT NULL,
     filename   TEXT NOT NULL,
     applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);" >/dev/null
+);
+ALTER TABLE schema_migrations DROP CONSTRAINT IF EXISTS schema_migrations_pkey;
+CREATE UNIQUE INDEX IF NOT EXISTS schema_migrations_filename_key
+    ON schema_migrations (filename);" >/dev/null
 
-# ── 2. Baseline existing DB (no history) so migrations are not re-run ────────
+record() {
+    local base="$1"
+    psql -c "INSERT INTO schema_migrations (version, filename)
+             VALUES ('${base%%_*}', '${base}') ON CONFLICT DO NOTHING;" >/dev/null
+}
+
+is_applied() {
+    [[ "$(psql -tAc "SELECT count(*) FROM schema_migrations WHERE filename='${1}';" | tr -d '[:space:]')" != "0" ]]
+}
+
+# ── 2. A database with no history is never baselined by guesswork ────────────
+# Stamping every file as applied without running it hides schema that is really
+# missing. A fresh volume is stamped by backend/migrations/99_record_migrations.sh;
+# a legacy database must say how far it really is with BASELINE_UP_TO=<number>.
 APPLIED_COUNT=$(psql -tAc "SELECT count(*) FROM schema_migrations;" | tr -d '[:space:]')
 if [[ "$APPLIED_COUNT" == "0" ]]; then
     if psql -tAc "SELECT to_regclass('public.organizations');" | grep -q "organizations"; then
-        warn "Existing DB detected with no migration history — baselining current migrations."
+        if [[ -z "${BASELINE_UP_TO:-}" ]]; then
+            error "Database has tables but no migration history. Refusing to guess. Re-run with BASELINE_UP_TO=<last migration number already applied> to stamp those and apply the rest."
+        fi
+        [[ "$BASELINE_UP_TO" =~ ^[0-9]+$ ]] || error "BASELINE_UP_TO must be a number, got '${BASELINE_UP_TO}'."
+        warn "Baselining migrations up to ${BASELINE_UP_TO} as already applied."
         BASELINED=0
         for f in "$MIGRATIONS_DIR"/*.sql; do
             [[ -e "$f" ]] || continue
             base=$(basename "$f")
-            version="${base%%_*}"
-            psql -c "INSERT INTO schema_migrations (version, filename)
-                     VALUES ('${version}', '${base}') ON CONFLICT DO NOTHING;" >/dev/null
-            BASELINED=$((BASELINED + 1))
+            if (( 10#${base%%_*} <= 10#${BASELINE_UP_TO} )); then
+                record "$base"
+                BASELINED=$((BASELINED + 1))
+            fi
         done
-        ok "Baselined ${BASELINED} existing migration(s)."
+        ok "Baselined ${BASELINED} migration(s)."
     fi
 fi
 
-# ── 3. Apply pending migrations in order ─────────────────────────────────────
+# ── 3. Apply pending migrations in filename order ────────────────────────────
 PENDING=0
 for f in "$MIGRATIONS_DIR"/*.sql; do
     [[ -e "$f" ]] || continue
     base=$(basename "$f")
-    version="${base%%_*}"
-    if [[ "$(psql -tAc "SELECT count(*) FROM schema_migrations WHERE version='${version}';" | tr -d '[:space:]')" == "0" ]]; then
+    if ! is_applied "$base"; then
         info "Applying migration ${base}..."
         apply_sql_file "$f"
-        psql -c "INSERT INTO schema_migrations (version, filename)
-                 VALUES ('${version}', '${base}') ON CONFLICT DO NOTHING;" >/dev/null
+        record "$base"
         PENDING=$((PENDING + 1))
     fi
 done
