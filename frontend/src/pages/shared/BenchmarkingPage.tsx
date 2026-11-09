@@ -1,3 +1,4 @@
+import { CoopTypeScopeNotice } from "@/components/shared/CoopTypeScopeNotice";
 import React, { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { CooperativeComparison } from "@/components/analytics/CooperativeComparison";
@@ -29,7 +30,11 @@ export const BenchmarkingPage: React.FC = () => {
   const { pending } = useAnalyticsYear(isCooperative ? selectedYear : undefined);
 
   return (
-    <AppShell title={t("benchmarking.title")} subtitle={t("benchmarking.subtitle")}>
+    <AppShell
+      title={t("benchmarking.title")}
+      subtitle={t("benchmarking.subtitle")}
+      actions={<CoopTypeScopeNotice page="benchmarking" />}
+    >
       <div className="space-y-6">
         {/* Top filter bar */}
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

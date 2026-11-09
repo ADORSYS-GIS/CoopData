@@ -16,6 +16,8 @@ export interface DeletePreviewData {
   apexes: number;
   cooperatives: number;
   members: number;
+  /** Submissions, with their statements, registers and reports, that go with it. */
+  submissions?: number;
 }
 
 interface DeleteConfirmationDialogProps {
@@ -172,6 +174,14 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
                         <span className="font-bold text-foreground">
                           {previewData.cooperatives}
                         </span>
+                      </div>
+                    )}
+                    {(previewData.submissions ?? 0) > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">
+                          {t("deleteDialog.submissions")}
+                        </span>
+                        <span className="font-bold text-foreground">{previewData.submissions}</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between">

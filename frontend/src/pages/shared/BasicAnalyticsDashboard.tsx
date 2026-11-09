@@ -1,7 +1,9 @@
+import { CoopTypeScopeNotice } from "@/components/shared/CoopTypeScopeNotice";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AppShell } from "@/components/app-shell";
+import { MinistryStatsCards } from "@/components/analytics/MinistryStatsCards";
 import { BasicFilterBar } from "@/components/analytics/basic/BasicFilterBar";
 import { CollapsibleSection } from "@/components/analytics/national/CollapsibleSection";
 import { CooperativeRankingTable } from "@/components/analytics/basic/CooperativeRankingTable";
@@ -116,13 +118,28 @@ export function BasicAnalyticsDashboard() {
   const { data, isLoading, error } = useBasicDashboard(params);
   const { data: cooperatives = [] } = useCooperatives();
 
+  const statsParams = useMemo(
+    () => ({
+      reportingYear: params.reportingYear,
+      region: params.region,
+      sector: params.sector,
+      cooperativeId: params.cooperativeId,
+      institutionType: "multipurpose" as const,
+    }),
+    [params],
+  );
+
   const cooperativeOptions = useMemo(
     () => cooperatives.map((c) => ({ id: c.id, name: c.name })),
     [cooperatives],
   );
 
   return (
-    <AppShell title={t("basicDashboard.title")} subtitle={t("basicDashboard.subtitle")}>
+    <AppShell
+      title={t("basicDashboard.title")}
+      subtitle={t("basicDashboard.subtitle")}
+      actions={<CoopTypeScopeNotice page="basicAnalytics" />}
+    >
       <div className="space-y-6">
         <BasicFilterBar
           state={filters}
@@ -134,6 +151,7 @@ export function BasicAnalyticsDashboard() {
           sectors={SECTORS}
           showScopeFilters={!isCooperative}
         />
+        <MinistryStatsCards params={statsParams} enabled={role === "ministry"} />
         <IndicatorSearch value={query} onChange={setQuery} />
         {isCooperative && pending && (
           <YearPendingNotice pending={pending} chosenYear={filters.year !== ALL} />

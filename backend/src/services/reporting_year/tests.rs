@@ -286,6 +286,27 @@ mod year_figures {
     }
 
     #[test]
+    fn period_lines_keep_each_month_of_a_quarterly_year() {
+        let quarters = vec![
+            quarter("Q1", 1, [1, 2, 3], 100.0, 1.0),
+            quarter("Q2", 1, [4, 5, 6], 200.0, 2.0),
+            quarter("Q3", 1, [7, 8, 9], 300.0, 3.0),
+            quarter("Q4", 1, [10, 11, 12], 400.0, 4.0),
+        ];
+        let subs: Vec<submission::Model> = quarters.iter().map(|(s, _)| s.clone()).collect();
+        let items: HashMap<Uuid, Vec<LineItem>> =
+            quarters.into_iter().map(|(s, i)| (s.id, i)).collect();
+        let progress = counted_years(&subs).remove(0);
+        let by_id: HashMap<Uuid, submission::Model> = subs.into_iter().map(|s| (s.id, s)).collect();
+
+        let lines = period_line_items(&progress, &by_id, &items);
+
+        let months: std::collections::BTreeSet<i16> = lines.iter().map(|l| l.month).collect();
+        assert_eq!(months, (1..=12).collect());
+        assert_eq!(lines.len(), 24);
+    }
+
+    #[test]
     fn a_yearly_return_is_used_as_it_is() {
         let yearly = approved(2025, PeriodType::Yearly, "2025");
         let items = vec![item(1999, 0, 500.0), item(6999, 0, 50.0)];

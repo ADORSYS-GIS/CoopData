@@ -64,6 +64,7 @@ vi.mock("react-i18next", () => ({
         "deleteDialog.apexes": "Apexes",
         "deleteDialog.cooperatives": "Cooperatives",
         "deleteDialog.memberAccounts": "Member accounts",
+        "deleteDialog.submissions": "Submissions (with their statements and registers)",
         "deleteDialog.typeToConfirm": "Type",
         "deleteDialog.continue": "Continue",
         "deleteDialog.verifyIdentity": "Verify your identity",

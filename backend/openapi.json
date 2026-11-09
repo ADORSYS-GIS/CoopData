@@ -11550,7 +11550,8 @@
         "required": [
           "apexes",
           "cooperatives",
-          "members"
+          "members",
+          "submissions"
         ],
         "properties": {
           "apexes": {
@@ -11566,6 +11567,12 @@
           "members": {
             "type": "integer",
             "format": "int64",
+            "minimum": 0
+          },
+          "submissions": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Submissions, with their statements, registers and reports, that go with it.",
             "minimum": 0
           }
         }

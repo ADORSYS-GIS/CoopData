@@ -16,6 +16,8 @@ import {
   type NationalOverviewParams,
 } from "@/hooks/analytics/useNationalOverview";
 import { useComparativeStatements } from "@/hooks/analytics/useComparativeStatements";
+import { StatementDateSelect } from "@/components/analytics/StatementDateSelect";
+import { useStatementPeriod } from "@/hooks/analytics/useStatementPeriod";
 import { accountValuesAt } from "@/lib/statement-grid";
 import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import {
@@ -29,32 +31,11 @@ import { Info } from "lucide-react";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Spinner } from "@/components/ui/spinner";
 
+const ALL_COOPERATIVES: readonly string[] = [];
+
 interface CooperativeRankingProps {
   reportingYear: number;
   filterParams?: NationalOverviewParams;
-}
-
-interface MonthOption {
-  value: string;
-  label: string;
-}
-
-function buildMonthOptions(t: (key: string) => string): MonthOption[] {
-  return [
-    { value: "all", label: t("analytics.latestReported") },
-    { value: "1", label: "31. Jan " },
-    { value: "2", label: "28. Feb " },
-    { value: "3", label: "31. Mar " },
-    { value: "4", label: "30. Apr " },
-    { value: "5", label: "31. May " },
-    { value: "6", label: "30. Jun " },
-    { value: "7", label: "31. Jul " },
-    { value: "8", label: "31. Aug " },
-    { value: "9", label: "30. Sep " },
-    { value: "10", label: "31. Oct " },
-    { value: "11", label: "30. Nov " },
-    { value: "12", label: "31. Dec " },
-  ];
 }
 
 interface AccountMetric {
@@ -78,10 +59,8 @@ function buildAccountMetrics(t: (key: string) => string): AccountMetric[] {
 
 export function CooperativeRanking({ reportingYear, filterParams }: CooperativeRankingProps) {
   const { t } = useOrganizationLabelsContext();
-  const [selectedMonth, setSelectedMonth] = useState<string>("12");
   const [selectedMetric, setSelectedMetric] = useState<string>("1999");
 
-  const monthOptions = useMemo(() => buildMonthOptions(t), [t]);
   const accountMetrics = useMemo(() => buildAccountMetrics(t), [t]);
 
   // Fetch KPI dataset scoped by filters
@@ -107,6 +86,11 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
     !!cooperativeIds,
   );
 
+  const { months, selectedMonth, setSelectedMonth } = useStatementPeriod(
+    comparative?.grids,
+    ALL_COOPERATIVES,
+  );
+
   const activeMetricInfo = useMemo(() => {
     return accountMetrics.find((m) => m.key === selectedMetric);
   }, [selectedMetric, accountMetrics]);
@@ -115,10 +99,7 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
     if (!comparative?.grids) return [];
 
     return comparative.grids.map((grid) => {
-      const values = accountValuesAt(
-        grid.line_items || [],
-        selectedMonth === "all" ? null : Number(selectedMonth),
-      );
+      const values = accountValuesAt(grid.line_items || [], Number(selectedMonth));
       const targetCode = parseInt(selectedMetric, 10);
       const sum = values ? (values[targetCode] ?? null) : null;
 
@@ -188,24 +169,12 @@ export function CooperativeRanking({ reportingYear, filterParams }: CooperativeR
 
         {/* Slicers Section */}
         <div className="flex items-center gap-3">
-          <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[120px]">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80 block mb-1">
-              {t("analytics.date")}
-            </span>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-full bg-white text-slate-900 border-0 h-8 text-xs font-semibold">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((m) => (
-                  <SelectItem key={m.value} value={m.value} className="text-xs font-medium">
-                    {m.label}
-                    {m.value !== "all" && reportingYear}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <StatementDateSelect
+            months={months}
+            value={selectedMonth}
+            year={reportingYear}
+            onChange={setSelectedMonth}
+          />
 
           <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/10 min-w-[200px]">
             <span className="text-[10px] font-bold uppercase tracking-wider text-primary-foreground/80 block mb-1">

@@ -181,6 +181,7 @@
     "apexes": "Apexes",
     "cooperatives": "Cooperatives",
     "memberAccounts": "Member accounts",
+    "submissions": "Submissions (with their statements and registers)",
     "typeToConfirm": "Type",
     "continue": "Continue",
     "verifyIdentity": "Verify your identity",
@@ -3536,7 +3537,6 @@
     "aggregateCapital": "Aggregate capital base",
     "directoryTitle": "National Federation Directory",
     "directorySubtitle": "Search, filter, and manage regional federations",
-    "exportCsv": "Export CSV",
     "searchPlaceholder": "Search by name, domain...",
     "failedLoad": "Failed to load federations",
     "noMatchQuery": "No federations match query",
@@ -3555,7 +3555,6 @@
     "toastDeleted": "Deleted \"{{name}}\"",
     "toastDeletedDesc": "Federation removed from registry.",
     "toastDeleteFailed": "Failed to delete federation",
-    "toastExporting": "Exporting federation data as CSV...",
     "errorDuplicateFederation": "A federation with this name or domain already exists. Please use a different name or domain.",
     "errorGenericCreate": "Registration could not be completed. Please try again or contact support if the issue persists.",
     "pageOf": "Page {{page}} of {{total}}"
@@ -6916,5 +6915,11 @@
     "leftOut_other": "{{count}} cooperatives are left out: their year is not complete yet (not every period approved).",
     "reportAfterYear": "The report is available once every period of the year is approved.",
     "chooseAnotherYear": "Choose another year to see its figures."
+  },
+  "scopeNotice": {
+    "analytics": "Everything on this page covers SACCO cooperatives, which report by statement upload or manual entry. Multipurpose cooperatives are in Basic Analytics.",
+    "benchmarking": "Everything on this page covers SACCO cooperatives, which report by statement upload or manual entry. Multipurpose cooperatives are in Basic Benchmarking.",
+    "basicAnalytics": "Everything on this page covers multipurpose cooperatives, which report through the questionnaire. SACCO cooperatives are in Analytics.",
+    "basicBenchmarking": "Everything on this page covers multipurpose cooperatives, which report through the questionnaire. SACCO cooperatives are in Benchmarking."
   }
 }

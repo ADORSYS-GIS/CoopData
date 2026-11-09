@@ -8,7 +8,7 @@
 import { useMemo } from "react";
 import { FlatCard as Card } from "@/components/analytics/national/FlatCard";
 import { CollapsibleSection } from "@/components/analytics/national/CollapsibleSection";
-import { MetricsGridCards } from "@/components/analytics/MetricsGridCards";
+import { MinistryStatsCards } from "@/components/analytics/MinistryStatsCards";
 import { RegionalGroupedBar } from "@/components/analytics/RegionalGroupedBar";
 import { NetworkConsolidatedMetrics } from "@/components/analytics/NetworkConsolidatedMetrics";
 import { ComplianceDoughnutCharts } from "@/components/analytics/ComplianceDoughnutCharts";
@@ -21,7 +21,6 @@ import { aggregateLoanGap } from "@/lib/loan-gap";
 import { useMonthlyTrend } from "@/hooks/analytics/useMonthlyTrend";
 import { useNationalOverview } from "@/hooks/analytics/useNationalOverview";
 import { useNfStatistics } from "@/hooks/analytics/useNfStatistics";
-import { useMinistryStats } from "@/hooks/analytics/useMinistryStats";
 import type { AnalyticsFilterValues } from "./analyticsTypes";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Spinner } from "@/components/ui/spinner";
@@ -60,10 +59,10 @@ export function MinistryAnalyticsView({ filterValues }: Props) {
       federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,
       region: filterValues.region !== "all" ? filterValues.region : undefined,
       sector: filterValues.sector !== "all" ? filterValues.sector : undefined,
+      institutionType: "sacco" as const,
     }),
     [filterValues, reportingYear],
   );
-  const { data: ministryStats } = useMinistryStats(ministryStatsParams);
 
   const coops = useMemo(() => overview?.cooperatives ?? [], [overview]);
   const nfSummary = overview?.non_financial_summary;
@@ -81,33 +80,7 @@ export function MinistryAnalyticsView({ filterValues }: Props) {
   return (
     <div className="space-y-6">
       {/* Ministry headline stats */}
-      {ministryStats && (
-        <MetricsGridCards
-          columns={4}
-          metrics={[
-            {
-              label: t("ministryAnalytics.totalCooperatives"),
-              value: ministryStats.total_cooperatives?.toLocaleString() ?? "—",
-              tooltip: t("ministryAnalytics.totalCooperativesTooltip"),
-            },
-            {
-              label: t("ministryAnalytics.totalSubmissions"),
-              value: ministryStats.total_submissions?.toLocaleString() ?? "—",
-              tooltip: t("ministryAnalytics.totalSubmissionsTooltip"),
-            },
-            {
-              label: t("ministryAnalytics.pendingReview"),
-              value: ministryStats.pending_review_count?.toLocaleString() ?? "—",
-              tooltip: t("ministryAnalytics.pendingReviewTooltip"),
-            },
-            {
-              label: t("ministryAnalytics.approved"),
-              value: ministryStats.approved_count?.toLocaleString() ?? "—",
-              tooltip: t("ministryAnalytics.approvedTooltip"),
-            },
-          ]}
-        />
-      )}
+      <MinistryStatsCards params={ministryStatsParams} />
 
       <NetworkConsolidatedMetrics
         nfStats={nfStats}

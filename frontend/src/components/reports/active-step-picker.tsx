@@ -204,16 +204,16 @@ export function ActiveStepPicker({
             <span>{t("stepPicker.noSubmissions")}</span>
           </div>
         ) : (
-          <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
+          <div className="grid gap-2 max-h-72 overflow-y-auto pr-1">
             {filteredSubmissions.map((sub) =>
               sub.pending ? (
                 <div
                   key={sub.id}
                   aria-disabled="true"
                   data-testid={`report-year-pending-${sub.reporting_year}`}
-                  className="flex flex-col gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center"
+                  className="flex flex-col gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground"
                 >
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0">
                     <p className="font-semibold truncate text-foreground/70">
                       {sub.reporting_year} {t("stepPicker.financialReport")}
                     </p>

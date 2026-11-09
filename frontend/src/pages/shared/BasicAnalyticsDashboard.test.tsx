@@ -22,6 +22,12 @@ vi.mock("@/components/app-shell", () => ({
   ),
 }));
 
+vi.mock("@/components/analytics/MinistryStatsCards", () => ({
+  MinistryStatsCards: ({ params }: { params: { institutionType?: string } }) => (
+    <div data-testid="stats-cards">{params.institutionType}</div>
+  ),
+}));
+
 vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ role: mockState.role }) }));
 
 vi.mock("@/hooks/submissions/useLatestSubmission", () => ({
@@ -62,6 +68,12 @@ describe("BasicAnalyticsDashboard", () => {
     expect(screen.getAllByText("governance").length).toBeGreaterThan(0);
     expect(screen.getAllByText("SNAT").length).toBeGreaterThan(0);
     expect(screen.getByText("consolidated")).toBeTruthy();
+  });
+
+  it("counts only multipurpose cooperatives in the headline cards", () => {
+    mockState.empty = true;
+    render(<BasicAnalyticsDashboard />);
+    expect(screen.getAllByTestId("stats-cards")[0]?.textContent).toBe("multipurpose");
   });
 
   it("shows the empty state when no cooperative reported", () => {
