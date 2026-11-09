@@ -481,6 +481,7 @@ pub async fn get_cooperative(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
+    let id = resolve_cooperative_group_id(&state, &id).await?;
     // Cooperative users can only fetch their own cooperative
     if claims.is_cooperative() && !claims.is_apex() {
         let coop = resolve_caller_cooperative(&state, &claims).await?;
@@ -807,6 +808,7 @@ pub async fn list_cooperative_members(
     Extension(claims): Extension<Arc<Claims>>,
     Path(id): Path<String>,
 ) -> AppResult<impl IntoResponse> {
+    let id = resolve_cooperative_group_id(&state, &id).await?;
     // Cooperative users may only list members of their own cooperative
     if claims.is_cooperative() && !claims.is_apex() {
         let coop = resolve_caller_cooperative(&state, &claims).await?;
