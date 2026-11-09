@@ -9,6 +9,7 @@ pub mod edit_access;
 pub mod export_generator;
 pub mod extraction_pipeline;
 pub mod extraction_sanitizer;
+pub mod hierarchy_delete;
 pub mod keycloak;
 pub mod kpi_engine;
 pub mod localization;

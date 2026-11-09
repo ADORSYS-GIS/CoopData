@@ -292,6 +292,20 @@ pub fn year_line_items(
     items_by_submission: &HashMap<Uuid, Vec<LineItem>>,
 ) -> Vec<LineItem> {
     if !year.is_multi_period() {
+        return period_line_items(year, submissions, items_by_submission);
+    }
+    annual_column(period_line_items(year, submissions, items_by_submission))
+}
+
+/// The lines of a complete year kept at the month of the fiscal year they
+/// belong to, so a screen can read the year up to any reported period. A year
+/// from a single return keeps that return's lines unchanged.
+pub fn period_line_items(
+    year: &YearProgress,
+    submissions: &HashMap<Uuid, submission::Model>,
+    items_by_submission: &HashMap<Uuid, Vec<LineItem>>,
+) -> Vec<LineItem> {
+    if !year.is_multi_period() {
         return year
             .submission_ids
             .first()
@@ -314,7 +328,7 @@ pub fn year_line_items(
             positioned.push(line);
         }
     }
-    annual_column(positioned)
+    positioned
 }
 
 fn is_flow(line: &LineItem) -> bool {

@@ -1071,6 +1071,8 @@ export const SubmissionsPage: React.FC = () => {
     rejected: submissions.filter((s) => s.status === "rejected").length,
   };
 
+  const canGoBackToCooperatives = (isApex || isFederation || isMinistry) && selectedCoopId !== null;
+
   const showCoopColumn =
     ((isApex || isFederation) && selectedCoopId !== null) ||
     (isMinistry && selectedCoopId !== null);
@@ -1093,14 +1095,26 @@ export const SubmissionsPage: React.FC = () => {
               onDismiss={periodReminders.dismiss}
             />
           )}
-          {(isCooperative || isApex) && (
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowNewModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-              >
-                <Plus className="size-4" /> {t("submissions.newSubmission")}
-              </button>
+          {(canGoBackToCooperatives || isCooperative || isApex) && (
+            <div className="flex items-center justify-between gap-3">
+              {canGoBackToCooperatives ? (
+                <button
+                  onClick={() => setSelectedCoopId(null)}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ChevronLeft className="size-4" /> {t("submissions.backToCooperatives")}
+                </button>
+              ) : (
+                <span />
+              )}
+              {(isCooperative || isApex) && (
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                >
+                  <Plus className="size-4" /> {t("submissions.newSubmission")}
+                </button>
+              )}
             </div>
           )}
           {(isCooperative || selectedCoopId !== null) && (
@@ -1569,31 +1583,6 @@ export const SubmissionsPage: React.FC = () => {
             </>
           ) : (
             <>
-              {isApex && selectedCoopId !== null && (
-                <button
-                  onClick={() => setSelectedCoopId(null)}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
-                >
-                  <ChevronLeft className="size-4" /> {t("submissions.backToCooperatives")}
-                </button>
-              )}
-              {isFederation && selectedCoopId !== null && (
-                <button
-                  onClick={() => setSelectedCoopId(null)}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
-                >
-                  <ChevronLeft className="size-4" /> {t("submissions.backToCooperatives")}
-                </button>
-              )}
-              {isMinistry && selectedCoopId !== null && (
-                <button
-                  onClick={() => setSelectedCoopId(null)}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group mb-2"
-                >
-                  <ChevronLeft className="size-4" /> {t("submissions.backToCooperatives")}
-                </button>
-              )}
-
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
                   icon={Inbox}

@@ -1,3 +1,4 @@
+import { CoopTypeScopeNotice } from "@/components/shared/CoopTypeScopeNotice";
 import React, { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { BasicCooperativeComparison } from "@/components/analytics/BasicCooperativeComparison";
@@ -36,6 +37,7 @@ export const BasicBenchmarkingPage: React.FC = () => {
     <AppShell
       title={t("basicBenchmarking.pageTitle")}
       subtitle={t("basicBenchmarking.pageSubtitle")}
+      actions={<CoopTypeScopeNotice page="basicBenchmarking" />}
     >
       <div className="space-y-6">
         {/* Top filter bar */}

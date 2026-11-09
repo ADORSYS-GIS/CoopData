@@ -130,6 +130,9 @@ describe("logout", () => {
     idb.get.mockResolvedValue(CACHED_TOKENS);
     idb.del.mockResolvedValue(undefined);
     keycloak.logout.mockResolvedValue(undefined);
+    // The online logout path calls Keycloak only with a live session —
+    // simulate one, as an authenticated user would have.
+    keycloak.authenticated = true;
   });
 
   it("logs out of Keycloak online and removes the saved login and profile", async () => {

@@ -78,6 +78,7 @@ const defaultPreview: DeletePreviewData = {
   apexes: 3,
   cooperatives: 7,
   members: 42,
+  submissions: 120,
 };
 
 function makeOnVerifyIdentity(
@@ -182,6 +183,26 @@ describe("DeleteConfirmationDialog", () => {
       expect(screen.queryByText("Apexes")).not.toBeInTheDocument();
       expect(screen.queryByText("Cooperatives")).toBeInTheDocument();
       expect(screen.queryByText("Member accounts")).toBeInTheDocument();
+    });
+
+    it("should say how many submissions go with it, and hide the line when there are none", () => {
+      const { unmount } = renderDialog();
+      expect(
+        screen.getByText("Submissions (with their statements and registers)"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("120")).toBeInTheDocument();
+      unmount();
+
+      renderDialog({ previewData: { apexes: 0, cooperatives: 0, members: 2, submissions: 0 } });
+      expect(
+        screen.queryByText("Submissions (with their statements and registers)"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("should still open when an older preview has no submissions count", () => {
+      renderDialog({ previewData: { apexes: 0, cooperatives: 1, members: 2 } });
+
+      expect(screen.getByText("Member accounts")).toBeInTheDocument();
     });
   });
 

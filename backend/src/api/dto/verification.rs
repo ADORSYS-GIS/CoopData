@@ -19,6 +19,8 @@ pub struct DeletePreviewResponse {
     pub apexes: u64,
     pub cooperatives: u64,
     pub members: u64,
+    /// Submissions, with their statements, registers and reports, that go with it.
+    pub submissions: u64,
 }
 
 #[cfg(test)]
@@ -58,10 +60,12 @@ mod tests {
             apexes: 3,
             cooperatives: 7,
             members: 42,
+            submissions: 120,
         };
         let json = serde_json::to_string(&resp).unwrap();
         assert!(json.contains("\"apexes\":3"));
         assert!(json.contains("\"cooperatives\":7"));
         assert!(json.contains("\"members\":42"));
+        assert!(json.contains("\"submissions\":120"));
     }
 }

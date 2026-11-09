@@ -1185,3 +1185,86 @@ body {
     color: var(--accent);
     transform: translateX(2px);
 }
+
+/* ── Password checklist (update-password page) ─────────────────── */
+/* Rows start grey (pending), turn green when met, red when missing
+   after a submit attempt. State is set by initPasswordChecklist(). */
+.password-policy {
+    margin-top: 0.25rem;
+    padding: 0.875rem 1rem;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.password-policy-title {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.password-policy-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.3rem;
+}
+
+.password-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    transition: color 0.15s ease;
+}
+
+.password-rule-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.password-rule-icon svg {
+    display: none;
+}
+
+.password-rule[data-state="pending"] .icon-pending,
+.password-rule[data-state="met"] .icon-met,
+.password-rule[data-state="unmet"] .icon-unmet {
+    display: block;
+}
+
+.password-rule[data-state="met"] {
+    color: oklch(0.4 0.14 155);
+}
+
+.password-rule[data-state="unmet"] {
+    color: var(--destructive);
+    font-weight: 500;
+}
+
+/* .alert-error sets display:flex, which would override the hidden attribute */
+.alert-error[hidden] {
+    display: none;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .password-rule {
+        transition: none;
+    }
+}

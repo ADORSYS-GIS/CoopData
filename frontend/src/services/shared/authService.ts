@@ -291,6 +291,13 @@ export async function logout(): Promise<void> {
   }
   keycloakInitialized = false;
   if (navigator.onLine) {
+    // Without an authenticated session there is no id_token_hint to send, and
+    // Keycloak rejects the logout redirect (invalid_redirect_uri) — the server
+    // session is already gone, so ending locally IS the server-side logout.
+    if (!keycloak.authenticated) {
+      window.location.replace(window.location.origin + "/");
+      return new Promise<void>(() => {});
+    }
     try {
       await keycloak.logout({ redirectUri: window.location.origin + "/" });
     } catch (error) {

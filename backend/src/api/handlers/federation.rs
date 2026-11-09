@@ -369,12 +369,23 @@ pub async fn delete_federation_preview(
         }
     }
 
+    let submissions = crate::services::hierarchy_delete::count_submissions(
+        &state.db,
+        crate::services::hierarchy_delete::Root::Federation(&id),
+    )
+    .await
+    .unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "Could not count submissions for the delete preview");
+        0
+    });
+
     Ok((
         StatusCode::OK,
         Json(DeletePreviewResponse {
             apexes: apex_count,
             cooperatives: coop_count,
             members: member_count,
+            submissions,
         }),
     ))
 }
@@ -412,84 +423,7 @@ pub async fn delete_federation(
 
     VerificationTokenService::validate_and_consume(&state.cache, &claims.sub, token).await?;
 
-    // Cascade: delete all org members from Keycloak + PG
-    if let Ok(members) = state.keycloak.get_organization_members(&id).await {
-        for member in &members {
-            if let Err(e) = state.keycloak.delete_user(&member.id).await {
-                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete org member");
-            }
-            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
-                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete org member from PG");
-            }
-        }
-    }
-
-    // Cascade: find all apexes with this org_id attribute
-    if let Ok(all_groups) = state.keycloak.get_groups(None).await {
-        let org_apexes: Vec<_> = all_groups
-            .iter()
-            .filter(|g| {
-                g.attributes
-                    .as_ref()
-                    .and_then(|a| a.get("organization_id"))
-                    .and_then(|v| v.first())
-                    .map(|v| v.as_str())
-                    == Some(&id)
-            })
-            .collect();
-
-        for apex in &org_apexes {
-            // Delete all apex members
-            if let Ok(apex_members) = state.keycloak.get_group_members(&apex.id).await {
-                for member in &apex_members {
-                    if let Err(e) = state.keycloak.delete_user(&member.id).await {
-                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member");
-                    }
-                    if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await {
-                        tracing::warn!(user_id = %member.id, error = %e, "Failed to delete apex member from PG");
-                    }
-                }
-            }
-
-            // Delete all subgroups (cooperatives) + their members
-            if let Ok(subgroups) = state.keycloak.get_group_children(&apex.id).await {
-                for sub in &subgroups {
-                    if let Ok(sub_members) = state.keycloak.get_group_members(&sub.id).await {
-                        for member in &sub_members {
-                            if let Err(e) = state.keycloak.delete_user(&member.id).await {
-                                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member");
-                            }
-                            if let Err(e) = state.user_repo.delete_by_keycloak_id(&member.id).await
-                            {
-                                tracing::warn!(user_id = %member.id, error = %e, "Failed to delete coop member from PG");
-                            }
-                        }
-                    }
-                    if let Err(e) = state.keycloak.delete_group(&sub.id).await {
-                        tracing::warn!(group_id = %sub.id, error = %e, "Failed to delete cooperative group from KC");
-                    }
-                }
-            }
-
-            if let Err(e) = state.keycloak.delete_group(&apex.id).await {
-                tracing::warn!(group_id = %apex.id, error = %e, "Failed to delete apex group from KC");
-            }
-        }
-    }
-
-    // Delete from Keycloak
-    state
-        .keycloak
-        .delete_organization(&id)
-        .await
-        .map_err(|e| crate::error::AppError::ExternalServiceError(e.to_string()))?;
-
-    // Delete PG record
-    if let Ok(Some(fed)) = state.federation_repo.find_by_keycloak_id(&id).await {
-        if let Err(e) = state.federation_repo.delete(fed.id).await {
-            tracing::warn!(error = %e, "Failed to delete federation PG record");
-        }
-    }
+    let removal = crate::services::hierarchy_delete::delete_federation(&state, &id).await?;
 
     if let Err(e) = state
         .audit
@@ -507,7 +441,13 @@ pub async fn delete_federation(
         tracing::error!("Failed to log audit: {}", e);
     }
 
-    tracing::info!(org_id = %id, "Federation cascade-deleted");
+    tracing::info!(
+        org_id = %id,
+        cooperatives = removal.cooperatives,
+        submissions = removal.submissions,
+        stored_files = removal.stored_files,
+        "Federation cascade-deleted"
+    );
     Ok((StatusCode::NO_CONTENT, ()))
 }
 

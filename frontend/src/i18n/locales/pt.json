@@ -181,6 +181,7 @@
     "apexes": "Apexes",
     "cooperatives": "Cooperativas",
     "memberAccounts": "Contas de membros",
+    "submissions": "Submissões (com os seus demonstrativos e registos)",
     "typeToConfirm": "Escreva",
     "continue": "Continuar",
     "verifyIdentity": "Verifique a sua identidade",
@@ -4270,7 +4271,6 @@
     "aggregateCapital": "Aggregate capital base",
     "directoryTitle": "National Federation Directory",
     "directorySubtitle": "Search, filter, and manage regional federations",
-    "exportCsv": "Export CSV",
     "searchPlaceholder": "Search by name, domain...",
     "failedLoad": "Failed to load federations",
     "noMatchQuery": "No federations match query",
@@ -4289,7 +4289,6 @@
     "toastDeleted": "Deleted \"{{name}}\"",
     "toastDeletedDesc": "Federation removed from registry.",
     "toastDeleteFailed": "Failed to delete federation",
-    "toastExporting": "Exporting federation data as CSV...",
     "errorDuplicateFederation": "Já existe uma federação com este nome.",
     "errorGenericCreate": "Não foi possível criar a federação.",
     "pageOf": "Página {current} de {total}"
@@ -6855,5 +6854,11 @@
     "leftOut_other": "{{count}} cooperativas ficam de fora: o seu ano ainda não está completo (nem todos os períodos aprovados).",
     "reportAfterYear": "O relatório fica disponível quando todos os períodos do ano estiverem aprovados.",
     "chooseAnotherYear": "Escolha outro ano para ver os seus números."
+  },
+  "scopeNotice": {
+    "analytics": "Tudo nesta página refere-se às cooperativas SACCO, que reportam por carregamento de demonstrações ou introdução manual. As cooperativas polivalentes estão em Análises básicas.",
+    "benchmarking": "Tudo nesta página refere-se às cooperativas SACCO, que reportam por carregamento de demonstrações ou introdução manual. As cooperativas polivalentes estão em Benchmarking básico.",
+    "basicAnalytics": "Tudo nesta página refere-se às cooperativas polivalentes, que reportam através do questionário. As cooperativas SACCO estão em Análises.",
+    "basicBenchmarking": "Tudo nesta página refere-se às cooperativas polivalentes, que reportam através do questionário. As cooperativas SACCO estão em Benchmarking."
   }
 }

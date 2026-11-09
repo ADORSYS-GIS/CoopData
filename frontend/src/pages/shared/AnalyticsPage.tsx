@@ -12,6 +12,7 @@
  *   apex       → ApexAnalyticsView
  *   cooperative → CooperativeAnalyticsView
  */
+import { CoopTypeScopeNotice } from "@/components/shared/CoopTypeScopeNotice";
 import React, { useState, useCallback } from "react";
 import { AppShell } from "@/components/app-shell";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -178,8 +179,6 @@ export const AnalyticsPage: React.FC = () => {
     () => ({
       ...filterValues,
       year: String(selection.year),
-      periodType: selection.periodType,
-      periodValue: selection.periodValue,
     }),
     [filterValues, selection],
   );
@@ -208,8 +207,8 @@ export const AnalyticsPage: React.FC = () => {
   const filterParams = React.useMemo(
     () => ({
       reportingYear: selection.year,
-      periodType: selection.periodType,
-      periodValue: selection.periodValue,
+      periodType: filterValues.periodType,
+      periodValue: filterValues.periodValue,
       cooperativeId: filterValues.cooperativeId !== "all" ? filterValues.cooperativeId : undefined,
       apexId: filterValues.apexId !== "all" ? filterValues.apexId : undefined,
       federationId: filterValues.federationId !== "all" ? filterValues.federationId : undefined,
@@ -327,6 +326,7 @@ export const AnalyticsPage: React.FC = () => {
     <AppShell
       title={replaceOrgTerms(titleByRole[role])}
       subtitle={replaceOrgTerms(subtitleByRole[role])}
+      actions={<CoopTypeScopeNotice page="analytics" />}
     >
       <div className="space-y-6">
         {/* Role badge */}

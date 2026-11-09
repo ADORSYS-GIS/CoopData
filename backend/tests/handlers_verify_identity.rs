@@ -428,7 +428,11 @@ async fn test_security_settings_route_registered() {
 #[tokio::test]
 async fn test_delete_preview_federation_returns_200_or_error() {
     let claims = claims_with_roles("ministry");
-    let test = TestApp::new().await;
+    // The preview counts submissions from the database: nothing found.
+    let db = common::mock_db::RecordingMock::postgres()
+        .query_empty()
+        .build();
+    let test = db.app().await;
     let router = test_router(claims, test.state.clone());
     let res = request(
         router,
@@ -447,7 +451,11 @@ async fn test_delete_preview_federation_returns_200_or_error() {
 #[tokio::test]
 async fn test_delete_preview_apex_returns_200_or_error() {
     let claims = claims_with_roles("federation");
-    let test = TestApp::new().await;
+    // The preview counts submissions from the database: nothing found.
+    let db = common::mock_db::RecordingMock::postgres()
+        .query_empty()
+        .build();
+    let test = db.app().await;
     let router = test_router(claims, test.state.clone());
     let res = request(
         router,
