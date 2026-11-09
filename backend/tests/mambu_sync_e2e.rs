@@ -213,8 +213,7 @@ async fn mambu_sync_creates_an_apex_draft_from_mambu_data() {
         .unwrap();
         let again = start_run(&state, 2026, 9, Arc::new(claims.clone()), SyncScope::All).await;
         let message = again
-            .err()
-            .expect("a second sync must be refused")
+            .expect_err("a second sync must be refused")
             .to_string();
         assert!(message.contains("already exists"), "{message}");
     }

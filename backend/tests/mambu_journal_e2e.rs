@@ -166,8 +166,7 @@ async fn the_ledger_is_rebuilt_from_the_general_ledger_when_the_reports_do_not_b
     for month in [0, 1] {
         let again = start_run(&state, 2026, month, claims.clone(), SyncScope::All).await;
         let message = again
-            .err()
-            .expect("a second sync must be refused")
+            .expect_err("a second sync must be refused")
             .to_string();
         assert!(message.contains("already exists"), "{message}");
     }

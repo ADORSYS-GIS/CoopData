@@ -126,8 +126,7 @@ async fn a_whole_year_sync_makes_one_full_year_return_with_a_column_per_month() 
     for month in [0, 1] {
         let again = start_run(&state, 2026, month, claims.clone(), SyncScope::All).await;
         let message = again
-            .err()
-            .expect("a second sync must be refused")
+            .expect_err("a second sync must be refused")
             .to_string();
         assert!(message.contains("already exists"), "{message}");
     }
