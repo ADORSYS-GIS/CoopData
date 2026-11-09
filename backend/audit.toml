@@ -17,5 +17,9 @@ ignore = [
   "RUSTSEC-2026-0369",
   # RUSTSEC-2026-0429: ZipArchive::extract aborts on a symlink entry with a large declared size; same
   # reasoning as above (zip 8.6 only via docx-rs, which never calls extract).
-  "RUSTSEC-2026-0429"
+  "RUSTSEC-2026-0429",
+  # RUSTSEC-2026-0459: libsqlite3-sys 0.30.1 is only an unused optional lockfile entry of the sqlx family
+  # (cargo tree -i libsqlite3-sys finds nothing); it is not compiled or linked. The fix (>= 0.39) needs a
+  # newer sqlx. Remove once sqlx is upgraded.
+  "RUSTSEC-2026-0459"
 ]
