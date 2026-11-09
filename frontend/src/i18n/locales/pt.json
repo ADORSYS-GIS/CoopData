@@ -5071,7 +5071,8 @@
   },
   "errors": {
     "rateLimited": "Muitas tentativas. Tente novamente em {{seconds}}s.",
-    "rateLimitedTitle": "Devagar"
+    "rateLimitedTitle": "Devagar",
+    "serviceUnavailable": "O serviço está temporariamente indisponível. Tente novamente dentro de alguns minutos."
   },
   "basicDashboard": {
     "title": "Análises básicas",
