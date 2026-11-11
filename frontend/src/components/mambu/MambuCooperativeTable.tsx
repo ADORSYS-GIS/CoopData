@@ -81,7 +81,18 @@ export const MambuCooperativeTable: React.FC<Props> = ({
                   </div>
                 )}
               </TableCell>
-              <TableCell className="font-mono text-xs">{c.mambu_branch_id ?? "—"}</TableCell>
+              <TableCell>
+                {c.mambu_branch_name ? (
+                  <>
+                    <div className="text-sm">{c.mambu_branch_name}</div>
+                    <div className="font-mono text-xs text-muted-foreground">
+                      {c.mambu_branch_id}
+                    </div>
+                  </>
+                ) : (
+                  <span className="font-mono text-xs">{c.mambu_branch_id ?? "—"}</span>
+                )}
+              </TableCell>
               <TableCell>
                 <StatusPill tone={STATE_TONE[state]}>
                   {state === "running" && <Loader2 className="mr-1 size-3 animate-spin" />}

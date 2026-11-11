@@ -20,6 +20,9 @@ pub struct Model {
     pub unmapped_ledger_accounts: i32,
     pub warnings: Json,
     pub error: Option<String>,
+    pub phase: Option<String>,
+    pub records_read: i32,
+    pub records_total: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

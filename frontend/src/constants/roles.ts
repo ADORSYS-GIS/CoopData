@@ -74,7 +74,6 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/configure-roles",
       "/app/questionnaire-templates",
       "/app/audit",
-      "/app/data-privacy",
       "/app/profile",
     ],
   },
@@ -87,7 +86,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
-    system: ["/app/users", "/app/admin-legal", "/app/data-privacy", "/app/profile"],
+    system: ["/app/users", "/app/admin-legal", "/app/profile"],
   },
   cooperative: {
     oversight: ["/app/dashboard", "/app/submissions"],
@@ -98,7 +97,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
-    system: ["/app/data-privacy", "/app/profile"],
+    system: ["/app/profile"],
   },
   apex: {
     oversight: ["/app/dashboard", "/app/cooperatives", "/app/submissions"],
@@ -109,7 +108,7 @@ export const ROLE_NAV_ITEMS: Record<Role, Partial<Record<NavGroupId, string[]>>>
       "/app/benchmarking",
       "/app/basic-benchmarking",
     ],
-    system: ["/app/users", "/app/mambu", "/app/data-privacy", "/app/profile"],
+    system: ["/app/users", "/app/mambu", "/app/profile"],
   },
 };
 

@@ -6,11 +6,15 @@ import { Card } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { LocalizedField, type FieldTranslations } from "@/components/shared/LocalizedField";
 import { Spinner } from "@/components/ui/spinner";
+import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import {
   useOrganizationLabels,
   useUpdateOrganizationLabel,
   DEFAULT_ORGANIZATION_LABELS,
 } from "@/hooks/settings/useOrganizationLabels";
+
+// Fixed top-down order, so a saved card does not jump to another place in the list.
+const LEVEL_ORDER = ["ministry", "federation", "apex", "cooperative"];
 
 const KEY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   ministry: Shield,
@@ -58,14 +62,20 @@ const translationsEqual = (
 export const TerminologySettingsManager: React.FC = () => {
   const { t } = useTranslation();
   const { data: labels, isLoading } = useOrganizationLabels();
+  const { getLabel } = useOrganizationLabelsContext();
   const updateMutation = useUpdateOrganizationLabel();
 
   const effectiveLabels = useMemo(
-    () => (labels && labels.length > 0 ? labels : DEFAULT_ORGANIZATION_LABELS),
+    () =>
+      [...(labels && labels.length > 0 ? labels : DEFAULT_ORGANIZATION_LABELS)].sort(
+        (x, y) => LEVEL_ORDER.indexOf(x.key) - LEVEL_ORDER.indexOf(y.key),
+      ),
     [labels],
   );
 
   // Local editing state for each of the organization levels
+  // Changes on save and reset, so the open translation panels close again.
+  const [fieldsRound, setFieldsRound] = useState(0);
   const [editingLabels, setEditingLabels] = useState<Record<string, EditingLabel>>({});
 
   // Sync state with fetched database data on load
@@ -247,6 +257,8 @@ export const TerminologySettingsManager: React.FC = () => {
       }
     }
 
+    setFieldsRound((round) => round + 1);
+
     if (failed.length === 0) {
       toast.success(
         t("settings.terminology.saveAllSuccess", {
@@ -280,6 +292,7 @@ export const TerminologySettingsManager: React.FC = () => {
       };
     }
     setEditingLabels(initial);
+    setFieldsRound((round) => round + 1);
     toast.info(
       t("settings.terminology.resetDone", {
         defaultValue: "Unsaved changes discarded",
@@ -362,12 +375,17 @@ export const TerminologySettingsManager: React.FC = () => {
                   <Icon className="size-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground capitalize">
-                    {item.key} {t("settings.terminology.levelSuffix", { defaultValue: "Level" })}
+                  <h4 className="text-sm font-semibold text-foreground">
+                    {getLabel(item.key, "label", item.label)}{" "}
+                    {t("settings.terminology.levelSuffix", { defaultValue: "Level" })}
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {t("settings.terminology.defaultTitle", { defaultValue: "Default name" })}:{" "}
-                    <span className="font-semibold text-foreground/80">{item.key}</span>
+                    <span className="font-semibold text-foreground/80">
+                      {t(`settings.terminology.defaultNames.${item.key}`, {
+                        defaultValue: item.key,
+                      })}
+                    </span>
                     {isRowDirty && (
                       <span className="ml-2 inline-flex items-center rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent">
                         {t("settings.terminology.unsavedBadge", {
@@ -381,6 +399,7 @@ export const TerminologySettingsManager: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <LocalizedField
+                  key={`${item.key}-label-${fieldsRound}`}
                   id={`${item.key}-label`}
                   label={t("settings.terminology.singularLabel", { defaultValue: "Singular Name" })}
                   value={current.label}
@@ -390,6 +409,7 @@ export const TerminologySettingsManager: React.FC = () => {
                   required
                 />
                 <LocalizedField
+                  key={`${item.key}-plural-label-${fieldsRound}`}
                   id={`${item.key}-plural-label`}
                   label={t("settings.terminology.pluralLabel", { defaultValue: "Plural Name" })}
                   value={current.plural_label}
@@ -401,6 +421,7 @@ export const TerminologySettingsManager: React.FC = () => {
                   required
                 />
                 <LocalizedField
+                  key={`${item.key}-short-label-${fieldsRound}`}
                   id={`${item.key}-short-label`}
                   label={t("settings.terminology.shortLabel", { defaultValue: "Abbreviation" })}
                   value={current.short_label}
@@ -415,6 +436,7 @@ export const TerminologySettingsManager: React.FC = () => {
 
               <div className="mt-6">
                 <LocalizedField
+                  key={`${item.key}-description-${fieldsRound}`}
                   id={`${item.key}-description`}
                   label={t("settings.terminology.levelDescription", {
                     defaultValue: "Level Description",

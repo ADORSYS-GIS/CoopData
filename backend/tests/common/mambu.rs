@@ -255,7 +255,17 @@ pub async fn text(db: &sea_orm::DatabaseConnection, sql: &str) -> String {
 }
 
 pub async fn wait_for_run(state: &coop_data_backend::AppState, run_id: uuid::Uuid) -> String {
-    for _ in 0..120 {
+    wait_for_run_within(state, run_id, Duration::from_secs(30)).await
+}
+
+/// Waits for a run to leave "running", for at most `limit`.
+pub async fn wait_for_run_within(
+    state: &coop_data_backend::AppState,
+    run_id: uuid::Uuid,
+    limit: Duration,
+) -> String {
+    let started = std::time::Instant::now();
+    while started.elapsed() < limit {
         let run = state.mambu_repo.find_run(run_id).await.unwrap().unwrap();
         if run.status != "running" {
             return run.status;

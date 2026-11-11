@@ -179,44 +179,49 @@ pub async fn persist_nf_parse_result(
         }
     }
 
-    let mut savings_active_models: Vec<savings_account::ActiveModel> = Vec::new();
-    for record in &parse_result.savings_accounts {
-        let member_uuid = member_map.get(&record.member_business_id).ok_or_else(|| {
-            AppError::ValidationError(format!(
-                "Member '{}' not found for savings account '{}'",
-                record.member_business_id, record.savings_account_id
-            ))
-        })?;
-        savings_active_models.push(savings_account::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            cooperative_id: Set(coop_id),
-            submission_id: Set(Some(submission_id)),
-            member_id: Set(*member_uuid),
-            savings_account_id: Set(record.savings_account_id.clone()),
-            account_type: Set(record.account_type.clone()),
-            account_opening_date: Set(record.account_opening_date),
-            account_status: Set(record.account_status.clone()),
-            contribution_frequency: Set(record.contribution_frequency.clone()),
-            last_contribution_date: Set(record.last_contribution_date.unwrap_or_default()),
-            number_of_contributions: Set(record.number_of_contributions),
-            balance_trend: Set(record.balance_trend.clone()),
-            zero_balance_flag: Set(record.zero_balance_flag),
-            withdrawal_frequency_category: Set(record.withdrawal_frequency_category.clone()),
-            emergency_withdrawals_flag: Set(record.emergency_withdrawals_flag),
-            interest_rate: Set(record.interest_rate),
-            balance: Set(record.balance),
-            created_at: Set(now),
-            updated_at: Set(now),
-        });
-    }
-    let savings_imported = if savings_active_models.is_empty() {
-        0
-    } else {
-        state
+    // Built and written a chunk at a time: a large cooperative has more savings
+    // accounts than should be held as database rows at once.
+    let mut savings_imported = 0;
+    for chunk in parse_result
+        .savings_accounts
+        .chunks(crate::repositories::BULK_UPSERT_ROWS)
+    {
+        let mut savings_active_models: Vec<savings_account::ActiveModel> =
+            Vec::with_capacity(chunk.len());
+        for record in chunk {
+            let member_uuid = member_map.get(&record.member_business_id).ok_or_else(|| {
+                AppError::ValidationError(format!(
+                    "Member '{}' not found for savings account '{}'",
+                    record.member_business_id, record.savings_account_id
+                ))
+            })?;
+            savings_active_models.push(savings_account::ActiveModel {
+                id: Set(Uuid::new_v4()),
+                cooperative_id: Set(coop_id),
+                submission_id: Set(Some(submission_id)),
+                member_id: Set(*member_uuid),
+                savings_account_id: Set(record.savings_account_id.clone()),
+                account_type: Set(record.account_type.clone()),
+                account_opening_date: Set(record.account_opening_date),
+                account_status: Set(record.account_status.clone()),
+                contribution_frequency: Set(record.contribution_frequency.clone()),
+                last_contribution_date: Set(record.last_contribution_date.unwrap_or_default()),
+                number_of_contributions: Set(record.number_of_contributions),
+                balance_trend: Set(record.balance_trend.clone()),
+                zero_balance_flag: Set(record.zero_balance_flag),
+                withdrawal_frequency_category: Set(record.withdrawal_frequency_category.clone()),
+                emergency_withdrawals_flag: Set(record.emergency_withdrawals_flag),
+                interest_rate: Set(record.interest_rate),
+                balance: Set(record.balance),
+                created_at: Set(now),
+                updated_at: Set(now),
+            });
+        }
+        savings_imported += state
             .savings_account_repo
             .bulk_upsert(savings_active_models)
-            .await?
-    };
+            .await?;
+    }
 
     let mut loan_active_models: Vec<loan::ActiveModel> = Vec::new();
     for record in &parse_result.loans {

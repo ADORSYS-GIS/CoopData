@@ -91,3 +91,45 @@ export const timeAgo = (iso: string | null | undefined, now: Date = new Date()):
   if (seconds < 86_400) return `${Math.floor(seconds / 3600)} h ago`;
   return `${Math.floor(seconds / 86_400)} days ago`;
 };
+
+/** What a running sync is doing, as the backend names it. */
+export const PHASE_LABELS: Record<string, string> = {
+  waiting: "Waiting for another large sync to finish",
+  reading_members: "Reading members and loans",
+  reading_ledger: "Reading the ledger",
+  reading_deposits: "Reading deposit accounts",
+  saving: "Saving the return",
+};
+
+/** The unit of a phase's counter: the ledger is read year by year. */
+const PHASE_UNITS: Record<string, string> = { reading_ledger: " months" };
+
+/** " · 83,770 of 126,350" while a count is known, otherwise nothing. */
+export const progressCount = (read: number, total: number, phase?: string | null): string =>
+  total > 0
+    ? ` · ${read.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}${PHASE_UNITS[phase ?? ""] ?? ""}`
+    : "";
+
+/** How long a run took, or has been running: "45 s", "5 min 12 s", "1 h 4 min". */
+export const runDuration = (
+  startedAt: string,
+  finishedAt: string | null | undefined,
+  now: Date = new Date(),
+): string => {
+  const end = finishedAt ? new Date(finishedAt) : now;
+  const seconds = Math.max(0, Math.round((end.getTime() - new Date(startedAt).getTime()) / 1000));
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ${seconds % 60} s`;
+  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+};
+
+/** "11 Nov 2026, 19:40" in the viewer's time zone. */
+export const startedLabel = (iso: string): string =>
+  new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });

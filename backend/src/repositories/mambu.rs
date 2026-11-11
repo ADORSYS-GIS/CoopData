@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, NaiveDate, Utc};
-use sea_orm::sea_query::OnConflict;
+use sea_orm::sea_query::{Expr, OnConflict};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, EntityTrait, PaginatorTrait,
     QueryFilter, QueryOrder, QuerySelect, Set, Statement,
@@ -18,6 +18,7 @@ use crate::error::{AppError, AppResult};
 pub const RUN_RUNNING: &str = "running";
 pub const RUN_COMPLETED: &str = "completed";
 pub const RUN_FAILED: &str = "failed";
+pub const RUN_CANCELLED: &str = "cancelled";
 
 #[derive(Clone)]
 pub struct MambuRepository {
@@ -334,6 +335,7 @@ impl MambuRepository {
             error: Set(None),
             started_at: Set(Utc::now()),
             finished_at: Set(None),
+            resume_count: Set(0),
         }
         .insert(&self.db)
         .await
@@ -407,6 +409,9 @@ impl MambuRepository {
             unmapped_ledger_accounts: Set(0),
             warnings: Set(serde_json::json!([])),
             error: Set(None),
+            phase: Set(None),
+            records_read: Set(0),
+            records_total: Set(0),
             created_at: Set(now),
             updated_at: Set(now),
         }
@@ -421,6 +426,75 @@ impl MambuRepository {
         active
             .reset_all()
             .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(())
+    }
+
+    /// Counts one more resume of an interrupted run and returns the new count.
+    pub async fn bump_resume_count(&self, run_id: Uuid) -> AppResult<i32> {
+        let run = self
+            .find_run(run_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Sync run not found".into()))?;
+        let count = run.resume_count + 1;
+        let mut active: mambu_sync_run::ActiveModel = run.into();
+        active.resume_count = Set(count);
+        active
+            .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(count)
+    }
+
+    /// What a SACCO's sync is doing now. Written on its own, so a long read shows
+    /// progress before the item gets its final result.
+    pub async fn set_item_progress(
+        &self,
+        item_id: Uuid,
+        phase: &str,
+        records_read: i32,
+        records_total: i32,
+    ) -> AppResult<()> {
+        mambu_sync_item::Entity::update_many()
+            .col_expr(mambu_sync_item::Column::Phase, Expr::value(phase))
+            .col_expr(
+                mambu_sync_item::Column::RecordsRead,
+                Expr::value(records_read),
+            )
+            .col_expr(
+                mambu_sync_item::Column::RecordsTotal,
+                Expr::value(records_total),
+            )
+            .filter(mambu_sync_item::Column::Id.eq(item_id))
+            .exec(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(())
+    }
+
+    /// The numbers of a running sync as far as they are known, so the page shows the work
+    /// done instead of zeros. The final counts replace them when the SACCO has its result.
+    pub async fn set_item_counts(
+        &self,
+        item_id: Uuid,
+        members: Option<i32>,
+        savings_accounts: Option<i32>,
+        loans: Option<i32>,
+    ) -> AppResult<()> {
+        let mut update = mambu_sync_item::Entity::update_many();
+        if let Some(n) = members {
+            update = update.col_expr(mambu_sync_item::Column::Members, Expr::value(n));
+        }
+        if let Some(n) = savings_accounts {
+            update = update.col_expr(mambu_sync_item::Column::SavingsAccounts, Expr::value(n));
+        }
+        if let Some(n) = loans {
+            update = update.col_expr(mambu_sync_item::Column::Loans, Expr::value(n));
+        }
+        update
+            .filter(mambu_sync_item::Column::Id.eq(item_id))
+            .exec(&self.db)
             .await
             .map_err(AppError::DatabaseError)?;
         Ok(())
@@ -470,6 +544,20 @@ impl MambuRepository {
             .await
             .map_err(AppError::DatabaseError)?;
         Ok(Some((state.cached_through, rows)))
+    }
+
+    /// The date up to which the ledger cache of a branch is complete, without its rows.
+    pub async fn ledger_cached_through(
+        &self,
+        mambu_branch_id: &str,
+    ) -> AppResult<Option<NaiveDate>> {
+        Ok(
+            mambu_ledger_cache::Entity::find_by_id(mambu_branch_id.to_string())
+                .one(&self.db)
+                .await
+                .map_err(AppError::DatabaseError)?
+                .map(|state| state.cached_through),
+        )
     }
 
     /// Stores months of the general ledger and moves the date up to which the cache is

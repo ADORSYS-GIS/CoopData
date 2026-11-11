@@ -10,6 +10,7 @@ import {
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { Card } from "@/components/app-shell";
 import { useUserRole } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
 import type { ReportRef } from "@/hooks/reports/useReportExport";
 import {
   useCooperativeSubmissions,
@@ -47,6 +48,7 @@ interface ReportExportPanelProps {
 export function ReportExportPanel({ submissionId, className }: ReportExportPanelProps) {
   const { t, replaceOrgTerms } = useOrganizationLabelsContext();
   const role = useUserRole();
+  const { user } = useAuth();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -409,13 +411,17 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
       const sub = allSubmissions.find((s) => s.id === selectedSubmissionId);
       return withLanguage(individualFilename(sub?.cooperative_name, sub?.reporting_year), lang);
     }
+    // An apex or federation officer exports their own organisation, so its name from the
+    // sign-in profile is the last resort when the submission lists carry no name.
     const entityName =
       consolidatedLevel === "apex"
         ? (apexList.find((a) => a.id === selectedApexId)?.name ??
-          rawSubmissions.find((sub) => sub.apex_name)?.apex_name)
+          rawSubmissions.find((sub) => sub.apex_name)?.apex_name ??
+          (role === "apex" ? user?.cooperationName : undefined))
         : consolidatedLevel === "federation"
           ? (federationList.find((f) => f.id === selectedFedId)?.name ??
-            rawSubmissions.find((sub) => sub.federation_name)?.federation_name)
+            rawSubmissions.find((sub) => sub.federation_name)?.federation_name ??
+            (role === "federation" ? user?.organizationName : undefined))
           : undefined;
     return withLanguage(
       consolidatedFilename({
@@ -680,8 +686,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                       }
                     >
                       {selectedFedId
-                        ? (federationList.find((f) => f.id === selectedFedId)?.name ?? "Federation")
-                        : "Federation"}
+                        ? (federationList.find((f) => f.id === selectedFedId)?.name ??
+                          replaceOrgTerms("Federation"))
+                        : replaceOrgTerms("Federation")}
                     </span>
                   )}
                   {needsFedSelector && selectedFedId && needsApexSelector && (
@@ -694,8 +701,9 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                       }
                     >
                       {selectedApexId
-                        ? (apexList.find((a) => a.id === selectedApexId)?.name ?? "Apex")
-                        : "Apex"}
+                        ? (apexList.find((a) => a.id === selectedApexId)?.name ??
+                          replaceOrgTerms("Apex"))
+                        : replaceOrgTerms("Apex")}
                     </span>
                   )}
                   {needsApexSelector && selectedApexId && needsCoopSelector && (
@@ -709,8 +717,8 @@ export function ReportExportPanel({ submissionId, className }: ReportExportPanel
                     >
                       {selectedCoopId
                         ? (cooperativeList.find((c) => c.id === selectedCoopId)?.name ??
-                          "Cooperative")
-                        : "Cooperative"}
+                          replaceOrgTerms("Cooperative"))
+                        : replaceOrgTerms("Cooperative")}
                     </span>
                   )}
                   {needsCoopSelector && selectedCoopId && needsSubmissionSelector && (

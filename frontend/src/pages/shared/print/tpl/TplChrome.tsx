@@ -79,6 +79,9 @@ interface FrontMatterProps {
   basisTitle?: string;
 }
 
+/** Contents lists longer than this use tight rows, so the whole front page fits on one sheet. */
+const TIGHT_TOC_FROM = 8;
+
 /** Document Control, Contents, Basis of preparation and Status legend. */
 export function FrontMatter({
   particulars,
@@ -103,7 +106,9 @@ export function FrontMatter({
       </table>
 
       <h3>{tr("front.contents")}</h3>
-      <table className={toc.length > 11 ? "toc tight" : "toc"}>
+      {/* The page has a fixed height and hides any overflow, so a longer contents list must
+          use the tight rows or the status legend below it is cut off. */}
+      <table className={toc.length > TIGHT_TOC_FROM ? "toc tight" : "toc"}>
         <tbody>
           {toc.map((entry) => (
             <tr key={entry.no}>

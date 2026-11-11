@@ -7,6 +7,7 @@ import {
   integer,
   money,
   percent,
+  reportedKpiValue,
   sumKpi,
   sumMembers,
   toneOf,
@@ -323,8 +324,7 @@ export const cooperativePages = (a: Analysis, no: string): PageSpec[] => {
           </thead>
           <tbody>
             {rows.map((coop) => {
-              const kpi = (key: string) =>
-                coop.has_data ? (coop.kpis?.[key]?.value ?? null) : null;
+              const kpi = (key: string) => reportedKpiValue(coop, key);
               return (
                 <tr key={coop.cooperative_id}>
                   <td>{coop.name}</td>

@@ -19,7 +19,10 @@ const ACCEPT_V2: &str = "application/vnd.mambu.v2+json";
 const MAX_ATTEMPTS: u32 = 6;
 const PAGE_ATTEMPTS: u32 = 3;
 /// Pages of one list asked for at the same time.
-const SEARCH_PARALLEL_PAGES: u64 = 4;
+const SEARCH_PARALLEL_PAGES: u64 = 8;
+/// A branch with more loans than this is not read in full when Mambu refuses the loan
+/// filter: its raw loans would not fit in memory.
+const LOANS_READ_IN_FULL_UP_TO: u64 = 50_000;
 const REPORT_POLLS: u32 = 120;
 /// Mambu builds one accounting report at a time for the whole tenant and refuses a new
 /// one with ANOTHER_TASK_IN_PROGRESS. The client waits and asks again for up to 10 minutes.
@@ -38,6 +41,29 @@ pub struct BranchLists {
     pub clients: Vec<MambuClient>,
     pub deposits: Vec<MambuDeposit>,
     pub loans: Vec<MambuLoan>,
+}
+
+/// How far a list has been read. Shared with the task that reports progress, so reading
+/// does not wait for the database.
+#[derive(Default)]
+pub struct ReadProgress {
+    read: std::sync::atomic::AtomicU64,
+    total: std::sync::atomic::AtomicU64,
+}
+
+impl ReadProgress {
+    pub fn read(&self) -> u64 {
+        self.read.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn total(&self) -> u64 {
+        self.total.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn add_read(&self, n: u64) {
+        self.read.fetch_add(n, std::sync::atomic::Ordering::Relaxed);
+    }
+    pub fn set_total(&self, n: u64) {
+        self.total.store(n, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 fn from_values<T: DeserializeOwned>(values: Vec<serde_json::Value>) -> AppResult<Vec<T>> {
@@ -64,7 +90,21 @@ pub struct MambuApiClient {
     busy_delay: Duration,
     /// Requests in flight at once over every sync that shares this client.
     inflight: Arc<Semaphore>,
+    branch_names: Arc<tokio::sync::Mutex<BranchNameCache>>,
 }
+
+/// Branch names by branch id, kept so a screen that lists many cooperatives does not
+/// read the branches from Mambu each time. A failed read is not repeated for a minute,
+/// so a Mambu user that is locked or may not list branches is not asked again and again.
+#[derive(Default)]
+struct BranchNameCache {
+    names: std::collections::HashMap<String, String>,
+    read_at: Option<std::time::Instant>,
+    failed_at: Option<std::time::Instant>,
+}
+
+const BRANCH_NAMES_FRESH: Duration = Duration::from_secs(600);
+const BRANCH_NAMES_RETRY: Duration = Duration::from_secs(60);
 
 impl MambuApiClient {
     /// `None` while the integration is not configured.
@@ -99,6 +139,7 @@ impl MambuApiClient {
             report_poll_delay: REPORT_POLL_DELAY,
             busy_delay: BUSY_DELAY,
             inflight: Arc::new(Semaphore::new(config.mambu_max_inflight.clamp(1, 64))),
+            branch_names: Arc::default(),
         })
     }
 
@@ -113,7 +154,35 @@ impl MambuApiClient {
             report_poll_delay: Duration::from_millis(50),
             busy_delay: Duration::from_millis(20),
             inflight: Arc::new(Semaphore::new(8)),
+            branch_names: Arc::default(),
         }
+    }
+
+    /// The name of each branch by its id, for showing a branch to a person. Empty when
+    /// Mambu cannot list branches; callers then show the id.
+    pub async fn branch_names(&self) -> std::collections::HashMap<String, String> {
+        let mut cache = self.branch_names.lock().await;
+        let now = std::time::Instant::now();
+        let fresh = cache
+            .read_at
+            .is_some_and(|at| now.duration_since(at) < BRANCH_NAMES_FRESH);
+        let recently_failed = cache
+            .failed_at
+            .is_some_and(|at| now.duration_since(at) < BRANCH_NAMES_RETRY);
+        if !fresh && !recently_failed {
+            match self.branches().await {
+                Ok(list) => {
+                    cache.names = list.into_iter().map(|b| (b.id, b.name)).collect();
+                    cache.read_at = Some(now);
+                    cache.failed_at = None;
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Mambu branch names not readable, the ids are shown");
+                    cache.failed_at = Some(now);
+                }
+            }
+        }
+        cache.names.clone()
     }
 
     fn request(&self, builder: RequestBuilder) -> RequestBuilder {
@@ -260,28 +329,62 @@ impl MambuApiClient {
             .await
     }
 
-    /// The records of one branch. The first request gives the total, then the pages are
-    /// read a few at a time. When Mambu gives no total the pages are read one by one.
+    /// The records of one branch, all in memory. Use `search_pages_each` for a list that
+    /// can be large.
     async fn search_pages_by_key<T: DeserializeOwned + Send + 'static>(
         &self,
         path: &str,
         branch_field: &str,
         branch_key: &str,
     ) -> AppResult<Vec<T>> {
+        let mut done: Vec<(u64, Vec<T>)> = Vec::new();
+        self.search_pages_each(path, branch_field, branch_key, &[], None, |page, rows| {
+            done.push((page, rows));
+            Ok(())
+        })
+        .await?;
+        done.sort_by_key(|(page, _)| *page);
+        Ok(done.into_iter().flat_map(|(_, rows)| rows).collect())
+    }
+
+    /// The records of one branch, handed over a page at a time so a large list is never
+    /// held as a whole. The first request gives the total, then the pages are read a few
+    /// at a time and passed to `each` as they arrive, in no fixed order, with their page
+    /// number. When Mambu gives no total the pages are read one by one. Returns the
+    /// number of records.
+    pub async fn search_pages_each<T, F>(
+        &self,
+        path: &str,
+        branch_field: &str,
+        branch_key: &str,
+        extra_criteria: &[serde_json::Value],
+        progress: Option<&ReadProgress>,
+        mut each: F,
+    ) -> AppResult<u64>
+    where
+        T: DeserializeOwned + Send + 'static,
+        F: FnMut(u64, Vec<T>) -> AppResult<()>,
+    {
+        let mut criteria = vec![
+            serde_json::json!({"field": branch_field, "operator": "EQUALS", "value": branch_key}),
+        ];
+        criteria.extend_from_slice(extra_criteria);
         let body = serde_json::json!({
-            "filterCriteria": [{"field": branch_field, "operator": "EQUALS", "value": branch_key}],
+            "filterCriteria": criteria,
             "sortingCriteria": {"field": "encodedKey", "order": "ASC"},
         });
         let page_size = u64::from(self.page_size);
         let total = self.search_total(path, &body).await;
-        let mut all: Vec<T> = Vec::new();
+        if let (Some(progress), Some(total)) = (progress, total) {
+            progress.set_total(total);
+        }
+        let mut count: u64 = 0;
         match total {
             Some(0) => {}
             Some(total) if total > page_size => {
                 let pages = total.div_ceil(page_size);
                 let mut tasks: JoinSet<AppResult<(u64, Vec<T>)>> = JoinSet::new();
                 let mut next = 0u64;
-                let mut done: Vec<(u64, Vec<T>)> = Vec::new();
                 let start = |tasks: &mut JoinSet<AppResult<(u64, Vec<T>)>>, page: u64| {
                     let client = self.clone();
                     let body = body.clone();
@@ -297,35 +400,42 @@ impl MambuApiClient {
                     next += 1;
                 }
                 while let Some(finished) = tasks.join_next().await {
-                    done.push(finished.map_err(|e| {
+                    let (page, rows) = finished.map_err(|e| {
                         tracing::warn!(error = %e, path, "Mambu page task failed");
                         AppError::InternalServerError("Could not read the Mambu data".into())
-                    })??);
+                    })??;
                     if next < pages {
                         start(&mut tasks, next);
                         next += 1;
                     }
-                }
-                done.sort_by_key(|(page, _)| *page);
-                for (_, rows) in done {
-                    all.extend(rows);
+                    count += rows.len() as u64;
+                    if let Some(progress) = progress {
+                        progress.add_read(rows.len() as u64);
+                    }
+                    each(page, rows)?;
                 }
             }
             _ => {
                 let mut offset: u32 = 0;
+                let mut page = 0u64;
                 loop {
-                    let page = self.search_page::<T>(path, &body, offset).await?;
-                    let count = page.len() as u32;
-                    all.extend(page);
-                    if count < self.page_size {
+                    let rows = self.search_page::<T>(path, &body, offset).await?;
+                    let read = rows.len() as u32;
+                    count += u64::from(read);
+                    if let Some(progress) = progress {
+                        progress.add_read(u64::from(read));
+                    }
+                    each(page, rows)?;
+                    page += 1;
+                    if read < self.page_size {
                         break;
                     }
-                    offset += count;
+                    offset += read;
                 }
             }
         }
-        tracing::info!(path, records = all.len(), "Mambu list read");
-        Ok(all)
+        tracing::info!(path, records = count, "Mambu list read");
+        Ok(count)
     }
 
     async fn search_page<T: DeserializeOwned>(
@@ -400,6 +510,165 @@ impl MambuApiClient {
             deposits,
             loans,
         })
+    }
+
+    /// Clients and loans of a branch, read at the same time. Deposits are read with
+    /// `deposits_each`, because a large branch has far more of them.
+    ///
+    /// Of the loans only those the sync can use are asked for: the open ones and those
+    /// closed on or after `loans_closed_since`. A large branch has hundreds of thousands
+    /// of repaid loans from earlier years, which would take most of the time and memory
+    /// of the sync and are all left out of the return.
+    pub async fn clients_and_loans(
+        &self,
+        branch_id: &str,
+        loans_closed_since: NaiveDate,
+    ) -> AppResult<(Vec<MambuClient>, Vec<MambuLoan>)> {
+        let Ok(key) = self.branch_key(branch_id).await else {
+            tracing::warn!("Branch key not readable, falling back to the plain lists");
+            let plain = |path: &'static str| {
+                let query = [
+                    ("branchId", branch_id.to_string()),
+                    ("detailsLevel", "FULL".to_string()),
+                ];
+                async move { self.get_pages::<serde_json::Value>(path, &query).await }
+            };
+            let (clients, loans) = tokio::try_join!(plain("/clients"), plain("/loans"))?;
+            return Ok((from_values(clients)?, from_values(loans)?));
+        };
+        tokio::try_join!(
+            self.search_pages_by_key::<MambuClient>("/clients", "branchKey", &key),
+            self.open_or_recent_loans(&key, loans_closed_since),
+        )
+    }
+
+    /// The open loans of a branch and those closed on or after `closed_since`, in two
+    /// searches (Mambu combines the criteria of one search with AND). If Mambu refuses
+    /// the filter the loans are read in full, as before.
+    async fn open_or_recent_loans(
+        &self,
+        branch_key: &str,
+        closed_since: NaiveDate,
+    ) -> AppResult<Vec<MambuLoan>> {
+        let open = serde_json::json!({
+            "field": "accountState", "operator": "IN",
+            "values": ["ACTIVE", "ACTIVE_IN_ARREARS"],
+        });
+        let recently_closed = serde_json::json!({
+            "field": "closedDate", "operator": "AFTER_INCLUSIVE", "value": closed_since.to_string(),
+        });
+        let read = |criteria: serde_json::Value| async move {
+            let mut done: Vec<(u64, Vec<MambuLoan>)> = Vec::new();
+            self.search_pages_each(
+                "/loans",
+                "assignedBranchKey",
+                branch_key,
+                &[criteria],
+                None,
+                |page, rows| {
+                    done.push((page, rows));
+                    Ok(())
+                },
+            )
+            .await?;
+            done.sort_by_key(|(page, _)| *page);
+            Ok::<_, AppError>(
+                done.into_iter()
+                    .flat_map(|(_, rows)| rows)
+                    .collect::<Vec<_>>(),
+            )
+        };
+        match tokio::try_join!(read(open), read(recently_closed)) {
+            Ok((mut loans, closed)) => {
+                let mut seen: std::collections::HashSet<String> =
+                    loans.iter().map(|l| l.encoded_key.clone()).collect();
+                loans.extend(
+                    closed
+                        .into_iter()
+                        .filter(|l| seen.insert(l.encoded_key.clone())),
+                );
+                tracing::info!(loans = loans.len(), "Mambu open and recent loans read");
+                Ok(loans)
+            }
+            Err(e) if e.to_string().contains("status 400") => {
+                // Reading every loan of a very large branch is what stopped the server,
+                // so it is only done for a branch small enough to hold.
+                let all = serde_json::json!({
+                    "filterCriteria": [{"field": "assignedBranchKey", "operator": "EQUALS", "value": branch_key}],
+                    "sortingCriteria": {"field": "encodedKey", "order": "ASC"},
+                });
+                match self.search_total("/loans", &all).await {
+                    Some(total) if total <= LOANS_READ_IN_FULL_UP_TO => {
+                        tracing::warn!(error = %e, total, "Mambu refused the loan filter, all loans are read");
+                        self.search_pages_by_key::<MambuLoan>(
+                            "/loans",
+                            "assignedBranchKey",
+                            branch_key,
+                        )
+                        .await
+                    }
+                    _ => {
+                        tracing::error!(error = %e, "Mambu refused the loan filter");
+                        Err(AppError::InternalServerError(
+                            "Mambu refused the loan filter and this branch has too many loans to read in full".into(),
+                        ))
+                    }
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    /// The deposit accounts of a branch, a page at a time. When the branch key cannot be
+    /// read the plain list is read in full and handed over as one page.
+    pub async fn deposits_each<F>(
+        &self,
+        branch_id: &str,
+        progress: Option<&ReadProgress>,
+        mut each: F,
+    ) -> AppResult<u64>
+    where
+        F: FnMut(Vec<MambuDeposit>) -> AppResult<()>,
+    {
+        let Ok(key) = self.branch_key(branch_id).await else {
+            tracing::warn!("Branch key not readable, falling back to the plain deposit list");
+            let all: Vec<serde_json::Value> = self
+                .get_pages(
+                    "/deposits",
+                    &[
+                        ("branchId", branch_id.to_string()),
+                        ("detailsLevel", "FULL".to_string()),
+                    ],
+                )
+                .await?;
+            let all: Vec<MambuDeposit> = from_values(all)?;
+            let count = all.len() as u64;
+            if let Some(progress) = progress {
+                progress.set_total(count);
+                progress.add_read(count);
+            }
+            each(all)?;
+            return Ok(count);
+        };
+        self.search_pages_each::<MambuDeposit, _>(
+            "/deposits",
+            "assignedBranchKey",
+            &key,
+            &[],
+            progress,
+            |_, rows| each(rows),
+        )
+        .await
+    }
+
+    /// How many deposit accounts a branch has, from one cheap request. Used to tell a
+    /// large branch from a small one before its data is read.
+    pub async fn deposit_count(&self, branch_id: &str) -> Option<u64> {
+        let key = self.branch_key(branch_id).await.ok()?;
+        let body = serde_json::json!({
+            "filterCriteria": [{"field": "assignedBranchKey", "operator": "EQUALS", "value": key}],
+        });
+        self.search_total("/deposits", &body).await
     }
 
     pub async fn branch_key(&self, branch_id: &str) -> AppResult<String> {
@@ -654,6 +923,75 @@ mod tests {
         let clients = client.clients("ES0006").await.unwrap();
         assert_eq!(clients.len(), 3);
         assert_eq!(clients[2].id, "C");
+    }
+
+    #[tokio::test]
+    async fn branch_names_are_read_once_and_kept() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let hits = Arc::new(AtomicUsize::new(0));
+        let counted = hits.clone();
+        let app = Router::new().route(
+            "/branches",
+            get(move || {
+                let counted = counted.clone();
+                async move {
+                    counted.fetch_add(1, Ordering::SeqCst);
+                    Json(json!([
+                        {"encodedKey": "bk5", "id": "ES0005", "name": "Khutsalani SACCO"},
+                        {"encodedKey": "bk6", "id": "ES0006", "name": "Asikhutulisane SACCO"}
+                    ]))
+                }
+            }),
+        );
+        let base = serve(app).await;
+        let client = MambuApiClient::with_api_key(&base, "test", 200);
+
+        let first = client.branch_names().await;
+        let second = client.branch_names().await;
+
+        assert_eq!(
+            first.get("ES0005").map(String::as_str),
+            Some("Khutsalani SACCO")
+        );
+        assert_eq!(second.len(), 2);
+        assert_eq!(
+            hits.load(Ordering::SeqCst),
+            1,
+            "the second call uses the cache"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_failed_branch_read_gives_no_names_and_is_not_repeated_at_once() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let hits = Arc::new(AtomicUsize::new(0));
+        let counted = hits.clone();
+        let app = Router::new().route(
+            "/branches",
+            get(move || {
+                let counted = counted.clone();
+                async move {
+                    counted.fetch_add(1, Ordering::SeqCst);
+                    (
+                        axum::http::StatusCode::FORBIDDEN,
+                        Json(json!({"errors": [{"errorReason": "USER_IS_LOCKED"}]})),
+                    )
+                }
+            }),
+        );
+        let base = serve(app).await;
+        let client = MambuApiClient::with_api_key(&base, "test", 200);
+
+        let first = client.branch_names().await;
+        let hits_after_first = hits.load(Ordering::SeqCst);
+        let second = client.branch_names().await;
+
+        assert!(first.is_empty() && second.is_empty());
+        assert_eq!(
+            hits.load(Ordering::SeqCst),
+            hits_after_first,
+            "a locked Mambu user is not asked again within the retry delay"
+        );
     }
 
     #[tokio::test]
