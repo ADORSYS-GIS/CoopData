@@ -93,7 +93,7 @@ export const MambuSyncControls: React.FC<Props> = ({
             <AlertDialogDescription>
               {t("mambu.confirmBody", {
                 defaultValue:
-                  "CoopData will read {{year}} from Mambu for {{count}} cooperative(s) and make one full-year draft for each, with a column for every month. Drafts from an earlier sync are replaced. Submitted or approved returns are never changed. You check the drafts and submit them.",
+                  "CoopData will read {{year}} from Mambu for {{count}} cooperative(s) and make one full-year draft for each, with a column for every month. A cooperative that already has a submission for {{year}} is skipped and left as it is. You check the drafts and submit them.",
                 year,
                 count,
               })}

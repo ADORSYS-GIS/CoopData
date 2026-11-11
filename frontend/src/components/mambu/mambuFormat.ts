@@ -102,7 +102,7 @@ export const PHASE_LABELS: Record<string, string> = {
 };
 
 /** The unit of a phase's counter: the ledger is read year by year. */
-const PHASE_UNITS: Record<string, string> = { reading_ledger: " years" };
+const PHASE_UNITS: Record<string, string> = { reading_ledger: " months" };
 
 /** " · 83,770 of 126,350" while a count is known, otherwise nothing. */
 export const progressCount = (read: number, total: number, phase?: string | null): string =>

@@ -74,8 +74,8 @@ describe("mambuFormat", () => {
     }
   });
 
-  it("counts the ledger in years", () => {
-    expect(progressCount(7, 11, "reading_ledger")).toBe(" · 7 of 11 years");
+  it("counts the ledger in months", () => {
+    expect(progressCount(7, 11, "reading_ledger")).toBe(" · 7 of 11 months");
     expect(progressCount(7, 11, "reading_deposits")).toBe(" · 7 of 11");
   });
 

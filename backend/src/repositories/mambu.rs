@@ -546,6 +546,20 @@ impl MambuRepository {
         Ok(Some((state.cached_through, rows)))
     }
 
+    /// The date up to which the ledger cache of a branch is complete, without its rows.
+    pub async fn ledger_cached_through(
+        &self,
+        mambu_branch_id: &str,
+    ) -> AppResult<Option<NaiveDate>> {
+        Ok(
+            mambu_ledger_cache::Entity::find_by_id(mambu_branch_id.to_string())
+                .one(&self.db)
+                .await
+                .map_err(AppError::DatabaseError)?
+                .map(|state| state.cached_through),
+        )
+    }
+
     /// Stores months of the general ledger and moves the date up to which the cache is
     /// complete. Months stored again replace the earlier figures.
     pub async fn save_ledger_cache(

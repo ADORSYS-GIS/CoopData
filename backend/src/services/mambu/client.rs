@@ -19,7 +19,7 @@ const ACCEPT_V2: &str = "application/vnd.mambu.v2+json";
 const MAX_ATTEMPTS: u32 = 6;
 const PAGE_ATTEMPTS: u32 = 3;
 /// Pages of one list asked for at the same time.
-const SEARCH_PARALLEL_PAGES: u64 = 4;
+const SEARCH_PARALLEL_PAGES: u64 = 8;
 /// A branch with more loans than this is not read in full when Mambu refuses the loan
 /// filter: its raw loans would not fit in memory.
 const LOANS_READ_IN_FULL_UP_TO: u64 = 50_000;

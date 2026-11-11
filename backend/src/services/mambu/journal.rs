@@ -22,7 +22,9 @@ use crate::services::mambu::models::{
 const JOURNAL_PAGE: u32 = 1000;
 /// A date range with more lines than this is split in two before it is paged, so deep
 /// offsets are never needed.
-const SPLIT_ABOVE: u64 = 30_000;
+/// A range with more lines than this is split. A deep offset is slow in Mambu (page 30 of a
+/// range takes about 3.5 times as long as page 1), so ranges are kept small.
+const SPLIT_ABOVE: u64 = 10_000;
 pub const JOURNAL_START: (i32, u32, u32) = (2015, 1, 1);
 const LEDGER_CURRENCY: &str = "SZL";
 
@@ -209,7 +211,9 @@ impl JournalTotals {
 }
 
 /// Pages of one date range that are asked for at the same time.
-const PARALLEL_PAGES: u64 = 4;
+/// Pages of a range asked for at the same time. Measured on the Mambu sandbox: 4 pages
+/// give about 1,000 lines a second, 8 about 2,000, 16 no more than 8.
+const PARALLEL_PAGES: u64 = 8;
 
 /// The calendar months between two dates (inclusive), the first and last one cut to fit.
 fn month_ranges(from: NaiveDate, to: NaiveDate) -> Vec<(NaiveDate, NaiveDate)> {
