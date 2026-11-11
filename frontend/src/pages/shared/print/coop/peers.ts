@@ -1,4 +1,5 @@
 import type { CoopKpiRow } from "@/hooks/analytics/useNationalOverview";
+import { reportedKpiValue } from "@/pages/shared/print/consolidated/stats";
 
 interface PeerIndicator {
   key: string;
@@ -37,8 +38,7 @@ export interface PeerComparison {
   nationalCount: number;
 }
 
-const valueOf = (coop: CoopKpiRow, key: string): number | null =>
-  coop.has_data && coop.kpis?.[key] ? coop.kpis[key].value : null;
+const valueOf = (coop: CoopKpiRow, key: string): number | null => reportedKpiValue(coop, key);
 
 const average = (values: readonly number[]): number | null =>
   values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null;

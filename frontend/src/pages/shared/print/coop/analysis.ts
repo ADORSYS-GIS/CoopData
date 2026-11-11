@@ -1,3 +1,4 @@
+import { isReportedKpi } from "@/lib/kpi-reported";
 import type { KpiItemResponse } from "@/hooks/submissions/useCooperativeKpis";
 import { reportCode } from "@/lib/questionnaire-report";
 import {
@@ -250,7 +251,8 @@ const validate = (
       note: tr("coop.validation.surplus_note", { value: fmtInt(surplusFromLines) }),
     });
   }
-  const par30 = kpiOf(kpis, "par30")?.value ?? 0;
+  const par30Kpi = kpiOf(kpis, "par30");
+  const par30 = par30Kpi && isReportedKpi(par30Kpi) ? par30Kpi.value : 0;
   const arrears = props.portfolioData.categories
     .filter((c) => isArrearsCategory(c.category))
     .reduce((sum, c) => sum + c.count, 0);
@@ -291,7 +293,8 @@ export const analyseCoop = (props: ReportDataProps): CoopAnalysis => {
   const scorecard = DEFS.map((def): ScoreRow => {
     const now = kpiOf(kpis, def.key);
     const before = kpiOf(priorKpis, def.key);
-    const value = reported && now ? now.value : null;
+    // A ratio whose inputs were not reported is sent as 0 with a dash: show it as not reported.
+    const value = reported && now && isReportedKpi(now) ? now.value : null;
     return {
       group: tr(`coop.groups.${def.group}`),
       key: def.key,
@@ -299,7 +302,7 @@ export const analyseCoop = (props: ReportDataProps): CoopAnalysis => {
       formula: tr(`coop.ratios.${def.key}.formula`),
       bench: localizePercent(def.bench),
       current: value,
-      prior: before ? before.value : null,
+      prior: before && isReportedKpi(before) ? before.value : null,
       tone: toneOf(def, value, now?.status),
       info: def.good === undefined,
     };

@@ -2,6 +2,7 @@ import type { PeriodSeriesPoint } from "@/hooks/analytics/usePeriodSeries";
 import type { CoopKpiRow, NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import {
   avgKpi,
+  reportedKpiValue,
   changeOf,
   filingCounts,
   reportsStatements,
@@ -80,9 +81,9 @@ const weighted = (coops: readonly CoopKpiRow[], key: string, weightKey: string):
   let sum = 0;
   let weight = 0;
   for (const coop of coops) {
-    const value = coop.kpis?.[key]?.value;
-    const w = coop.kpis?.[weightKey]?.value ?? 0;
-    if (coop.has_data && value !== undefined && w > 0) {
+    const value = reportedKpiValue(coop, key);
+    const w = reportedKpiValue(coop, weightKey) ?? 0;
+    if (value !== null && w > 0) {
       sum += value * w;
       weight += w;
     }
