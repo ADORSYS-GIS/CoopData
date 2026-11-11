@@ -138,7 +138,20 @@ impl MemberRepository {
         }
     }
 
+    /// Writes the rows in chunks: Postgres accepts at most 65,535 bind parameters in one
+    /// statement, which a large cooperative's rows exceed in a single INSERT.
     pub async fn bulk_upsert(&self, models: Vec<member::ActiveModel>) -> AppResult<u64> {
+        let mut rest = models;
+        let mut total = 0;
+        while !rest.is_empty() {
+            let tail = rest.split_off(rest.len().min(super::BULK_UPSERT_ROWS));
+            total += self.bulk_upsert_chunk(rest).await?;
+            rest = tail;
+        }
+        Ok(total)
+    }
+
+    async fn bulk_upsert_chunk(&self, models: Vec<member::ActiveModel>) -> AppResult<u64> {
         if models.is_empty() {
             return Ok(0);
         }

@@ -9,9 +9,11 @@ use rust_decimal::Decimal;
 use sea_orm::Set;
 
 use crate::entities::mambu_ledger_month;
-use crate::error::AppResult;
+use tokio::task::JoinSet;
+
+use crate::error::{AppError, AppResult};
 use crate::repositories::MambuRepository;
-use crate::services::mambu::client::MambuApiClient;
+use crate::services::mambu::client::{MambuApiClient, ReadProgress};
 use crate::services::mambu::journal::{self, CachedMonth, JournalTotals};
 use crate::services::mambu::mapper::{self, month_end};
 use crate::services::mambu::models::ReportItem;
@@ -32,6 +34,7 @@ pub struct LedgerInput {
     pub year_start_earnings: Option<Decimal>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn load_ledger(
     client: &MambuApiClient,
     repo: &MambuRepository,
@@ -40,10 +43,11 @@ pub async fn load_ledger(
     months: &[u32],
     whole_year: bool,
     as_of: NaiveDate,
+    progress: Option<&ReadProgress>,
 ) -> AppResult<LedgerInput> {
     let last = months.iter().copied().max().unwrap_or(1);
     let until = month_end(year, last).unwrap_or(as_of);
-    match journal_totals(client, repo, branch_id, until).await {
+    match journal_totals(client, repo, branch_id, until, progress).await {
         Ok(totals) if !totals.is_empty() => {
             let items = months
                 .iter()
@@ -117,16 +121,37 @@ async fn prior_year_end_earnings(
     }
 }
 
+/// Months of the general ledger read at the same time.
+const MONTHS_AT_ONCE: usize = 3;
+
 /// A month that ended this many days ago is taken as closed: nothing is booked into it
 /// any more, so what was read once is kept and not read again.
 const CLOSED_AFTER_DAYS: i64 = 45;
+
+/// The last day of the newest month that is taken as closed, as seen from `today`.
+fn last_closed_day(today: NaiveDate) -> NaiveDate {
+    first_of_month(today - Duration::days(CLOSED_AFTER_DAYS)) - Duration::days(1)
+}
+
+/// True when every closed month of a branch is already in the cache.
+pub async fn cache_is_current(repo: &MambuRepository, branch_id: &str) -> bool {
+    match repo.ledger_cached_through(branch_id).await {
+        Ok(Some(through)) => through >= last_closed_day(Utc::now().date_naive()),
+        _ => false,
+    }
+}
 
 fn first_of_month(date: NaiveDate) -> NaiveDate {
     NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date)
 }
 
-fn end_of_year(date: NaiveDate) -> NaiveDate {
-    NaiveDate::from_ymd_opt(date.year(), 12, 31).unwrap_or(date)
+fn end_of_month(date: NaiveDate) -> NaiveDate {
+    let next = if date.month() == 12 {
+        NaiveDate::from_ymd_opt(date.year() + 1, 1, 1)
+    } else {
+        NaiveDate::from_ymd_opt(date.year(), date.month() + 1, 1)
+    };
+    next.map(|n| n - Duration::days(1)).unwrap_or(date)
 }
 
 /// The general ledger of a branch up to `until`. Closed months come from the cache; the
@@ -137,6 +162,7 @@ async fn journal_totals(
     repo: &MambuRepository,
     branch_id: &str,
     until: NaiveDate,
+    progress: Option<&ReadProgress>,
 ) -> AppResult<JournalTotals> {
     let branch_key = client.branch_key(branch_id).await?;
     let (y, m, d) = journal::JOURNAL_START;
@@ -162,25 +188,67 @@ async fn journal_totals(
         }
     }
 
-    let closed_end = first_of_month(Utc::now().date_naive() - Duration::days(CLOSED_AFTER_DAYS))
-        - Duration::days(1);
+    let closed_end = last_closed_day(Utc::now().date_naive());
     let keep_until = closed_end.min(until);
+    // The months still to be read, so a first sync of a SACCO with a long history shows
+    // how far it has come. Each month is kept as soon as it is read, so a sync that is
+    // stopped or restarted loses at most the month it was on.
+    if let Some(progress) = progress {
+        let mut ahead = covered_through;
+        let mut months = 0;
+        while ahead < keep_until {
+            ahead = end_of_month(ahead + Duration::days(1)).min(keep_until);
+            months += 1;
+        }
+        progress.set_total(months);
+    }
     while covered_through < keep_until {
-        let from = covered_through + Duration::days(1);
-        let to = end_of_year(from).min(keep_until);
-        let mut part = JournalTotals::default();
-        journal::read_range(client, &branch_key, from, to, &mut part).await?;
-        let rows = part.cached_months(from, to);
-        let saved = repo
-            .save_ledger_cache(branch_id, to, to_models(branch_id, &rows))
-            .await;
-        if let Err(e) = saved {
-            tracing::warn!(branch = %branch_id, error = %e, "Mambu ledger cache not saved");
+        // A few months are read at the same time: the small months are mostly waiting for
+        // Mambu, so they overlap well, and the shared limit on requests in flight keeps
+        // the big ones from asking for more than Mambu serves quickly.
+        let mut plan: Vec<(NaiveDate, NaiveDate)> = Vec::new();
+        let mut ahead = covered_through;
+        while plan.len() < MONTHS_AT_ONCE && ahead < keep_until {
+            let from = ahead + Duration::days(1);
+            let to = end_of_month(from).min(keep_until);
+            plan.push((from, to));
+            ahead = to;
         }
-        for row in rows {
-            totals.add_cached(row);
+        let mut reads: JoinSet<AppResult<(NaiveDate, NaiveDate, JournalTotals)>> = JoinSet::new();
+        for (from, to) in plan {
+            let client = client.clone();
+            let key = branch_key.clone();
+            reads.spawn(async move {
+                let mut part = JournalTotals::default();
+                journal::read_range(&client, &key, from, to, &mut part).await?;
+                Ok((from, to, part))
+            });
         }
-        covered_through = to;
+        let mut done = Vec::new();
+        while let Some(read) = reads.join_next().await {
+            done.push(read.map_err(|e| {
+                tracing::warn!(error = %e, "Mambu journal month task failed");
+                AppError::InternalServerError("Could not read the Mambu journal".into())
+            })??);
+        }
+        // Kept in date order: the cache is complete up to the last month saved.
+        done.sort_by_key(|(from, _, _)| *from);
+        for (from, to, part) in done {
+            let rows = part.cached_months(from, to);
+            let saved = repo
+                .save_ledger_cache(branch_id, to, to_models(branch_id, &rows))
+                .await;
+            if let Err(e) = saved {
+                tracing::warn!(branch = %branch_id, error = %e, "Mambu ledger cache not saved");
+            }
+            for row in rows {
+                totals.add_cached(row);
+            }
+            covered_through = to;
+            if let Some(progress) = progress {
+                progress.add_read(1);
+            }
+        }
     }
     if covered_through < until {
         journal::read_range(
@@ -216,9 +284,8 @@ pub async fn warm_cache(
     repo: &MambuRepository,
     branch_id: &str,
 ) -> AppResult<()> {
-    let closed_end = first_of_month(Utc::now().date_naive() - Duration::days(CLOSED_AFTER_DAYS))
-        - Duration::days(1);
-    journal_totals(client, repo, branch_id, closed_end).await?;
+    let closed_end = last_closed_day(Utc::now().date_naive());
+    journal_totals(client, repo, branch_id, closed_end, None).await?;
     tracing::info!(branch = %branch_id, through = %closed_end, "Mambu ledger cache is warm");
     Ok(())
 }

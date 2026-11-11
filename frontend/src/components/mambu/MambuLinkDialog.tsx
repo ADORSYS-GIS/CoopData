@@ -91,10 +91,16 @@ export const MambuLinkDialog: React.FC<Props> = ({ cooperative, onClose }) => {
           </DialogTitle>
           <DialogDescription>
             {cooperative?.mambu_branch_id
-              ? t("mambu.linkDialogCurrent", {
-                  defaultValue: "Currently linked to branch {{id}}. Search to change it.",
-                  id: cooperative.mambu_branch_id,
-                })
+              ? cooperative.mambu_branch_name
+                ? t("mambu.linkDialogCurrentNamed", {
+                    defaultValue: "Currently linked to {{name}} ({{id}}). Search to change it.",
+                    name: cooperative.mambu_branch_name,
+                    id: cooperative.mambu_branch_id,
+                  })
+                : t("mambu.linkDialogCurrent", {
+                    defaultValue: "Currently linked to branch {{id}}. Search to change it.",
+                    id: cooperative.mambu_branch_id,
+                  })
               : t("mambu.linkDialogHelp", {
                   defaultValue:
                     "Type part of the SACCO name or its Mambu ID, press Search, then choose the branch.",

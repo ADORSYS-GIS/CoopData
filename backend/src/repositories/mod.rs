@@ -91,3 +91,7 @@ pub use submission_review::SubmissionReviewRepository;
 pub use submission_section::SubmissionSectionRepository;
 pub use uploaded_file::UploadedFileRepository;
 pub use user::UserRepository;
+
+/// Rows per INSERT in the bulk upserts, so a statement stays under the Postgres limit of
+/// 65,535 bind parameters even for tables with many columns.
+pub(crate) const BULK_UPSERT_ROWS: usize = 1000;

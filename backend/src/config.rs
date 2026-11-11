@@ -170,7 +170,7 @@ impl AppConfig {
             mambu_max_inflight: env::var("MAMBU_MAX_INFLIGHT")
                 .ok()
                 .and_then(|s| s.parse().ok())
-                .unwrap_or(8),
+                .unwrap_or(12),
             mambu_auto_sync_enabled: env::var("MAMBU_AUTO_SYNC_ENABLED")
                 .map(|v| !matches!(v.trim().to_lowercase().as_str(), "false" | "0" | "no"))
                 .unwrap_or(true),

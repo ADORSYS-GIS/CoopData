@@ -65,11 +65,17 @@ pub struct MambuSyncItemResponse {
     pub unmapped_ledger_accounts: i32,
     pub warnings: Vec<MambuSyncWarning>,
     pub error: Option<String>,
+    /// What a running sync is doing: waiting, reading_members, reading_ledger,
+    /// reading_deposits or saving. Empty once the SACCO has a result.
+    pub phase: Option<String>,
+    pub records_read: i32,
+    pub records_total: i32,
 }
 
 impl MambuSyncItemResponse {
     pub fn from_model(m: mambu_sync_item::Model, cooperative_name: Option<String>) -> Self {
         let warnings = serde_json::from_value(m.warnings).unwrap_or_default();
+        let running = m.status == "pending";
         Self {
             id: m.id,
             cooperative_id: m.cooperative_id,
@@ -85,8 +91,17 @@ impl MambuSyncItemResponse {
             unmapped_ledger_accounts: m.unmapped_ledger_accounts,
             warnings,
             error: m.error,
+            phase: if running { m.phase } else { None },
+            records_read: m.records_read,
+            records_total: m.records_total,
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct MambuCancelResponse {
+    /// SACCOs whose sync was stopped. They show as skipped and can be synced again.
+    pub cancelled: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -173,6 +188,8 @@ pub struct MambuBranchPreviewResponse {
 pub struct MambuCooperativeLinkResponse {
     pub cooperative_id: Uuid,
     pub mambu_branch_id: Option<String>,
+    /// Name of the branch in Mambu; empty when Mambu cannot list branches.
+    pub mambu_branch_name: Option<String>,
     /// Already synced once: the link can no longer be changed or removed.
     pub link_locked: bool,
 }
@@ -207,6 +224,8 @@ pub struct MambuApexCooperativeResponse {
     pub name: String,
     pub institution_type: Option<String>,
     pub mambu_branch_id: Option<String>,
+    /// Name of the branch in Mambu; empty when Mambu cannot list branches.
+    pub mambu_branch_name: Option<String>,
     /// Already synced once: the link can no longer be changed or removed.
     pub link_locked: bool,
     /// Takes part in the automatic monthly sync.

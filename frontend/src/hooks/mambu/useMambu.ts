@@ -101,6 +101,21 @@ export const useStartMambuSync = () => {
   });
 };
 
+/** Stops the SACCOs of a running sync that are not saving yet. They show as skipped. */
+export const useCancelMambuSync = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (runId: string) => {
+      const { data, error } = await apiClient.POST("/api/v1/apex/mambu/syncs/{id}/cancel", {
+        params: { path: { id: runId } },
+      });
+      if (error) throw new Error(errorMessage(error));
+      return data as { cancelled: number };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+};
+
 export const useSetMambuAutoSync = () => {
   const qc = useQueryClient();
   return useMutation({

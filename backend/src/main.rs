@@ -179,6 +179,11 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(coop_data_backend::services::mambu::scheduler::run(
         state.clone(),
     ));
+    if state.config.mambu_auto_sync_enabled {
+        tokio::spawn(coop_data_backend::services::mambu::warmup::run(
+            state.clone(),
+        ));
+    }
 
     let app = create_app(state);
     tracing::info!("Prometheus metrics endpoint available at /metrics");

@@ -20,6 +20,7 @@ export const CooperativeMambuLink: React.FC<{ cooperativeId: string }> = ({ coop
   const [branchId, setBranchId] = useState("");
 
   const current = link.data?.mambu_branch_id ?? null;
+  const currentName = link.data?.mambu_branch_name ?? null;
   const locked = link.data?.link_locked ?? false;
 
   const save = () =>
@@ -49,7 +50,9 @@ export const CooperativeMambuLink: React.FC<{ cooperativeId: string }> = ({ coop
           {current ? (
             <>
               <Link2 className="size-4 text-success" />
-              {t("mambu.linkedTo", { defaultValue: "Linked to branch" })} <strong>{current}</strong>
+              {t("mambu.linkedTo", { defaultValue: "Linked to branch" })}{" "}
+              <strong>{currentName ?? current}</strong>
+              {currentName && <span className="text-muted-foreground">· {current}</span>}
             </>
           ) : (
             <>

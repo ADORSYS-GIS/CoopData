@@ -11,7 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMambuSync, type MambuSyncItem } from "@/hooks/mambu/useMambu";
-import { itemTone, periodLabel, runTone } from "./mambuFormat";
+import { CancelSyncButton } from "./CancelSyncButton";
+import { PHASE_LABELS, itemTone, periodLabel, progressCount, runTone } from "./mambuFormat";
 
 const warningText = (item: MambuSyncItem): string =>
   item.warnings
@@ -39,6 +40,11 @@ export const MambuRunResults: React.FC<{ runId: string }> = ({ runId }) => {
           {t("mambu.saccos", { defaultValue: "SACCOs" })}
         </span>
         {run.error && <span className="text-destructive">{run.error}</span>}
+        {run.status === "running" && (
+          <span className="ml-auto">
+            <CancelSyncButton runId={run.id} />
+          </span>
+        )}
       </div>
       <Table>
         <TableHeader>
@@ -62,6 +68,14 @@ export const MambuRunResults: React.FC<{ runId: string }> = ({ runId }) => {
               </TableCell>
               <TableCell>
                 <StatusPill tone={itemTone(item.status)}>{item.status}</StatusPill>
+                {item.phase && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {t(`mambu.phase.${item.phase}`, {
+                      defaultValue: PHASE_LABELS[item.phase] ?? item.phase,
+                    })}
+                    {progressCount(item.records_read, item.records_total, item.phase)}
+                  </div>
+                )}
               </TableCell>
               <TableCell className="text-right">{item.members}</TableCell>
               <TableCell className="text-right">{item.savings_accounts}</TableCell>
