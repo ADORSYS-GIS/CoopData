@@ -301,3 +301,16 @@ for older periods, which is why the sync never uses them: it adds up the movemen
 - First read of the largest SACCO: about 5 minutes instead of over an hour. Later syncs read only
   the recent months.
 - The background warm-up (every 6 hours, and when a SACCO is linked) uses the same path.
+
+## 23. A small gap in Mambu's books no longer empties the balance sheet
+
+Every month of the ledger is checked against the accounting equation (assets = liabilities
++ equity + earnings). Before, any difference above 5 SZL left the whole ledger empty. In the
+largest SACCO one posting with only one side (a 100.00 debit on account 5021, booked on
+30 December 2024) put every later month 100.00 out, so the 2026 return had no balance sheet.
+
+The accepted difference is now 0.001% of the SACCO's total assets, never below 5 SZL and never
+above 1,000 SZL (`balance_tolerance` in `mapper.rs`). A difference above 1.00 that is accepted is
+always reported (warning `LEDGER_SMALL_GAP`, status flagged) and stays in the figures: the
+statement is off by the same amount. A real error, or the same gap in a small SACCO, still
+leaves the ledger empty.

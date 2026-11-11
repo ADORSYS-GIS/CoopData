@@ -686,6 +686,10 @@ pub struct LedgerResult {
     /// True when accumulated and current year surplus were split with a verified
     /// year-to-date report. Otherwise all earnings sit in the accumulated line.
     pub surplus_split: bool,
+    /// How far the two sides of the accounting equation are apart (assets minus liabilities,
+    /// equity and earnings), when that is more than rounding but within the tolerance. Zero
+    /// when the report balances.
+    pub gap: Decimal,
 }
 
 pub const ACCUMULATED_SURPLUS_CODE: i32 = 3301;
@@ -789,9 +793,24 @@ fn add_mapped(
     }
 }
 
-/// Largest difference (in SZL) between the two sides of the accounting equation that
-/// still counts as balanced.
-const BALANCE_TOLERANCE: i64 = 5;
+/// Smallest, and for a small SACCO the usual, difference (in SZL) between the two sides of
+/// the accounting equation that still counts as balanced.
+const BALANCE_TOLERANCE_MIN: i64 = 5;
+/// The largest difference that is ever accepted, however large the SACCO is.
+const BALANCE_TOLERANCE_MAX: i64 = 1000;
+
+/// The difference between the two sides of the accounting equation that is accepted for a
+/// SACCO with these total assets: 0.001% of them, but never less than 5 SZL (rounding) and
+/// never more than 1,000 SZL. A stray posting with only one side in a SACCO of hundreds of
+/// millions then no longer empties its whole balance sheet, while a real error still does.
+pub fn balance_tolerance(assets: Decimal) -> Decimal {
+    (assets.abs() * Decimal::new(1, 5))
+        .min(Decimal::from(BALANCE_TOLERANCE_MAX))
+        .max(Decimal::from(BALANCE_TOLERANCE_MIN))
+}
+
+/// A gap above this (in SZL) is more than rounding and is reported, even when accepted.
+pub const GAP_WORTH_REPORTING: i64 = 1;
 
 /// How Mambu signs the credit accounts (liabilities, equity, income) in a report.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -834,7 +853,7 @@ pub fn detect_sign_style(items: &[ReportItem]) -> Result<SignStyle, Decimal> {
     let t = closing_totals(items);
     let natural = t.assets - t.liabilities - t.equity - t.income + t.expense;
     let signed = t.assets + t.liabilities + t.equity + t.income + t.expense;
-    let tolerance = Decimal::from(BALANCE_TOLERANCE);
+    let tolerance = balance_tolerance(t.assets);
     if natural.abs() <= tolerance {
         Ok(SignStyle::Natural)
     } else if signed.abs() <= tolerance {
@@ -902,6 +921,15 @@ pub fn map_ledger(
             }
         }
     };
+    let gap = {
+        let t = normalized_totals(month_items, style);
+        let gap = t.assets - t.liabilities - t.equity - (t.income - t.expense);
+        if gap.abs() > Decimal::from(GAP_WORTH_REPORTING) {
+            gap
+        } else {
+            Decimal::ZERO
+        }
+    };
     let mut totals: HashMap<i32, Decimal> = HashMap::new();
     let mut unmapped: Vec<UnmappedAccount> = Vec::new();
     let mut cumulative_earnings = Decimal::ZERO;
@@ -963,6 +991,7 @@ pub fn map_ledger(
         unmapped,
         status: LedgerStatus::Balanced,
         surplus_split,
+        gap,
     }
 }
 
@@ -1609,6 +1638,81 @@ mod tests {
         assert_eq!(
             ledger_value(&r, ACCUMULATED_SURPLUS_CODE),
             to_decimal(350.0)
+        );
+    }
+
+    #[test]
+    fn a_stray_one_sided_posting_in_a_large_sacco_is_accepted_and_reported() {
+        // assets 400,000,000 = liabilities 300,000,000 + equity 99,999,900: off by 100.00,
+        // which is 0.000025% of the assets, below the 1,000 SZL limit.
+        let month = vec![
+            detail("1101", "ASSET", bal(400_000_000.0)),
+            detail("5001", "LIABILITY", bal(300_000_000.0)),
+            detail("6001", "EQUITY", bal(99_999_900.0)),
+        ];
+
+        assert_eq!(detect_sign_style(&month), Ok(SignStyle::Natural));
+        let r = map_ledger(&month, None, &surplus_map(), &[]);
+
+        assert_eq!(r.status, LedgerStatus::Balanced);
+        assert_eq!(r.gap, to_decimal(100.0));
+        assert!(!r.lines.is_empty(), "the ledger is imported");
+    }
+
+    #[test]
+    fn the_same_gap_in_a_small_sacco_still_empties_the_ledger() {
+        // assets 1,000,000: the limit is 0.001% = 10 SZL, so 100 is too much.
+        let month = vec![
+            detail("1101", "ASSET", bal(1_000_000.0)),
+            detail("5001", "LIABILITY", bal(600_000.0)),
+            detail("6001", "EQUITY", bal(399_900.0)),
+        ];
+
+        let r = map_ledger(&month, None, &surplus_map(), &[]);
+
+        assert!(r.lines.is_empty());
+        assert_eq!(
+            r.status,
+            LedgerStatus::Unbalanced {
+                gap: to_decimal(100.0)
+            }
+        );
+    }
+
+    #[test]
+    fn a_report_that_balances_has_no_gap_and_rounding_is_not_reported() {
+        let balanced = map_ledger(&balanced_month(), None, &surplus_map(), &[]);
+        assert_eq!(balanced.gap, Decimal::ZERO);
+
+        // 0.50 off is rounding, accepted and not worth a warning.
+        let month = vec![
+            detail("1101", "ASSET", bal(1000.5)),
+            detail("5001", "LIABILITY", bal(600.0)),
+            detail("6001", "EQUITY", bal(400.0)),
+        ];
+        let r = map_ledger(&month, None, &surplus_map(), &[]);
+        assert_eq!(r.status, LedgerStatus::Balanced);
+        assert_eq!(r.gap, Decimal::ZERO);
+    }
+
+    #[test]
+    fn the_tolerance_is_a_thousandth_of_a_percent_between_5_and_1000() {
+        assert_eq!(balance_tolerance(to_decimal(1_000.0)), Decimal::from(5));
+        assert_eq!(
+            balance_tolerance(to_decimal(1_000_000.0)),
+            Decimal::from(10)
+        );
+        assert_eq!(
+            balance_tolerance(to_decimal(10_000_000.0)),
+            Decimal::from(100)
+        );
+        assert_eq!(
+            balance_tolerance(to_decimal(400_000_000.0)),
+            Decimal::from(1000)
+        );
+        assert_eq!(
+            balance_tolerance(to_decimal(9_000_000_000.0)),
+            Decimal::from(1000)
         );
     }
 
