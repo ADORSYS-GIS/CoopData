@@ -138,6 +138,7 @@ fn build(restricted: bool, journal: Option<Vec<Value>>) -> Router {
             )
         })
     };
+    let journal_lines = journal.clone();
     let router = Router::new()
         .route(
             "/branches",
@@ -181,22 +182,18 @@ fn build(restricted: bool, journal: Option<Vec<Value>>) -> Router {
         .route(
             "/accounting/reports",
             post(|Json(body): Json<Value>| async move {
-                let key = if body["startDate"].as_str() == Some("2025-12-01") {
-                    "rk-prev"
-                } else {
-                    "rk-month"
-                };
-                Json(json!({"reportKey": key, "status": "QUEUED"}))
+                let start = body["startDate"].as_str().unwrap_or("").to_string();
+                let end = body["endDate"].as_str().unwrap_or("").to_string();
+                // The key carries the period, so the report of a period can be built when it
+                // is asked for.
+                Json(json!({"reportKey": format!("rk|{start}|{end}"), "status": "QUEUED"}))
             }),
         )
         .route(
             "/accounting/reports/{key}",
             get(move |Path(key): Path<String>| {
-                let report = if key == "rk-prev" {
-                    prev_report.clone()
-                } else {
-                    month_report.clone()
-                };
+                let report =
+                    report_for(&key, journal_lines.as_deref(), &month_report, &prev_report);
                 async move { Json(report) }
             }),
         );
@@ -234,6 +231,57 @@ fn build(restricted: bool, journal: Option<Vec<Value>>) -> Router {
         ),
         None => router,
     }
+}
+
+/// The report of a period. With a journal it is added up from the journal lines, as the
+/// real Mambu does for the movements (debits and credits) of each account; without one it
+/// is the fixed report of the stand-in (whose balances may not balance).
+fn report_for(
+    key: &str,
+    journal: Option<&[Value]>,
+    month_report: &Value,
+    prev_report: &Value,
+) -> Value {
+    let parts: Vec<&str> = key.split('|').collect();
+    let (start, end) = (
+        parts.get(1).copied().unwrap_or(""),
+        parts.get(2).copied().unwrap_or(""),
+    );
+    let Some(lines) = journal else {
+        return if start == "2025-12-01" {
+            prev_report.clone()
+        } else {
+            month_report.clone()
+        };
+    };
+    let mut accounts: std::collections::BTreeMap<String, (Value, f64, f64)> =
+        std::collections::BTreeMap::new();
+    for line in lines {
+        let date = &line["bookingDate"].as_str().unwrap_or("")[..10];
+        if date < start || date > end {
+            continue;
+        }
+        let code = line["glAccount"]["glCode"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
+        let entry = accounts
+            .entry(code)
+            .or_insert_with(|| (line["glAccount"].clone(), 0.0, 0.0));
+        let amount = line["amount"].as_f64().unwrap_or(0.0);
+        match line["type"].as_str() {
+            Some("DEBIT") => entry.1 += amount,
+            Some("CREDIT") => entry.2 += amount,
+            _ => {}
+        }
+    }
+    let items: Vec<Value> = accounts
+        .into_values()
+        .map(|(gl, debits, credits)| {
+            json!({"glAccount": gl, "amounts": {"debits": debits, "credits": credits}})
+        })
+        .collect();
+    json!({"reportKey": key, "status": "COMPLETE", "items": items})
 }
 
 pub async fn scalar(db: &sea_orm::DatabaseConnection, sql: &str) -> i64 {
