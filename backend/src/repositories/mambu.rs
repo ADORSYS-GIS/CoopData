@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, NaiveDate, Utc};
-use sea_orm::sea_query::OnConflict;
+use sea_orm::sea_query::{Expr, OnConflict};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, EntityTrait, PaginatorTrait,
     QueryFilter, QueryOrder, QuerySelect, Set, Statement,
@@ -334,6 +334,7 @@ impl MambuRepository {
             error: Set(None),
             started_at: Set(Utc::now()),
             finished_at: Set(None),
+            resume_count: Set(0),
         }
         .insert(&self.db)
         .await
@@ -407,6 +408,9 @@ impl MambuRepository {
             unmapped_ledger_accounts: Set(0),
             warnings: Set(serde_json::json!([])),
             error: Set(None),
+            phase: Set(None),
+            records_read: Set(0),
+            records_total: Set(0),
             created_at: Set(now),
             updated_at: Set(now),
         }
@@ -421,6 +425,48 @@ impl MambuRepository {
         active
             .reset_all()
             .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(())
+    }
+
+    /// Counts one more resume of an interrupted run and returns the new count.
+    pub async fn bump_resume_count(&self, run_id: Uuid) -> AppResult<i32> {
+        let run = self
+            .find_run(run_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Sync run not found".into()))?;
+        let count = run.resume_count + 1;
+        let mut active: mambu_sync_run::ActiveModel = run.into();
+        active.resume_count = Set(count);
+        active
+            .update(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(count)
+    }
+
+    /// What a SACCO's sync is doing now. Written on its own, so a long read shows
+    /// progress before the item gets its final result.
+    pub async fn set_item_progress(
+        &self,
+        item_id: Uuid,
+        phase: &str,
+        records_read: i32,
+        records_total: i32,
+    ) -> AppResult<()> {
+        mambu_sync_item::Entity::update_many()
+            .col_expr(mambu_sync_item::Column::Phase, Expr::value(phase))
+            .col_expr(
+                mambu_sync_item::Column::RecordsRead,
+                Expr::value(records_read),
+            )
+            .col_expr(
+                mambu_sync_item::Column::RecordsTotal,
+                Expr::value(records_total),
+            )
+            .filter(mambu_sync_item::Column::Id.eq(item_id))
+            .exec(&self.db)
             .await
             .map_err(AppError::DatabaseError)?;
         Ok(())

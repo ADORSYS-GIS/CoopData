@@ -250,3 +250,32 @@ This replaces the Ministry, cooperative and monthly parts of sections 3, 13 and 
 - A year for which Mambu holds no ledger value for the branch is not imported ("Mambu has no accounting data for this SACCO in {year}").
 - Once a sync has imported data for a cooperative (item status synced or flagged), its Mambu link cannot be changed or removed (409). The cooperative list and link endpoints return `link_locked`, and the screens hide the change and remove actions.
 - A Mambu branch can be linked to one cooperative only: checked before saving, and enforced by a unique index on `mambu_branch_links.mambu_branch_id`.
+
+## 21. Large SACCOs: memory, queueing and progress
+
+A SACCO with tens of thousands of deposit accounts (the largest has about 10,000 clients
+and 126,000 deposits) used to stop the server: it ran out of memory, the server was
+restarted, resumed the same run and ran out of memory again, for hours.
+
+- **Chunked writes.** Members, savings accounts, loans and fixed deposits are written
+  1,000 rows per statement. A single statement for a large SACCO went past the Postgres
+  limit of 65,535 bind parameters and failed with "too many arguments for query".
+- **Deposits are read and mapped a page at a time.** The raw list of a branch is never
+  held as a whole, and the database rows of the savings accounts are built a chunk at a
+  time. Peak memory for 130,000 deposits went from about 300 MiB to about 160 MiB in the
+  scale test.
+- **Large branches run alone.** A branch with more than 20,000 deposit accounts waits for
+  any other large branch (`HEAVY_BRANCH_DEPOSITS` in `sync.rs`). Small branches still run
+  `MAMBU_SYNC_CONCURRENCY` at a time.
+- **A run that keeps being interrupted ends.** After the server stopped 3 times in the
+  middle of the same run (`MAX_RESUMES`), the run is marked failed with a message that
+  says the server most likely ran out of memory, and it is not started again.
+- **Progress.** A running SACCO shows its phase (waiting, reading members and loans,
+  reading the ledger, reading deposit accounts, saving) and, while deposits are read, how
+  many accounts of the total were read. Migration 70 adds the columns.
+- **Server limits.** The backend container is allowed 2 CPUs and 4 GB in
+  `docker-compose.ghcr.yaml`.
+
+The test `backend/tests/mambu_scale_e2e.rs` syncs a stand-in branch of that size and fails
+when memory grows by more than 600 MiB (`SCALE_PEAK_BUDGET_MIB`). Run it with
+`cargo test --release --test mambu_scale_e2e -- --ignored --nocapture`.

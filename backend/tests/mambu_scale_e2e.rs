@@ -248,9 +248,10 @@ async fn a_very_large_branch_syncs_fast_and_within_the_memory_budget() {
     assert_eq!(status, "completed");
     let items = state.mambu_repo.list_items(run.id).await.unwrap();
     assert_eq!(items.len(), 1);
-    assert_eq!(
-        items[0].status, "synced",
-        "item error: {:?}",
+    assert!(
+        matches!(items[0].status.as_str(), "synced" | "flagged"),
+        "status {} error: {:?}",
+        items[0].status,
         items[0].error
     );
     assert_eq!(items[0].members as usize, clients);

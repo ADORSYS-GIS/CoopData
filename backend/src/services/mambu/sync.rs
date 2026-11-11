@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::time::Duration;
 
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
@@ -21,7 +22,7 @@ use crate::entities::{
 use crate::error::{AppError, AppResult};
 use crate::repositories::mambu::{RUN_COMPLETED, RUN_FAILED};
 use crate::services::mambu::arrears;
-use crate::services::mambu::client::MambuApiClient;
+use crate::services::mambu::client::{MambuApiClient, ReadProgress};
 use crate::services::mambu::derived;
 use crate::services::mambu::ledger_source::{self, LedgerSource};
 use crate::services::mambu::mapper::{
@@ -29,7 +30,7 @@ use crate::services::mambu::mapper::{
     map_savings, month_end, share_balance_for, DropReason, KIND_FIXED_DEPOSIT, KIND_IGNORE,
     KIND_SHARE,
 };
-use crate::services::mambu::models::MambuBranch;
+use crate::services::mambu::models::{MambuBranch, MambuDeposit};
 use crate::services::mambu::totals;
 use crate::services::nf_excel_parser::NfParseResult;
 use crate::services::nf_persist::persist_nf_parse_result;
@@ -45,6 +46,22 @@ pub const ITEM_FAILED: &str = "failed";
 pub const SUBMISSION_METHOD: &str = "mambu";
 
 const INTERRUPTED: &str = "Interrupted: the server stopped before this sync finished";
+/// A branch with more deposit accounts than this is synced alone: its raw and mapped
+/// records are the largest memory use of a sync.
+const HEAVY_BRANCH_DEPOSITS: u64 = 20_000;
+static HEAVY_BRANCH: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
+
+const PHASE_WAITING: &str = "waiting";
+const PHASE_READING_MEMBERS: &str = "reading_members";
+const PHASE_READING_LEDGER: &str = "reading_ledger";
+const PHASE_READING_DEPOSITS: &str = "reading_deposits";
+const PHASE_SAVING: &str = "saving";
+const PROGRESS_EVERY: Duration = Duration::from_secs(3);
+
+/// How often a run is carried on after the server stopped. A run that keeps stopping the
+/// server (for example by running out of memory) would otherwise start again for ever.
+const MAX_RESUMES: i32 = 3;
+const INTERRUPTED_TOO_OFTEN: &str = "The sync was interrupted 3 times because the server stopped, most likely because it ran out of memory. It was not started again. Ask an administrator to check the server.";
 
 /// Syncs that may run at the same time. More requests wait, so Mambu is not flooded.
 pub const MAX_CONCURRENT_RUNS: usize = 3;
@@ -385,6 +402,18 @@ pub async fn resume_interrupted_runs(state: &AppState) {
         if Utc::now() - run.started_at >= chrono::Duration::hours(STALE_RUN_HOURS) {
             continue;
         }
+        if run.resume_count >= MAX_RESUMES {
+            tracing::error!(run_id = %run.id, resumes = run.resume_count, "A Mambu sync keeps being interrupted, it is not started again");
+            let _ = state
+                .mambu_repo
+                .fail_pending_items(run.id, INTERRUPTED_TOO_OFTEN)
+                .await;
+            let _ = state
+                .mambu_repo
+                .finish_run(run.id, RUN_FAILED, Some(INTERRUPTED_TOO_OFTEN.into()))
+                .await;
+            continue;
+        }
         let items = match state.mambu_repo.list_items(run.id).await {
             Ok(items) => items,
             Err(_) => continue,
@@ -416,7 +445,12 @@ pub async fn resume_interrupted_runs(state: &AppState) {
                 .await;
             continue;
         }
-        tracing::info!(run_id = %run.id, saccos = todo.len(), "Continuing an interrupted Mambu sync");
+        let resumes = state
+            .mambu_repo
+            .bump_resume_count(run.id)
+            .await
+            .unwrap_or(run.resume_count + 1);
+        tracing::info!(run_id = %run.id, saccos = todo.len(), resumes, "Continuing an interrupted Mambu sync");
         let actor = system_claims(run.started_by.as_deref().unwrap_or(SYSTEM_ACTOR), "Sync");
         let (state, client) = (state.clone(), client.clone());
         tokio::spawn(async move {
@@ -586,7 +620,7 @@ async fn process_item(
 ) {
     let year = run.reporting_year;
     let month = run.month as u32;
-    let result = sync_one(state, client, refs, run, &link, year, month, actor).await;
+    let result = sync_one(state, client, refs, run, item.id, &link, year, month, actor).await;
     match result {
         Ok(Outcome::Done {
             submission_id,
@@ -634,6 +668,7 @@ async fn sync_one(
     client: &MambuApiClient,
     refs: &ReferenceData,
     run: &mambu_sync_run::Model,
+    item_id: Uuid,
     link: &mambu_branch_link::Model,
     year: i32,
     month: u32,
@@ -673,8 +708,18 @@ async fn sync_one(
         return Ok(Outcome::Skipped(reason));
     }
 
-    let lists = client.branch_lists(&link.mambu_branch_id).await?;
-    let (clients, deposits, loans) = (lists.clients, lists.deposits, lists.loans);
+    // A large branch is read and mapped alone: two of them at once need twice the memory.
+    let _heavy = match client.deposit_count(&link.mambu_branch_id).await {
+        Some(count) if count > HEAVY_BRANCH_DEPOSITS => {
+            set_phase(state, item_id, PHASE_WAITING, 0, count).await;
+            tracing::info!(branch = %link.mambu_branch_id, deposits = count, "Large Mambu branch, it is synced alone");
+            HEAVY_BRANCH.acquire().await.ok()
+        }
+        _ => None,
+    };
+    set_phase(state, item_id, PHASE_READING_MEMBERS, 0, 0).await;
+    let (clients, loans) = client.clients_and_loans(&link.mambu_branch_id).await?;
+    set_phase(state, item_id, PHASE_READING_LEDGER, 0, 0).await;
     let ledger_input = ledger_source::load_ledger(
         client,
         &state.mambu_repo,
@@ -747,51 +792,67 @@ async fn sync_one(
     let mut loan_type_defaulted = 0usize;
     let mut fd_defaulted = 0usize;
     let mut ignored_deposits = 0usize;
-    for d in &deposits {
-        let product_id = d
-            .product_type_key
-            .as_ref()
-            .and_then(|k| refs.deposit_product_ids.get(k));
-        let override_type = product_id.and_then(|id| refs.deposit_overrides.get(id));
-        let kind = classify_deposit(d, override_type.map(String::as_str));
-        if kind == KIND_IGNORE {
-            ignored_deposits += 1;
-            continue;
-        }
-        let Some(holder) = d
-            .account_holder_key
-            .as_ref()
-            .and_then(|k| holder_codes.get(k))
-        else {
-            tally(&mut drops, DropReason::UnknownHolder);
-            continue;
-        };
-        if kind == KIND_SHARE {
-            if let (Some(balance), Some(idx)) =
-                (share_balance_for(d, as_of), member_index.get(holder))
-            {
-                result.members[*idx].share_balance += balance;
-            }
-        } else if kind == KIND_FIXED_DEPOSIT {
-            let term = d
+    let progress = Arc::new(ReadProgress::default());
+    let reporter = spawn_progress_reporter(state.clone(), item_id, progress.clone());
+    let mut handle_page = |page: Vec<MambuDeposit>| -> AppResult<()> {
+        for d in &page {
+            let product_id = d
                 .product_type_key
                 .as_ref()
-                .and_then(|k| refs.deposit_product_terms.get(k))
-                .copied();
-            match map_fixed_deposit(d, holder, as_of, term) {
-                Ok((record, defaulted)) => {
-                    fd_defaulted += usize::from(defaulted);
-                    result.fixed_deposits.push(record);
-                }
-                Err(reason) => tally(&mut drops, reason),
+                .and_then(|k| refs.deposit_product_ids.get(k));
+            let override_type = product_id.and_then(|id| refs.deposit_overrides.get(id));
+            let kind = classify_deposit(d, override_type.map(String::as_str));
+            if kind == KIND_IGNORE {
+                ignored_deposits += 1;
+                continue;
             }
-        } else {
-            match map_savings(d, holder, kind, as_of) {
-                Ok(record) => result.savings_accounts.push(record),
-                Err(reason) => tally(&mut drops, reason),
+            let Some(holder) = d
+                .account_holder_key
+                .as_ref()
+                .and_then(|k| holder_codes.get(k))
+            else {
+                tally(&mut drops, DropReason::UnknownHolder);
+                continue;
+            };
+            if kind == KIND_SHARE {
+                if let (Some(balance), Some(idx)) =
+                    (share_balance_for(d, as_of), member_index.get(holder))
+                {
+                    result.members[*idx].share_balance += balance;
+                }
+            } else if kind == KIND_FIXED_DEPOSIT {
+                let term = d
+                    .product_type_key
+                    .as_ref()
+                    .and_then(|k| refs.deposit_product_terms.get(k))
+                    .copied();
+                match map_fixed_deposit(d, holder, as_of, term) {
+                    Ok((record, defaulted)) => {
+                        fd_defaulted += usize::from(defaulted);
+                        result.fixed_deposits.push(record);
+                    }
+                    Err(reason) => tally(&mut drops, reason),
+                }
+            } else {
+                match map_savings(d, holder, kind, as_of) {
+                    Ok(record) => result.savings_accounts.push(record),
+                    Err(reason) => tally(&mut drops, reason),
+                }
             }
         }
-    }
+        Ok(())
+    };
+    let deposits_read = client
+        .deposits_each(
+            &link.mambu_branch_id,
+            Some(progress.as_ref()),
+            &mut handle_page,
+        )
+        .await;
+    reporter.abort();
+    deposits_read?;
+    set_phase(state, item_id, PHASE_SAVING, 0, 0).await;
+    drop(clients);
 
     for l in &loans {
         let product_id = l
@@ -1287,6 +1348,40 @@ async fn write_submission(
         tracing::error!(error = %e, "Failed to log audit for Mambu sync");
     }
     Ok(submission_id)
+}
+
+/// Records what a SACCO's sync is doing now. A failure to record it never stops the sync.
+async fn set_phase(state: &AppState, item_id: Uuid, phase: &str, read: u64, total: u64) {
+    let clamp = |n: u64| i32::try_from(n).unwrap_or(i32::MAX);
+    if let Err(e) = state
+        .mambu_repo
+        .set_item_progress(item_id, phase, clamp(read), clamp(total))
+        .await
+    {
+        tracing::debug!(error = %e, "Could not record the sync progress");
+    }
+}
+
+/// Writes the number of deposit accounts read so far every few seconds, so a long read
+/// shows progress. Stopped by the caller when the read is done.
+fn spawn_progress_reporter(
+    state: AppState,
+    item_id: Uuid,
+    progress: Arc<ReadProgress>,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        loop {
+            set_phase(
+                &state,
+                item_id,
+                PHASE_READING_DEPOSITS,
+                progress.read(),
+                progress.total(),
+            )
+            .await;
+            tokio::time::sleep(PROGRESS_EVERY).await;
+        }
+    })
 }
 
 #[cfg(test)]

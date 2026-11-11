@@ -40,6 +40,29 @@ pub struct BranchLists {
     pub loans: Vec<MambuLoan>,
 }
 
+/// How far a list has been read. Shared with the task that reports progress, so reading
+/// does not wait for the database.
+#[derive(Default)]
+pub struct ReadProgress {
+    read: std::sync::atomic::AtomicU64,
+    total: std::sync::atomic::AtomicU64,
+}
+
+impl ReadProgress {
+    pub fn read(&self) -> u64 {
+        self.read.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    pub fn total(&self) -> u64 {
+        self.total.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    fn add_read(&self, n: u64) {
+        self.read.fetch_add(n, std::sync::atomic::Ordering::Relaxed);
+    }
+    fn set_total(&self, n: u64) {
+        self.total.store(n, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 fn from_values<T: DeserializeOwned>(values: Vec<serde_json::Value>) -> AppResult<Vec<T>> {
     values
         .into_iter()
@@ -260,28 +283,57 @@ impl MambuApiClient {
             .await
     }
 
-    /// The records of one branch. The first request gives the total, then the pages are
-    /// read a few at a time. When Mambu gives no total the pages are read one by one.
+    /// The records of one branch, all in memory. Use `search_pages_each` for a list that
+    /// can be large.
     async fn search_pages_by_key<T: DeserializeOwned + Send + 'static>(
         &self,
         path: &str,
         branch_field: &str,
         branch_key: &str,
     ) -> AppResult<Vec<T>> {
+        let mut done: Vec<(u64, Vec<T>)> = Vec::new();
+        self.search_pages_each(path, branch_field, branch_key, None, |page, rows| {
+            done.push((page, rows));
+            Ok(())
+        })
+        .await?;
+        done.sort_by_key(|(page, _)| *page);
+        Ok(done.into_iter().flat_map(|(_, rows)| rows).collect())
+    }
+
+    /// The records of one branch, handed over a page at a time so a large list is never
+    /// held as a whole. The first request gives the total, then the pages are read a few
+    /// at a time and passed to `each` as they arrive, in no fixed order, with their page
+    /// number. When Mambu gives no total the pages are read one by one. Returns the
+    /// number of records.
+    pub async fn search_pages_each<T, F>(
+        &self,
+        path: &str,
+        branch_field: &str,
+        branch_key: &str,
+        progress: Option<&ReadProgress>,
+        mut each: F,
+    ) -> AppResult<u64>
+    where
+        T: DeserializeOwned + Send + 'static,
+        F: FnMut(u64, Vec<T>) -> AppResult<()>,
+    {
         let body = serde_json::json!({
             "filterCriteria": [{"field": branch_field, "operator": "EQUALS", "value": branch_key}],
             "sortingCriteria": {"field": "encodedKey", "order": "ASC"},
         });
         let page_size = u64::from(self.page_size);
         let total = self.search_total(path, &body).await;
-        let mut all: Vec<T> = Vec::new();
+        if let (Some(progress), Some(total)) = (progress, total) {
+            progress.set_total(total);
+        }
+        let mut count: u64 = 0;
         match total {
             Some(0) => {}
             Some(total) if total > page_size => {
                 let pages = total.div_ceil(page_size);
                 let mut tasks: JoinSet<AppResult<(u64, Vec<T>)>> = JoinSet::new();
                 let mut next = 0u64;
-                let mut done: Vec<(u64, Vec<T>)> = Vec::new();
                 let start = |tasks: &mut JoinSet<AppResult<(u64, Vec<T>)>>, page: u64| {
                     let client = self.clone();
                     let body = body.clone();
@@ -297,35 +349,42 @@ impl MambuApiClient {
                     next += 1;
                 }
                 while let Some(finished) = tasks.join_next().await {
-                    done.push(finished.map_err(|e| {
+                    let (page, rows) = finished.map_err(|e| {
                         tracing::warn!(error = %e, path, "Mambu page task failed");
                         AppError::InternalServerError("Could not read the Mambu data".into())
-                    })??);
+                    })??;
                     if next < pages {
                         start(&mut tasks, next);
                         next += 1;
                     }
-                }
-                done.sort_by_key(|(page, _)| *page);
-                for (_, rows) in done {
-                    all.extend(rows);
+                    count += rows.len() as u64;
+                    if let Some(progress) = progress {
+                        progress.add_read(rows.len() as u64);
+                    }
+                    each(page, rows)?;
                 }
             }
             _ => {
                 let mut offset: u32 = 0;
+                let mut page = 0u64;
                 loop {
-                    let page = self.search_page::<T>(path, &body, offset).await?;
-                    let count = page.len() as u32;
-                    all.extend(page);
-                    if count < self.page_size {
+                    let rows = self.search_page::<T>(path, &body, offset).await?;
+                    let read = rows.len() as u32;
+                    count += u64::from(read);
+                    if let Some(progress) = progress {
+                        progress.add_read(u64::from(read));
+                    }
+                    each(page, rows)?;
+                    page += 1;
+                    if read < self.page_size {
                         break;
                     }
-                    offset += count;
+                    offset += read;
                 }
             }
         }
-        tracing::info!(path, records = all.len(), "Mambu list read");
-        Ok(all)
+        tracing::info!(path, records = count, "Mambu list read");
+        Ok(count)
     }
 
     async fn search_page<T: DeserializeOwned>(
@@ -400,6 +459,81 @@ impl MambuApiClient {
             deposits,
             loans,
         })
+    }
+
+    /// Clients and loans of a branch, read at the same time. Deposits are read with
+    /// `deposits_each`, because a large branch has far more of them.
+    pub async fn clients_and_loans(
+        &self,
+        branch_id: &str,
+    ) -> AppResult<(Vec<MambuClient>, Vec<MambuLoan>)> {
+        let Ok(key) = self.branch_key(branch_id).await else {
+            tracing::warn!("Branch key not readable, falling back to the plain lists");
+            let plain = |path: &'static str| {
+                let query = [
+                    ("branchId", branch_id.to_string()),
+                    ("detailsLevel", "FULL".to_string()),
+                ];
+                async move { self.get_pages::<serde_json::Value>(path, &query).await }
+            };
+            let (clients, loans) = tokio::try_join!(plain("/clients"), plain("/loans"))?;
+            return Ok((from_values(clients)?, from_values(loans)?));
+        };
+        tokio::try_join!(
+            self.search_pages_by_key::<MambuClient>("/clients", "branchKey", &key),
+            self.search_pages_by_key::<MambuLoan>("/loans", "assignedBranchKey", &key),
+        )
+    }
+
+    /// The deposit accounts of a branch, a page at a time. When the branch key cannot be
+    /// read the plain list is read in full and handed over as one page.
+    pub async fn deposits_each<F>(
+        &self,
+        branch_id: &str,
+        progress: Option<&ReadProgress>,
+        mut each: F,
+    ) -> AppResult<u64>
+    where
+        F: FnMut(Vec<MambuDeposit>) -> AppResult<()>,
+    {
+        let Ok(key) = self.branch_key(branch_id).await else {
+            tracing::warn!("Branch key not readable, falling back to the plain deposit list");
+            let all: Vec<serde_json::Value> = self
+                .get_pages(
+                    "/deposits",
+                    &[
+                        ("branchId", branch_id.to_string()),
+                        ("detailsLevel", "FULL".to_string()),
+                    ],
+                )
+                .await?;
+            let all: Vec<MambuDeposit> = from_values(all)?;
+            let count = all.len() as u64;
+            if let Some(progress) = progress {
+                progress.set_total(count);
+                progress.add_read(count);
+            }
+            each(all)?;
+            return Ok(count);
+        };
+        self.search_pages_each::<MambuDeposit, _>(
+            "/deposits",
+            "assignedBranchKey",
+            &key,
+            progress,
+            |_, rows| each(rows),
+        )
+        .await
+    }
+
+    /// How many deposit accounts a branch has, from one cheap request. Used to tell a
+    /// large branch from a small one before its data is read.
+    pub async fn deposit_count(&self, branch_id: &str) -> Option<u64> {
+        let key = self.branch_key(branch_id).await.ok()?;
+        let body = serde_json::json!({
+            "filterCriteria": [{"field": "assignedBranchKey", "operator": "EQUALS", "value": key}],
+        });
+        self.search_total("/deposits", &body).await
     }
 
     pub async fn branch_key(&self, branch_id: &str) -> AppResult<String> {

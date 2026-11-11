@@ -3,7 +3,9 @@ import {
   WHOLE_YEAR,
   cooperativeState,
   itemTone,
+  PHASE_LABELS,
   periodLabel,
+  progressCount,
   runTone,
   timeAgo,
 } from "./mambuFormat";
@@ -52,5 +54,22 @@ describe("mambuFormat", () => {
     expect(itemTone("skipped")).toBe("neutral");
     expect(runTone("running")).toBe("info");
     expect(runTone("completed")).toBe("success");
+  });
+
+  it("shows how far a read has come only when the total is known", () => {
+    expect(progressCount(83770, 126350)).toBe(" · 83,770 of 126,350");
+    expect(progressCount(0, 0)).toBe("");
+  });
+
+  it("has a label for every phase the backend reports", () => {
+    for (const phase of [
+      "waiting",
+      "reading_members",
+      "reading_ledger",
+      "reading_deposits",
+      "saving",
+    ]) {
+      expect(PHASE_LABELS[phase]).toBeTruthy();
+    }
   });
 });

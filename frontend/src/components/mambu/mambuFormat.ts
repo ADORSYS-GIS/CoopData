@@ -91,3 +91,16 @@ export const timeAgo = (iso: string | null | undefined, now: Date = new Date()):
   if (seconds < 86_400) return `${Math.floor(seconds / 3600)} h ago`;
   return `${Math.floor(seconds / 86_400)} days ago`;
 };
+
+/** What a running sync is doing, as the backend names it. */
+export const PHASE_LABELS: Record<string, string> = {
+  waiting: "Waiting for another large sync to finish",
+  reading_members: "Reading members and loans",
+  reading_ledger: "Reading the ledger",
+  reading_deposits: "Reading deposit accounts",
+  saving: "Saving the return",
+};
+
+/** " · 83,770 of 126,350" while a count is known, otherwise nothing. */
+export const progressCount = (read: number, total: number): string =>
+  total > 0 ? ` · ${read.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}` : "";
