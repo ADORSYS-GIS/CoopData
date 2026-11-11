@@ -135,7 +135,11 @@ pub async fn create_cooperative(
     if body.tin.as_deref().map_or(true, |v| v.trim().is_empty()) {
         return Err(AppError::BadRequest("TIN is required".into()));
     }
-    if body.address.as_deref().map_or(true, |v| v.trim().is_empty()) {
+    if body
+        .address
+        .as_deref()
+        .map_or(true, |v| v.trim().is_empty())
+    {
         return Err(AppError::BadRequest("Address is required".into()));
     }
 
