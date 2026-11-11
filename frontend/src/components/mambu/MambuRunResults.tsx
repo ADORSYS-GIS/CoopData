@@ -73,7 +73,7 @@ export const MambuRunResults: React.FC<{ runId: string }> = ({ runId }) => {
                     {t(`mambu.phase.${item.phase}`, {
                       defaultValue: PHASE_LABELS[item.phase] ?? item.phase,
                     })}
-                    {progressCount(item.records_read, item.records_total)}
+                    {progressCount(item.records_read, item.records_total, item.phase)}
                   </div>
                 )}
               </TableCell>

@@ -11,7 +11,7 @@ use sea_orm::Set;
 use crate::entities::mambu_ledger_month;
 use crate::error::AppResult;
 use crate::repositories::MambuRepository;
-use crate::services::mambu::client::MambuApiClient;
+use crate::services::mambu::client::{MambuApiClient, ReadProgress};
 use crate::services::mambu::journal::{self, CachedMonth, JournalTotals};
 use crate::services::mambu::mapper::{self, month_end};
 use crate::services::mambu::models::ReportItem;
@@ -32,6 +32,7 @@ pub struct LedgerInput {
     pub year_start_earnings: Option<Decimal>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn load_ledger(
     client: &MambuApiClient,
     repo: &MambuRepository,
@@ -40,10 +41,11 @@ pub async fn load_ledger(
     months: &[u32],
     whole_year: bool,
     as_of: NaiveDate,
+    progress: Option<&ReadProgress>,
 ) -> AppResult<LedgerInput> {
     let last = months.iter().copied().max().unwrap_or(1);
     let until = month_end(year, last).unwrap_or(as_of);
-    match journal_totals(client, repo, branch_id, until).await {
+    match journal_totals(client, repo, branch_id, until, progress).await {
         Ok(totals) if !totals.is_empty() => {
             let items = months
                 .iter()
@@ -137,6 +139,7 @@ async fn journal_totals(
     repo: &MambuRepository,
     branch_id: &str,
     until: NaiveDate,
+    progress: Option<&ReadProgress>,
 ) -> AppResult<JournalTotals> {
     let branch_key = client.branch_key(branch_id).await?;
     let (y, m, d) = journal::JOURNAL_START;
@@ -165,6 +168,17 @@ async fn journal_totals(
     let closed_end = first_of_month(Utc::now().date_naive() - Duration::days(CLOSED_AFTER_DAYS))
         - Duration::days(1);
     let keep_until = closed_end.min(until);
+    // The years still to be read, so a first sync of a SACCO with a long history shows how
+    // far it has come.
+    if let Some(progress) = progress {
+        let mut ahead = covered_through;
+        let mut years = 0;
+        while ahead < keep_until {
+            ahead = end_of_year(ahead + Duration::days(1)).min(keep_until);
+            years += 1;
+        }
+        progress.set_total(years);
+    }
     while covered_through < keep_until {
         let from = covered_through + Duration::days(1);
         let to = end_of_year(from).min(keep_until);
@@ -181,6 +195,9 @@ async fn journal_totals(
             totals.add_cached(row);
         }
         covered_through = to;
+        if let Some(progress) = progress {
+            progress.add_read(1);
+        }
     }
     if covered_through < until {
         journal::read_range(
@@ -218,7 +235,7 @@ pub async fn warm_cache(
 ) -> AppResult<()> {
     let closed_end = first_of_month(Utc::now().date_naive() - Duration::days(CLOSED_AFTER_DAYS))
         - Duration::days(1);
-    journal_totals(client, repo, branch_id, closed_end).await?;
+    journal_totals(client, repo, branch_id, closed_end, None).await?;
     tracing::info!(branch = %branch_id, through = %closed_end, "Mambu ledger cache is warm");
     Ok(())
 }

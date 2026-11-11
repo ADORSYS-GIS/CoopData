@@ -473,6 +473,33 @@ impl MambuRepository {
         Ok(())
     }
 
+    /// The numbers of a running sync as far as they are known, so the page shows the work
+    /// done instead of zeros. The final counts replace them when the SACCO has its result.
+    pub async fn set_item_counts(
+        &self,
+        item_id: Uuid,
+        members: Option<i32>,
+        savings_accounts: Option<i32>,
+        loans: Option<i32>,
+    ) -> AppResult<()> {
+        let mut update = mambu_sync_item::Entity::update_many();
+        if let Some(n) = members {
+            update = update.col_expr(mambu_sync_item::Column::Members, Expr::value(n));
+        }
+        if let Some(n) = savings_accounts {
+            update = update.col_expr(mambu_sync_item::Column::SavingsAccounts, Expr::value(n));
+        }
+        if let Some(n) = loans {
+            update = update.col_expr(mambu_sync_item::Column::Loans, Expr::value(n));
+        }
+        update
+            .filter(mambu_sync_item::Column::Id.eq(item_id))
+            .exec(&self.db)
+            .await
+            .map_err(AppError::DatabaseError)?;
+        Ok(())
+    }
+
     /// Marks the items of a run that never got a result as failed, so they stop
     /// blocking their cooperative.
     pub async fn fail_pending_items(&self, run_id: Uuid, reason: &str) -> AppResult<()> {

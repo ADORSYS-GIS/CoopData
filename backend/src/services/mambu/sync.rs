@@ -851,7 +851,22 @@ async fn sync_one(
     let (clients, loans) = client
         .clients_and_loans(&link.mambu_branch_id, loans_closed_since)
         .await?;
-    set_phase(state, item_id, PHASE_READING_LEDGER, 0, 0).await;
+    let _ = state
+        .mambu_repo
+        .set_item_counts(
+            item_id,
+            i32::try_from(clients.len()).ok(),
+            None,
+            i32::try_from(loans.len()).ok(),
+        )
+        .await;
+    let ledger_progress = Arc::new(ReadProgress::default());
+    let ledger_reporter = spawn_progress_reporter(
+        state.clone(),
+        item_id,
+        PHASE_READING_LEDGER,
+        ledger_progress.clone(),
+    );
     let ledger_input = ledger_source::load_ledger(
         client,
         &state.mambu_repo,
@@ -860,8 +875,11 @@ async fn sync_one(
         &months,
         whole_year,
         as_of,
+        Some(ledger_progress.as_ref()),
     )
-    .await?;
+    .await;
+    ledger_reporter.abort();
+    let ledger_input = ledger_input?;
     if ledger_input.failed_months.is_empty() && !has_ledger_data(&ledger_input.months) {
         return Ok(Outcome::Skipped(format!(
             "Mambu has no accounting data for this SACCO in {year}. Nothing was imported."
@@ -925,7 +943,12 @@ async fn sync_one(
     let mut fd_defaulted = 0usize;
     let mut ignored_deposits = 0usize;
     let progress = Arc::new(ReadProgress::default());
-    let reporter = spawn_progress_reporter(state.clone(), item_id, progress.clone());
+    let reporter = spawn_progress_reporter(
+        state.clone(),
+        item_id,
+        PHASE_READING_DEPOSITS,
+        progress.clone(),
+    );
     let mut handle_page = |page: Vec<MambuDeposit>| -> AppResult<()> {
         for d in &page {
             let product_id = d
@@ -1496,23 +1519,24 @@ async fn set_phase(state: &AppState, item_id: Uuid, phase: &str, read: u64, tota
     }
 }
 
-/// Writes the number of deposit accounts read so far every few seconds, so a long read
-/// shows progress. Stopped by the caller when the read is done.
+/// Writes how far a long read has come every few seconds: the records read, and while
+/// deposits are read also their number as the savings count. Stopped by the caller when
+/// the read is done.
 fn spawn_progress_reporter(
     state: AppState,
     item_id: Uuid,
+    phase: &'static str,
     progress: Arc<ReadProgress>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         loop {
-            set_phase(
-                &state,
-                item_id,
-                PHASE_READING_DEPOSITS,
-                progress.read(),
-                progress.total(),
-            )
-            .await;
+            set_phase(&state, item_id, phase, progress.read(), progress.total()).await;
+            if phase == PHASE_READING_DEPOSITS {
+                let _ = state
+                    .mambu_repo
+                    .set_item_counts(item_id, None, i32::try_from(progress.read()).ok(), None)
+                    .await;
+            }
             tokio::time::sleep(PROGRESS_EVERY).await;
         }
     })

@@ -58,10 +58,10 @@ impl ReadProgress {
     pub fn total(&self) -> u64 {
         self.total.load(std::sync::atomic::Ordering::Relaxed)
     }
-    fn add_read(&self, n: u64) {
+    pub fn add_read(&self, n: u64) {
         self.read.fetch_add(n, std::sync::atomic::Ordering::Relaxed);
     }
-    fn set_total(&self, n: u64) {
+    pub fn set_total(&self, n: u64) {
         self.total.store(n, std::sync::atomic::Ordering::Relaxed);
     }
 }

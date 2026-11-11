@@ -6,6 +6,7 @@ import {
   PHASE_LABELS,
   periodLabel,
   progressCount,
+  runDuration,
   runTone,
   timeAgo,
 } from "./mambuFormat";
@@ -71,5 +72,18 @@ describe("mambuFormat", () => {
     ]) {
       expect(PHASE_LABELS[phase]).toBeTruthy();
     }
+  });
+
+  it("counts the ledger in years", () => {
+    expect(progressCount(7, 11, "reading_ledger")).toBe(" · 7 of 11 years");
+    expect(progressCount(7, 11, "reading_deposits")).toBe(" · 7 of 11");
+  });
+
+  it("says how long a run took", () => {
+    const start = "2026-11-11T18:40:19Z";
+    expect(runDuration(start, "2026-11-11T18:40:49Z")).toBe("30 s");
+    expect(runDuration(start, "2026-11-11T18:45:31Z")).toBe("5 min 12 s");
+    expect(runDuration(start, "2026-11-11T19:44:19Z")).toBe("1 h 4 min");
+    expect(runDuration(start, null, new Date("2026-11-11T18:41:19Z"))).toBe("1 min 0 s");
   });
 });

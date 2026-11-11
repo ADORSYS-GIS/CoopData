@@ -3,9 +3,17 @@ import { History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card, StatusPill } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { MambuSyncRun } from "@/hooks/mambu/useMambu";
 import { MambuRunResults } from "./MambuRunResults";
-import { periodLabel, runTone, timeAgo } from "./mambuFormat";
+import { periodLabel, runDuration, runTone, startedLabel, timeAgo } from "./mambuFormat";
 
 interface Props {
   runs: MambuSyncRun[];
@@ -13,10 +21,14 @@ interface Props {
   focusRunId: string | null;
 }
 
+const FIRST_ROWS = 6;
+
 export const MambuRunHistory: React.FC<Props> = ({ runs, focusRunId }) => {
   const { t } = useTranslation();
   const [chosen, setChosen] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const selected = chosen ?? focusRunId ?? runs[0]?.id ?? null;
+  const shown = showAll ? runs : runs.slice(0, FIRST_ROWS);
 
   useEffect(() => {
     if (focusRunId) setChosen(focusRunId);
@@ -38,26 +50,61 @@ export const MambuRunHistory: React.FC<Props> = ({ runs, focusRunId }) => {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {runs.slice(0, 8).map((r) => (
-              <Button
-                key={r.id}
-                size="sm"
-                variant={selected === r.id ? "default" : "outline"}
-                onClick={() => setChosen(r.id)}
-              >
-                {periodLabel(r.reporting_year, r.month)}
-                <span className="ml-2 text-xs opacity-80">
-                  {r.started_by === "automatic" ? "auto · " : ""}
-                  {timeAgo(r.started_at)}
-                </span>
-                <span className="ml-2">
-                  <StatusPill tone={runTone(r.status)}>{r.status}</StatusPill>
-                </span>
-              </Button>
-            ))}
-          </div>
-          {selected && <MambuRunResults runId={selected} />}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("mambu.started", { defaultValue: "Started" })}</TableHead>
+                <TableHead>{t("mambu.period", { defaultValue: "Period" })}</TableHead>
+                <TableHead className="text-right">
+                  {t("mambu.saccos", { defaultValue: "SACCOs" })}
+                </TableHead>
+                <TableHead>{t("mambu.status", { defaultValue: "Status" })}</TableHead>
+                <TableHead>{t("mambu.took", { defaultValue: "Took" })}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {shown.map((r) => (
+                <TableRow
+                  key={r.id}
+                  data-state={selected === r.id ? "selected" : undefined}
+                  className="cursor-pointer"
+                  onClick={() => setChosen(r.id)}
+                >
+                  <TableCell>
+                    <div className="font-medium">{startedLabel(r.started_at)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {timeAgo(r.started_at)}
+                      {r.started_by === "automatic" &&
+                        ` · ${t("mambu.automatic", { defaultValue: "automatic" })}`}
+                    </div>
+                  </TableCell>
+                  <TableCell>{periodLabel(r.reporting_year, r.month)}</TableCell>
+                  <TableCell className="text-right">{r.total_saccos}</TableCell>
+                  <TableCell>
+                    <StatusPill tone={runTone(r.status)}>{r.status}</StatusPill>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {runDuration(r.started_at, r.finished_at)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {runs.length > FIRST_ROWS && (
+            <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
+              {showAll
+                ? t("mambu.showFewer", { defaultValue: "Show fewer" })
+                : t("mambu.showAll", {
+                    defaultValue: "Show all {{count}} syncs",
+                    count: runs.length,
+                  })}
+            </Button>
+          )}
+          {selected && (
+            <div className="border-t pt-4">
+              <MambuRunResults runId={selected} />
+            </div>
+          )}
         </div>
       )}
     </Card>

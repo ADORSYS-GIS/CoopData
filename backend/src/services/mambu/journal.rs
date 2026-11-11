@@ -211,6 +211,24 @@ impl JournalTotals {
 /// Pages of one date range that are asked for at the same time.
 const PARALLEL_PAGES: u64 = 4;
 
+/// The calendar months between two dates (inclusive), the first and last one cut to fit.
+fn month_ranges(from: NaiveDate, to: NaiveDate) -> Vec<(NaiveDate, NaiveDate)> {
+    let mut months = Vec::new();
+    let mut start = from;
+    while start <= to {
+        let (year, month) = (start.year(), start.month());
+        let next = if month == 12 {
+            NaiveDate::from_ymd_opt(year + 1, 1, 1)
+        } else {
+            NaiveDate::from_ymd_opt(year, month + 1, 1)
+        };
+        let Some(next) = next else { break };
+        months.push((start, (next - Duration::days(1)).min(to)));
+        start = next;
+    }
+    months
+}
+
 /// Reads the journal lines of a branch between two dates (inclusive) and adds them to
 /// `totals`. A range with too many lines is split in two first, and the pages of a range
 /// are read a few at a time.
@@ -232,7 +250,11 @@ async fn read_range_with(
     totals: &mut JournalTotals,
     split_above: u64,
 ) -> AppResult<()> {
-    let mut ranges = vec![(from, to)];
+    // Counting a range is cheap for a month (about 1.5 s) but slow for a big range (about
+    // 40 s for half a year of a large SACCO, and it can time out), so the range is read
+    // month by month and only a month that is still too big is split further.
+    let mut ranges = month_ranges(from, to);
+    ranges.reverse();
     while let Some((from, to)) = ranges.pop() {
         let count = client.journal_count(branch_key, from, to).await?;
         if count == 0 {
@@ -445,6 +467,26 @@ mod tests {
         let addr = listener.local_addr().unwrap();
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
         format!("http://{addr}")
+    }
+
+    #[test]
+    fn a_range_is_cut_into_calendar_months() {
+        let d = |y, m, day| NaiveDate::from_ymd_opt(y, m, day).unwrap();
+
+        let months = month_ranges(d(2025, 11, 15), d(2026, 2, 10));
+
+        assert_eq!(
+            months,
+            vec![
+                (d(2025, 11, 15), d(2025, 11, 30)),
+                (d(2025, 12, 1), d(2025, 12, 31)),
+                (d(2026, 1, 1), d(2026, 1, 31)),
+                (d(2026, 2, 1), d(2026, 2, 10)),
+            ]
+        );
+        assert_eq!(month_ranges(d(2024, 2, 1), d(2024, 2, 29)).len(), 1);
+        assert!(month_ranges(d(2026, 3, 2), d(2026, 3, 1)).is_empty());
+        assert_eq!(month_ranges(d(2015, 1, 1), d(2025, 12, 31)).len(), 132);
     }
 
     #[tokio::test]
