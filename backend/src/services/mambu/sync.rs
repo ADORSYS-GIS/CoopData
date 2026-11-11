@@ -718,7 +718,12 @@ async fn sync_one(
         _ => None,
     };
     set_phase(state, item_id, PHASE_READING_MEMBERS, 0, 0).await;
-    let (clients, loans) = client.clients_and_loans(&link.mambu_branch_id).await?;
+    // The mapper leaves out loans closed before the reporting month, so they are not read.
+    let loans_closed_since =
+        NaiveDate::from_ymd_opt(as_of.year(), as_of.month(), 1).unwrap_or(as_of);
+    let (clients, loans) = client
+        .clients_and_loans(&link.mambu_branch_id, loans_closed_since)
+        .await?;
     set_phase(state, item_id, PHASE_READING_LEDGER, 0, 0).await;
     let ledger_input = ledger_source::load_ledger(
         client,

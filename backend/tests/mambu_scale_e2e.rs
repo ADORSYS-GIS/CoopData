@@ -74,9 +74,15 @@ fn deposit(i: usize, clients: usize) -> Value {
     })
 }
 
+/// Every ninth loan is open; the rest were repaid and closed years ago, as in the biggest
+/// real SACCO (518,744 loans, 88% of them closed).
 fn loan(i: usize, clients: usize) -> Value {
+    let open = i % 9 == 0;
     json!({
-        "encodedKey": format!("l{i}"), "loanName": "Quick Loan", "accountState": "ACTIVE",
+        "encodedKey": format!("l{i}"), "loanName": "Quick Loan",
+        "accountState": if open { "ACTIVE" } else { "CLOSED" },
+        "accountSubState": if open { Value::Null } else { json!("REPAID") },
+        "closedDate": if open { Value::Null } else { json!("2024-03-01T00:00:00+02:00") },
         "accountHolderKey": format!("c{}", i % clients), "accountHolderType": "CLIENT",
         "loanAmount": 5000, "balances": {"principalBalance": 1200},
         "interestSettings": {"interestRate": 2.5, "interestChargeFrequency": "EVERY_MONTH"},
@@ -104,6 +110,35 @@ fn paged(
             ([("items-total", total.to_string())], Json(page))
         }
     })
+}
+
+/// Loan search that honours the two filters the sync uses: the open states, and a closed
+/// date on or after a day (none of the stand-in's closed loans qualify).
+fn loan_search(total: usize, clients: usize) -> axum::routing::MethodRouter {
+    post(
+        move |Query(q): Params, Json(body): Json<Value>| async move {
+            let criteria = body["filterCriteria"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default();
+            let has = |field: &str| criteria.iter().any(|c| c["field"] == field);
+            // (number of loans that match, index of the nth match)
+            let (count, nth): (usize, Box<dyn Fn(usize) -> usize + Send>) = if has("closedDate") {
+                (0, Box::new(|k| k))
+            } else if has("accountState") {
+                (total.div_ceil(9), Box::new(|k| k * 9))
+            } else {
+                (total, Box::new(|k| k))
+            };
+            let offset: usize = q.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+            let limit: usize = q.get("limit").and_then(|v| v.parse().ok()).unwrap_or(200);
+            let end = (offset + limit).min(count);
+            let page: Vec<Value> = (offset.min(count)..end)
+                .map(|k| loan(nth(k), clients))
+                .collect();
+            ([("items-total", count.to_string())], Json(page))
+        },
+    )
 }
 
 fn fake_big_mambu(clients: usize, deposits: usize, loans: usize) -> Router {
@@ -144,7 +179,7 @@ fn fake_big_mambu(clients: usize, deposits: usize, loans: usize) -> Router {
             "/deposits:search",
             paged(deposits, move |i| deposit(i, clients)),
         )
-        .route("/loans:search", paged(loans, move |i| loan(i, clients)))
+        .route("/loans:search", loan_search(loans, clients))
         .route("/glaccounts", get(|| async { Json(json!([])) }))
         .route("/depositproducts", get(|| async { Json(json!([])) }))
         .route("/loanproducts", get(|| async { Json(json!([])) }))
@@ -175,7 +210,7 @@ async fn a_very_large_branch_syncs_fast_and_within_the_memory_budget() {
         .try_init();
     let clients = env_usize("SCALE_CLIENTS", 10_000);
     let deposits = clients * env_usize("SCALE_DEPOSITS_PER_CLIENT", 13);
-    let loans = clients / 3;
+    let loans = env_usize("SCALE_LOANS", 518_744);
 
     let conn = sea_orm::Database::connect(&url).await.unwrap();
     for sql in [

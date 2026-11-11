@@ -292,7 +292,7 @@ impl MambuApiClient {
         branch_key: &str,
     ) -> AppResult<Vec<T>> {
         let mut done: Vec<(u64, Vec<T>)> = Vec::new();
-        self.search_pages_each(path, branch_field, branch_key, None, |page, rows| {
+        self.search_pages_each(path, branch_field, branch_key, &[], None, |page, rows| {
             done.push((page, rows));
             Ok(())
         })
@@ -311,6 +311,7 @@ impl MambuApiClient {
         path: &str,
         branch_field: &str,
         branch_key: &str,
+        extra_criteria: &[serde_json::Value],
         progress: Option<&ReadProgress>,
         mut each: F,
     ) -> AppResult<u64>
@@ -318,8 +319,12 @@ impl MambuApiClient {
         T: DeserializeOwned + Send + 'static,
         F: FnMut(u64, Vec<T>) -> AppResult<()>,
     {
+        let mut criteria = vec![
+            serde_json::json!({"field": branch_field, "operator": "EQUALS", "value": branch_key}),
+        ];
+        criteria.extend_from_slice(extra_criteria);
         let body = serde_json::json!({
-            "filterCriteria": [{"field": branch_field, "operator": "EQUALS", "value": branch_key}],
+            "filterCriteria": criteria,
             "sortingCriteria": {"field": "encodedKey", "order": "ASC"},
         });
         let page_size = u64::from(self.page_size);
@@ -463,9 +468,15 @@ impl MambuApiClient {
 
     /// Clients and loans of a branch, read at the same time. Deposits are read with
     /// `deposits_each`, because a large branch has far more of them.
+    ///
+    /// Of the loans only those the sync can use are asked for: the open ones and those
+    /// closed on or after `loans_closed_since`. A large branch has hundreds of thousands
+    /// of repaid loans from earlier years, which would take most of the time and memory
+    /// of the sync and are all left out of the return.
     pub async fn clients_and_loans(
         &self,
         branch_id: &str,
+        loans_closed_since: NaiveDate,
     ) -> AppResult<(Vec<MambuClient>, Vec<MambuLoan>)> {
         let Ok(key) = self.branch_key(branch_id).await else {
             tracing::warn!("Branch key not readable, falling back to the plain lists");
@@ -481,8 +492,65 @@ impl MambuApiClient {
         };
         tokio::try_join!(
             self.search_pages_by_key::<MambuClient>("/clients", "branchKey", &key),
-            self.search_pages_by_key::<MambuLoan>("/loans", "assignedBranchKey", &key),
+            self.open_or_recent_loans(&key, loans_closed_since),
         )
+    }
+
+    /// The open loans of a branch and those closed on or after `closed_since`, in two
+    /// searches (Mambu combines the criteria of one search with AND). If Mambu refuses
+    /// the filter the loans are read in full, as before.
+    async fn open_or_recent_loans(
+        &self,
+        branch_key: &str,
+        closed_since: NaiveDate,
+    ) -> AppResult<Vec<MambuLoan>> {
+        let open = serde_json::json!({
+            "field": "accountState", "operator": "IN",
+            "values": ["ACTIVE", "ACTIVE_IN_ARREARS", "LOCKED"],
+        });
+        let recently_closed = serde_json::json!({
+            "field": "closedDate", "operator": "AFTER_INCLUSIVE", "value": closed_since.to_string(),
+        });
+        let read = |criteria: serde_json::Value| async move {
+            let mut done: Vec<(u64, Vec<MambuLoan>)> = Vec::new();
+            self.search_pages_each(
+                "/loans",
+                "assignedBranchKey",
+                branch_key,
+                &[criteria],
+                None,
+                |page, rows| {
+                    done.push((page, rows));
+                    Ok(())
+                },
+            )
+            .await?;
+            done.sort_by_key(|(page, _)| *page);
+            Ok::<_, AppError>(
+                done.into_iter()
+                    .flat_map(|(_, rows)| rows)
+                    .collect::<Vec<_>>(),
+            )
+        };
+        match tokio::try_join!(read(open), read(recently_closed)) {
+            Ok((mut loans, closed)) => {
+                let mut seen: std::collections::HashSet<String> =
+                    loans.iter().map(|l| l.encoded_key.clone()).collect();
+                loans.extend(
+                    closed
+                        .into_iter()
+                        .filter(|l| seen.insert(l.encoded_key.clone())),
+                );
+                tracing::info!(loans = loans.len(), "Mambu open and recent loans read");
+                Ok(loans)
+            }
+            Err(e) if e.to_string().contains("status 400") => {
+                tracing::warn!(error = %e, "Mambu refused the loan filter, all loans are read");
+                self.search_pages_by_key::<MambuLoan>("/loans", "assignedBranchKey", branch_key)
+                    .await
+            }
+            Err(e) => Err(e),
+        }
     }
 
     /// The deposit accounts of a branch, a page at a time. When the branch key cannot be
@@ -520,6 +588,7 @@ impl MambuApiClient {
             "/deposits",
             "assignedBranchKey",
             &key,
+            &[],
             progress,
             |_, rows| each(rows),
         )
