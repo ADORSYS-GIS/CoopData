@@ -90,7 +90,21 @@ pub struct MambuApiClient {
     busy_delay: Duration,
     /// Requests in flight at once over every sync that shares this client.
     inflight: Arc<Semaphore>,
+    branch_names: Arc<tokio::sync::Mutex<BranchNameCache>>,
 }
+
+/// Branch names by branch id, kept so a screen that lists many cooperatives does not
+/// read the branches from Mambu each time. A failed read is not repeated for a minute,
+/// so a Mambu user that is locked or may not list branches is not asked again and again.
+#[derive(Default)]
+struct BranchNameCache {
+    names: std::collections::HashMap<String, String>,
+    read_at: Option<std::time::Instant>,
+    failed_at: Option<std::time::Instant>,
+}
+
+const BRANCH_NAMES_FRESH: Duration = Duration::from_secs(600);
+const BRANCH_NAMES_RETRY: Duration = Duration::from_secs(60);
 
 impl MambuApiClient {
     /// `None` while the integration is not configured.
@@ -125,6 +139,7 @@ impl MambuApiClient {
             report_poll_delay: REPORT_POLL_DELAY,
             busy_delay: BUSY_DELAY,
             inflight: Arc::new(Semaphore::new(config.mambu_max_inflight.clamp(1, 64))),
+            branch_names: Arc::default(),
         })
     }
 
@@ -139,7 +154,35 @@ impl MambuApiClient {
             report_poll_delay: Duration::from_millis(50),
             busy_delay: Duration::from_millis(20),
             inflight: Arc::new(Semaphore::new(8)),
+            branch_names: Arc::default(),
         }
+    }
+
+    /// The name of each branch by its id, for showing a branch to a person. Empty when
+    /// Mambu cannot list branches; callers then show the id.
+    pub async fn branch_names(&self) -> std::collections::HashMap<String, String> {
+        let mut cache = self.branch_names.lock().await;
+        let now = std::time::Instant::now();
+        let fresh = cache
+            .read_at
+            .is_some_and(|at| now.duration_since(at) < BRANCH_NAMES_FRESH);
+        let recently_failed = cache
+            .failed_at
+            .is_some_and(|at| now.duration_since(at) < BRANCH_NAMES_RETRY);
+        if !fresh && !recently_failed {
+            match self.branches().await {
+                Ok(list) => {
+                    cache.names = list.into_iter().map(|b| (b.id, b.name)).collect();
+                    cache.read_at = Some(now);
+                    cache.failed_at = None;
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Mambu branch names not readable, the ids are shown");
+                    cache.failed_at = Some(now);
+                }
+            }
+        }
+        cache.names.clone()
     }
 
     fn request(&self, builder: RequestBuilder) -> RequestBuilder {
@@ -880,6 +923,75 @@ mod tests {
         let clients = client.clients("ES0006").await.unwrap();
         assert_eq!(clients.len(), 3);
         assert_eq!(clients[2].id, "C");
+    }
+
+    #[tokio::test]
+    async fn branch_names_are_read_once_and_kept() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let hits = Arc::new(AtomicUsize::new(0));
+        let counted = hits.clone();
+        let app = Router::new().route(
+            "/branches",
+            get(move || {
+                let counted = counted.clone();
+                async move {
+                    counted.fetch_add(1, Ordering::SeqCst);
+                    Json(json!([
+                        {"encodedKey": "bk5", "id": "ES0005", "name": "Khutsalani SACCO"},
+                        {"encodedKey": "bk6", "id": "ES0006", "name": "Asikhutulisane SACCO"}
+                    ]))
+                }
+            }),
+        );
+        let base = serve(app).await;
+        let client = MambuApiClient::with_api_key(&base, "test", 200);
+
+        let first = client.branch_names().await;
+        let second = client.branch_names().await;
+
+        assert_eq!(
+            first.get("ES0005").map(String::as_str),
+            Some("Khutsalani SACCO")
+        );
+        assert_eq!(second.len(), 2);
+        assert_eq!(
+            hits.load(Ordering::SeqCst),
+            1,
+            "the second call uses the cache"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_failed_branch_read_gives_no_names_and_is_not_repeated_at_once() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let hits = Arc::new(AtomicUsize::new(0));
+        let counted = hits.clone();
+        let app = Router::new().route(
+            "/branches",
+            get(move || {
+                let counted = counted.clone();
+                async move {
+                    counted.fetch_add(1, Ordering::SeqCst);
+                    (
+                        axum::http::StatusCode::FORBIDDEN,
+                        Json(json!({"errors": [{"errorReason": "USER_IS_LOCKED"}]})),
+                    )
+                }
+            }),
+        );
+        let base = serve(app).await;
+        let client = MambuApiClient::with_api_key(&base, "test", 200);
+
+        let first = client.branch_names().await;
+        let hits_after_first = hits.load(Ordering::SeqCst);
+        let second = client.branch_names().await;
+
+        assert!(first.is_empty() && second.is_empty());
+        assert_eq!(
+            hits.load(Ordering::SeqCst),
+            hits_after_first,
+            "a locked Mambu user is not asked again within the retry delay"
+        );
     }
 
     #[tokio::test]

@@ -188,6 +188,8 @@ pub struct MambuBranchPreviewResponse {
 pub struct MambuCooperativeLinkResponse {
     pub cooperative_id: Uuid,
     pub mambu_branch_id: Option<String>,
+    /// Name of the branch in Mambu; empty when Mambu cannot list branches.
+    pub mambu_branch_name: Option<String>,
     /// Already synced once: the link can no longer be changed or removed.
     pub link_locked: bool,
 }
@@ -222,6 +224,8 @@ pub struct MambuApexCooperativeResponse {
     pub name: String,
     pub institution_type: Option<String>,
     pub mambu_branch_id: Option<String>,
+    /// Name of the branch in Mambu; empty when Mambu cannot list branches.
+    pub mambu_branch_name: Option<String>,
     /// Already synced once: the link can no longer be changed or removed.
     pub link_locked: bool,
     /// Takes part in the automatic monthly sync.

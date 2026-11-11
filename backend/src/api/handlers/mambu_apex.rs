@@ -73,6 +73,18 @@ fn present_run(mut run: MambuSyncRunResponse, own: usize) -> MambuSyncRunRespons
     run
 }
 
+/// Branch names for the screens, or none when there is nothing to show or Mambu cannot
+/// list branches (the screens then show the id).
+async fn branch_names_for(
+    state: &AppState,
+    needed: bool,
+) -> std::collections::HashMap<String, String> {
+    match (&state.mambu_client, needed) {
+        (Some(client), true) => client.branch_names().await,
+        _ => std::collections::HashMap::new(),
+    }
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/apex/mambu/status",
@@ -193,6 +205,7 @@ pub async fn apex_list_mambu_cooperatives(
         .pending_cooperative_ids(running_runs)
         .await?;
     let locked = state.mambu_repo.synced_cooperative_ids(ids.clone()).await?;
+    let branch_names = branch_names_for(&state, !links.is_empty()).await;
     let mut out: Vec<MambuApexCooperativeResponse> = cooperatives
         .into_iter()
         .map(|c| {
@@ -203,6 +216,7 @@ pub async fn apex_list_mambu_cooperatives(
                 name: c.display_name,
                 institution_type: c.institution_type.map(|t| t.as_str().to_string()),
                 mambu_branch_id: link.map(|l| l.mambu_branch_id.clone()),
+                mambu_branch_name: link.and_then(|l| branch_names.get(&l.mambu_branch_id).cloned()),
                 link_locked: locked.contains(&c.id),
                 auto_sync: link.map(|l| l.auto_sync).unwrap_or(false),
                 running: running.contains(&c.id),
@@ -235,8 +249,12 @@ pub async fn apex_get_mambu_link(
 ) -> AppResult<impl IntoResponse> {
     ensure_owned(&state, &claims, id).await?;
     let link = state.mambu_repo.find_link(id).await?;
+    let branch_names = branch_names_for(&state, link.is_some()).await;
     Ok(Json(MambuCooperativeLinkResponse {
         cooperative_id: id,
+        mambu_branch_name: link
+            .as_ref()
+            .and_then(|l| branch_names.get(&l.mambu_branch_id).cloned()),
         mambu_branch_id: link.map(|l| l.mambu_branch_id),
         link_locked: state.mambu_repo.has_synced(id).await?,
     }))
@@ -270,8 +288,10 @@ pub async fn apex_set_mambu_link(
         serde_json::json!({ "cooperative_id": id, "mambu_branch_id": branch_id }),
     )
     .await;
+    let branch_names = branch_names_for(&state, true).await;
     Ok(Json(MambuCooperativeLinkResponse {
         cooperative_id: id,
+        mambu_branch_name: branch_names.get(&branch_id).cloned(),
         mambu_branch_id: Some(branch_id),
         link_locked: false,
     }))

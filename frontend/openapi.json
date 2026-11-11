@@ -17745,13 +17745,13 @@
         "type": "object",
         "description": "A cooperative of the apex with its Mambu link and its latest sync.",
         "required": [
-          "auto_sync",
           "id",
-          "last_unmapped_accounts",
-          "last_warning_count",
-          "link_locked",
           "name",
-          "running"
+          "link_locked",
+          "auto_sync",
+          "running",
+          "last_warning_count",
+          "last_unmapped_accounts"
         ],
         "properties": {
           "auto_sync": {
@@ -17793,8 +17793,17 @@
             "type": "integer",
             "format": "int32"
           },
+          "link_locked": {
+            "type": "boolean",
+            "description": "Already synced once: the link can no longer be changed or removed."
+          },
           "mambu_branch_id": {
             "type": "string",
+            "nullable": true
+          },
+          "mambu_branch_name": {
+            "type": "string",
+            "description": "Name of the branch in Mambu; empty when Mambu cannot list branches.",
             "nullable": true
           },
           "name": {
@@ -17803,10 +17812,6 @@
           "running": {
             "type": "boolean",
             "description": "A sync of this cooperative is running now."
-          },
-          "link_locked": {
-            "type": "boolean",
-            "description": "Already synced once: the link can no longer be changed or removed."
           }
         }
       },
@@ -17841,13 +17846,18 @@
             "type": "string",
             "format": "uuid"
           },
+          "link_locked": {
+            "type": "boolean",
+            "description": "Already synced once: the link can no longer be changed or removed."
+          },
           "mambu_branch_id": {
             "type": "string",
             "nullable": true
           },
-          "link_locked": {
-            "type": "boolean",
-            "description": "Already synced once: the link can no longer be changed or removed."
+          "mambu_branch_name": {
+            "type": "string",
+            "description": "Name of the branch in Mambu; empty when Mambu cannot list branches.",
+            "nullable": true
           }
         }
       },
