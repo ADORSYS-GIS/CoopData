@@ -279,3 +279,38 @@ restarted, resumed the same run and ran out of memory again, for hours.
 The test `backend/tests/mambu_scale_e2e.rs` syncs a stand-in branch of that size and fails
 when memory grows by more than 600 MiB (`SCALE_PEAK_BUDGET_MIB`). Run it with
 `cargo test --release --test mambu_scale_e2e -- --ignored --nocapture`.
+
+## 22. The ledger is added up from the accounting report's movements
+
+The balance sheet of a return is built from what Mambu booked on each GL account, month by
+month. That used to be read from the general ledger (journal entries): for the largest SACCO
+that is millions of lines, read at about 1,300 a second, so a first sync took over an hour.
+
+Mambu's accounting report builds in about 4 seconds, and its **movements** (debits and
+credits of each account for a period) equal the sums of the journal line by line. Checked
+account by account against the cached journal sums: ES0006, 72 months, ES0005, 44 months,
+no difference above 1.00 (largest 0.00). Its opening and closing **balances** do not balance
+for older periods, which is why the sync never uses them: it adds up the movements itself.
+
+- Each closed month is read from the report and kept in the ledger cache (`mambu_ledger_months`).
+- A calendar year with no movement is skipped with one report (2015 to 2020 of the largest SACCO).
+- A report whose total debits and credits differ by more than 1.00 is refused and that month is
+  read from the journal instead. If the report cannot be built at all, the journal is used for
+  the rest, as before.
+- The months that are not closed yet (the last 45 days) are read from the report each time.
+- First read of the largest SACCO: about 5 minutes instead of over an hour. Later syncs read only
+  the recent months.
+- The background warm-up (every 6 hours, and when a SACCO is linked) uses the same path.
+
+## 23. A small gap in Mambu's books no longer empties the balance sheet
+
+Every month of the ledger is checked against the accounting equation (assets = liabilities
++ equity + earnings). Before, any difference above 5 SZL left the whole ledger empty. In the
+largest SACCO one posting with only one side (a 100.00 debit on account 5021, booked on
+30 December 2024) put every later month 100.00 out, so the 2026 return had no balance sheet.
+
+The accepted difference is now 0.001% of the SACCO's total assets, never below 5 SZL and never
+above 1,000 SZL (`balance_tolerance` in `mapper.rs`). A difference above 1.00 that is accepted is
+always reported (warning `LEDGER_SMALL_GAP`, status flagged) and stays in the figures: the
+statement is off by the same amount. A real error, or the same gap in a small SACCO, still
+leaves the ledger empty.

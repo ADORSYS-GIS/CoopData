@@ -1046,7 +1046,10 @@
           "loans": "Prêts",
           "fixed_deposits": "Dépôts à terme",
           "farm_coop": "Coop agricole"
-        }
+        },
+        "pageRange": "{{from}}–{{to}} sur {{total}}",
+        "previousPage": "Précédent",
+        "nextPage": "Suivant"
       },
       "documentViewer": {
         "loading": "Chargement du document…",

@@ -1172,13 +1172,29 @@ async fn sync_one(
         LedgerSource::Journal => warnings.push(SyncWarning::info(
             "LEDGER_FROM_JOURNAL",
             ledgers.len(),
-            "The ledger was rebuilt from the Mambu general ledger (journal entries), because Mambu's accounting reports do not balance for older periods.",
+            "The ledger was rebuilt by adding up what Mambu booked on each account (debits and credits, from its accounting report or its general ledger), because the opening and closing balances in Mambu's accounting reports do not balance for older periods.",
         )),
         LedgerSource::Reports => warnings.push(SyncWarning::warning(
             "LEDGER_FROM_REPORTS",
             ledgers.len(),
             "The Mambu general ledger could not be read, so Mambu's accounting reports were used. Months where the report does not balance are left empty.",
         )),
+    }
+    let months_with_gap: Vec<rust_decimal::Decimal> = ledgers
+        .iter()
+        .map(|(_, l)| l.gap)
+        .filter(|gap| !gap.is_zero())
+        .collect();
+    if let Some(largest) = months_with_gap.iter().max_by_key(|gap| gap.abs()) {
+        warnings.push(SyncWarning::warning(
+            "LEDGER_SMALL_GAP",
+            months_with_gap.len(),
+            &format!(
+                "In {} month(s) the ledger is off by {} SZL: assets differ from liabilities, equity and earnings by that amount, because Mambu's own books hold a posting with only one side. The difference is below the limit (0.001% of the assets, at most 1,000 SZL), so the ledger was imported with it. Correct the entry in Mambu to remove the difference.",
+                months_with_gap.len(),
+                largest.round_dp(2)
+            ),
+        ));
     }
     let unmapped_codes: HashSet<&str> = ledgers
         .iter()

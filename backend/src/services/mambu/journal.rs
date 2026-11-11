@@ -216,7 +216,7 @@ impl JournalTotals {
 const PARALLEL_PAGES: u64 = 8;
 
 /// The calendar months between two dates (inclusive), the first and last one cut to fit.
-fn month_ranges(from: NaiveDate, to: NaiveDate) -> Vec<(NaiveDate, NaiveDate)> {
+pub fn month_ranges(from: NaiveDate, to: NaiveDate) -> Vec<(NaiveDate, NaiveDate)> {
     let mut months = Vec::new();
     let mut start = from;
     while start <= to {
