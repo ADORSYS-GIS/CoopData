@@ -1118,7 +1118,7 @@ export const SubmissionDetailPage: React.FC = () => {
             wasDelegatedToCoop &&
             submission.edited_by !== currentUserId && (
               <Card
-                title="Delegated to Cooperative"
+                title={replaceOrgTerms("Delegated to Cooperative")}
                 subtitle={
                   submission.edited_by_name
                     ? `Currently being edited by: ${submission.edited_by_name}`

@@ -3,41 +3,40 @@ import { describe, expect, it } from "vitest";
 import { consolidatedFilename, individualFilename, withLanguage } from "@/lib/report-filename";
 
 describe("consolidatedFilename", () => {
-  it("names the apex and the level", () => {
+  it("names the apex and calls its report regional", () => {
     expect(
       consolidatedFilename({ level: "apex", entityName: "Southern SACCO Association", year: 2026 }),
-    ).toBe("southern_sacco_association_apex_report_2026.pdf");
+    ).toBe("southern_sacco_association_regional_report_2026.pdf");
   });
 
-  it("names the federation and the level", () => {
+  it("names the federation and calls its report commissional", () => {
     expect(
       consolidatedFilename({
         level: "federation",
         entityName: "Eswatini Federation",
         year: "2025",
       }),
-    ).toBe("eswatini_federation_federation_report_2025.pdf");
+    ).toBe("eswatini_federation_commissional_report_2025.pdf");
   });
 
-  it("names the national report without an entity", () => {
-    expect(consolidatedFilename({ level: "ministry", year: 2026 })).toBe(
+  it("names the national report without an organisation", () => {
+    expect(consolidatedFilename({ level: "ministry", entityName: "Ignored", year: 2026 })).toBe(
       "ministry_national_report_2026.pdf",
     );
   });
 
-  it("falls back to the level when the entity name is unknown", () => {
-    expect(consolidatedFilename({ level: "apex", year: 2026 })).toBe("apex_report_2026.pdf");
+  it("keeps only the level when the organisation name is unknown", () => {
+    expect(consolidatedFilename({ level: "apex", year: 2026 })).toBe("regional_report_2026.pdf");
+    expect(consolidatedFilename({ level: "federation" })).toBe("commissional_report.pdf");
   });
 
   it("strips accents and punctuation", () => {
     expect(
       consolidatedFilename({ level: "apex", entityName: "Ndlovu & Fils (Sud)", year: 2026 }),
-    ).toBe("ndlovu_fils_sud_apex_report_2026.pdf");
+    ).toBe("ndlovu_fils_sud_regional_report_2026.pdf");
   });
-});
 
-describe("consolidatedFilename for questionnaire reports", () => {
-  it("marks the method so the two reports never share a name", () => {
+  it("marks the questionnaire method so the two reports never share a name", () => {
     expect(
       consolidatedFilename({
         level: "apex",
@@ -45,7 +44,7 @@ describe("consolidatedFilename for questionnaire reports", () => {
         year: 2026,
         method: "questionnaire",
       }),
-    ).toBe("southern_sacco_apex_questionnaire_report_2026.pdf");
+    ).toBe("southern_sacco_regional_questionnaire_report_2026.pdf");
     expect(consolidatedFilename({ level: "ministry", year: 2026, method: "questionnaire" })).toBe(
       "ministry_national_questionnaire_report_2026.pdf",
     );

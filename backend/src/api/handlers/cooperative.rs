@@ -132,6 +132,17 @@ pub async fn create_cooperative(
     body.validate()
         .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
 
+    if body.tin.as_deref().map_or(true, |v| v.trim().is_empty()) {
+        return Err(AppError::BadRequest("TIN is required".into()));
+    }
+    if body
+        .address
+        .as_deref()
+        .map_or(true, |v| v.trim().is_empty())
+    {
+        return Err(AppError::BadRequest("Address is required".into()));
+    }
+
     // Validate enum fields
     if !VALID_COOP_TYPES.contains(&body.institution_type.as_str()) {
         return Err(AppError::BadRequest(format!(

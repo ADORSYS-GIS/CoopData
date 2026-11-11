@@ -9,6 +9,7 @@ import {
   groupBy,
   money,
   pointChange,
+  reportedKpiValue,
   sumKpi,
   toneOf,
 } from "@/pages/shared/print/consolidated/stats";
@@ -40,6 +41,19 @@ describe("consolidated report stats", () => {
     ];
 
     expect(avgKpi(coops, "par30")).toBe(3);
+  });
+
+  it("leaves out a ratio the backend marked as not reported instead of counting it as 0", () => {
+    const notReported = {
+      cooperative_id: "e",
+      name: "e",
+      has_data: true,
+      kpis: { par30: { value: 0, formatted: "—" } },
+    } as unknown as CoopKpiRow;
+
+    expect(avgKpi([coop("a", true, { par30: 4 }), notReported], "par30")).toBe(4);
+    expect(reportedKpiValue(notReported, "par30")).toBeNull();
+    expect(reportedKpiValue(coop("a", true, { par30: 0 }), "par30")).toBe(0);
   });
 
   it("returns null when nobody reported the KPI", () => {

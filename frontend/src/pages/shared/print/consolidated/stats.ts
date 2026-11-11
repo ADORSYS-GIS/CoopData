@@ -1,4 +1,5 @@
 import { roundHalfUp } from "@/lib/currency";
+import { isReportedKpi } from "@/lib/kpi-reported";
 import type { CoopKpiRow, NationalOverviewResponse } from "@/hooks/analytics/useNationalOverview";
 import { fixed, grouped, percentSign, percentText, tr } from "@/pages/shared/print/tpl/i18n";
 
@@ -29,11 +30,20 @@ export const totalsOf = (coops: readonly CoopKpiRow[]): Totals => ({
   members: sumMembers(coops),
 });
 
+/**
+ * Value of a ratio a cooperative reported. The backend sends 0 with a dash for a ratio whose
+ * inputs were not reported, so that 0 must never be counted as a real figure.
+ */
+export const reportedKpiValue = (coop: CoopKpiRow, name: string): number | null => {
+  const kpi = coop.kpis?.[name];
+  return coop.has_data && kpi !== undefined && isReportedKpi(kpi) ? kpi.value : null;
+};
+
 /** Simple average across the cooperatives that reported the KPI. */
 export const avgKpi = (coops: readonly CoopKpiRow[], name: string): number | null => {
   const values = coops
-    .filter((coop) => coop.has_data && coop.kpis?.[name] !== undefined)
-    .map((coop) => coop.kpis[name]?.value ?? 0);
+    .map((coop) => reportedKpiValue(coop, name))
+    .filter((value): value is number => value !== null);
   return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
 };
 
