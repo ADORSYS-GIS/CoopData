@@ -14,6 +14,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use axum::extract::Query;
+use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::mambu::{scalar, serve, wait_for_run_within};
@@ -122,6 +123,35 @@ fn loan_search(total: usize, clients: usize) -> axum::routing::MethodRouter {
                 .cloned()
                 .unwrap_or_default();
             let has = |field: &str| criteria.iter().any(|c| c["field"] == field);
+            // Like the real Mambu, refuse a value that is not an account state.
+            const STATES: [&str; 6] = [
+                "PARTIAL_APPLICATION",
+                "PENDING_APPROVAL",
+                "APPROVED",
+                "ACTIVE",
+                "ACTIVE_IN_ARREARS",
+                "CLOSED",
+            ];
+            let bad_state = criteria.iter().any(|c| {
+                c["field"] == "accountState"
+                    && c["values"].as_array().is_some_and(|values| {
+                        values
+                            .iter()
+                            .any(|v| !STATES.contains(&v.as_str().unwrap_or("")))
+                    })
+            });
+            if bad_state {
+                return (
+                    axum::http::StatusCode::BAD_REQUEST,
+                    [("items-total", "0".to_string())],
+                    Json(json!({"errors": [{"errorReason": "INVALID_FILTER_VALUE"}]})),
+                )
+                    .into_response();
+            }
+            // A page of every loan of the branch is what stopped the server.
+            if !has("accountState") && !has("closedDate") && q.contains_key("offset") {
+                UNFILTERED_LOAN_PAGES.fetch_add(1, Ordering::SeqCst);
+            }
             // (number of loans that match, index of the nth match)
             let (count, nth): (usize, Box<dyn Fn(usize) -> usize + Send>) = if has("closedDate") {
                 (0, Box::new(|k| k))
@@ -136,10 +166,18 @@ fn loan_search(total: usize, clients: usize) -> axum::routing::MethodRouter {
             let page: Vec<Value> = (offset.min(count)..end)
                 .map(|k| loan(nth(k), clients))
                 .collect();
-            ([("items-total", count.to_string())], Json(page))
+            (
+                axum::http::StatusCode::OK,
+                [("items-total", count.to_string())],
+                Json(page),
+            )
+                .into_response()
         },
     )
 }
+
+/// Pages of unfiltered loans that were asked for.
+static UNFILTERED_LOAN_PAGES: AtomicU64 = AtomicU64::new(0);
 
 fn fake_big_mambu(clients: usize, deposits: usize, loans: usize) -> Router {
     let gl = |code: &str, kind: &str| {
@@ -291,6 +329,11 @@ async fn a_very_large_branch_syncs_fast_and_within_the_memory_budget() {
         items[0].error
     );
     assert_eq!(items[0].members as usize, clients);
+    assert_eq!(
+        UNFILTERED_LOAN_PAGES.load(Ordering::SeqCst),
+        0,
+        "the sync read every loan of the branch instead of the open and recent ones"
+    );
     let rows = scalar(&conn, "SELECT count(*) FROM savings_accounts").await;
     assert!(rows > 0);
     let budget = env_usize("SCALE_PEAK_BUDGET_MIB", 600) as u64;

@@ -20,6 +20,9 @@ const MAX_ATTEMPTS: u32 = 6;
 const PAGE_ATTEMPTS: u32 = 3;
 /// Pages of one list asked for at the same time.
 const SEARCH_PARALLEL_PAGES: u64 = 4;
+/// A branch with more loans than this is not read in full when Mambu refuses the loan
+/// filter: its raw loans would not fit in memory.
+const LOANS_READ_IN_FULL_UP_TO: u64 = 50_000;
 const REPORT_POLLS: u32 = 120;
 /// Mambu builds one accounting report at a time for the whole tenant and refuses a new
 /// one with ANOTHER_TASK_IN_PROGRESS. The client waits and asks again for up to 10 minutes.
@@ -506,7 +509,7 @@ impl MambuApiClient {
     ) -> AppResult<Vec<MambuLoan>> {
         let open = serde_json::json!({
             "field": "accountState", "operator": "IN",
-            "values": ["ACTIVE", "ACTIVE_IN_ARREARS", "LOCKED"],
+            "values": ["ACTIVE", "ACTIVE_IN_ARREARS"],
         });
         let recently_closed = serde_json::json!({
             "field": "closedDate", "operator": "AFTER_INCLUSIVE", "value": closed_since.to_string(),
@@ -545,9 +548,29 @@ impl MambuApiClient {
                 Ok(loans)
             }
             Err(e) if e.to_string().contains("status 400") => {
-                tracing::warn!(error = %e, "Mambu refused the loan filter, all loans are read");
-                self.search_pages_by_key::<MambuLoan>("/loans", "assignedBranchKey", branch_key)
-                    .await
+                // Reading every loan of a very large branch is what stopped the server,
+                // so it is only done for a branch small enough to hold.
+                let all = serde_json::json!({
+                    "filterCriteria": [{"field": "assignedBranchKey", "operator": "EQUALS", "value": branch_key}],
+                    "sortingCriteria": {"field": "encodedKey", "order": "ASC"},
+                });
+                match self.search_total("/loans", &all).await {
+                    Some(total) if total <= LOANS_READ_IN_FULL_UP_TO => {
+                        tracing::warn!(error = %e, total, "Mambu refused the loan filter, all loans are read");
+                        self.search_pages_by_key::<MambuLoan>(
+                            "/loans",
+                            "assignedBranchKey",
+                            branch_key,
+                        )
+                        .await
+                    }
+                    _ => {
+                        tracing::error!(error = %e, "Mambu refused the loan filter");
+                        Err(AppError::InternalServerError(
+                            "Mambu refused the loan filter and this branch has too many loans to read in full".into(),
+                        ))
+                    }
+                }
             }
             Err(e) => Err(e),
         }
