@@ -15,7 +15,7 @@ use crate::error::{AppError, AppResult};
 use crate::repositories::MambuRepository;
 use crate::services::mambu::client::{MambuApiClient, ReadProgress};
 use crate::services::mambu::journal::{self, CachedMonth, JournalTotals};
-use crate::services::mambu::mapper::{self, month_end};
+use crate::services::mambu::mapper::{self, month_end, to_decimal};
 use crate::services::mambu::models::ReportItem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -141,6 +141,75 @@ pub async fn cache_is_current(repo: &MambuRepository, branch_id: &str) -> bool {
     }
 }
 
+/// What an account moved in a period, as Mambu's accounting report gives it.
+struct Movement {
+    gl_code: String,
+    account_type: String,
+    name: Option<String>,
+    debit: Decimal,
+    credit: Decimal,
+}
+
+/// The debits and credits of every account of a branch in a period, from the accounting
+/// report. Only these movements are used: Mambu's report builds in a few seconds and its
+/// movements equal the sums of the journal line by line (checked on every account of the
+/// largest SACCO for 2021 to 2024), while its opening and closing balances do not balance.
+/// A report whose debits and credits differ by more than 1.00 is refused, so a wrong one
+/// is never used.
+async fn report_movements(
+    client: &MambuApiClient,
+    branch_id: &str,
+    from: NaiveDate,
+    to: NaiveDate,
+) -> AppResult<Vec<Movement>> {
+    let report = client.accounting_report(branch_id, from, to).await?;
+    let (mut debits, mut credits) = (Decimal::ZERO, Decimal::ZERO);
+    let mut movements = Vec::new();
+    for item in report.items {
+        if matches!(item.gl_account.usage.as_deref(), Some(usage) if usage != "DETAIL") {
+            continue;
+        }
+        let debit = to_decimal(item.amounts.debits);
+        let credit = to_decimal(item.amounts.credits);
+        if debit.is_zero() && credit.is_zero() {
+            continue;
+        }
+        debits += debit;
+        credits += credit;
+        movements.push(Movement {
+            gl_code: item.gl_account.gl_code,
+            account_type: item.gl_account.account_type,
+            name: item.gl_account.name,
+            debit,
+            credit,
+        });
+    }
+    if (debits - credits).abs() > Decimal::ONE {
+        return Err(AppError::InternalServerError(
+            "A Mambu accounting report does not balance".into(),
+        ));
+    }
+    Ok(movements)
+}
+
+fn as_month_rows(movements: Vec<Movement>, month_start: NaiveDate) -> Vec<CachedMonth> {
+    movements
+        .into_iter()
+        .map(|m| CachedMonth {
+            month_start,
+            gl_code: m.gl_code,
+            account_type: m.account_type,
+            name: m.name,
+            debit: m.debit,
+            credit: m.credit,
+        })
+        .collect()
+}
+
+fn last_day_of_year(date: NaiveDate) -> NaiveDate {
+    NaiveDate::from_ymd_opt(date.year(), 12, 31).unwrap_or(date)
+}
+
 fn first_of_month(date: NaiveDate) -> NaiveDate {
     NaiveDate::from_ymd_opt(date.year(), date.month(), 1).unwrap_or(date)
 }
@@ -202,7 +271,57 @@ async fn journal_totals(
         }
         progress.set_total(months);
     }
+    let mut use_reports = true;
     while covered_through < keep_until {
+        if use_reports {
+            let from = covered_through + Duration::days(1);
+            // A year in which nothing was booked is skipped with a single report.
+            let year_end = last_day_of_year(from);
+            if from.month() == 1 && from.day() == 1 && year_end <= keep_until {
+                match report_movements(client, branch_id, from, year_end).await {
+                    Ok(movements) if movements.is_empty() => {
+                        let _ = repo
+                            .save_ledger_cache(branch_id, year_end, Vec::new())
+                            .await;
+                        covered_through = year_end;
+                        if let Some(progress) = progress {
+                            progress.add_read(12);
+                        }
+                        continue;
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::warn!(branch = %branch_id, error = %e, "Mambu accounting report not usable, the journal is read");
+                        use_reports = false;
+                        continue;
+                    }
+                }
+            }
+            let to = end_of_month(from).min(keep_until);
+            match report_movements(client, branch_id, from, to).await {
+                Ok(movements) => {
+                    let rows = as_month_rows(movements, first_of_month(from));
+                    if let Err(e) = repo
+                        .save_ledger_cache(branch_id, to, to_models(branch_id, &rows))
+                        .await
+                    {
+                        tracing::warn!(branch = %branch_id, error = %e, "Mambu ledger cache not saved");
+                    }
+                    for row in rows {
+                        totals.add_cached(row);
+                    }
+                    covered_through = to;
+                    if let Some(progress) = progress {
+                        progress.add_read(1);
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(branch = %branch_id, error = %e, "Mambu accounting report not usable, the journal is read");
+                    use_reports = false;
+                }
+            }
+            continue;
+        }
         // A few months are read at the same time: the small months are mostly waiting for
         // Mambu, so they overlap well, and the shared limit on requests in flight keeps
         // the big ones from asking for more than Mambu serves quickly.
@@ -251,14 +370,27 @@ async fn journal_totals(
         }
     }
     if covered_through < until {
-        journal::read_range(
-            client,
-            &branch_key,
-            covered_through + Duration::days(1),
-            until,
-            &mut totals,
-        )
-        .await?;
+        // The months that are not closed yet are not kept; they are read each time.
+        let mut journal_from = covered_through + Duration::days(1);
+        if use_reports {
+            for (from, to) in journal::month_ranges(journal_from, until) {
+                match report_movements(client, branch_id, from, to).await {
+                    Ok(movements) => {
+                        for row in as_month_rows(movements, first_of_month(from)) {
+                            totals.add_cached(row);
+                        }
+                        journal_from = to + Duration::days(1);
+                    }
+                    Err(e) => {
+                        tracing::warn!(branch = %branch_id, error = %e, "Mambu accounting report not usable, the journal is read");
+                        break;
+                    }
+                }
+            }
+        }
+        if journal_from <= until {
+            journal::read_range(client, &branch_key, journal_from, until, &mut totals).await?;
+        }
     }
     Ok(totals)
 }
@@ -288,4 +420,96 @@ pub async fn warm_cache(
     journal_totals(client, repo, branch_id, closed_end, None).await?;
     tracing::info!(branch = %branch_id, through = %closed_end, "Mambu ledger cache is warm");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::extract::Path;
+    use axum::routing::{get, post};
+    use axum::{Json, Router};
+    use serde_json::{json, Value};
+
+    async fn serve(app: Router) -> String {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        format!("http://{addr}")
+    }
+
+    fn account(code: &str, usage: &str, debits: f64, credits: f64) -> Value {
+        json!({"glAccount": {"glCode": code, "name": code, "type": "ASSET", "usage": usage},
+               "amounts": {"debits": debits, "credits": credits, "openingBalance": 99.0, "closingBalance": 77.0}})
+    }
+
+    async fn client_for(items: Vec<Value>) -> MambuApiClient {
+        let app =
+            Router::new()
+                .route(
+                    "/accounting/reports",
+                    post(|| async { Json(json!({"reportKey": "rk", "status": "QUEUED"})) }),
+                )
+                .route(
+                    "/accounting/reports/{key}",
+                    get(move |Path(_): Path<String>| {
+                        let items = items.clone();
+                        async move {
+                            Json(json!({"reportKey": "rk", "status": "COMPLETE", "items": items}))
+                        }
+                    }),
+                );
+        MambuApiClient::with_api_key(&serve(app).await, "test", 200)
+    }
+
+    #[tokio::test]
+    async fn the_movements_of_a_balanced_report_are_used_and_its_balances_are_ignored() {
+        let client = client_for(vec![
+            account("1101", "DETAIL", 150.0, 0.0),
+            account("2101", "DETAIL", 0.0, 150.0),
+            account("1000", "HEADER", 999.0, 999.0),
+            account("9999", "DETAIL", 0.0, 0.0),
+        ])
+        .await;
+        let d = |m| NaiveDate::from_ymd_opt(2025, m, 1).unwrap();
+
+        let movements = report_movements(&client, "ES0005", d(3), d(3))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            movements.len(),
+            2,
+            "the header and the idle account are left out"
+        );
+        assert_eq!(movements[0].gl_code, "1101");
+        assert_eq!(movements[0].debit, Decimal::new(15000, 2));
+        let rows = as_month_rows(movements, d(3));
+        assert!(rows.iter().all(|r| r.month_start == d(3)));
+    }
+
+    #[tokio::test]
+    async fn a_report_whose_debits_and_credits_differ_is_refused() {
+        let client = client_for(vec![
+            account("1101", "DETAIL", 150.0, 0.0),
+            account("2101", "DETAIL", 0.0, 120.0),
+        ])
+        .await;
+        let d = NaiveDate::from_ymd_opt(2025, 3, 1).unwrap();
+
+        let result = report_movements(&client, "ES0005", d, d).await;
+
+        assert!(result.is_err(), "an unbalanced report must not be used");
+    }
+
+    #[test]
+    fn the_last_closed_day_is_the_end_of_a_month_at_least_45_days_back() {
+        let day = |y, m, d| NaiveDate::from_ymd_opt(y, m, d).unwrap();
+
+        assert_eq!(last_closed_day(day(2026, 11, 11)), day(2026, 8, 31));
+        assert_eq!(last_closed_day(day(2026, 2, 20)), day(2025, 12, 31));
+        assert_eq!(end_of_month(day(2024, 2, 10)), day(2024, 2, 29));
+        assert_eq!(last_day_of_year(day(2023, 6, 1)), day(2023, 12, 31));
+    }
 }
