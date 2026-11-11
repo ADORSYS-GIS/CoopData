@@ -637,7 +637,7 @@ export const SubmissionDetailPage: React.FC = () => {
                     {submission.created_by_role === "apex" && submission.created_by_name && (
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary/80 bg-primary/5 border border-primary/10 rounded-lg px-2 py-1">
                         <span className="size-1.5 rounded-full bg-primary" />
-                        {replaceOrgTerms(`Created by ${submission.created_by_name} (Apex)`)}
+                        {`Created by ${submission.created_by_name} (${levelName("apex")})`}
                       </span>
                     )}
                     <SubmissionAccessBadge access={access} />
