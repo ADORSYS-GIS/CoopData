@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMambuSync, type MambuSyncItem } from "@/hooks/mambu/useMambu";
+import { CancelSyncButton } from "./CancelSyncButton";
 import { PHASE_LABELS, itemTone, periodLabel, progressCount, runTone } from "./mambuFormat";
 
 const warningText = (item: MambuSyncItem): string =>
@@ -39,6 +40,11 @@ export const MambuRunResults: React.FC<{ runId: string }> = ({ runId }) => {
           {t("mambu.saccos", { defaultValue: "SACCOs" })}
         </span>
         {run.error && <span className="text-destructive">{run.error}</span>}
+        {run.status === "running" && (
+          <span className="ml-auto">
+            <CancelSyncButton runId={run.id} />
+          </span>
+        )}
       </div>
       <Table>
         <TableHeader>

@@ -33,6 +33,7 @@ pub fn mambu_routes() -> Router<AppState> {
             post(h::apex_start_mambu_sync).get(h::apex_list_mambu_syncs),
         )
         .route("/mambu/syncs/{id}", get(h::apex_get_mambu_sync))
+        .route("/mambu/syncs/{id}/cancel", post(h::apex_cancel_mambu_sync))
         .route("/mambu/gl-accounts", get(mapping::list_mambu_gl_accounts))
         .route("/mambu/coop-accounts", get(mapping::list_coop_accounts))
         .route(

@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
-use tokio::sync::Semaphore;
+use tokio::sync::{watch, Semaphore};
 use tokio::task::JoinSet;
 
 use chrono::{Datelike, NaiveDate, Utc};
@@ -20,7 +21,7 @@ use crate::entities::{
     mambu_sync_item, mambu_sync_run, submission, submission_review,
 };
 use crate::error::{AppError, AppResult};
-use crate::repositories::mambu::{RUN_COMPLETED, RUN_FAILED};
+use crate::repositories::mambu::{RUN_CANCELLED, RUN_COMPLETED, RUN_FAILED};
 use crate::services::mambu::arrears;
 use crate::services::mambu::client::{MambuApiClient, ReadProgress};
 use crate::services::mambu::derived;
@@ -46,6 +47,106 @@ pub const ITEM_FAILED: &str = "failed";
 pub const SUBMISSION_METHOD: &str = "mambu";
 
 const INTERRUPTED: &str = "Interrupted: the server stopped before this sync finished";
+/// Shown on a SACCO whose sync was cancelled.
+pub const CANCELLED_NOTE: &str = "Cancelled. Nothing was imported.";
+
+type CancelSignals = Mutex<HashMap<Uuid, watch::Sender<bool>>>;
+
+/// A cancel signal for each SACCO that is waiting for or doing its sync in this process.
+fn cancels() -> &'static CancelSignals {
+    static CANCELS: OnceLock<CancelSignals> = OnceLock::new();
+    CANCELS.get_or_init(Mutex::default)
+}
+
+fn register_cancel(item_id: Uuid) -> watch::Receiver<bool> {
+    let (tx, rx) = watch::channel(false);
+    if let Ok(mut signals) = cancels().lock() {
+        signals.insert(item_id, tx);
+    }
+    rx
+}
+
+fn unregister_cancel(item_id: Uuid) {
+    if let Ok(mut signals) = cancels().lock() {
+        signals.remove(&item_id);
+    }
+}
+
+/// Tells the sync of a SACCO to stop. False when nothing in this process is syncing it.
+fn signal_cancel(item_id: Uuid) -> bool {
+    cancels()
+        .lock()
+        .ok()
+        .and_then(|signals| signals.get(&item_id).map(|tx| tx.send(true).is_ok()))
+        .unwrap_or(false)
+}
+
+/// Completes when a cancel is asked for, unless the sync has already begun to save: the
+/// return is then written to the end, so a half-written return is never left behind.
+async fn cancelled_before_saving(mut rx: watch::Receiver<bool>, saving: &AtomicBool) {
+    loop {
+        if rx.wait_for(|cancelled| *cancelled).await.is_err() {
+            std::future::pending::<()>().await;
+        }
+        if !saving.load(Ordering::SeqCst) {
+            return;
+        }
+        std::future::pending::<()>().await;
+    }
+}
+
+/// Cancels the pending SACCOs among `items`. A SACCO that this process is syncing stops
+/// at once; one that no task is working on (a run left over from before a restart) is
+/// closed here. Returns how many were cancelled.
+pub async fn cancel_items(
+    state: &AppState,
+    run_id: Uuid,
+    items: Vec<mambu_sync_item::Model>,
+) -> AppResult<usize> {
+    let mut cancelled = 0;
+    let mut orphans = 0;
+    for mut item in items.into_iter().filter(|i| i.status == ITEM_PENDING) {
+        cancelled += 1;
+        if signal_cancel(item.id) {
+            continue;
+        }
+        orphans += 1;
+        item.status = ITEM_SKIPPED.to_string();
+        item.error = Some(CANCELLED_NOTE.to_string());
+        item.phase = None;
+        state.mambu_repo.save_item(item).await?;
+    }
+    if orphans > 0 {
+        finish_run_if_done(state, run_id).await;
+    }
+    Ok(cancelled)
+}
+
+/// Closes a run that has no SACCO left to sync. Used for a run no task is working on.
+async fn finish_run_if_done(state: &AppState, run_id: Uuid) {
+    let Ok(items) = state.mambu_repo.list_items(run_id).await else {
+        return;
+    };
+    if items.iter().any(|i| i.status == ITEM_PENDING) {
+        return;
+    }
+    close_run(state, run_id, &items).await;
+}
+
+/// Closes a run: cancelled when every SACCO of it was cancelled, completed otherwise.
+async fn close_run(state: &AppState, run_id: Uuid, items: &[mambu_sync_item::Model]) {
+    let all_cancelled = !items.is_empty()
+        && items
+            .iter()
+            .all(|i| i.error.as_deref() == Some(CANCELLED_NOTE));
+    let status = if all_cancelled {
+        RUN_CANCELLED
+    } else {
+        RUN_COMPLETED
+    };
+    let _ = state.mambu_repo.finish_run(run_id, status, None).await;
+}
+
 /// A branch with more deposit accounts than this is synced alone: its raw and mapped
 /// records are the largest memory use of a sync.
 const HEAVY_BRANCH_DEPOSITS: u64 = 20_000;
@@ -493,9 +594,10 @@ async fn execute_run(
         let run = run.clone();
         let actor = actor.clone();
         let semaphore = semaphore.clone();
+        let cancel = register_cancel(item.id);
         tasks.spawn(async move {
             let _permit = semaphore.acquire_owned().await;
-            process_item(&state, &client, &refs, &run, item, link, &actor).await;
+            process_item(&state, &client, &refs, &run, item, link, &actor, cancel).await;
         });
     }
     while let Some(finished) = tasks.join_next().await {
@@ -503,10 +605,14 @@ async fn execute_run(
             tracing::error!(run_id = %run.id, error = %e, "A Mambu sync task stopped unexpectedly");
         }
     }
-    let _ = state
+    // The tasks are done. A SACCO without a result (a task that crashed) does not keep
+    // the run open.
+    let items = state
         .mambu_repo
-        .finish_run(run.id, RUN_COMPLETED, None)
-        .await;
+        .list_items(run.id)
+        .await
+        .unwrap_or_default();
+    close_run(&state, run.id, &items).await;
 }
 
 async fn load_reference_data(
@@ -617,10 +723,30 @@ async fn process_item(
     mut item: mambu_sync_item::Model,
     link: mambu_branch_link::Model,
     actor: &Arc<Claims>,
+    cancel: watch::Receiver<bool>,
 ) {
     let year = run.reporting_year;
     let month = run.month as u32;
-    let result = sync_one(state, client, refs, run, item.id, &link, year, month, actor).await;
+    let saving = AtomicBool::new(false);
+    let result = if *cancel.borrow() {
+        None
+    } else {
+        tokio::select! {
+            result = sync_one(state, client, refs, run, item.id, &link, year, month, actor, &saving) => Some(result),
+            _ = cancelled_before_saving(cancel.clone(), &saving) => None,
+        }
+    };
+    unregister_cancel(item.id);
+    let Some(result) = result else {
+        tracing::info!(run_id = %run.id, branch = %link.mambu_branch_id, "Mambu sync cancelled");
+        item.status = ITEM_SKIPPED.to_string();
+        item.error = Some(CANCELLED_NOTE.to_string());
+        item.phase = None;
+        if let Err(e) = state.mambu_repo.save_item(item).await {
+            tracing::error!(error = %e, "Could not save a cancelled Mambu sync");
+        }
+        return;
+    };
     match result {
         Ok(Outcome::Done {
             submission_id,
@@ -673,6 +799,7 @@ async fn sync_one(
     year: i32,
     month: u32,
     actor: &Arc<Claims>,
+    saving: &AtomicBool,
 ) -> AppResult<Outcome> {
     let coop = state
         .cooperative_repo
@@ -919,6 +1046,8 @@ async fn sync_one(
         }
     }
 
+    // From here the return is written to the end: a cancel no longer stops it.
+    saving.store(true, Ordering::SeqCst);
     let submission_id = write_submission(
         state,
         &coop,

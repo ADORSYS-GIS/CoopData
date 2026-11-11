@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 use axum::extract::Query;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use common::mambu::{scalar, serve, wait_for_run};
+use common::mambu::{scalar, serve, wait_for_run_within};
 use coop_data_backend::auth::claims::Claims;
 use coop_data_backend::services::mambu::client::MambuApiClient;
 use coop_data_backend::services::mambu::sync::{start_run, SyncScope};
@@ -268,7 +268,8 @@ async fn a_very_large_branch_syncs_fast_and_within_the_memory_budget() {
     let run = start_run(&state, 2025, 0, claims, SyncScope::All)
         .await
         .unwrap();
-    let status = wait_for_run(&state, run.id).await;
+    // A large branch in a debug build takes longer than the 30 s of the other tests.
+    let status = wait_for_run_within(&state, run.id, Duration::from_secs(600)).await;
     let elapsed = started.elapsed();
     stop.store(true, Ordering::Relaxed);
     let _ = sampler.await;

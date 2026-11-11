@@ -99,6 +99,12 @@ impl MambuSyncItemResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct MambuCancelResponse {
+    /// SACCOs whose sync was stopped. They show as skipped and can be synced again.
+    pub cancelled: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MambuSyncDetailResponse {
     pub run: MambuSyncRunResponse,
     pub items: Vec<MambuSyncItemResponse>,

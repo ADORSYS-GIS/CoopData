@@ -18,6 +18,7 @@ use crate::error::{AppError, AppResult};
 pub const RUN_RUNNING: &str = "running";
 pub const RUN_COMPLETED: &str = "completed";
 pub const RUN_FAILED: &str = "failed";
+pub const RUN_CANCELLED: &str = "cancelled";
 
 #[derive(Clone)]
 pub struct MambuRepository {

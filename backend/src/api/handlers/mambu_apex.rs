@@ -12,16 +12,18 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::api::dto::{
-    MambuApexCooperativeResponse, MambuBranchPreviewResponse, MambuCooperativeLinkResponse,
-    MambuStatusResponse, MambuSyncDetailResponse, MambuSyncRunResponse, SetMambuAutoSyncRequest,
-    SetMambuBranchRequest, StartMambuSyncRequest,
+    MambuApexCooperativeResponse, MambuBranchPreviewResponse, MambuCancelResponse,
+    MambuCooperativeLinkResponse, MambuStatusResponse, MambuSyncDetailResponse,
+    MambuSyncRunResponse, SetMambuAutoSyncRequest, SetMambuBranchRequest, StartMambuSyncRequest,
 };
 use crate::api::handlers::cooperative::resolve_caller_cooperative_ids;
 use crate::api::handlers::mambu::detail_response;
 use crate::auth::claims::Claims;
 use crate::error::{AppError, AppResult};
 use crate::services::mambu::linking;
-use crate::services::mambu::sync::{start_run, SyncScope, SYSTEM_ACTOR};
+use crate::services::mambu::sync::{
+    cancel_items, start_run, SyncScope, ITEM_PENDING, SYSTEM_ACTOR,
+};
 use crate::AppState;
 
 const TAG: &str = "Mambu";
@@ -411,6 +413,48 @@ pub async fn apex_list_mambu_syncs(
         out.push(present_run(MambuSyncRunResponse::from(run), own));
     }
     Ok(Json(out))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/apex/mambu/syncs/{id}/cancel",
+    params(("id" = Uuid, Path, description = "Sync run id")),
+    responses(
+        (status = 200, description = "The apex's cooperatives of this run that were stopped", body = MambuCancelResponse),
+        (status = 404, description = "Run not found", body = ErrorResponse),
+        (status = 409, description = "Nothing of this run is running", body = ErrorResponse),
+    ),
+    tag = TAG,
+)]
+pub async fn apex_cancel_mambu_sync(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Arc<Claims>>,
+    Path(id): Path<Uuid>,
+) -> AppResult<impl IntoResponse> {
+    let ids = owned_cooperative_ids(&state, &claims).await?;
+    let items = state
+        .mambu_repo
+        .list_items_for_cooperatives(id, ids)
+        .await?;
+    if items.is_empty() {
+        return Err(AppError::NotFound("Sync run not found".into()));
+    }
+    if !items.iter().any(|i| i.status == ITEM_PENDING) {
+        return Err(AppError::Conflict(
+            "Nothing of this sync is running, so there is nothing to cancel".into(),
+        ));
+    }
+    let cancelled = cancel_items(&state, id, items).await?;
+    audit(
+        &state,
+        &claims,
+        "MAMBU_SYNC_CANCEL",
+        serde_json::json!({ "run_id": id, "cancelled": cancelled }),
+    )
+    .await;
+    Ok(Json(MambuCancelResponse {
+        cancelled: cancelled as i32,
+    }))
 }
 
 #[utoipa::path(

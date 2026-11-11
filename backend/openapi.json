@@ -9214,6 +9214,58 @@
           }
         }
       }
+    },
+    "/api/v1/apex/mambu/syncs/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Mambu"
+        ],
+        "operationId": "apex_cancel_mambu_sync",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Sync run id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The apex's cooperatives of this run that were stopped",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MambuCancelResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Run not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Nothing of this run is running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -18096,6 +18148,19 @@
           },
           "product_kind": {
             "type": "string"
+          }
+        }
+      },
+      "MambuCancelResponse": {
+        "type": "object",
+        "required": [
+          "cancelled"
+        ],
+        "properties": {
+          "cancelled": {
+            "type": "integer",
+            "format": "int32",
+            "description": "SACCOs whose sync was stopped. They show as skipped and can be synced again."
           }
         }
       }
