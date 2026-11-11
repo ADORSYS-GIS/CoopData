@@ -8,7 +8,8 @@ import { fetchSavings } from "@/hooks/non-financial/useSavings";
 import { fetchLoans } from "@/hooks/non-financial/useLoans";
 import { fetchFixedDeposits } from "@/hooks/non-financial/useFixedDeposits";
 import { fetchFarmCoop } from "@/hooks/non-financial/useFarmCoop";
-import { useAllNfRecords } from "@/hooks/non-financial/useAllNfRecords";
+import { useNfRecordsPage } from "@/hooks/non-financial/useNfRecordsPage";
+import { NfTable } from "./NfTable";
 import {
   useUpdateSubmissionSection,
   type SubmissionSectionResponse,
@@ -32,10 +33,6 @@ interface NfDatabasesTabProps {
   submissionMethod: "upload" | "manual" | "questionnaire" | null;
   methodChosen: boolean;
   onOpenMethodModal: () => void;
-}
-
-function sectionStatusTone(status: string): "neutral" | "warning" | "success" {
-  return status === "ready" ? "success" : status === "in_progress" ? "warning" : "neutral";
 }
 
 import {
@@ -118,117 +115,6 @@ const ClearNonFinancialButton: React.FC<{ submissionId: string }> = ({ submissio
   );
 };
 
-function NfTable({
-  title,
-  section,
-  columns,
-  rows,
-  canMarkReady,
-  onMarkReady,
-  isUpdating,
-  onEdit,
-}: {
-  title: string;
-  section?: SubmissionSectionResponse;
-  columns: string[];
-  rows: Record<string, unknown>[];
-  canMarkReady?: boolean;
-  onMarkReady?: () => void;
-  isUpdating?: boolean;
-  onEdit?: () => void;
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(true);
-  const fmtCol = (col: string) => col.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const cell = (val: unknown) => {
-    if (val === null || val === undefined || val === "")
-      return <span className="text-muted-foreground/40">—</span>;
-    if (typeof val === "boolean")
-      return val ? t("submissions.detail.nfDatabases.yes") : t("submissions.detail.nfDatabases.no");
-    return String(val);
-  };
-  const isReady = section?.status === "ready";
-  const isInProgress = section?.status === "in_progress";
-
-  const sectionStatusLabel = (status: string) => {
-    const map: Record<string, string> = {
-      pending: t("submissions.detail.pendingStatus"),
-      in_progress: t("submissions.detail.inProgressStatus"),
-      ready: t("submissions.detail.readyStatus"),
-    };
-    return map[status] ?? status;
-  };
-
-  return (
-    <Card
-      title={title}
-      action={
-        <div className="flex items-center gap-2">
-          {section && (
-            <StatusPill tone={sectionStatusTone(section.status)}>
-              {sectionStatusLabel(section.status)}
-            </StatusPill>
-          )}
-          {canMarkReady && !isReady && isInProgress && (
-            <button
-              onClick={onMarkReady}
-              disabled={isUpdating}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 border border-success/25 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/15 disabled:opacity-50 transition-colors cursor-pointer"
-            >
-              {isUpdating ? <Spinner size="sm" /> : <CheckCircle2 className="size-3" />}
-              {t("submissions.detail.nfDatabases.btnMarkReady")}
-            </button>
-          )}
-          {canMarkReady && onEdit && (
-            <button
-              onClick={onEdit}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/25 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors cursor-pointer"
-            >
-              <PenLine className="size-3" />
-              {t("edit")}
-            </button>
-          )}
-          <button
-            onClick={() => setOpen((o) => !o)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-muted/50 cursor-pointer"
-          >
-            {open
-              ? t("submissions.detail.nfDatabases.btnCollapse")
-              : t("submissions.detail.nfDatabases.btnExpand")}
-          </button>
-        </div>
-      }
-    >
-      {open && (
-        <div className="-mx-5 -mb-5 overflow-x-auto border-t border-border mt-2">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-muted/30 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left">
-                {columns.map((col) => (
-                  <th key={col} className="px-4 py-2.5 whitespace-nowrap">
-                    {fmtCol(col)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.map((row, i) => (
-                <tr key={i} className="hover:bg-muted/20 transition-colors">
-                  {columns.map((col) => (
-                    <td key={col} className="px-4 py-2 whitespace-nowrap text-foreground">
-                      {cell(row[col])}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Card>
-  );
-}
-
 export function NfDatabasesTab({
   submissionId,
   isReadOnly,
@@ -244,24 +130,27 @@ export function NfDatabasesTab({
 }: NfDatabasesTabProps) {
   const { t } = useTranslation();
   const params = { submission_id: submissionId };
-  const { data: membersData, isLoading: lm } = useAllNfRecords("nf-members", fetchMembers, params);
-  const { data: savingsData, isLoading: ls } = useAllNfRecords("nf-savings", fetchSavings, params);
-  const { data: loansData, isLoading: ll } = useAllNfRecords("nf-loans", fetchLoans, params);
-  const { data: fdsData, isLoading: lf } = useAllNfRecords("nf-fds", fetchFixedDeposits, params);
-  const { data: farmCoopsData, isLoading: lfc } = useAllNfRecords("nf-farm", fetchFarmCoop, params);
+  // Only the totals are fetched here (one record each). A table loads its rows when it is
+  // opened.
+  const membersTotal = useNfRecordsPage("nf-members", fetchMembers, params, 1, 1);
+  const savingsTotal = useNfRecordsPage("nf-savings", fetchSavings, params, 1, 1);
+  const loansTotal = useNfRecordsPage("nf-loans", fetchLoans, params, 1, 1);
+  const fdsTotal = useNfRecordsPage("nf-fds", fetchFixedDeposits, params, 1, 1);
+  const farmTotal = useNfRecordsPage("nf-farm", fetchFarmCoop, params, 1, 1);
+  const lm = membersTotal.isLoading;
+  const ls = savingsTotal.isLoading;
+  const ll = loansTotal.isLoading;
+  const lf = fdsTotal.isLoading;
+  const lfc = farmTotal.isLoading;
   const updateSection = useUpdateSubmissionSection(submissionId);
 
-  const members = membersData?.data ?? [];
-  const savings = savingsData?.data ?? [];
-  const loans = loansData?.data ?? [];
-  const fds = fdsData?.data ?? [];
-  const farmCoops = farmCoopsData?.data ?? [];
+  const membersCount = membersTotal.data?.total ?? 0;
+  const savingsCount = savingsTotal.data?.total ?? 0;
+  const loansCount = loansTotal.data?.total ?? 0;
+  const fdsCount = fdsTotal.data?.total ?? 0;
+  const farmCount = farmTotal.data?.total ?? 0;
   const hasData =
-    members.length > 0 ||
-    savings.length > 0 ||
-    loans.length > 0 ||
-    fds.length > 0 ||
-    farmCoops.length > 0;
+    membersCount > 0 || savingsCount > 0 || loansCount > 0 || fdsCount > 0 || farmCount > 0;
   const isLoading = lm || ls || ll || lf || lfc;
   const canMarkReady = !isReadOnly && isDraft;
 
@@ -421,9 +310,9 @@ export function NfDatabasesTab({
         </div>
       )}
 
-      {members.length > 0 && (
+      {membersCount > 0 && (
         <NfTable
-          title={t("submissions.detail.nfDatabases.titleMembership", { count: members.length })}
+          title={t("submissions.detail.nfDatabases.titleMembership", { count: membersCount })}
           section={sec("members")}
           canMarkReady={canMarkReady}
           onMarkReady={() =>
@@ -449,13 +338,16 @@ export function NfDatabasesTab({
             "share_balance",
             "join_date",
           ]}
-          rows={members as unknown as Record<string, unknown>[]}
+          queryKey="nf-members"
+          fetchPage={fetchMembers}
+          params={params}
+          total={membersCount}
         />
       )}
 
-      {savings.length > 0 && (
+      {savingsCount > 0 && (
         <NfTable
-          title={t("submissions.detail.nfDatabases.titleSavings", { count: savings.length })}
+          title={t("submissions.detail.nfDatabases.titleSavings", { count: savingsCount })}
           section={sec("savings")}
           canMarkReady={canMarkReady}
           onMarkReady={() =>
@@ -485,13 +377,16 @@ export function NfDatabasesTab({
             "account_opening_date",
             "last_contribution_date",
           ]}
-          rows={savings as unknown as Record<string, unknown>[]}
+          queryKey="nf-savings"
+          fetchPage={fetchSavings}
+          params={params}
+          total={savingsCount}
         />
       )}
 
-      {loans.length > 0 && (
+      {loansCount > 0 && (
         <NfTable
-          title={t("submissions.detail.nfDatabases.titleLoans", { count: loans.length })}
+          title={t("submissions.detail.nfDatabases.titleLoans", { count: loansCount })}
           section={sec("loans")}
           canMarkReady={canMarkReady}
           onMarkReady={() =>
@@ -528,13 +423,16 @@ export function NfDatabasesTab({
             "loan_start_date",
             "loan_maturity_date",
           ]}
-          rows={loans as unknown as Record<string, unknown>[]}
+          queryKey="nf-loans"
+          fetchPage={fetchLoans}
+          params={params}
+          total={loansCount}
         />
       )}
 
-      {fds.length > 0 && (
+      {fdsCount > 0 && (
         <NfTable
-          title={t("submissions.detail.nfDatabases.titleFixedDeposits", { count: fds.length })}
+          title={t("submissions.detail.nfDatabases.titleFixedDeposits", { count: fdsCount })}
           section={sec("fixed_deposits")}
           canMarkReady={canMarkReady}
           onMarkReady={() =>
@@ -568,13 +466,16 @@ export function NfDatabasesTab({
             "start_date",
             "maturity_date",
           ]}
-          rows={fds as unknown as Record<string, unknown>[]}
+          queryKey="nf-fds"
+          fetchPage={fetchFixedDeposits}
+          params={params}
+          total={fdsCount}
         />
       )}
 
-      {farmCoops.length > 0 && (
+      {farmCount > 0 && (
         <NfTable
-          title={t("submissions.detail.nfDatabases.titleFarmCoops", { count: farmCoops.length })}
+          title={t("submissions.detail.nfDatabases.titleFarmCoops", { count: farmCount })}
           section={sec("farm_coop")}
           canMarkReady={canMarkReady}
           onMarkReady={() =>
@@ -611,7 +512,10 @@ export function NfDatabasesTab({
             "irrigation_access",
             "climate_mitigation_practices",
           ]}
-          rows={farmCoops as unknown as Record<string, unknown>[]}
+          queryKey="nf-farm"
+          fetchPage={fetchFarmCoop}
+          params={params}
+          total={farmCount}
         />
       )}
     </div>

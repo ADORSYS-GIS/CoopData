@@ -1046,7 +1046,10 @@
           "loans": "Loans",
           "fixed_deposits": "Fixed Deposits",
           "farm_coop": "Farm Coop"
-        }
+        },
+        "pageRange": "{{from}}–{{to}} of {{total}}",
+        "previousPage": "Previous",
+        "nextPage": "Next"
       },
       "documentViewer": {
         "loading": "Loading document…",
