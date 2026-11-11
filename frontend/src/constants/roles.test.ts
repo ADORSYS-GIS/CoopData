@@ -47,7 +47,7 @@ describe("roles constants", () => {
     });
 
     it("gives cooperatives only their privacy and profile pages under system", () => {
-      expect(ROLE_NAV_ITEMS.cooperative.system).toEqual(["/app/data-privacy", "/app/profile"]);
+      expect(ROLE_NAV_ITEMS.cooperative.system).toEqual(["/app/profile"]);
     });
 
     it("gives the Mambu sync page to the apex only", () => {

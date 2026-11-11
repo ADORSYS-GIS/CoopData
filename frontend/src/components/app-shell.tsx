@@ -33,10 +33,9 @@ import {
   Gauge,
   Tags,
   FileText,
-  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
-import { type ReactNode, useState, useEffect, useMemo } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
 import { ROLES, ROLE_NAV, ROLE_NAV_ITEMS, type NavGroupId } from "@/constants/roles";
@@ -88,7 +87,6 @@ const NAV_GROUPS: { id: NavGroupId; label: string; items: NavItem[] }[] = [
       { to: "/app/mambu", label: "Mambu Sync", icon: RefreshCw },
       { to: "/app/audit", label: "Audit Log", icon: ScrollText },
       { to: "/app/admin-legal", label: "Legal Policies", icon: FileText },
-      { to: "/app/data-privacy", label: "Data Privacy & Consents", icon: ShieldCheck },
       { to: "/app/profile", label: "Profile", icon: UserCog },
     ],
   },
@@ -106,7 +104,7 @@ function Sidebar({
   onToggleCollapse?: () => void;
 }) {
   const { t } = useTranslation();
-  const { getLabel } = useOrganizationLabelsContext();
+  const { getLabel, isLoading: labelsLoading } = useOrganizationLabelsContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, logout, role } = useAuth();
   const analyticsNav = useAnalyticsTrackNav();
@@ -143,8 +141,6 @@ function Sidebar({
     if (item.to === "/app/settings") return t("nav.settings");
     if (item.to === "/app/configure-roles")
       return t("nav.configureRoles", { defaultValue: "Configure Levels" });
-    if (item.to === "/app/data-privacy")
-      return t("nav.dataPrivacy", { defaultValue: "Data Privacy & Consents" });
     if (item.to === "/app/profile") return t("nav.profile");
     return item.label;
   };
@@ -176,21 +172,6 @@ function Sidebar({
     .filter((g) => g.items.length > 0);
 
   const isCollapsed = collapsed && !mobile;
-
-  const userContextLabel = useMemo(() => {
-    if (isCollapsed) return null;
-    const ctx =
-      effectiveRole === "ministry"
-        ? t("common.national")
-        : effectiveRole === "federation"
-          ? (user?.organizationName ?? user?.region ?? null)
-          : effectiveRole === "apex" || effectiveRole === "cooperative"
-            ? (user?.cooperationName ?? user?.region ?? null)
-            : null;
-    return ctx ? (
-      <p className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">{ctx}</p>
-    ) : null;
-  }, [isCollapsed, effectiveRole, user, t]);
 
   return (
     <aside
@@ -327,10 +308,11 @@ function Sidebar({
                 <p className="text-sm font-semibold truncate text-sidebar-foreground">
                   {user?.name ?? t("common.unknown")}
                 </p>
-                <p className="text-xs text-sidebar-foreground/75 truncate">
-                  {getLabel(currentRole.id, "label", t(`roles.${currentRole.id}`))}
+                <p className="text-xs text-sidebar-foreground/75 truncate min-h-4">
+                  {labelsLoading
+                    ? null
+                    : getLabel(currentRole.id, "label", t(`roles.${currentRole.id}`))}
                 </p>
-                {userContextLabel}
               </div>
             )}
           </Link>

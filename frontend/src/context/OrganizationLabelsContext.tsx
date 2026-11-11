@@ -1,8 +1,10 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import { useOrganizationLabels } from "@/hooks/settings/useOrganizationLabels";
 import { useAuth } from "@/context/AuthContext";
+import { applyOrgTermsToResources } from "@/i18n";
+import { replaceOrgTermsText, setOrgTermLabels } from "@/lib/org-terms";
 
 export interface OrganizationLabelTranslation {
   label?: string;
@@ -87,7 +89,8 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
   // immediately after login.
   const { isAuthenticated } = useAuth();
   const { data: labels, isLoading } = useOrganizationLabels(isAuthenticated);
-  const { t: baseT } = useTranslation();
+  const { t: baseT, i18n: i18nInstance } = useTranslation();
+  const activeLanguage = i18nInstance.language;
 
   const getLabel = useMemo(() => {
     return (
@@ -95,7 +98,7 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
       type: "label" | "short_label" | "plural_label",
       fallback?: string,
     ): string => {
-      const currentLang = i18n.language || "en";
+      const currentLang = activeLanguage || "en";
       const item = labels?.find((l) => l.key === key);
 
       if (!item) {
@@ -124,7 +127,7 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
       // 3. Fall back to static defaults
       return DEFAULT_LABELS[key]?.[type] || fallback || key;
     };
-  }, [labels]);
+  }, [labels, activeLanguage]);
 
   const fedLabel = getLabel("federation", "label", "Federation");
   const fedPlural = getLabel("federation", "plural_label", "Federations");
@@ -142,51 +145,22 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
   const ministryPlural = getLabel("ministry", "plural_label", "Ministries");
   const ministryShort = getLabel("ministry", "short_label", "Min");
 
-  const replaceOrgTerms = useMemo(() => {
-    return (text: string): string => {
-      if (!text || typeof text !== "string") return text;
-
-      let res = text;
-
-      // 1. Plurals
-      if (fedPlural !== "Federations") {
-        res = res.replace(/\bFederations\b/g, fedPlural);
-        res = res.replace(/\bfederations\b/g, fedPlural.toLowerCase());
-      }
-      if (apexPlural !== "Apexes") {
-        res = res.replace(/\bApexes\b/g, apexPlural);
-        res = res.replace(/\bapexes\b/g, apexPlural.toLowerCase());
-      }
-      if (coopPlural !== "Cooperatives") {
-        res = res.replace(/\bCooperatives\b/g, coopPlural);
-        res = res.replace(/\bcooperatives\b/g, coopPlural.toLowerCase());
-      }
-      if (ministryPlural !== "Ministries") {
-        res = res.replace(/\bMinistries\b/g, ministryPlural);
-        res = res.replace(/\bministries\b/g, ministryPlural.toLowerCase());
-      }
-
-      // 2. Singulars
-      if (fedLabel !== "Federation") {
-        res = res.replace(/\bFederation\b/g, fedLabel);
-        res = res.replace(/\bfederation\b/g, fedLabel.toLowerCase());
-      }
-      if (apexLabel !== "Apex") {
-        res = res.replace(/\bApex\b/g, apexLabel);
-        res = res.replace(/\bapex\b/g, apexLabel.toLowerCase());
-      }
-      if (coopLabel !== "Cooperative") {
-        res = res.replace(/\bCooperative\b/g, coopLabel);
-        res = res.replace(/\bcooperative\b/g, coopLabel.toLowerCase());
-      }
-      if (ministryLabel !== "Ministry") {
-        res = res.replace(/\bMinistry\b/g, ministryLabel);
-        res = res.replace(/\bministry\b/g, ministryLabel.toLowerCase());
-      }
-
-      return res;
-    };
+  // Every UI string is rewritten with the configured names, so pages that use plain
+  // `useTranslation` show them too. Runs whenever the names or the language change.
+  useEffect(() => {
+    const changed = setOrgTermLabels(
+      isAuthenticated
+        ? {
+            federation: { label: fedLabel, plural_label: fedPlural },
+            apex: { label: apexLabel, plural_label: apexPlural },
+            cooperative: { label: coopLabel, plural_label: coopPlural },
+            ministry: { label: ministryLabel, plural_label: ministryPlural },
+          }
+        : {},
+    );
+    if (changed) applyOrgTermsToResources();
   }, [
+    isAuthenticated,
     fedLabel,
     fedPlural,
     apexLabel,
@@ -197,16 +171,9 @@ export function OrganizationLabelsProvider({ children }: { children: ReactNode }
     ministryPlural,
   ]);
 
-  const t = useMemo(() => {
-    return (
-      key: string,
-      optionsOrDefault?: Record<string, unknown> | string,
-      options?: Record<string, unknown>,
-    ): string => {
-      const translation = baseT(key, optionsOrDefault as never, options as never);
-      return replaceOrgTerms(String(translation));
-    };
-  }, [baseT, replaceOrgTerms]);
+  // Strings from i18n are already rewritten; only literal text needs the replacement.
+  const replaceOrgTerms = replaceOrgTermsText;
+  const t = baseT as unknown as OrganizationLabelsContextValue["t"];
 
   const value = useMemo(
     () => ({

@@ -30,7 +30,6 @@ import { Route as AppInvitationsRouteImport } from './routes/app.invitations'
 import { Route as AppFinancialStatementRouteImport } from './routes/app.financial-statement'
 import { Route as AppFederationsRouteImport } from './routes/app.federations'
 import { Route as AppDebugAuthRouteImport } from './routes/app.debug-auth'
-import { Route as AppDataPrivacyRouteImport } from './routes/app.data-privacy'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCustomKpisRouteImport } from './routes/app.custom-kpis'
 import { Route as AppCooperativesRouteImport } from './routes/app.cooperatives'
@@ -161,11 +160,6 @@ const AppFederationsRoute = AppFederationsRouteImport.update({
 const AppDebugAuthRoute = AppDebugAuthRouteImport.update({
   id: '/debug-auth',
   path: '/debug-auth',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDataPrivacyRoute = AppDataPrivacyRouteImport.update({
-  id: '/data-privacy',
-  path: '/data-privacy',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -311,7 +305,6 @@ export interface FileRoutesByFullPath {
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/data-privacy': typeof AppDataPrivacyRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -358,7 +351,6 @@ export interface FileRoutesByTo {
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/data-privacy': typeof AppDataPrivacyRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -405,7 +397,6 @@ export interface FileRoutesById {
   '/app/cooperatives': typeof AppCooperativesRoute
   '/app/custom-kpis': typeof AppCustomKpisRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/data-privacy': typeof AppDataPrivacyRoute
   '/app/debug-auth': typeof AppDebugAuthRoute
   '/app/federations': typeof AppFederationsRoute
   '/app/financial-statement': typeof AppFinancialStatementRoute
@@ -455,7 +446,6 @@ export interface FileRouteTypes {
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
-    | '/app/data-privacy'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -502,7 +492,6 @@ export interface FileRouteTypes {
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
-    | '/app/data-privacy'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -548,7 +537,6 @@ export interface FileRouteTypes {
     | '/app/cooperatives'
     | '/app/custom-kpis'
     | '/app/dashboard'
-    | '/app/data-privacy'
     | '/app/debug-auth'
     | '/app/federations'
     | '/app/financial-statement'
@@ -741,13 +729,6 @@ declare module '@tanstack/react-router' {
       path: '/debug-auth'
       fullPath: '/app/debug-auth'
       preLoaderRoute: typeof AppDebugAuthRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/data-privacy': {
-      id: '/app/data-privacy'
-      path: '/data-privacy'
-      fullPath: '/app/data-privacy'
-      preLoaderRoute: typeof AppDataPrivacyRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/dashboard': {
@@ -962,7 +943,6 @@ interface AppRouteChildren {
   AppCooperativesRoute: typeof AppCooperativesRoute
   AppCustomKpisRoute: typeof AppCustomKpisRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppDataPrivacyRoute: typeof AppDataPrivacyRoute
   AppDebugAuthRoute: typeof AppDebugAuthRoute
   AppFederationsRoute: typeof AppFederationsRoute
   AppFinancialStatementRoute: typeof AppFinancialStatementRoute
@@ -995,7 +975,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppCooperativesRoute: AppCooperativesRoute,
   AppCustomKpisRoute: AppCustomKpisRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppDataPrivacyRoute: AppDataPrivacyRoute,
   AppDebugAuthRoute: AppDebugAuthRoute,
   AppFederationsRoute: AppFederationsRoute,
   AppFinancialStatementRoute: AppFinancialStatementRoute,

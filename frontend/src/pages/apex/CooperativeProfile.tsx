@@ -82,6 +82,18 @@ const profileSchema = z
     message: "coopProfile.errors.typeSectorMismatch",
   });
 
+// TIN and address are optional on an existing profile (older records have none) but mandatory
+// when an apex registers a new cooperative.
+const registerSchema = profileSchema
+  .refine((v) => !!v.tin?.trim(), {
+    path: ["tin"],
+    message: "coopProfile.errors.tinRequired",
+  })
+  .refine((v) => !!v.address?.trim(), {
+    path: ["address"],
+    message: "coopProfile.errors.addressRequired",
+  });
+
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface CooperativeProfileFormProps {
@@ -103,7 +115,7 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
   const [regNoError, setRegNoError] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues, unknown, ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(isEditing ? profileSchema : registerSchema),
     defaultValues: {
       name: existing?.name ?? "",
       institution_type: (existing?.institution_type as (typeof COOP_TYPES)[number]) ?? "sacco",
@@ -274,7 +286,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
               name="tin"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t("coopProfile.tinOptional")}</FormLabel>
+                  <FormLabel>
+                    {isEditing ? t("coopProfile.tinOptional") : t("coopProfile.tinLabel")}
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder={t("coopProfile.placeholderTin")} {...field} />
                   </FormControl>
@@ -303,7 +317,9 @@ export const CooperativeProfileForm: React.FC<CooperativeProfileFormProps> = ({
             name="address"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("coopProfile.addressOptional")}</FormLabel>
+                <FormLabel>
+                  {isEditing ? t("coopProfile.addressOptional") : t("coopProfile.addressLabel")}
+                </FormLabel>
                 <FormControl>
                   <Textarea placeholder={t("coopProfile.placeholderAddress")} {...field} />
                 </FormControl>
