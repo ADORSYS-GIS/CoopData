@@ -1172,7 +1172,7 @@ async fn sync_one(
         LedgerSource::Journal => warnings.push(SyncWarning::info(
             "LEDGER_FROM_JOURNAL",
             ledgers.len(),
-            "The ledger was rebuilt from the Mambu general ledger (journal entries), because Mambu's accounting reports do not balance for older periods.",
+            "The ledger was rebuilt by adding up what Mambu booked on each account (debits and credits, from its accounting report or its general ledger), because the opening and closing balances in Mambu's accounting reports do not balance for older periods.",
         )),
         LedgerSource::Reports => warnings.push(SyncWarning::warning(
             "LEDGER_FROM_REPORTS",
