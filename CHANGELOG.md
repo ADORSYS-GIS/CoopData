@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.9.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.8.2...v1.9.0) (2026-11-11)
+
+
+### Features
+
+* **mambu:** cancel a running sync ([cb5ca2f](https://github.com/ADORSYS-GIS/CoopData/commit/cb5ca2fd2d035824ed2ef7f5aaaf184d294c7e04))
+* **mambu:** show the name of the linked Mambu branch, not only its id ([ccb6e36](https://github.com/ADORSYS-GIS/CoopData/commit/ccb6e36e2e8cdb45b692b504016a6cfde5e041a2))
+* **mambu:** show the work done while a sync runs, read the ledger month by month, history table ([2267d8f](https://github.com/ADORSYS-GIS/CoopData/commit/2267d8f04c338dea3e268057d83e384641fb93ec))
+
+
+### Bug Fixes
+
+* **levels:** show the ministry's level names everywhere and tidy related screens ([e67f015](https://github.com/ADORSYS-GIS/CoopData/commit/e67f015211411ea9312c1f52c2603be76a21dac1))
+* **mambu:** read only the loans a return can use ([c65f01e](https://github.com/ADORSYS-GIS/CoopData/commit/c65f01ed57d112d3d5f9fb2b3ad6e1ec29f97e5c))
+* **mambu:** sync very large SACCOs without running out of memory ([f8f9447](https://github.com/ADORSYS-GIS/CoopData/commit/f8f944736417e4417db33baecc9cef62459f297d))
+* **mambu:** the loan filter asked for a state Mambu does not have ([292c549](https://github.com/ADORSYS-GIS/CoopData/commit/292c549a1a118c05d29a3cfe392cac23033d5fd9))
+* **mambu:** write large cooperatives in chunks and add a scale test ([2be03d9](https://github.com/ADORSYS-GIS/CoopData/commit/2be03d94232da9e4590b3e87d9c56470ca94f5fe))
+* **reports:** do not count unreported ratios as zero and fit the front page ([3fe96b8](https://github.com/ADORSYS-GIS/CoopData/commit/3fe96b8153c005801eca28f4c02f3aaaa1a4c3df))
+
+
+### Performance Improvements
+
+* **mambu:** compress responses, read the ledger several months at once, warm it in the background ([6d46253](https://github.com/ADORSYS-GIS/CoopData/commit/6d4625356b2bb4270bc75a16825042a9ef57b372))
+
 ## [1.8.2](https://github.com/ADORSYS-GIS/CoopData/compare/v1.8.1...v1.8.2) (2026-11-09)
 
 
