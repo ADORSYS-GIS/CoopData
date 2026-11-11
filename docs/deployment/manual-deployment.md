@@ -1,128 +1,31 @@
 # CoopData — Manual Deployment Guide (Step by Step)
 
-> This guide assumes **no domain name**. We use the EC2 public IP address directly.
-> When you get a domain later, re-run `setup-ec2.sh` and choose the domain option.
+> **Note:** this walkthrough installs CoopData on a Linux server provided by the client (any provider or on-premises, as long as it runs Ubuntu and you have SSH access). For what runs in production and how to operate it, read [`production-runbook.md`](production-runbook.md) first.
+
+> The steps work with a public IP address alone (HTTP). When a domain name points to the server, re-run `setup-ec2.sh` and choose the domain option to get HTTPS. The script name is historical: it works on any Ubuntu server.
 
 ---
 
-## Phase 1 — Create the EC2 Instance
+## Phase 1 — Prepare the server
 
-### Step 1.1 — Log into AWS
+Ask the client (or their hosting provider) for a server with the following. Nothing else is needed from a cloud account.
 
-1. Go to https://console.aws.amazon.com
-2. Sign in with your AWS account
-3. Make sure you're in the right region (top right, e.g. **eu-central-1** Frankfurt or **us-east-1** N. Virginia)
+| Item | Requirement |
+| --- | --- |
+| Operating system | Ubuntu 24.04 LTS, 64-bit |
+| CPU and memory | At least 2 vCPU and 4 GB RAM for a small installation. Keycloak is slow or crashes below 4 GB. See [`docker-compose-specs.md`](docker-compose-specs.md) for larger sizing |
+| Disk | At least 30 GB free (database, uploaded files, container images). More if uploads grow |
+| Access | An SSH account with `sudo` rights, preferably with a key rather than a password |
+| Network | A fixed public IP address. Inbound **22** (SSH, restricted to known addresses if possible), **80** (HTTP) and, once a domain exists, **443** (HTTPS). All outbound traffic allowed (image pulls, email, AI provider) |
+| Domain (optional) | A DNS `A` record pointing to the server's IP, needed for HTTPS |
 
-### Step 1.2 — Launch Instance
+If the server has a firewall (provider panel or `ufw`), open only those ports. Do not open the database, Redis, MinIO or Keycloak ports: they stay on the Docker network.
 
-1. Top search bar → type **EC2** → click **EC2**
-2. Click **Launch instance** (orange button)
+## Phase 2 — Note the server address
 
-### Step 1.3 — Name and Tags
-
-1. **Name**: `coopdata-prod`
-2. Under **Tags** — it auto-creates a Name tag. No other tags needed.
-
-### Step 1.4 — Application and OS Image
-
-1. **Application**: leave as default (Amazon Linux or Ubuntu)
-2. **OS**: select **Ubuntu** → **Ubuntu 24.04 LTS** (the free tier eligible one)
-   - Look for the one that says "64-bit (x86)" and "Free tier eligible" badge
-   - Example AMI: `ami-0c10142cd0f7cacbb` (changes over time — just pick Ubuntu 24.04 LTS)
-
-### Step 1.5 — Instance Type
-
-1. Select **t3.medium** (2 vCPU, 4 GB RAM)
-   - This is the minimum for CoopData (PostgreSQL + Keycloak + Rust + React + Redis + MinIO)
-   - If cost is a concern for testing: **t3.small** (2 GB RAM) may work but Keycloak may be slow
-   - Do NOT use `t2.micro` — only 1 GB RAM, Keycloak will crash
-
-### Step 1.6 — Key Pair (SSH Access)
-
-1. **Key pair name** dropdown:
-   - If you have an existing key pair → select it
-   - If not → click **Create new key pair**:
-     - Name: `coopdata-key`
-     - Type: **ED25519**
-     - Click **Create key pair**
-     - **IMPORTANT**: Your browser downloads a `.pem` file. **Save it somewhere safe** — you cannot download it again.
-
-2. Note where you saved it (e.g., `~/Downloads/coopdata-key.pem`)
-
-### Step 1.7 — Network Settings (Security Group)
-
-This is critical — controls what ports are open.
-
-1. Under **Network settings** → **Firewall (security groups)**:
-   - Select **Create security group**
-
-2. **Inbound security group rules** — you need exactly these 3 rules:
-
-   | Type      | Port | Source         | Why                    |
-   |-----------|------|----------------|------------------------|
-   | SSH       | 22   | My IP          | SSH access (your IP only, NOT 0.0.0.0/0) |
-   | HTTP      | 80   | 0.0.0.0/0      | Web traffic            |
-
-   **How to add them:**
-   - SSH rule is auto-added. Change "Source" from `Anywhere` to **My IP**
-     (AWS detects your current public IP automatically)
-   - Click **Add security group rule**:
-     - Type: **HTTP**
-     - Source: **Anywhere (0.0.0.0/0)**
-   - Do NOT add HTTPS (443) yet — we don't have a domain, so no SSL needed
-
-3. Leave **Outbound rules** as default (all traffic allowed)
-
-### Step 1.8 — Storage
-
-1. **Root volume**:
-   - Size: change from 8 to **30 GB** (migrations + MinIO uploads + database)
-   - Volume type: **gp3** (faster than gp2, same price)
-   - Delete on termination: ✅ check it
-
-2. Click **Advanced** (expand) just to verify:
-   - Encrypted: leave as default (or enable if you prefer)
-
-### Step 1.9 — Launch
-
-1. On the right panel, review your settings:
-   - Ubuntu 24.04 LTS
-   - t3.medium
-   - 30 GB gp3
-   - Key pair selected
-   - Security group: SSH (your IP) + HTTP (all)
-
-2. Click **Launch instance** (orange button, bottom right)
-
-3. Wait 30 seconds, then click **View all instances**
-
----
-
-## Phase 2 — Get the Public IP
-
-### Step 2.1 — Find Your Instance
-
-1. In EC2 Dashboard → **Instances**
-2. Find `coopdata-prod` in the list
-3. Click on it to see details
-
-### Step 2.2 — Copy Public IP
-
-1. In the details panel (right side or bottom), find:
-   - **Public IPv4 address**: e.g., `3.71.123.45`
-2. **Write this down** — this is what you'll send to the client as the link
-3. **⚠️ Note**: Without an Elastic IP, this address **changes if you stop/restart the instance**. For production, allocate an Elastic IP (Step 2.3). For quick testing, skip.
-
-### Step 2.3 — (Optional) Allocate Elastic IP
-
-An Elastic IP ensures the public IP never changes even if you stop/start the instance.
-
-1. Left sidebar → **Network & Security** → **Elastic IPs**
-2. Click **Allocate Elastic IP address** → **Allocate**
-3. Select the new Elastic IP → **Actions** → **Associate Elastic IP address**
-4. Select your `coopdata-prod` instance → **Associate**
-5. Note the new Elastic IP (e.g., `3.125.67.89`)
-6. Use this IP instead of the auto-assigned one
+1. Write down the server's public IP address (or the domain name). This is the address users will open.
+2. Check that the address does not change when the server is restarted. If the provider can change it, ask for a fixed IP.
+3. Confirm that you can reach the server over SSH (see Phase 4).
 
 ---
 
@@ -131,7 +34,7 @@ An Elastic IP ensures the public IP never changes even if you stop/start the ins
 You must push to `main` so GitHub Actions builds and pushes images to GHCR.
 
 ```bash
-# On YOUR local machine (not EC2):
+# On YOUR local machine (not the server):
 cd /path/to/CoopData
 git add -A
 git commit -m "feat(deployment): production deployment setup"
@@ -146,22 +49,23 @@ git push origin main
 
 ---
 
-## Phase 4 — SSH into EC2
+## Phase 4 — Connect to the server
 
-### Step 4.1 — Prepare SSH Key
+### Step 4.1 — Prepare SSH access
+
+Use the account and key the client gave you. If you received a private key file, protect it:
 
 ```bash
 # On YOUR local machine:
-# Move the .pem file to your .ssh directory
-cp ~/Downloads/coopdata-key.pem ~/.ssh/
-chmod 400 ~/.ssh/coopdata-key.pem
+chmod 400 ~/.ssh/<your-key-file>
 ```
 
 ### Step 4.2 — Connect
 
 ```bash
-ssh -i ~/.ssh/coopdata-key.pem ubuntu@3.71.123.45
-# Replace with your actual public IP
+ssh -i ~/.ssh/<your-key-file> <user>@<server-ip>
+# Replace with the SSH user and the server address you were given.
+# If the client gave you a password instead of a key, drop the -i option.
 ```
 
 If you see:
@@ -172,7 +76,7 @@ Type `yes` and press Enter.
 
 You should now see:
 ```
-ubuntu@ip-172-31-xx-xx:~$
+<user>@<server-name>:~$
 ```
 
 ---
@@ -181,11 +85,11 @@ ubuntu@ip-172-31-xx-xx:~$
 
 ### Step 5.1 — Generate Deploy Key
 
-The repo is private, so EC2 needs a deploy key to clone it.
+The repo is private, so the server needs a deploy key to clone it.
 
 ```bash
-# On EC2:
-ssh-keygen -t ed25519 -f ~/.ssh/coopdata_deploy_key -N "" -C "coopdata-ec2"
+# On the server:
+ssh-keygen -t ed25519 -f ~/.ssh/coopdata_deploy_key -N "" -C "coopdata-server"
 cat ~/.ssh/coopdata_deploy_key.pub
 ```
 
@@ -195,15 +99,15 @@ Copy the output (starts with `ssh-ed25519 ...`).
 
 1. Go to https://github.com/ADORSYS-GIS/CoopData/settings/keys
 2. Click **Add deploy key**
-3. Title: `coopdata-ec2`
+3. Title: `coopdata-server`
 4. Key: paste the public key from Step 5.1
-5. **Allow write access**: ❌ (leave unchecked — read only)
+5. **Allow write access**: no (leave unchecked — read only)
 6. Click **Add key**
 
 ### Step 5.3 — Configure SSH for GitHub
 
 ```bash
-# On EC2:
+# On the server:
 cat > ~/.ssh/config <<'EOF'
 Host github.com
   HostName github.com
@@ -223,7 +127,7 @@ ssh -T git@github.com
 ```bash
 cd /opt
 sudo mkdir -p coopdata
-sudo chown ubuntu:ubuntu coopdata
+sudo chown "$USER":"$USER" coopdata
 git clone git@github.com:ADORSYS-GIS/CoopData.git /opt/coopdata
 cd /opt/coopdata
 ```
@@ -249,8 +153,8 @@ sudo ./setup-ec2.sh
 
 ```
 Do you have a domain name configured?
-  1) Yes — I have a domain pointing to this EC2 (HTTPS with Let's Encrypt)
-  2) No  — Use the EC2 public IP address directly (HTTP only, no SSL)
+  1) Yes — I have a domain pointing to this server (HTTPS with Let's Encrypt)
+  2) No  — Use the server public IP address directly (HTTP only, no SSL)
 
 Enter choice [1-2]:
 ```
@@ -267,7 +171,7 @@ The script then:
 Expected output:
 ```
 ╔══════════════════════════════════════════════════════╗
-║          EC2 Setup Complete!                           ║
+║          Server Setup Complete!                        ║
 ╚══════════════════════════════════════════════════════╝
 
   ► Mode:      IP Address (HTTP)
@@ -457,7 +361,7 @@ The Keycloak provisioning auto-created the `coopdata-backend` client with a rand
 4. Left menu → **Clients** → click **coopdata-backend**
 5. Tab → **Credentials**
 6. Copy the **Client secret** value
-7. Back on EC2:
+7. Back on the server:
    ```bash
    cd /opt/coopdata
    nano .env
@@ -509,7 +413,7 @@ API Docs:   http://3.71.123.45/swagger-ui/
 When you push new code to `main`:
 
 ```bash
-# On EC2:
+# On the server:
 cd /opt/coopdata
 git pull
 docker compose -f docker-compose.ghcr.yaml pull
@@ -519,7 +423,7 @@ docker compose -f docker-compose.ghcr.yaml up -d --force-recreate
 If there are new migrations or Keycloak realm changes:
 ```bash
 docker compose -f docker-compose.ghcr.yaml down
-docker volume rm coopdata_postgres_data  # ⚠️ ONLY if you want to reset the database
+docker volume rm coopdata_postgres_data # ONLY if you want to reset the database
 docker compose -f docker-compose.ghcr.yaml up -d
 ```
 
@@ -529,9 +433,9 @@ docker compose -f docker-compose.ghcr.yaml up -d
 
 When you get a domain name (e.g., `coopdata.example.com`):
 
-1. Point DNS A record to your EC2 Elastic IP
-2. Update AWS Security Group: add **HTTPS (443)** rule → `0.0.0.0/0`
-3. On EC2:
+1. Point the DNS A record to the server IP address
+2. Open **HTTPS (443)** from anywhere in the server firewall (provider panel or `ufw`)
+3. On the server:
    ```bash
    cd /opt/coopdata
    sudo ./setup-ec2.sh

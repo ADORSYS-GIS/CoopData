@@ -1,15 +1,33 @@
-# 📚 CoopData Documentation
+# CoopData Documentation
 
-> **Last restructured:** August 31, 2026
+> **Last updated:** November 2, 2026
 > This is the single entry point for all project documentation.
+
+**Using CoopData?** Start with the [User Guide](user-guide/README.md).
+**Running the server?** Start with the [Production Runbook](deployment/production-runbook.md).
 
 ---
 
-## 🏗️ Architecture & Design (Start Here)
+## User Guide
 
 | Document | Description | Audience |
 |----------|-------------|----------|
-| [`architecture/architecture.md`](architecture/architecture.md) | **System architecture** — Rust/Axum/SeaORM stack, database schema, AI pipeline, 4-tier review workflow, KPI computation | All developers |
+| [`user-guide/README.md`](user-guide/README.md) | Overview, the organisation chain, the two cooperative types | Everyone |
+| [`user-guide/getting-started.md`](user-guide/getting-started.md) | Sign-in, two-step verification, language, consents, offline use | Everyone |
+| [`user-guide/cooperative.md`](user-guide/cooperative.md) | Creating, filling and sending submissions | Cooperative managers |
+| [`user-guide/apex.md`](user-guide/apex.md) | Registering cooperatives, reviewing and final approval, submitting on behalf | Apex officers |
+| [`user-guide/federation.md`](user-guide/federation.md) | Managing apexes, following their submissions | Federation officers |
+| [`user-guide/ministry.md`](user-guide/ministry.md) | Following submissions, federations, forms, indicators, audit log | Ministry officials |
+| [`user-guide/analytics-explained.md`](user-guide/analytics-explained.md) | Why a cooperative or year may be missing from a chart | Everyone |
+| [`user-guide/faq.md`](user-guide/faq.md) | Common problems and answers | Everyone |
+
+---
+
+## Architecture & Design (Start Here)
+
+| Document | Description | Audience |
+|----------|-------------|----------|
+| [`architecture/architecture.md`](architecture/architecture.md) | **System architecture** — Rust/Axum/SeaORM stack, database schema, AI pipeline, review workflow (the apex gives the final approval), KPI computation | All developers |
 | [`architecture/RBAC_AND_AUTH_SYSTEM.md`](architecture/RBAC_AND_AUTH_SYSTEM.md) | **Auth & RBAC** — Keycloak integration, role system, entity lifecycle, scope enforcement, JWT claims | All developers |
 | [`architecture/design.md`](architecture/design.md) | **IAM integration design** — User stories, routes, data models, tech stack decisions | All developers |
 | [`architecture/database-schema.md`](architecture/database-schema.md) | **Database schema reference** — Table definitions, migrations | Backend developers |
@@ -17,7 +35,7 @@
 
 ---
 
-## 🚀 Features
+## Features
 
 Feature-specific design documents. Each covers a single feature's design, data models, and implementation approach.
 
@@ -35,26 +53,47 @@ Feature-specific design documents. Each covers a single feature's design, data m
 | [`basic-benchmarking.md`](features/basic-benchmarking.md) | Basic benchmarking implementation |
 | [`dynamic-localization.md`](features/dynamic-localization.md) | Dynamic content localization |
 | [`high-stakes-deletion.md`](features/high-stakes-deletion.md) | Cascade delete with verification tokens |
-| [`offline-first-architecture.md`](features/offline-first-architecture.md) | ⚠️ Original offline design (outdated; see `knowledge/frontend/offline-mode.md`) |
+| [`offline-first-architecture.md`](features/offline-first-architecture.md) |  Original offline design (outdated; see `knowledge/frontend/offline-mode.md`) |
 | [`period-types.md`](features/period-types.md) | Reporting period types |
 | [`report-export.md`](features/report-export.md) | Report export subsystem (PDF/Excel/CSV) |
 | [`kpi-database-mapping.md`](features/kpi-database-mapping.md) | KPI ↔ database field mapping |
 | [`manual-entry-mapping.md`](features/manual-entry-mapping.md) | Manual data entry field mapping |
+| [`complete-year-periods.md`](features/complete-year-periods.md) | Complete reporting years: when a year counts in analytics |
+| [`questionnaire-kpi-dashboard.md`](features/questionnaire-kpi-dashboard.md) | Questionnaire KPIs, Basic Analytics and the questionnaire report |
+| [`legal-consent-management.md`](features/legal-consent-management.md) | Legal documents, consent recording and privacy requests |
+| [`multilingual-report-exports.md`](features/multilingual-report-exports.md) | Reports in English, French, Portuguese and siSwati |
+| [`report-export-on-demand.md`](features/report-export-on-demand.md) | On-demand report generation |
+| [`report-template.md`](features/report-template.md) | Report template structure |
+| [`cascade-delete.md`](features/cascade-delete.md) | What a cascade delete removes |
+| [`rate-limiting-design.md`](features/rate-limiting-design.md) | Rate limiting |
+| [`security-hardening-design.md`](features/security-hardening-design.md) | Security hardening overview |
+| [`t1-input-sanitization.md`](features/t1-input-sanitization.md) | Input sanitization and injection prevention |
+| [`t2-auth-double-gatekeeper.md`](features/t2-auth-double-gatekeeper.md) | Auth and authorization double gatekeeper |
+| [`t3-session-management.md`](features/t3-session-management.md) | Session management and token expiry |
+| [`t9-audit-trails.md`](features/t9-audit-trails.md) | Audit trails |
+| [`t10-error-handling.md`](features/t10-error-handling.md) | Error handling and safe user messages |
+| [`t12-retry-idempotency.md`](features/t12-retry-idempotency.md) | Retry and idempotency |
+| [`t15-testing.md`](features/t15-testing.md) | Comprehensive testing |
+| [`t18-chaos-resilience.md`](features/t18-chaos-resilience.md) | Chaos and resilience testing |
 
 ---
 
-## 🚢 Deployment
+## Deployment
 
 | Document | Description |
 |----------|-------------|
-| [`deployment.md`](deployment/deployment.md) | AWS EC2 deployment guide (Terraform + Docker Compose) |
-| [`manual-deployment.md`](deployment/manual-deployment.md) | Manual deployment steps |
-| [`deployment-flow.md`](deployment/deployment-flow.md) | Deployment pipeline flow |
+| [`production-runbook.md`](deployment/production-runbook.md) | **Start here.** What runs, configuration, releasing, backup, recovery, incidents |
+| [`deployment-flow.md`](deployment/deployment-flow.md) | The branch and release pipeline in detail |
 | [`docker-compose-specs.md`](deployment/docker-compose-specs.md) | Docker Compose service specifications |
+| [`manual-deployment.md`](deployment/manual-deployment.md) | Installing on the client server step by step |
+| [`BACKUP_AND_RECOVERY_GUIDE.md`](BACKUP_AND_RECOVERY_GUIDE.md) | Backups, restore and disaster recovery |
+| [`MULTI_ENVIRONMENT_GUIDE.md`](MULTI_ENVIRONMENT_GUIDE.md) | Production plus demo on one host |
+| [`RELEASE_STRATEGY_GUIDE.md`](RELEASE_STRATEGY_GUIDE.md) | Versioning and release rules |
+| [`archive/ec2-subdomain-ssl-report.md`](archive/ec2-subdomain-ssl-report.md) | Historical: notes from the former AWS demo server |
 
 ---
 
-## ⚙️ Operations & Monitoring
+## Operations & Monitoring
 
 | Document | Description |
 |----------|-------------|
@@ -62,10 +101,14 @@ Feature-specific design documents. Each covers a single feature's design, data m
 | [`observability-monitoring.md`](operations/observability-monitoring.md) | Monitoring dashboards and alerts |
 | [`audit-context-middleware.md`](operations/audit-context-middleware.md) | Audit context middleware implementation |
 | [`mfa-totp.md`](operations/mfa-totp.md) | MFA/TOTP implementation |
+| [`keycloak-mfa-troubleshooting.md`](keycloak-mfa-troubleshooting.md) | MFA problems and fixes |
+| [`load-testing-report.md`](load-testing-report.md) | Load test results |
+| [`loadtestOverview.md`](loadtestOverview.md) | Load test overview |
+| [`uiux-consistency-assessment.md`](uiux-consistency-assessment.md) | UI/UX consistency assessment |
 
 ---
 
-## 🧪 Testing
+## Testing
 
 | Document | Description |
 |----------|-------------|
@@ -73,10 +116,15 @@ Feature-specific design documents. Each covers a single feature's design, data m
 | [`unit-test-analysis.md`](testing/unit-test-analysis.md) | Current test coverage analysis + improvement roadmap |
 | [`apex-cooperative-testing-guide.md`](testing/apex-cooperative-testing-guide.md) | Apex ↔ Cooperative flow testing |
 | [`federation-iam-testing-guide.md`](testing/federation-iam-testing-guide.md) | Federation IAM testing guide |
+| [`TESTING_GUIDE.md`](TESTING_GUIDE.md) | Top-level testing guide |
+| [`TEST_GUIDE.md`](testing/TEST_GUIDE.md) | Test guide |
+| [`full-stack-e2e-testing-plan.md`](testing/full-stack-e2e-testing-plan.md) | Full-stack end-to-end test plan |
+| [`reference-test-data-2025.md`](testing/reference-test-data-2025.md) | Reference test data, 2025 |
+| [`reference-test-data-round2.md`](testing/reference-test-data-round2.md) | Reference test data, round 2 |
 
 ---
 
-## 📊 Analysis & Mapping
+## Analysis & Mapping
 
 | Document | Description |
 |----------|-------------|
@@ -86,7 +134,7 @@ Feature-specific design documents. Each covers a single feature's design, data m
 
 ---
 
-## 📖 Knowledge Base
+## Knowledge Base
 
 Reference documentation for developers. Organized by technology.
 
@@ -109,14 +157,13 @@ Reference documentation for developers. Organized by technology.
 | [`security.md`](knowledge/frontend/security.md) | Security best practices |
 | [`testing.md`](knowledge/frontend/testing.md) | Frontend testing strategy |
 | [`rbac-smoke-testing.md`](knowledge/frontend/rbac-smoke-testing.md) | RBAC smoke testing patterns |
-| [`sync-manager.md`](knowledge/frontend/sync-manager.md) | ⚠️ Original sync-manager plan (outdated) |
+| [`sync-manager.md`](knowledge/frontend/sync-manager.md) |  Original sync-manager plan (outdated) |
 | [`offline-mode.md`](knowledge/frontend/offline-mode.md) | **How offline mode works today** (start here) |
 | [`offline-review-guide.md`](knowledge/frontend/offline-review-guide.md) | Every offline fix explained, with step-by-step checks |
-| [`offline-sync-conflict.md`](knowledge/frontend/offline-sync-conflict.md) | ⚠️ Original conflict-resolution plan (outdated) |
+| [`offline-sync-conflict.md`](knowledge/frontend/offline-sync-conflict.md) |  Original conflict-resolution plan (outdated) |
 | [`offline-local-testing.md`](knowledge/frontend/offline-local-testing.md) | Testing offline mode locally (why :5173 can't, use :5174) |
 | [`offline-known-issues.md`](knowledge/frontend/offline-known-issues.md) | Offline bugs found, reproduction results, fix tracker |
 | [`e2e-smoke-tests-mock-auth.md`](knowledge/frontend/e2e-smoke-tests-mock-auth.md) | E2E smoke tests mock auth setup |
-| [`user_manual.md`](knowledge/frontend/user_manual.md) | User manual |
 | [`database.md`](knowledge/frontend/database.md) | Frontend database (Dexie/IndexedDB) |
 
 ### Backend / Rust (`knowledge/rust/`)
@@ -155,7 +202,7 @@ Reference documentation for developers. Organized by technology.
 
 ---
 
-## 📦 Archive
+## Archive
 
 Historical sprint reports and implementation records. Preserved for reference but no longer actively maintained.
 
@@ -176,37 +223,33 @@ Historical sprint reports and implementation records. Preserved for reference bu
 
 ---
 
-## 📁 Structure Overview
+## Structure Overview
 
 ```
 docs/
 ├── README.md                          ← You are here
-│
-├── architecture/                      ← Core architecture docs (5 files)
-│   ├── architecture.md                ← System architecture (start here)
-│   ├── RBAC_AND_AUTH_SYSTEM.md        ← Auth & RBAC (source of truth)
-│   ├── design.md                      ← IAM integration design
-│   ├── database-schema.md             ← Database schema reference
-│   └── progress.md                    ← Project roadmap
-│
-├── features/                          ← Feature-specific design docs (17 files)
-├── deployment/                        ← Deployment guides (4 files)
-├── operations/                        ← Ops & monitoring (4 files)
-├── testing/                           ← Testing docs (4 files)
-├── analysis/                          ← Analysis & mapping (3 files)
-├── archive/                           ← Historical sprint reports (12 files)
-│
+├── user-guide/                        ← End-user guide, one page per role
+├── architecture/                      ← Core architecture docs
+├── features/                          ← Feature-specific design docs
+├── deployment/                        ← Production runbook and deployment guides
+├── operations/                        ← Ops & monitoring
+├── testing/                           ← Testing docs
+├── analysis/                          ← Analysis & mapping
+├── legal/                             ← Consent standard
+├── archive/                           ← Historical sprint reports
+├── *.md                               ← Backup, release, multi-environment, testing and load-test guides
 └── knowledge/                         ← Developer reference docs
-    ├── frontend/                      ← Frontend patterns (20 files)
-    ├── rust/                          ← Backend patterns (12 files)
-    ├── templates/                     ← Doc templates (3 files)
-    └── *.md                           ← Other reference docs (4 files)
+    ├── frontend/
+    ├── rust/
+    ├── templates/
+    └── *.md
 ```
 
 ---
 
-## 🧹 Maintenance Rules
+## Maintenance Rules
 
+0. **End-user instructions** → `docs/user-guide/` (update it whenever a screen or flow changes)
 1. **New feature designs** → `docs/features/`
 2. **New deployment guides** → `docs/deployment/`
 3. **New testing docs** → `docs/testing/`

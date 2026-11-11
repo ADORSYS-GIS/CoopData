@@ -219,4 +219,4 @@ Both use the standard Keycloak base messages for recovery-code strings (inherite
 
 - [Authentication Guide](./frontend/authentication.md)
 - [UI Design System](./frontend/ui-design.md)
-- [RBAC and Auth System](../RBAC_AND_AUTH_SYSTEM.md)
+- [RBAC and Auth System](../architecture/RBAC_AND_AUTH_SYSTEM.md)

@@ -14,7 +14,7 @@
 
 - **Ministry Admin** — Platforms super-admin. Fully manages the Indicator Catalog (create, update, delete indicators). Views consolidated reports and analytics across all cooperatives.
 - **Cooperative Manager** — Cooperative user. Fills in the periodic indicators dynamic form scoped to their annual submission, saves drafts, and submits them to reviewers.
-- **Apex / Federation Reviewer** — Organization reviewer. Reviews the filled indicators as part of the 4-tier submission review process.
+- **Apex Reviewer** — Organization reviewer. Reviews the filled indicators as part of the submission review and gives the final approval. Federation and Ministry users can read them.
 a
 ## 3. Core User Stories (MVP)
 
@@ -23,7 +23,7 @@ As a Ministry Admin, I want to define indicators in a catalog (name, display nam
 As a Cooperative Manager, I want to see the dynamic indicators form on my Submission Detail Page so that I can report our yearly periodic indicators (e.g. board size, women on board, meetings held, training hours).
 As a Cooperative Manager, I want to save my periodic indicators as drafts so that I can complete and verify them before final submission.
 As a Ministry Admin, I want to select a dynamic indicator from a dropdown and view its consolidated metrics (sum, average, count) across all reporting cooperatives, broken down by region and cooperative type.
-As an Apex / Federation reviewer, I want to view a cooperative's periodic indicator submission so that I can verify their operational compliance before approving the submission.
+As an Apex reviewer, I want to view a cooperative's periodic indicator submission so that I can verify their operational compliance before approving the submission.
 ```
 
 ## 4. Full App Flow (Mermaid)
@@ -37,7 +37,7 @@ flowchart TD
     RenderForm --> SaveDraft[Coop saves draft values]
     SaveDraft --> RenderForm
     RenderForm --> FinalSubmit[Coop submits data envelope to Apex]
-    FinalSubmit --> Review[Apex / Federation / Ministry reviews indicators]
+    FinalSubmit --> Review[Apex reviews indicators]
     Review --> Approve[Submission Approved]
     Approve --> Consolidated[Ministry views Consolidated Indicator Dashboard]
     style Start fill:#e1f5fe

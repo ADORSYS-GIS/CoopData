@@ -14,7 +14,7 @@ Ministry  →  Federation  →  Apex  →  Cooperative
 >
 > 1. **Build the hierarchy** (create Federation → Apex → Cooperative + users)
 > 2. **A cooperative submits data** (via one of 3 methods, depending on digitalization)
-> 3. **The 4-tier review** approves it up the chain
+> 3. **The apex reviews** it and gives the final approval
 > 4. **Approval unlocks reports & AI narratives**
 > 5. **Approved data feeds analytics**
 >
@@ -180,9 +180,9 @@ Cooperatives upload **non-financial** datasets (membership, savings, loans, and 
 
 ---
 
-# Part 4: Submission & the 4-Tier Review State Machine
+# Part 4: Submission & Review
 
-Once a cooperative has entered its data, the submission travels **up the hierarchy** for approval. Each level can approve or send it back down.
+Once a cooperative has entered its data, the submission goes to its **apex**, which approves it or sends it back.
 
 ## 4.1 Submitting as a Cooperative
 
@@ -191,33 +191,33 @@ Once a cooperative has entered its data, the submission travels **up the hierarc
 3. Click **Submit Assessment**.
 4. **Verify** the status changes to **Submitted** (it now moves to the Apex for review).
 
-## 4.2 The Review Cascade (Apex → Federation → Ministry)
+## 4.2 The review (Apex gives the final approval)
 
-| Stage | Who approves | From state | To state | Return sends back to |
-|-------|--------------|-----------|---------|------------|
+| Stage | Who acts | From state | To state | Return sends back to |
+|-------|----------|-----------|---------|------------|
 | Submit | Cooperative | Draft | Submitted | — |
-| 1st review | **Apex Admin** | Submitted | In Review | Cooperative |
-| 2nd review | **Federation Admin** | In Review | In Review | Apex |
-| Final review | **Ministry Admin** | In Review | **Approved** | — |
+| Review | **Apex Admin** | Submitted | **Approved** (final) | Cooperative, as a Draft |
+
+An apex that creates and submits a return itself has it approved at once. Federation and Ministry do not approve anything: they only see the submission and use the approved data.
 
 ### Apex Review
 
 1. Log in as the **Apex Admin** for the cooperative's parent apex.
-2. Navigate to **Submissions / Reviews** and click the cooperative's submission.
-3. **Verify** the **Action Panel** shows **Approve** and **Return to Cooperative**.
-4. Click **Return to Cooperative**, add a comment (e.g. *"Please check Loan loss provisions"*), and submit.
-5. **Verify** the state updates to **Returned to Cooperative** (the cooperative must fix and re-submit).
-6. Re-submit, then click **Approve**.
-7. **Verify** the submission advances to the Federation.
+2. Navigate to **Submissions** and click the cooperative's submission.
+3. **Verify** the review panel shows **Approve** and **Request Changes**.
+4. Click **Request Changes**, add a comment (e.g. *"Please check Loan loss provisions"*), and submit.
+5. **Verify** the submission goes back to the cooperative as a **Draft**, with your comment in the **Review History**.
+6. As the cooperative, correct the data and submit again.
+7. As the apex, click **Approve**.
+8. **Verify** the status is **Approved** and the submission is locked.
 
-### Federation & Ministry Review
+### Federation & Ministry (read-only)
 
-1. Log in as **Federation Admin** and approve the submission (it advances to the Ministry).
-2. Log in as **Ministry Admin** and open the submission.
-3. **Verify** you can **Approve** or **Reject**.
-4. Click **Approve**.
+1. Log in as **Federation Admin**, open **Submissions**, choose the apex and the cooperative, and open the submission.
+2. **Verify** you can read the data, the status and the review history, and that there is **no** Approve, Return or Reject button.
+3. Repeat as **Ministry Admin**.
 
-> ✅ **Approval by the Ministry is the moment everything unlocks.** Only *approved* submissions:
+> **Approval by the Apex is the moment everything unlocks.** Only *approved* submissions:
 > - generate **PDF reports** with **AI narratives** (Part 5),
 > - feed **Analytics**, **Benchmarks**, and **Rankings** (Part 6–8).
 
@@ -412,7 +412,7 @@ The Ministry provides **translated labels/descriptions/options** per language, a
 - [ ] **Submission methods:** Upload (AI), Manual entry, Questionnaire all work; basic-tier coop forced to Questionnaire.
 - [ ] **AI extraction:** upload → progress → editor with confidence badges → edit/save.
 - [ ] **Non-financial:** Excel upload parses members/savings/loans/FD/farm; validation flags sheet + row.
-- [ ] **Review:** cooperative submits; Apex return/approve; Federation approve; Ministry approve.
+- [ ] **Review:** cooperative submits; Apex returns or approves; Federation and Ministry can read it but not act.
 - [ ] **Reports + AI narratives:** 4 tiers generate PDFs after approval with AI insight boxes.
 - [ ] **Analytics:** main KPI dashboards per role; Basic Analytics aggregates questionnaire coops.
 - [ ] **Benchmarking & Custom KPIs:** sector/national comparison; ministry-defined formulas.

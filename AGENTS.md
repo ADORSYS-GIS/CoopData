@@ -24,7 +24,7 @@ nav_order: 1
 
 > **STOP AND ASK TRIGGERS:**
 >
-> 1. **Missing Design**: If `docs/design.md` is missing or incomplete for the requested feature.
+> 1. **Missing Design**: If `docs/architecture/design.md` is missing or incomplete for the requested feature.
 > 2. **Ambiguity**: If the user prompt is vague (e.g., "Fix the bug" without details).
 > 3. **Manual API Calls (Frontend)**: If you find yourself writing `fetch` or `axios` instead of using `openapi-client`.
 > 4. **Missing Rust Pattern**: If you need to create a handler, repository, entity, or service and don't find the pattern here.
@@ -33,8 +33,8 @@ nav_order: 1
 > {: .warning }
 
 > **STEP 0: DESIGN FIRST**
-> If `docs/design.md` does not exist, or if the user prompt implies a new feature/page, **YOU MUST STOP** and ask the user for the necessary information to fill out the `docs/templates/design.md` template.
-> **DO NOT WRITE CODE** until `docs/design.md` is approved.
+> If `docs/architecture/design.md` does not exist, or if the user prompt implies a new feature/page, **YOU MUST STOP** and ask the user for the necessary information to fill out the `docs/knowledge/templates/design.md` template.
+> **DO NOT WRITE CODE** until `docs/architecture/design.md` is approved.
 > {: .warning }
 
 > **SKILLS DIRECTORY LOOKUP**
@@ -111,8 +111,8 @@ flowchart TD
 | Steps                     |   Human    |     AI     | Comment                                                                 |
 | :------------------------ | :--------: | :--------: | :---------------------------------------------------------------------- |
 | 1. Requirements           |  ★★★ High  |  ★☆☆ Low   | Humans define scope, users, and business context                        |
-| 2. Design Documentation   | ★★☆ Medium | ★★☆ Medium | **MANDATORY**: AI fills `docs/design.md` based on user prompt           |
-| 3. **Roadmap & Phasing**  |  ★☆☆ Low   |  ★★★ High  | **CRITICAL**: AI creates `docs/progress.md` to track state across chats |
+| 2. Design Documentation   | ★★☆ Medium | ★★☆ Medium | **MANDATORY**: AI fills `docs/architecture/design.md` based on user prompt           |
+| 3. **Roadmap & Phasing**  |  ★☆☆ Low   |  ★★★ High  | **CRITICAL**: AI creates `docs/architecture/progress.md` to track state across chats |
 | 4. Backend Entity/DB      |  ★☆☆ Low   |  ★★★ High  | AI creates entity + migration → humans verify                           |
 | 5. Backend DTOs           |  ★☆☆ Low   |  ★★★ High  | AI creates request/response types with validation                       |
 | 6. Backend Repository     |  ★☆☆ Low   |  ★★★ High  | AI creates CRUD methods with error handling                             |
@@ -120,7 +120,7 @@ flowchart TD
 | 8. Backend Routes/OpenAPI |  ★☆☆ Low   |  ★★★ High  | AI wires routes + registers schemas                                     |
 | 9. frontend Types         |  ★☆☆ Low   |  ★★★ High  | AI creates types, constants → humans verify                             |
 | 10. Components & Hooks    |  ★☆☆ Low   |  ★★★ High  | AI generates all reusable pieces based on design                        |
-| 11. Pages Implementation  |  ★☆☆ Low   |  ★★★ High  | AI builds the full app following `docs/progress.md` checklist           |
+| 11. Pages Implementation  |  ★☆☆ Low   |  ★★★ High  | AI builds the full app following `docs/architecture/progress.md` checklist           |
 | 12. Optimization          | ★★☆ Medium | ★★☆ Medium | Humans test usability → AI refines performance                          |
 | 13. Reliability           |  ★☆☆ Low   |  ★★★ High  | AI writes tests, error boundaries, edge cases                           |
 
@@ -128,11 +128,11 @@ flowchart TD
 
 1. **Requirements** – Clarify project goals and confirm scope.
 2. **Design Documentation** → **MANDATORY STEP**
-   - **Action**: Check if `docs/design.md` exists.
-   - **If NO**: Use `docs/templates/design.md` to ask the user for details. Create `docs/design.md`.
+   - **Action**: Check if `docs/architecture/design.md` exists.
+   - **If NO**: Use `docs/knowledge/templates/design.md` to ask the user for details. Create `docs/architecture/design.md`.
    - **If YES**: Update it with new feature details.
 3. **Roadmap & Progress Tracking** → **TOKEN MANAGEMENT SAVER**
-   - **Action**: Check if `docs/progress.md` exists.
+   - **Action**: Check if `docs/architecture/progress.md` exists.
    - **If NO**: Create it. Break the project into Phases.
    - **If YES**: Read it to see what is next.
 4. **Backend: Entity + Migration** → see `docs/knowledge/rust/rust-entities.md`
@@ -413,8 +413,8 @@ Before merging any PR, verify:
 2. **Is it Backend or Frontend?**
    - **Backend**: Follow `docs/knowledge/rust/rust-architecture.md` flow
    - **Frontend**: Follow `docs/knowledge/frontend/pages.md` flow
-3. **Check Design**: Does `docs/design.md` cover this? If not, ask user.
-4. **Check Roadmap**: Open `docs/progress.md`. What is the next unchecked item? **DO THAT ONLY.**
+3. **Check Design**: Does `docs/architecture/design.md` cover this? If not, ask user.
+4. **Check Roadmap**: Open `docs/architecture/progress.md`. What is the next unchecked item? **DO THAT ONLY.**
 5. **Plan Files**:
    - Backend: Entity → DTO → Repository → Handler → Routes → OpenAPI
    - Frontend: Type → Hook → Component → Page

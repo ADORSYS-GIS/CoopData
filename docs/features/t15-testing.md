@@ -493,8 +493,6 @@ All three sequential test files cover the complete submission flow for each rout
 | Step 3 | Fill Non-Financial data | Upload full workbook | "Populate Test Databases" | "Edit Answers" + "Populate Test Data" |
 | Step 4 | Submit for review | ✅ | ✅ | ✅ |
 | Step 5 | Apex approval | ✅ | ✅ | ✅ |
-| Step 6 | Federation approval | ✅ | ✅ | ✅ |
-| Step 7 | Ministry final approval | ✅ | ✅ | ✅ |
 
 **Note:** Route 3 uses period **2023** (instead of 2024) to avoid duplicate submission conflicts with Routes 1 & 2.
 

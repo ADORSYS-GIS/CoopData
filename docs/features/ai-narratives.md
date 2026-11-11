@@ -1,5 +1,8 @@
 # Design Document — AI-Powered Report Narratives (S4-T6)
 
+> **Current behaviour (November 2026):** narratives and report PDFs are prepared in the background when the **apex** approves a submission (`report_jobs::on_submission_approved`, called from `apex_approve_submission`). The Ministry no longer approves submissions. Step 3 below is described with the earlier function name `trigger_cooperative_export`; the work is now done by `services/report_jobs.rs`, which also prepares the consolidated reports of complete years. Regenerating narratives by hand is restricted to the Ministry administrator.
+
+
 > **Ticket:** [S4-T6 — AI-Powered Report Summarization](https://github.com/ADORSYS-GIS/CoopData/issues/64)
 > **Status:** Implemented (Backend + Frontend — all tiers)
 > **Last Updated:** 2026-07-31
@@ -11,7 +14,7 @@
 Currently, all PDF report tiers (Cooperative, Apex, Federation, Ministry) contain hardcoded narrative text that provides no meaningful insight. Reviewers (Apex, Federation, Ministry) must manually interpret financial values and ratios to assess cooperative health. This enhancement introduces an AI-powered reporting summary engine that generates professional executive summaries from the actual financial data.
 
 **Total narrative sections:** 18 across 4 tiers (Cooperative: 5, Apex: 3, Federation: 5, Ministry: 5)
-**Total LLM calls per ministry approval:** 18 (5+3+5+5)
+**Total LLM calls per approval:** 18 (5+3+5+5)
 
 ---
 
@@ -53,7 +56,7 @@ Currently, all PDF report tiers (Cooperative, Apex, Federation, Ministry) contai
 }
 ```
 
-Migration `24_report_narratives_metadata.sql` adds `metadata JSONB` to `apexes` and `federations` tables.
+Migration `26_report_narratives_metadata.sql` adds `metadata JSONB` to `apexes` and `federations` tables.
 
 ### Ministry Tier
 **Decision:** Dedicated `ministry_report_narratives` table.
@@ -71,12 +74,12 @@ CREATE TABLE ministry_report_narratives (
 
 ## 3. Post-Approval Flow (Actual Implementation)
 
-### 3.1 Ministry Approval Trigger
+### 3.1 Approval Trigger
 
 ```
-POST /api/v1/ministry/submissions/{id}/approve
+POST /api/v1/apex/submissions/{id}/approve
 │
-├─ 1. workflow.ministry_approve(id, claims, comment)
+├─ 1. workflow.apex_approve(id, claims, comment)
 │     → Updates submission status to "approved"
 │     → Records approval timestamp
 │
@@ -328,7 +331,7 @@ Gotenberg renders PDF with AI narratives on report pages
 | **Federation** | Executive Dashboard, Risk Distribution, Sector Breakdown, Apex Comparison, PEARLS Analysis | 5 | 5 (concurrent) |
 | **Ministry** | Executive Dashboard, Risk Distribution, Sector Breakdown, Apex Comparison, PEARLS Analysis | 5 | 5 (concurrent) |
 
-**Grand total: 18 narrative sections, 18 LLM calls per ministry approval.**
+**Grand total: 18 narrative sections, 18 LLM calls per approval.**
 
 ---
 
@@ -431,7 +434,7 @@ NATIONAL KPI DISTRIBUTIONS:
 - **Gotenberg semaphore:** `Arc::new(Semaphore::new(2))` — max 2 concurrent PDF generations
 - **Total concurrent HTTP:** max 4 (2 AI + 2 Gotenberg)
 
-**Timeline for a single ministry approval (Gemini free tier):**
+**Timeline for a single approval (Gemini free tier):**
 ```
 T+0s:      ministry_approve() called
 T+0.5s:    KPIs computed and saved
@@ -849,7 +852,7 @@ All log lines use structured fields with emoji prefixes for quick scanning:
 | 6 | `backend/src/api/handlers/export.rs` | MODIFY | GET handlers for all 4 tiers, POST generate, `#[serde(alias = "year")]`, `find_by_keycloak_id` fix |
 | 7 | `backend/src/api/routes/{cooperative,apex,federation,ministry}.rs` | MODIFY | GET + POST narrative routes for all tiers |
 | 8 | `backend/src/api/handlers/submission.rs` | MODIFY | 65s stagger between tier launches (6 locations) |
-| 9 | `backend/migrations/24_report_narratives_metadata.sql` | **NEW** | Add `metadata JSONB` to apexes/federations + `ministry_report_narratives` table |
+| 9 | `backend/migrations/26_report_narratives_metadata.sql` | **NEW** | Add `metadata JSONB` to apexes/federations + `ministry_report_narratives` table |
 | 10 | `backend/src/entities/apex.rs` | MODIFY | Add `metadata: Option<serde_json::Value>` field |
 | 11 | `backend/src/entities/federation.rs` | MODIFY | Add `metadata: Option<serde_json::Value>` field |
 | 12 | `backend/src/entities/ministry_report_narratives.rs` | **NEW** | Entity for ministry narratives table |
@@ -936,7 +939,7 @@ POST /api/v1/{tier}/submissions/{id}/narratives/generate
 
 ---
 
-## 14. Step-by-Step Breakdown (Ministry Approval Flow)
+## 14. Step-by-Step Breakdown (Approval Flow)
 
 ### Step 1: Ministry Admin Clicks "Approve"
 `POST /api/v1/ministry/submissions/{id}/approve`
@@ -1041,7 +1044,7 @@ POST /api/v1/{tier}/submissions/{id}/narratives/generate
 | **Federation** | 5 | ~24,000 | ~2,500 | ~$0.002 |
 | **Ministry** | 5 | ~24,000 | ~2,500 | ~$0.002 |
 
-**Per ministry approval (all 4 tiers):** ~18 LLM calls, ~$0.004 total
+**Per approval:** ~18 LLM calls, ~$0.004 total
 **At 100 approvals/year:** ~$0.40/year
 
 > **Note:** Gemini Flash is ~60x cheaper than GPT-4o. With the free tier (5 req/min), this is essentially free for low-volume usage.
