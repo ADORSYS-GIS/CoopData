@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { useLevelName } from "@/hooks/shared/useLevelName";
 import type { TFunction } from "i18next";
 import {
   Inbox,
@@ -689,6 +690,7 @@ function SubmissionTable({
   onExport: () => void;
 }) {
   const { t } = useOrganizationLabelsContext();
+  const levelName = useLevelName();
   const role = useUserRole();
   const { isOffline, user } = useAuth();
   const { verifyIdentity } = useVerifyIdentity();
@@ -838,7 +840,7 @@ function SubmissionTable({
                   <td className="px-5 py-4 hidden md:table-cell">
                     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground font-medium capitalize">
                       <span className="size-1.5 rounded-full bg-primary/30" />
-                      {s.current_tier}
+                      {levelName(s.current_tier)}
                     </span>
                   </td>
                   <td className="px-5 py-4 text-muted-foreground text-xs hidden lg:table-cell">
@@ -933,7 +935,9 @@ function SubmissionTable({
 }
 
 export const SubmissionsPage: React.FC = () => {
-  const { t } = useOrganizationLabelsContext();
+  const { t, replaceOrgTerms } = useOrganizationLabelsContext();
+  const unknownFederation = replaceOrgTerms("Unknown Federation");
+  const unknownApex = replaceOrgTerms("Unknown Apex");
   const role = useUserRole();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterType>("all");
@@ -969,38 +973,38 @@ export const SubmissionsPage: React.FC = () => {
   const federationGroups = useMemo(() => {
     const map = new Map<string, { name: string; subs: SubmissionWithName[] }>();
     for (const s of allSubmissions as SubmissionWithName[]) {
-      const key = s.federation_name ?? "Unknown Federation";
+      const key = s.federation_name ?? unknownFederation;
       if (!map.has(key)) map.set(key, { name: key, subs: [] });
       map.get(key)!.subs.push(s);
     }
     return Array.from(map.entries()).map(([id, { name, subs }]) => ({ id, name, subs }));
-  }, [allSubmissions]);
+  }, [allSubmissions, unknownFederation]);
 
   const apexGroups = useMemo(() => {
     const filtered =
       isMinistry && selectedFederationId
         ? (allSubmissions as SubmissionWithName[]).filter(
-            (s) => (s.federation_name ?? "Unknown Federation") === selectedFederationId,
+            (s) => (s.federation_name ?? unknownFederation) === selectedFederationId,
           )
         : (allSubmissions as SubmissionWithName[]);
     const map = new Map<string, { name: string; subs: SubmissionWithName[] }>();
     for (const s of filtered) {
-      const key = s.apex_name ?? "Unknown Apex";
+      const key = s.apex_name ?? unknownApex;
       if (!map.has(key)) map.set(key, { name: key, subs: [] });
       map.get(key)!.subs.push(s);
     }
     return Array.from(map.entries()).map(([id, { name, subs }]) => ({ id, name, subs }));
-  }, [allSubmissions, selectedFederationId, isMinistry]);
+  }, [allSubmissions, selectedFederationId, isMinistry, unknownFederation, unknownApex]);
 
   const coopGroups = useMemo(() => {
     let filtered = allSubmissions as SubmissionWithName[];
     if (isFederation && selectedApexId) {
-      filtered = filtered.filter((s) => (s.apex_name ?? "Unknown Apex") === selectedApexId);
+      filtered = filtered.filter((s) => (s.apex_name ?? unknownApex) === selectedApexId);
     } else if (isMinistry && selectedFederationId && selectedApexId) {
       filtered = filtered.filter(
         (s) =>
-          (s.federation_name ?? "Unknown Federation") === selectedFederationId &&
-          (s.apex_name ?? "Unknown Apex") === selectedApexId,
+          (s.federation_name ?? unknownFederation) === selectedFederationId &&
+          (s.apex_name ?? unknownApex) === selectedApexId,
       );
     }
     const map = new Map<string, { name: string; subs: SubmissionWithName[] }>();
@@ -1011,7 +1015,15 @@ export const SubmissionsPage: React.FC = () => {
       map.get(key)!.subs.push(s);
     }
     return Array.from(map.entries()).map(([id, { name, subs }]) => ({ id, name, subs }));
-  }, [allSubmissions, selectedApexId, selectedFederationId, isFederation, isMinistry]);
+  }, [
+    allSubmissions,
+    selectedApexId,
+    selectedFederationId,
+    isFederation,
+    isMinistry,
+    unknownFederation,
+    unknownApex,
+  ]);
 
   const submissions = useMemo(() => {
     if ((isApex || isFederation || isMinistry) && selectedCoopId) {

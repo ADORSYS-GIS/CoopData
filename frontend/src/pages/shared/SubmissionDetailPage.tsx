@@ -73,6 +73,7 @@ import { useFarmCoops } from "@/hooks/non-financial/useFarmCoop";
 import { getAccessToken } from "@/services/shared/authService";
 import { SubmissionPeriodTag } from "@/components/submissions/SubmissionPeriodTag";
 import { useOrganizationLabelsContext } from "@/context/OrganizationLabelsContext";
+import { useLevelName } from "@/hooks/shared/useLevelName";
 import { EditAccessLostDialog } from "@/components/submissions/EditAccessLostDialog";
 import { SubmissionAccessBadge } from "@/components/submissions/SubmissionAccessBadge";
 import { SubmissionAccessBanner } from "@/components/submissions/SubmissionAccessBanner";
@@ -182,6 +183,7 @@ const isQuestionnaireComplete = (
 
 export const SubmissionDetailPage: React.FC = () => {
   const { t, replaceOrgTerms } = useOrganizationLabelsContext();
+  const levelName = useLevelName();
   const role = useUserRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -635,7 +637,7 @@ export const SubmissionDetailPage: React.FC = () => {
                     {submission.created_by_role === "apex" && submission.created_by_name && (
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary/80 bg-primary/5 border border-primary/10 rounded-lg px-2 py-1">
                         <span className="size-1.5 rounded-full bg-primary" />
-                        {replaceOrgTerms(`Created by ${submission.created_by_name} (Apex)`)}
+                        {`Created by ${submission.created_by_name} (${levelName("apex")})`}
                       </span>
                     )}
                     <SubmissionAccessBadge access={access} />
@@ -648,7 +650,7 @@ export const SubmissionDetailPage: React.FC = () => {
                     <SubmissionPeriodTag submission={submission} />
                     {" · "}
                     <span className="capitalize font-medium">
-                      {t("submissions.detail.tier", { tier: submission.current_tier })}
+                      {t("submissions.detail.tier", { tier: levelName(submission.current_tier) })}
                     </span>
                   </p>
                   {fromMambu && role !== "apex" && (
@@ -721,7 +723,7 @@ export const SubmissionDetailPage: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <FileText className="size-3.5 text-muted-foreground/60" />
                   <span className="capitalize font-medium">
-                    {t("submissions.detail.tier", { tier: submission.current_tier })}
+                    {t("submissions.detail.tier", { tier: levelName(submission.current_tier) })}
                   </span>
                 </div>
               </div>
@@ -1377,7 +1379,7 @@ export const SubmissionDetailPage: React.FC = () => {
                         </span>
                         <span className="text-muted-foreground/50">·</span>
                         <span className="text-muted-foreground capitalize">
-                          {t("submissions.detail.timelineTier", { tier: r.tier })}
+                          {t("submissions.detail.timelineTier", { tier: levelName(r.tier) })}
                         </span>
                         <span className="text-muted-foreground/50">·</span>
                         <span className="text-muted-foreground">
@@ -1392,7 +1394,7 @@ export const SubmissionDetailPage: React.FC = () => {
                       </div>
                       {r.comment && (
                         <p className="text-sm text-foreground bg-muted/40 rounded-lg px-3 py-2 mt-1.5 border border-border/60">
-                          {r.comment}
+                          {replaceOrgTerms(r.comment)}
                         </p>
                       )}
                     </div>
