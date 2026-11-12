@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.10.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.9.0...v1.10.0) (2026-11-12)
+
+
+### Features
+
+* **mambu:** accept a tiny gap in Mambu's books and say so ([0e67b0d](https://github.com/ADORSYS-GIS/CoopData/commit/0e67b0df28b535a084f18e8db853c5b6555c74e2))
+
+
+### Bug Fixes
+
+* **levels:** keep the creator's name as typed in the created-by badge ([e674ae5](https://github.com/ADORSYS-GIS/CoopData/commit/e674ae5b7326530f92f7f9974f2bbbe88baf2ad8))
+* **levels:** show the configured level name in submission tiers and review comments ([cd17e2a](https://github.com/ADORSYS-GIS/CoopData/commit/cd17e2ad0904bc8fd3305cbfbd2c828360ca5cb3))
+* **submissions:** fold the record tables and load them a page at a time ([495cdc5](https://github.com/ADORSYS-GIS/CoopData/commit/495cdc555b8f7e02bc70f303d6661d3398b52a4f))
+
+
+### Performance Improvements
+
+* **mambu:** add up the ledger from the accounting report's movements, not the journal ([a2563e1](https://github.com/ADORSYS-GIS/CoopData/commit/a2563e1fe5fa142ac249dc3f7110ca8967af7f69))
+
 ## [1.9.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.8.2...v1.9.0) (2026-11-11)
 
 
