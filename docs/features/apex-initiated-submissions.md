@@ -1,5 +1,7 @@
 # Apex-Initiated Submissions — Feature Design
 
+> **Update (November 2026):** the apex is now the final approval level. An apex's own submission is approved when it is submitted, and a federation or Ministry return no longer exists. The "Fix Myself" step after a federation return is gone; delegating a draft to the cooperative and reclaiming it still work. Sections below describing a federation review are the original design.
+
 > **Status:** Implemented
 > **Last Updated:** 2026-09-29
 > **Owner:** Engineering Team
@@ -100,10 +102,10 @@ COOPERATIVE SUBMITS
 
 | Actor | Can create | Can edit data | Can submit | Can delete | Can delegate |
 |-------|-----------|--------------|-----------|------------|-------------|
-| Cooperative | ✅ Own submissions | ✅ Own drafts only | ✅ Own drafts only | ✅ Own drafts only | ❌ |
-| Apex | ✅ On behalf of any coop under them | ✅ Drafts they own | ✅ Drafts they own | ✅ Drafts they own | ✅ Return submissions |
-| Federation | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Ministry | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Cooperative | Own submissions | Own drafts only | Own drafts only | Own drafts only | No |
+| Apex | On behalf of any coop under them | Drafts they own | Drafts they own | Drafts they own | Return submissions |
+| Federation | No | No | No | No | No |
+| Ministry | No | No | No | No | No |
 
 ---
 
@@ -458,10 +460,10 @@ Every submission response includes:
 
 | Scenario | Badge shown | Can edit? |
 |----------|------------|-----------|
-| Apex created, apex filling | 🟡 "In progress — Created by **John Dlamini** (Apex)" | Apex only |
-| Apex created, submitted | 🔵 "Submitted by **John Dlamini** (Apex)" | No one |
-| Returned, apex fixing | 🟠 "Returned — **Apex editing**" | Apex only |
-| Returned, delegated to coop | 🟢 "Returned — **Cooperative to fix**" | Cooperative only |
+| Apex created, apex filling | "In progress — Created by **John Dlamini** (Apex)" | Apex only |
+| Apex created, submitted | "Submitted by **John Dlamini** (Apex)" | No one |
+| Returned, apex fixing | "Returned — **Apex editing**" | Apex only |
+| Returned, delegated to coop | "Returned — **Cooperative to fix**" | Cooperative only |
 | Coop created (normal) | No badge (default behavior) | Cooperative only |
 
 ### Dashboard Panel
@@ -470,10 +472,10 @@ The dashboard shows a real-time awareness panel:
 
 ```
 ╔══════════════════════════════════════════════════════════╗
-║  📋 Active Submissions                                  ║
+║   Active Submissions                                  ║
 ╠══════════════════════════════════════════════════════════╣
-║  SUB-2025-00042  │  Draft  │  🟡 Editing by John Dlamini ║
-║  SUB-2025-00038  │  Draft  │  🟢 Editing by Mary Smith   ║
+║  SUB-2025-00042  │  Draft  │   Editing by John Dlamini ║
+║  SUB-2025-00038  │  Draft  │   Editing by Mary Smith   ║
 ║  SUB-2025-00035  │  In Review  │  —                     ║
 ╚══════════════════════════════════════════════════════════╝
 ```
@@ -493,8 +495,8 @@ This gives everyone awareness of who's working on what, without any locking over
 | Returned to Apex (apex-created) | "Returned to Apex" | View only | "Returned — Fix or Delegate" | Edit, Submit, Delegate, Reclaim |
 | Returned to Apex (coop-created) | "Returned to Apex" | View only | "Returned" | Approve, Return |
 | Delegated to Coop | "Returned — Please fix" | Edit, Submit | "Delegated to Coop" | View, Reclaim |
-| Approved | "Approved" ✅ | Download export | "Approved" ✅ | Download export |
-| Rejected | "Rejected" ❌ | View reason | "Rejected" ❌ | View reason |
+| Approved | "Approved"  | Download export | "Approved"  | Download export |
+| Rejected | "Rejected"  | View reason | "Rejected"  | View reason |
 
 ---
 

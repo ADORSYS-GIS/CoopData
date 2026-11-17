@@ -163,7 +163,7 @@ Already defined in `docs/architecture/RBAC_AND_AUTH_SYSTEM.md` Appendix A. Key e
 
 ## 11. Report Export Subsystem
 
-See [Report Export Design & Roadmap](features/report-export.md) for data content specifications, layout formats, and step-by-step roadmap.
+See [Report Export Design & Roadmap](../features/report-export.md) for data content specifications, layout formats, and step-by-step roadmap.
 
 ---
 
@@ -195,7 +195,7 @@ All roles receive accurate financial and non-financial analytics with authorized
 
 ## 12. Apex-Initiated Submissions
 
-See [Apex-Initiated Submissions Design](apex-initiated-submissions.md) for the complete feature design, including:
+See [Apex-Initiated Submissions Design](../features/apex-initiated-submissions.md) for the complete feature design, including:
 - End-to-end flow (apex creates, fills, submits on behalf of cooperative)
 - Exclusive editor model (only one person can edit a draft at a time)
 - Delegation and reclaim flows

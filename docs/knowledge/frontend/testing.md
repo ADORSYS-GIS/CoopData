@@ -2,7 +2,7 @@
 
 > **Goal**: Write tests that give confidence, not just coverage.
 > **Rule**: Test user behavior, RBAC enforcement, and auth flows.
-> **Status**: 129 unit tests + 7 E2E sequential tests — all passing.
+> **Status**: 129 unit tests + 15 E2E sequential tests — all passing.
 
 ---
 
@@ -46,9 +46,9 @@ frontend/
 │   │       ├── financial/yearly-financial.png
 │   │       └── non-financial/coopdatafullworkbook.xlsx
 │   └── specs/
-│       ├── route1-upload-sequential.spec.ts        # 7 sequential tests — full upload + approval chain
-│       ├── route2-manual-sequential.spec.ts        # 7 sequential tests — manual entry + approval chain
-│       └── route3-questionnaire-sequential.spec.ts # 7 sequential tests — questionnaire + approval chain
+│       ├── route1-upload-sequential.spec.ts        # 5 sequential tests — full upload + approval chain
+│       ├── route2-manual-sequential.spec.ts        # 5 sequential tests — manual entry + approval chain
+│       └── route3-questionnaire-sequential.spec.ts # 5 sequential tests — questionnaire + approval chain
 ├── e2e-mock-auth.ts                    # Vite plugin: mocks keycloak-js for E2E (legacy)
 ├── vitest.config.ts                    # vitest configuration
 ├── playwright.config.ts               # Playwright configuration
@@ -428,13 +428,13 @@ npm run test:e2e:ui
 | `route-guards.test.ts` | 18 | requireAuth, requireRole, redirectIfAuthenticated, ROUTE_ACCESS map |
 | `ProtectedRoute.test.tsx` | 16 | loading spinner, redirect to login, unauthorized page, children rendering, RoleRedirect for all 4 roles |
 
-### E2E Tests (21 sequential tests across 3 routes)
+### E2E Tests (15 sequential tests across 3 routes)
 
 | File | Tests | Coverage |
 | --- | --- | --- |
-| `route1-upload-sequential.spec.ts` | 7 | Step 1: Create submission + Upload FS (AI extraction), Step 2: Upload non-financial (full workbook), Step 3: Mark all sections ready, Step 4: Submit for review, Step 5: Apex approval, Step 6: Federation approval, Step 7: Ministry final approval |
-| `route2-manual-sequential.spec.ts` | 7 | Step 1: Create submission (Yearly 2024), Step 2: Fill Financial via "Populate Test Data", Step 3: Fill Non-Financial via "Populate Test Databases", Step 4: Submit for review, Step 5: Apex approval, Step 6: Federation approval, Step 7: Ministry final approval |
-| `route3-questionnaire-sequential.spec.ts` | 7 | Step 1: Create submission (Yearly 2023), Step 2: Fill Financial via "Edit Answers" + "Populate Test Data", Step 3: Fill Non-Financial via "Edit Answers" + "Populate Test Data", Step 4: Submit for review, Step 5: Apex approval, Step 6: Federation approval, Step 7: Ministry final approval |
+| `route1-upload-sequential.spec.ts` | 5 | Step 1: Create submission + Upload FS (AI extraction), Step 2: Upload non-financial (full workbook), Step 3: Mark all sections ready, Step 4: Submit for review, Step 5: Apex approval |
+| `route2-manual-sequential.spec.ts` | 5 | Step 1: Create submission (Yearly 2024), Step 2: Fill Financial via "Populate Test Data", Step 3: Fill Non-Financial via "Populate Test Databases", Step 4: Submit for review, Step 5: Apex approval |
+| `route3-questionnaire-sequential.spec.ts` | 5 | Step 1: Create submission (Yearly 2023), Step 2: Fill Financial via "Edit Answers" + "Populate Test Data", Step 3: Fill Non-Financial via "Edit Answers" + "Populate Test Data", Step 4: Submit for review, Step 5: Apex approval |
 
 ### E2E Test Architecture
 
@@ -511,4 +511,4 @@ npm run test:e2e:route3 -- --ui --timeout=600000
 - [x] E2E tests use sequential execution with `describe.serial()`
 - [x] Tests focus on user outcomes, not code paths
 - [x] All 129 unit tests passing
-- [x] All 7 E2E sequential tests passing
+- [x] All 15 E2E sequential tests passing

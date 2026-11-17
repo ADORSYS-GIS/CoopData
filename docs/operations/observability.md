@@ -1,7 +1,7 @@
 # Observability & Monitoring — Implementation Plan
 
 > **Ticket**: [#70](https://github.com/ADORSYS-GIS/CoopData/issues/70) — Implement Grafana and Prometheus for Monitoring
-> **Status**: Phases 1-3 Complete, Phase 4 Partial (alert rules loaded, notifications not configured)
+> **Status**: Superseded by [observability-monitoring.md](observability-monitoring.md), which describes the current setup. This file is the original implementation plan and keeps its early status for history. Phases 1 to 5 are now complete.
 > **Branch**: `feat/observability`
 > **Date**: 2026-08-12 (created), 2026-08-13 (updated)
 
@@ -29,8 +29,8 @@ By moving from a reactive to a proactive observability model, the team can ident
 | `/metrics` Prometheus endpoint | ✅ implemented |
 | Prometheus in Docker Compose | ✅ implemented |
 | Grafana with 3 dashboards | ✅ implemented |
-| Alert rules (7 rules) | ✅ loaded |
-| Alert notifications (Slack/Email) | ⏳ not configured yet |
+| Alert rules (13 Prometheus, 25 Grafana-managed) | ✅ loaded |
+| Alert notifications (Discord) | ✅ provisioned; needs `DISCORD_WEBHOOK_URL` |
 | Log aggregation | ❌ logs go to stdout only |
 
 ---
@@ -263,12 +263,12 @@ Row 5: [Cache Performance] [Top Endpoints by Latency]
 ```
 ┌──────────────┐      ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
 │  Metric       │      │  Prometheus   │      │  Grafana     │      │  You         │
-│  Sources      │─────►│  Rule Eval    │─────►│  Unified     │─────►│  (Slack/     │
-│               │      │              │      │  Alerting    │      │   Email)     │
+│  Sources      │─────►│  Rule Eval    │─────►│  Unified     │─────►│  (Discord     │
+│               │      │              │      │  Alerting    │      │  webhook)    │
 │  • Backend    │      │  Every 15s   │      │              │      │              │
-│  • Postgres   │      │              │      │  Routes to   │      │  ⚠️ NOT SET  │
-│  • Redis      │      │  Evaluates   │      │  channels    │      │  UP YET      │
-│  • Node       │      │  7 rules     │      │              │      │              │
+│  • Postgres   │      │              │      │  Routes to   │      │               │
+│  • Redis      │      │  Evaluates   │      │  channels    │      │  Discord     │
+│  • Node       │      │  13 rules    │      │              │      │              │
 │  • MinIO      │      │              │      │              │      │              │
 └──────────────┘      └──────────────┘      └──────────────┘      └──────────────┘
 ```
@@ -279,7 +279,7 @@ Row 5: [Cache Performance] [Top Endpoints by Latency]
 
 1. **Metric stops flowing** — Prometheus scrapes `http://backend:3000/metrics` every 15 seconds. If it gets no response for 2 consecutive scrapes (30s), the target is marked `DOWN`.
 
-2. **Prometheus evaluates rules** — Every 15s (`evaluation_interval: 15s`), Prometheus runs all 7 rules in `monitoring/alerts.yml`. It checks:
+2. **Prometheus evaluates rules** — Every 15s (`evaluation_interval: 15s`), Prometheus runs the rules in `monitoring/alerts.yml` (13 today; the first 7 are listed below). It checks:
    ```
    up{job="backend"} == 0
    ```
@@ -289,9 +289,9 @@ Row 5: [Cache Performance] [Top Endpoints by Latency]
 
 4. **Prometheus sends to Grafana** — Prometheus exposes its alert state via its API. Grafana's **Unified Alerting** system queries Prometheus rules and sees the alert is `firing`.
 
-5. **Grafana routes the alert** — This is where **notifications are not yet configured**. Grafana knows the alert fired, but has no notification channel configured. Right now it shows as a red dot in the Grafana Alerting UI, but nobody gets notified.
+5. **Grafana routes the alert** — The provisioned notification policy sends `severity=critical` alerts to the Discord contact point. Without `DISCORD_WEBHOOK_URL`, the alert only shows as a red dot in the Grafana Alerting UI.
 
-### The 7 Alert Rules
+### The Original 7 Alert Rules (`monitoring/alerts.yml` now holds 13)
 
 | # | Alert | What It Monitors | When It Fires | Severity |
 |---|-------|-----------------|---------------|----------|
@@ -335,10 +335,15 @@ Alert: PostgresDown
   └─ Source: Prometheus self-check (did postgres-exporter respond?)
 ```
 
-### What's Missing: Notification Channels
+### Notification Channels
 
-| Component | Status | What's Needed |
-|-----------|--------|---------------|
+| Component | Status | Where |
+|-----------|--------|-------|
+| **Contact Point** | Provisioned (Discord) | `monitoring/grafana/provisioning/alerting/contact-points.yml`, webhook from `DISCORD_WEBHOOK_URL` |
+| **Notification Policy** | Provisioned (`critical` to Discord) | `notification-policies.yml` |
+| **Silence Rules** | Not configured | Add in the Grafana UI during maintenance windows |
+
+-----------|--------|---------------|
 | **Contact Point** | ❌ Not configured | Slack webhook URL or SMTP config |
 | **Notification Policy** | ❌ Not configured | Route `critical` → Slack+Email, `warning` → Slack |
 | **Silence Rules** | ❌ Not configured | Suppress alerts during maintenance windows |
@@ -392,16 +397,16 @@ The **database query duration** gap is the most impactful — right now we can s
 - [x] Create `infrastructure.json` dashboard (9 panels)
 - [x] Create `business-metrics.json` dashboard (12 panels)
 
-### Phase 4: Alerting Rules ⚠️ Partial
+### Phase 4: Alerting Rules ✅ Complete
 
-- [x] Create `monitoring/alerts.yml` with 7 rules
+- [x] Create `monitoring/alerts.yml` with 13 rules
 - [x] Wire Prometheus to load rules file
-- [ ] Configure Grafana alert routing (Slack/Email) — **not yet**
+- [x] Provision Grafana alert routing (Discord contact point and notification policy)
 
-### Phase 5: Database Query Metrics ⏳ Not Started
+### Phase 5: Database Query Metrics ✅ Complete
 
-- [ ] Instrument repository layer with `coopdata_db_query_duration_seconds`
-- [ ] Add DB query panels to Grafana dashboards
+- [x] Instrument repository layer with `coopdata_db_query_duration_seconds`
+- [x] Add DB query panels to Grafana dashboards (`coopdata-backend.json`)
 
 ---
 

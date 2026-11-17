@@ -1,13 +1,17 @@
 # CoopData Production Deployment & Operations Specification
 
-> 📖 **MASTER SPECIFICATIONS**:
-> - 🚀 **Release Strategy & SemVer Guide**: [`RELEASE_STRATEGY_GUIDE.md`](./RELEASE_STRATEGY_GUIDE.md)
-> - 🛡️ **Backup & Disaster Recovery Guide**: [`BACKUP_AND_RECOVERY_GUIDE.md`](./BACKUP_AND_RECOVERY_GUIDE.md)
-> - 🧪 **Multi-Environment Guide (Prod + Demo)**: [`MULTI_ENVIRONMENT_GUIDE.md`](./MULTI_ENVIRONMENT_GUIDE.md)
+> **Start with the [production runbook](./production-runbook.md)** for how to operate the server today.
+>
+> **MASTER SPECIFICATIONS**:
+> - **Release Strategy & SemVer Guide**: [`RELEASE_STRATEGY_GUIDE.md`](../RELEASE_STRATEGY_GUIDE.md)
+> - **Backup & Disaster Recovery Guide**: [`BACKUP_AND_RECOVERY_GUIDE.md`](../BACKUP_AND_RECOVERY_GUIDE.md)
+> - **Multi-Environment Guide (Prod + Demo)**: [`MULTI_ENVIRONMENT_GUIDE.md`](../MULTI_ENVIRONMENT_GUIDE.md)
 
 ---
 
-## 🚀 Complete End-to-End Lifecycle: Dev $\rightarrow$ Demo $\rightarrow$ Prod
+> **Current state:** the automatic deploy to the demo environment (step 4) is switched off in `.github/workflows/docker.yml` until a demo server is ready. Production deploys run when a release is published (step 10). Domain names in this page are examples.
+
+## Complete End-to-End Lifecycle: Dev $\rightarrow$ Demo $\rightarrow$ Prod
 
 ```mermaid
 flowchart TD
@@ -29,7 +33,7 @@ flowchart TD
 
 ---
 
-## 📋 Step-by-Step Deployment Pipeline Breakdown
+## Step-by-Step Deployment Pipeline Breakdown
 
 ### Phase 1: Local Development & Feature Branching
 - Developers work on feature branches (e.g. `feature/mfa-auth`).
@@ -41,31 +45,31 @@ flowchart TD
 
 ### Phase 2: Automated Demo Staging (`develop` branch)
 - Merge PR into `develop`.
-- GitHub Actions ([`.github/workflows/docker.yml`](../.github/workflows/docker.yml)) builds images and pushes `:develop` tags to GHCR.
-- SSHs to server and executes [`./scripts/deploy-demo.sh develop`](../scripts/deploy-demo.sh).
-- Updates Demo stack ([`docker-compose.demo.yaml`](../docker-compose.demo.yaml)) accessible at `https://demo.coopdata.dgrvcoop360.com`.
+- GitHub Actions ([`.github/workflows/docker.yml`](../../.github/workflows/docker.yml)) builds images and pushes `:develop` tags to GHCR.
+- SSHs to server and executes [`./scripts/deploy-demo.sh develop`](../../scripts/deploy-demo.sh).
+- Updates Demo stack ([`docker-compose.demo.yaml`](../../docker-compose.demo.yaml)) accessible at `https://demo.coopdata.dgrvcoop360.com`.
 - **Safety Isolation**: Demo uses `.env.demo` and is strictly capped at **25% CPU / RAM**. Demo load **can NEVER disrupt Production**.
 
 ### Phase 3: Release Creation & SemVer Tagging (`main` branch)
 - Open PR from `develop` into `main`.
-- Upon merge to `main`, Google's `release-please` ([`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml)) scans conventional commits and opens a **Release PR** (`chore(main): release 1.1.0`).
+- Upon merge to `main`, Google's `release-please` ([`.github/workflows/release-please.yml`](../../.github/workflows/release-please.yml)) scans conventional commits and opens a **Release PR** (`chore(main): release 1.1.0`).
 - Merging the Release PR automatically generates Git Tag `v1.1.0` and publishes the GitHub Release.
 
 ### Phase 4: Production Zero-Downtime Rollout (`v1.1.0`)
 - Tag `v1.1.0` triggers GitHub Actions to build GHCR images (`:v1.1.0`, `:latest`).
-- SSHs to production server and executes [`./scripts/deploy.sh v1.1.0`](../scripts/deploy.sh).
+- SSHs to production server and executes [`./scripts/deploy.sh v1.1.0`](../../scripts/deploy.sh).
 - `docker-rollout` boots `v2` alongside `v1`, verifies health, shifts Nginx traffic, and stops `v1`.
 - **Client Downtime**: **0 Seconds** (< 1 sec drop window).
 
 ### Phase 5: Operations, Auto-Healing & Disaster Recovery
 - **Self-Healing**: `willfarrell/autoheal` monitors `/health` every 5s; restarts crashed containers in **< 30s**.
-- **Offsite Backups**: `backup-production.sh` runs daily at 02:00 AM saving App DB, Keycloak IAM, and MinIO files to AWS S3.
+- **Offsite Backups**: `backup-production.sh` runs daily at 02:00 AM saving App DB, Keycloak IAM, and MinIO files to an off-site S3-compatible bucket.
 - **Disaster Recovery**: Single command `restore-production.sh <date>` recovers full server loss in **< 15 minutes**.
 - **TLS Management**: Single Let's Encrypt SAN cert covers `coopdata.dgrvcoop360.com` and `demo.coopdata.dgrvcoop360.com` with zero-downtime auto-renewals.
 
 ---
 
-## 🏗️ 1. Architecture & Port Exposure Matrix
+## 1. Architecture & Port Exposure Matrix
 
 CoopData runs as a single-host, self-healing Docker Compose stack behind an Nginx reverse proxy on Ubuntu 24.04 LTS.
 
@@ -110,20 +114,22 @@ CoopData runs as a single-host, self-healing Docker Compose stack behind an Ngin
 
 ---
 
-## 📋 2. Phase 1 — Server & Prerequisites Provisioning
+## 2. Phase 1 — Server & Prerequisites Provisioning
 
 ### Host System Requirements
 - **OS**: Ubuntu 24.04 LTS (recommended) or 22.04 LTS
 - **CPU / RAM**: Minimum 4 vCPUs / 8GB RAM (16GB RAM recommended for production)
-- **Disk**: Minimum 40GB gp3 SSD storage
-- **AWS EC2 Security Group Inbound Rules**:
+- **Disk**: Minimum 40GB SSD storage
+- **Firewall (inbound rules on the client server)**:
   - `SSH` (Port 22): Restrict to administrative IP range
   - `HTTP` (Port 80): `0.0.0.0/0` (Auto-redirects to HTTPS)
   - `HTTPS` (Port 443): `0.0.0.0/0` (TLS user traffic)
 
 ---
 
-## 🚀 3. Phase 2 — Initial Host Setup (`setup-ec2.sh`)
+## 3. Phase 2 — Initial Host Setup (`setup-ec2.sh`)
+
+> The script name is historical. It runs on any Ubuntu server, including the one provided by the client.
 
 On a fresh server instance, execute the automated host setup script:
 
@@ -139,12 +145,12 @@ sudo ./setup-ec2.sh
 3. **Nginx Reverse Proxy Config**: Writes `/etc/nginx/sites-available/coopdata` routing `/`, `/api/v1`, `/auth`, `/realms`, and `/grafana`.
 4. **Docker Daemon Log Rotation**: Configures `/etc/docker/daemon.json` (`json-file`, 10MB $\times$ 3 log retention per container).
 5. **Zero-Downtime CLI Plugin**: Installs `docker-rollout` plugin at `~/.docker/cli-plugins/docker-rollout`.
-6. **Nightly Offsite Backup Cron**: Registers `/etc/cron.d/coopdata-backup` running [`scripts/backup-production.sh`](../scripts/backup-production.sh) daily at 02:00 AM.
+6. **Nightly Offsite Backup Cron**: Registers `/etc/cron.d/coopdata-backup` running [`scripts/backup-production.sh`](../../scripts/backup-production.sh) daily at 02:00 AM.
 7. **Environment Template**: Generates local `.env` file pre-filled with host domain parameters.
 
 ---
 
-## ⚙️ 4. Phase 3 — Environment Configuration (`.env`)
+## 4. Phase 3 — Environment Configuration (`.env`)
 
 Edit `/opt/coopdata/.env` to configure production secrets:
 
@@ -169,11 +175,12 @@ JWT_ISSUER_ALIASES=https://coopdata.example.com/realms/coop-data,http://keycloak
 JWT_AUDIENCE=coopdata-frontend
 ENVIRONMENT=production
 
-# ── Offsite Backup Target (AWS S3 or Hetzner S3)
+# ── Offsite Backup Target (any S3-compatible bucket)
 BACKUP_S3_BUCKET=coopdata-production-backups
 BACKUP_S3_PREFIX=postgres
-BACKUP_S3_ENDPOINT=                # Blank for AWS S3, set for Hetzner/MinIO
+BACKUP_S3_ENDPOINT=                # Blank for AWS S3, otherwise the provider endpoint
 BACKUP_RETENTION_DAYS=30
+# The AWS_* names are what the S3 client reads, whichever provider holds the bucket
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
 AWS_DEFAULT_REGION=us-east-1
@@ -181,7 +188,7 @@ AWS_DEFAULT_REGION=us-east-1
 
 ---
 
-## 🏁 5. Phase 4 — Stack Bootstrapping (`./start-prod.sh`)
+## 5. Phase 4 — Stack Bootstrapping (`./start-prod.sh`)
 
 Boot the stack for the first time:
 
@@ -206,10 +213,10 @@ Boot the stack for the first time:
 
 ---
 
-## 🤖 6. Phase 5 — CI/CD & Automated Semantic Releases
+## 6. Phase 5 — CI/CD & Automated Semantic Releases
 
-### 📝 Commit Convention Rules
-Developers use Conventional Commit prefixes. Google's `release-please` action ([`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml)) inspects commit prefixes on `main` to calculate SemVer tags:
+### Commit Convention Rules
+Developers use Conventional Commit prefixes. Google's `release-please` action ([`.github/workflows/release-please.yml`](../../.github/workflows/release-please.yml)) inspects commit prefixes on `main` to calculate SemVer tags:
 
 | Commit Prefix | Release Type | Version Bump | Example Commit |
 |---|---|---|---|
@@ -217,18 +224,18 @@ Developers use Conventional Commit prefixes. Google's `release-please` action ([
 | `feat:` | **Minor** | `v1.0.0` $\rightarrow$ `v1.1.0` | `feat: add peer benchmarking export to excel` |
 | `feat!:` / `BREAKING CHANGE:` | **Major** | `v1.0.0` $\rightarrow$ `v2.0.0` | `feat!: overhaul database schema for non-financial indicators` |
 
-### 🔄 CI/CD Pipeline Stages ([`.github/workflows/docker.yml`](../.github/workflows/docker.yml))
+### CI/CD Pipeline Stages ([`.github/workflows/docker.yml`](../../.github/workflows/docker.yml))
 1. **`build-scan` Job**: Compiles frontend/backend Docker images and runs Trivy security vulnerability scanner.
 2. **`publish` Job**: Pushes tagged images to GitHub Container Registry:
    - `ghcr.io/adorsys-gis/coopdata-backend:v1.1.0`
    - `ghcr.io/adorsys-gis/coopdata-backend:v1.1`
    - `ghcr.io/adorsys-gis/coopdata-backend:v1`
    - `ghcr.io/adorsys-gis/coopdata-backend:latest`
-3. **`deploy` Job**: Connects to EC2 server over SSH (`PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`) and triggers zero-downtime deployment script `./scripts/deploy.sh`.
+3. **`deploy` Job**: Connects to the production server over SSH (`PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`) and triggers zero-downtime deployment script `./scripts/deploy.sh`.
 
 ---
 
-## 🔄 7. Phase 6 — Zero-Downtime Deployment & Version Targeting (`scripts/deploy.sh`)
+## 7. Phase 6 — Zero-Downtime Deployment & Version Targeting (`scripts/deploy.sh`)
 
 ### Deploying Updates or Targeting Specific Versions
 
@@ -244,7 +251,7 @@ If you want to forcefully deploy or rollback to a **specific past release versio
 3. Enter `v1.0.5` in the **target_tag** input box.
 4. Click **Run workflow**.
 
-> GitHub Actions connects to the EC2 server over SSH and executes `./scripts/deploy.sh v1.0.5`, performing a zero-downtime rolling update directly to `v1.0.5`.
+> GitHub Actions connects to the production server over SSH and executes `./scripts/deploy.sh v1.0.5`, performing a zero-downtime rolling update directly to `v1.0.5`.
 
 #### Mode 3: Manual Version Target on Server Terminal
 ```bash
@@ -268,7 +275,7 @@ If you want to forcefully deploy or rollback to a **specific past release versio
 
 ---
 
-## 🛡️ 8. Phase 7 — Self-Healing, Resource Hardening & Monitoring
+## 8. Phase 7 — Self-Healing, Resource Hardening & Monitoring
 
 ### Auto-Healing Watchdog (`willfarrell/autoheal`)
 - Monitored services: `postgres`, `redis`, `minio`, `keycloak`, `backend`, `frontend`, `gotenberg`.
@@ -288,7 +295,7 @@ If you want to forcefully deploy or rollback to a **specific past release versio
 
 ---
 
-## 🚑 9. Phase 8 — Backups & Disaster Recovery
+## 9. Phase 8 — Backups & Disaster Recovery
 
 ### Nightly 3-Layer Offsite Backup
 Executes automatically every night at 02:00 AM UTC via `/etc/cron.d/coopdata-backup`:
@@ -313,18 +320,18 @@ In case of total server loss, provision fresh server and execute:
 
 ---
 
-## ⏱️ 10. Service Level Agreements (SLAs) & Incident Scenarios
+## ⏱ 10. Service Level Agreements (SLAs) & Incident Scenarios
 
 | Metric | Target SLA | How it is Achieved | Client Impact |
 |---|---|---|---|
 | **Deployment Downtime** | **0 Seconds** (< 1 sec drop window) | `docker-rollout` boots version `v2` alongside `v1`, verifies health, and cuts traffic over in Nginx before stopping `v1`. | Zero interruption for users working in the app during deployments. |
 | **Self-Healing Recovery Time (RTO - Auto)** | **< 30 Seconds** | `willfarrell/autoheal` watchdog checks HTTP `/health` every 5s and automatically restarts crashed/frozen containers. | Minor pause for < 30s if a single service freezes; recovers without manual admin intervention. |
-| **Disaster Recovery Time (RTO - Full Server Loss)** | **< 15 Minutes** | Provision fresh EC2 host $\rightarrow$ run `sudo ./setup-ec2.sh` $\rightarrow$ run `./scripts/restore-production.sh <date>`. | In the event of catastrophic server hardware destruction, full platform restored in under 15 minutes. |
-| **Data Loss Window (RPO - Recovery Point)** | **< 24 Hours** *(or < 1 hr with EBS snapshots)* | Nightly automated offsite backups (`backup-production.sh`) at 02:00 AM to AWS S3 / Hetzner S3. | Maximum potential data loss limited to transactions made since 02:00 AM backup. |
+| **Disaster Recovery Time (RTO - Full Server Loss)** | **< 15 Minutes** | Prepare a fresh Ubuntu server $\rightarrow$ run `sudo ./setup-ec2.sh` $\rightarrow$ run `./scripts/restore-production.sh <date>`. | In the event of catastrophic server hardware destruction, full platform restored in under 15 minutes. |
+| **Data Loss Window (RPO - Recovery Point)** | **< 24 Hours** *(or < 1 hr with server snapshots)* | Nightly automated offsite backups (`backup-production.sh`) at 02:00 AM to the off-site bucket. | Maximum potential data loss limited to transactions made since 02:00 AM backup. |
 
 ---
 
-### 🔍 Detailed SLA Explanations & Real-World Incident Examples
+### Detailed SLA Explanations & Real-World Incident Examples
 
 #### 1. Deployment Downtime (Target: 0 Seconds / < 1s Drop Window)
 - **What It Means**: The duration of time the web application or API is unreachable to end users while a new software update or version is deployed to production.
@@ -343,18 +350,18 @@ In case of total server loss, provision fresh server and execute:
 #### 3. Disaster Recovery Time (RTO - Full Server Loss) (Target: < 15 Minutes)
 - **What It Means**: Disaster Recovery RTO measures the total duration required to rebuild the entire application infrastructure from scratch on a brand-new physical or virtual server following catastrophic host destruction.
 - **Real-World Incident Example**:
-  > *Scenario*: The underlying AWS EC2 physical hypervisor hosting the production server experiences a catastrophic hardware crash and irrecoverable disk failure at 3:00 AM.
-  > *Execution*: The DevOps engineer launches a fresh Ubuntu EC2 instance, SSHs in, clones the repository, runs `sudo ./setup-ec2.sh` (5 minutes), and executes `./scripts/restore-production.sh 2026-08-25` (8 minutes).
-  > *Result*: All 14 Docker containers, PostgreSQL databases (`coopdata` + `keycloak`), Keycloak realm configs, and MinIO uploaded file storage are completely restored from offsite S3 and verified healthy within **13 minutes total duration**.
+  > *Scenario*: The physical host of the production server experiences a catastrophic hardware crash and irrecoverable disk failure at 3:00 AM.
+  > *Execution*: The DevOps engineer prepares a fresh Ubuntu server, SSHs in, clones the repository, runs `sudo ./setup-ec2.sh` (5 minutes), and executes `./scripts/restore-production.sh 2026-08-25` (8 minutes).
+  > *Result*: All 14 Docker containers, PostgreSQL databases (`coopdata` + `keycloak`), Keycloak realm configs, and MinIO uploaded file storage are completely restored from the off-site backup and verified healthy within **13 minutes total duration**.
 
 #### 4. Data Loss Window (RPO - Recovery Point Objective) (Target: < 24 Hours)
 - **What It Means**: RPO measures the maximum acceptable age of data that can be permanently lost in the event of a catastrophic disaster before the most recent backup point.
 - **Real-World Incident Example**:
-  > *Scenario*: A physical server disaster strikes at 1:00 PM on Wednesday. The disaster recovery script restores the offsite S3 backup generated by the automated nightly cron job at 02:00 AM on Wednesday morning.
+  > *Scenario*: A physical server disaster strikes at 1:00 PM on Wednesday. The disaster recovery script restores the off-site backup generated by the automated nightly cron job at 02:00 AM on Wednesday morning.
   > *Result*: All database entries, non-financial ledger submissions, and uploaded PDF files created up to 02:00 AM Wednesday are 100% intact. Only transactions created between 02:00 AM Wednesday and 1:00 PM Wednesday (11 hours of data) need to be re-submitted.
 ---
 
-## 🔔 11. Automated Slack & Discord Alerting Setup
+## 11. Automated Slack & Discord Alerting Setup
 
 CoopData includes dual-layer real-time alerting via **Grafana Alerting** and **Autoheal Watchdog**.
 
@@ -362,7 +369,7 @@ CoopData includes dual-layer real-time alerting via **Grafana Alerting** and **A
 
 | Alert Trigger | Source | Destination | Trigger Condition |
 |---|---|---|---|
-| **Service Down / High Latency / OOM** | Grafana Alerting ([`monitoring/alerts.yml`](../monitoring/alerts.yml)) | Slack & Discord | Backend down > 1m, DB query > 100ms, CPU > 80%, RAM > 85%, 5xx errors > 1%. |
+| **Service Down / High Latency / OOM** | Grafana Alerting ([`monitoring/alerts.yml`](../../monitoring/alerts.yml)) | Slack & Discord | Backend down > 1m, DB query > 100ms, CPU > 80%, RAM > 85%, 5xx errors > 1%. |
 | **Container Freeze / Auto-Restart** | Autoheal Watchdog (`willfarrell/autoheal`) | Slack & Discord | Container HTTP `/health` check fails 3 consecutive times. |
 
 ### 2. How to Enable Slack & Discord Notifications
@@ -382,12 +389,12 @@ SLACK_CHANNEL=#alerts
 
 ### 3. Pre-Configured Alerting Rules
 
-- 🚨 **BackendDown**: API container is unreachable.
-- 🚨 **PostgresDown**: PostgreSQL database is unreachable.
-- 🚨 **RedisDown**: Redis cache is unreachable.
-- 🚨 **MinIODown**: MinIO S3 object storage is unreachable.
-- 🚨 **HighErrorRate**: 5xx HTTP response rate > 1% over 5 minutes.
-- ⚠️ **HighLatency**: 99th percentile response time > 2 seconds.
-- ⚠️ **DiskSpaceLow**: EC2 root volume free disk space < 20%.
-- ⚠️ **HighMemoryUsage**: Server RAM utilization > 85%.
-- ⚠️ **HighCPUUsage**: Server CPU utilization > 80%.
+- **BackendDown**: API container is unreachable.
+- **PostgresDown**: PostgreSQL database is unreachable.
+- **RedisDown**: Redis cache is unreachable.
+- **MinIODown**: MinIO S3 object storage is unreachable.
+- **HighErrorRate**: 5xx HTTP response rate > 1% over 5 minutes.
+- **HighLatency**: 99th percentile response time > 2 seconds.
+- **DiskSpaceLow**: Server root volume free disk space < 20%.
+- **HighMemoryUsage**: Server RAM utilization > 85%.
+- **HighCPUUsage**: Server CPU utilization > 80%.

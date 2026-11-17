@@ -7,12 +7,13 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 23: Security, Reliability, and Testing Lifecycle Hardening
-- **Overall Progress**: 92% (IAM + Data) + 10% (Security Hardening - T1+T2 Complete)
+- **Current Phase**: Phase 28: Reporting years, questionnaire analytics and handover (October 2026)
+- **Latest release**: v1.7.0 (deployed 2026-10-27)
+- **Overall Progress**: IAM, data, security hardening (T1–T18) and the October work below are complete. Open items are listed at the end of Phase 28.
 
 ---
 
-## Phase 1: Backend RBAC Cleanup ✅
+## Phase 1: Backend RBAC Cleanup (done)
 
 > **Goal**: Remove duplicate role checks from handlers, verify scope enforcement is correct, ensure middleware is properly wired.
 
@@ -38,7 +39,7 @@
   - [x] All warnings fixed
   - [x] All tests pass
 
-## Phase 2: Frontend Keycloak Integration ✅
+## Phase 2: Frontend Keycloak Integration (done)
 
 > **Goal**: Replace mock auth with real Keycloak authentication.
 
@@ -81,7 +82,7 @@
 - [x] **2.10 Create silent-check-sso.html**
   - [x] `frontend/public/silent-check-sso.html` for Keycloak silent SSO check
 
-## Phase 3: Frontend Route Protection ✅
+## Phase 3: Frontend Route Protection (done)
 
 > **Goal**: Implement role-based route guards and navigation filtering.
 
@@ -111,7 +112,7 @@
   - [x] `src/components/app-shell.tsx` sidebar already uses `ROLE_NAV` and `ROLE_NAV_ITEMS` from role constants
   - [x] Dashboard redirect based on role via `ROLE_DEFAULT_ROUTE`
 
-## Phase 4: OpenAPI Client & Data Layer ✅
+## Phase 4: OpenAPI Client & Data Layer (done)
 
 > **Goal**: Generate API client and create data hooks for IAM endpoints.
 
@@ -137,7 +138,7 @@
   - [x] `frontend/src/hooks/auth/useAuth.ts` — useCurrentUser, useHealthCheck
   - [x] All hooks use `apiClient.GET/POST/PATCH/DELETE` with proper query key invalidation
 
-## Phase 5: Testing & Polish ✅
+## Phase 5: Testing & Polish (done)
 
 > **Goal**: Verify all auth flows work end-to-end and update pages to use real data.
 
@@ -193,7 +194,7 @@
 
 ---
 
-## Phase 6: Cascade Deletion + Audit Logging ✅
+## Phase 6: Cascade Deletion + Audit Logging (done)
 
 > **Goal**: Implement cascading deletion across Federation → Apex → Cooperative hierarchy with PostgreSQL tracking and audit logging for all mutations.
 > **Issue**: [#12](https://github.com/ADORSYS-GIS/CoopData/issues/12)
@@ -290,21 +291,21 @@
 
 ---
 
-## Data Subsystem Phases (see `docs/architecture.md` — the source of truth for DB + data flow)
+## Data Subsystem Phases (see `docs/architecture/architecture.md`, the reference for DB and data flow)
 
-> The IAM phases (1–5) are complete. The data-collection + financial-statement + AI-extraction + 4-tier review subsystem is designed in `docs/architecture.md`.
+> The IAM phases (1–5) are complete. The data-collection + financial-statement + AI-extraction + review subsystem is designed in `docs/architecture/architecture.md`.
 
-### Phase 6: Database & Schema ✅
-- [x] Create `backend/src/migration/` (SeaORM-migration) files per `docs/architecture.md` §13
+### Phase 6: Database & Schema (done)
+- [x] Create `backend/src/migration/` (SeaORM-migration) files per `docs/architecture/architecture.md` §13
 - [x] Seed `chart_of_accounts` (ADORSYS CoA 1000–6999) from `doc/COOPDATA ADORSYS.xlsx`
 - [x] SeaORM entities for submissions, cooperatives bridge, financial_statements, balance_sheet_line_items
 - [x] Entity, DTO, repo for all tables (bottom-up)
 
-### Phase 7: Financial Data Layer ✅
+### Phase 7: Financial Data Layer (done)
 - [x] DTOs + repository + handler for financial statements & line items
 - [x] Routes under `/cooperative/financial-statements`
 
-## Phase 6.5: High-Stakes Deletion ✅
+## Phase 6.5: High-Stakes Deletion (done)
 
 > **Goal**: Add multi-layered confirmation for cascade-deleting federations, apexes, and cooperatives. Type-to-confirm + re-authentication (password + optional OTP) + Redis-backed verification tokens.
 
@@ -341,25 +342,25 @@
   - [x] OpenAPI spec verified: all 4 new endpoints present
   - [x] Docker containers rebuilt + restarted, backend healthy on port 3000
 
-### Phase 8: AI Extraction Pipeline ✅
+### Phase 8: AI Extraction Pipeline (done)
 - [x] `object_storage.rs` (MinIO/S3 via reqwest + env config)
 - [x] `ai_extraction.rs` + `FinancialStatementExtractor` trait + mock impl
 - [x] Multipart upload handler → file + extraction job; poll endpoint
 - [x] OpenAPI annotations
 
-### Phase 9: Submission & 4-Tier Review Workflow ✅
+### Phase 9: Submission & Review Workflow (done)
 - [x] `submission_workflow` service (state machine + authority matrix)
 - [x] `submission_reviews` append; replace legacy `assessments` entity
-- [x] Tier handlers (apex/federation/ministry approve/return/reject)
+- [x] Tier handlers (apex approve/return is the live path; the federation and ministry handlers remain but are unused since the apex became the final approval level)
 
-### Phase 10: Non-Financial Data ✅
+### Phase 10: Non-Financial Data (done)
 - [x] Members / savings / loans / fixed deposits entities→routes
 - [x] NF indicator engine (`nf_indicator_engine.rs`) computing 5 category stats from 5 NF tables
 - [x] NF indicator endpoint (`GET /cooperative/nf-statistics`)
 - [x] National overview endpoint (`GET /analytics/national-overview`)
 - [x] Offline sync push/pull endpoints
 
-### Phase 11: KPI Engine & Abnormality Detection ✅ (Sprint 4)
+### Phase 11: KPI Engine & Abnormality Detection (Sprint 4)
 - [x] Port `frontend/src/lib/kpi-calculations.ts` → `backend/src/services/kpi_engine.rs`
   - [x] 18 financial KPIs (PAR30, ROA, ROE, CAR, LFR, OSS, NIM, etc.) with status thresholds
   - [x] `GET /api/v1/cooperative/submissions/{id}/kpis` endpoint — scope-checked, on-demand compute
@@ -370,7 +371,7 @@
 - [x] `abnormality_detector.rs` rules wired to extraction pipeline and financial statement handler
 - [ ] Compliance scoring + nightly batch materialization to `computed_kpis` table
 
-### Phase 12: Frontend Integration ✅ (Sprint 4)
+### Phase 12: Frontend Integration (Sprint 4)
 - [x] `useCooperativeKpis` — fetches KPIs for a specific submission
 - [x] `useLatestSubmission` — picks highest reporting_year, no status priority
 - [x] `useBenchmarks` — sector benchmark data with 1hr client cache
@@ -383,7 +384,7 @@
 - [ ] Higher-tier (apex/federation/ministry) analytics wired to real aggregated stats (Sprint 5)
 - [ ] Offline sync queue
 
-### Phase 13: Sprint 4 Gaps & Polish ✅
+### Phase 13: Sprint 4 Gaps & Polish (done)
 - [x] **Upload type restriction** — removed `.xlsx,.xls` from frontend accepted extensions and backend supported MIME types
 - [x] **Logout race condition fix** — `isLoggingOut` flag in `authService.ts` prevents token refresh during logout
 - [x] **Re-upload/replace** — `delete()` methods on uploaded_file/extraction_job/financial_statement repos; handler detects existing FS and replaces
@@ -396,19 +397,19 @@
 - [x] **Skeleton loading** — all dashboards show skeleton cards during loading
 - [x] **Bulk export** — `bulk_export()` on `ExportService` (CSV/Excel/PDF); Ministry/Federation/Apex dashboards show export buttons
 - [x] **BenchmarkInsightPanel** — responsive collapse, 6 benchmark insight cards with color-coded status
-- [x] Verification: `cargo clippy` ✅, `npm run lint` ✅ (0 errors, 21 warnings)
+- [x] Verification: `cargo clippy` , `npm run lint` (0 errors, 21 warnings)
 
-### Phase 14: KPI/Indicator Audit ✅
+### Phase 14: KPI/Indicator Audit (done)
 - [x] Read `COOPDATA ADORSYS.xlsx` (all 14 sheets)
 - [x] Created `sources/KPI-INDICATORS-AUDIT.md` — comprehensive inventory of:
-  - 18 Financial KPIs (all implemented ✅)
-  - 56 Non-Financial indicators across 5 categories (all missing ❌)
+  - 18 Financial KPIs (all implemented )
+  - 56 Non-Financial indicators across 5 categories (all missing)
   - NF database field definitions (members, savings, loans, fixed_deposits, farm_coop)
   - Dashboard indicators from Excel spec
-  - Gap analysis: Financial = ✅ complete, NF = ❌ 0/56 implemented
+  - Gap analysis: Financial = complete, NF = 0/56 implemented
   - 3-phase implementation roadmap
 
-### Phase 15: NF Indicator Engine (Backend) ✅
+### Phase 15: NF Indicator Engine (Backend) (done)
 - [x] **`backend/src/services/nf_indicator_engine.rs`** — Async engine querying 5 NF tables via SeaORM
   - `MembershipStats` (27 fields): total/active/dormant/exited counts, gender breakdown, age groups, urban/rural, AGM attendance, leadership, voting, + derived percentages
   - `SavingsStats` (18 fields): account counts, trends, balances, penetration
@@ -419,9 +420,9 @@
 - [x] **`backend/src/api/dto/non_financial.rs`** — DTOs for all 5 category structs with `From<Engine*>` impls
 - [x] **`backend/src/api/handlers/nf_indicator_stats.rs`** — Handler `get_nf_statistics` with `#[utoipa::path]` annotation
 - [x] **Route**: `GET /api/v1/cooperative/nf-statistics` added to cooperative routes
-- [x] Verification: `cargo check` ✅, `cargo clippy` ✅ (3 pre-existing warnings)
+- [x] Verification: `cargo check` , `cargo clippy` (3 pre-existing warnings)
 
-### Phase 16: Frontend NF Wiring + National Dashboard ✅
+### Phase 16: Frontend NF Wiring + National Dashboard (done)
 - [x] **`frontend/src/hooks/analytics/useNfStatistics.ts`** — React Query hook calling `GET /api/v1/cooperative/nf-statistics`
 - [x] **AnalyticsPage.tsx** — 5 edits:
   - Replaced hardcoded `genderData` (54.1%/38.4%/7.5%) with real `nfStats.membership.female_pct/male_pct/other_pct`
@@ -435,9 +436,9 @@
 - [x] **Route**: `GET /api/v1/analytics/national-overview` added to shared routes
 - [x] **`frontend/src/hooks/analytics/useNationalOverview.ts`** — React Query hook
 - [x] **AnalyticsPage.tsx** — National KPI Overview section with traffic-light bars + institution comparison table (ministry/federation/apex only)
-- [x] Verification: `cargo check` ✅, `cargo clippy` ✅, `npm run lint` ✅ (0 errors)
+- [x] Verification: `cargo check` , `cargo clippy` , `npm run lint` (0 errors)
 
-### Phase 17: Documentation Restructure ✅
+### Phase 17: Documentation Restructure (done)
 - [x] Restructured `docs/` from 53 root-level files to 5 core files + 7 organized subdirectories
 - [x] Created `features/`, `deployment/`, `operations/`, `testing/`, `analysis/`, `archive/`, `architecture/` directories
 - [x] Moved and renamed 25+ docs with consistent `kebab-case.md` naming (fixed 4 typos)
@@ -447,7 +448,7 @@
 - [x] Fixed 5 broken internal links across moved files
 - [x] Moved architecture docs into `docs/architecture/` subdirectory
 
-### Phase 18: Unit Test Analysis ✅
+### Phase 18: Unit Test Analysis (done)
 - [x] Analyzed frontend test coverage: 236 tests across 18 files, gaps in hooks, utilities, and pages
 - [x] Analyzed backend test coverage: 29 inline modules + 8 integration files, zero repository tests
 - [x] Created `docs/testing/unit-test-analysis.md` with prioritized improvement roadmap
@@ -469,14 +470,14 @@
 - [x] Cooperative, Apex, Federation and Ministry aggregate-to-detail analytics UI
 - [x] Financial/NF indicator, scope and role-journey tests
 
-### Phase 20: Analytics i18n Localization ✅
+### Phase 20: Analytics i18n Localization (done)
 - [x] Replaced all hardcoded UI strings in `frontend/src/components/analytics/*` with `useTranslation()` calls
 - [x] Added all `analytics.*` keys to `frontend/src/i18n/locales/en.json`
 - [x] Localized 25+ components: ComparativeIncomeStatement, CooperativeRanking, CooperativeComparison, CooperativeDeepDive, ComplianceRadialGauges, LoanProvisioningWaterfall, GenderStatusDoughnuts, DepositConcentrationGauge, GovernanceFunnel, FinancialInclusionBar, AgriResilienceRadar, ComplianceDoughnutCharts, AgeDemographicsChart, ApexDistributionBar, FinancialIndicators, GenderParticipationChart, NetworkConsolidatedMetrics, PortfolioClassification, PortfolioOverviewChart, RegionalGroupedBar, SavingsLoansDepositsChart, LoanDualBar, CoopTrendAreaChart, SavingsRadialGauges
 - [x] Left props-driven components unchanged (MetricsGridCards, KpiScorecard)
-- [x] Verification: JSON valid ✅, `tsc --noEmit` clean ✅, ESLint clean ✅, 184 unit tests pass ✅
+- [x] Verification: JSON valid , `tsc --noEmit` clean , ESLint clean , 184 unit tests pass
 
-### Phase 21: Offline-First Data Layer ✅
+### Phase 21: Offline-First Data Layer (done)
 > **Goal**: Let users enter/refresh the app offline and still see their data seamlessly, plus a small online/offline indicator.
 
 - [x] **`src/services/shared/offlineCache.ts`** — generic cache read/write/delete helpers over Dexie (TTL-aware, per-user)
@@ -490,13 +491,13 @@
 - [x] **`scripts/test-offline.sh`** — one-command offline testing: starts backend, frees port 5173, builds production frontend, serves via preview
 - [x] **`OfflineStatusBanner.tsx`** — replaced full-width bar with a small bottom-right pill indicator (online/offline dot + pending-sync badge)
 - [x] i18n: added `offline.online` key to en/fr/pt/ss
-- [x] Verification: `tsc --noEmit` ✅, ESLint on changed files ✅ (18 pre-existing auth-test failures unrelated to this work)
+- [x] Verification: `tsc --noEmit` , ESLint on changed files (18 pre-existing auth-test failures unrelated to this work)
 
-### Phase 22: Dynamic Financial Submission Period Types (Yearly, Quarterly, Monthly, Semi-Annual) ✅ Complete
+### Phase 22: Dynamic Financial Submission Period Types (Yearly, Quarterly, Monthly, Semi-Annual) Complete
 
 > **Goal**: Extend submission, AI extraction, manual entry, and analytics dashboards to support dynamic period frequencies (`YEARLY`, `QUARTERLY`, `MONTHLY`, `SEMI_ANNUAL`) with database uniqueness constraints and dynamic UI grid editors.
 
-- [x] **22.1 Database Migration & Entity Definitions** — Created migration `33_submission_period_types.sql` (`period_type_enum`, `period_value` columns, default backfill, unique indexes). Added `PeriodType` enum to `backend/src/entities/enums.rs`, updated `submission.rs` and `assessment.rs` entities.
+- [x] **22.1 Database Migration & Entity Definitions** — Created migration `35_submission_period_types.sql` (`period_type_enum`, `period_value` columns, default backfill, unique indexes). Added `PeriodType` enum to `backend/src/entities/enums.rs`, updated `submission.rs` and `assessment.rs` entities.
 - [x] **22.2 Backend DTOs & Validation** — Updated `CreateSubmissionRequest`, `CreateApexSubmissionRequest`, and `SubmissionResponse` DTOs with period validation (`Q1..Q4`, `01..12`, `H1..H2`). Updated repository with `find_by_cooperative_and_period` and conflict checking.
 - [x] **22.3 AI Extraction Auto-Detection & Pipeline** — Updated `ExtractionOutput` struct in `ai_extraction.rs` with `detected_period_type`, `detected_period_value`, and `detected_reporting_year` auto-detection metadata fields.
 - [x] **22.4 Frontend Submission Wizard & Dynamic Inputs** — Updated `NewSubmissionModal` and `NewApexSubmissionModal` in `SubmissionsPage.tsx` with frequency selectors (`YEARLY`, `QUARTERLY`, `MONTHLY`, `SEMI_ANNUAL`) and period value buttons.
@@ -575,7 +576,7 @@
   - [ ] Sync queue for local changes
   - [ ] Verification: Network offline → wizard works, data persists locally
 
-- [ ] **T12: Retry with Backoff + Idempotency** ✅ Complete
+- [ ] **T12: Retry with Backoff + Idempotency** Complete
   > **Documentation:** `docs/features/t12-retry-idempotency.md`
   - [x] Idempotency middleware on all mutating routes (`middleware.rs:93-147`)
   - [x] Exponential backoff in extraction pipeline (`extraction_pipeline.rs:155-194`)
@@ -598,7 +599,7 @@
 
 ### Focus Area C: Quality Assurance & CI/CD
 
-- [x] **T15: Unit, Integration & E2E Tests** ✅ Complete
+- [x] **T15: Unit, Integration & E2E Tests** Complete
   - [x] Backend: `cargo test` for handlers, repos (22 tests)
   - [x] Frontend: `vitest` for hooks, utilities, components (401 tests)
   - [x] E2E: Playwright for login, form entry, dashboard (99 tests)
@@ -642,38 +643,38 @@
 > **Branch**: `securityReliability`
 > **Documentation**: `docs/features/t1-input-sanitization.md`, `docs/features/t2-auth-double-gatekeeper.md`, `docs/features/t3-session-management.md`
 
-### T1: Input Sanitization & Injection Prevention ✅ Complete
+### T1: Input Sanitization & Injection Prevention Complete
 - [x] **T1.1 XSS Prevention (Frontend)** — DOMPurify sanitization in `chart.tsx` and `QuestionnaireAnalyticsPage.tsx`
 - [x] **T1.2 DTO Validation (Backend)** — `#[derive(Validate)]` on 9 DTO files, `.validate()` calls in all handlers
 - [x] **T1.3 Nested Validation** — `#[validate(nested)]` on Vec fields in `federation.rs`
 - [x] **T1.4 Path Traversal Prevention** — Filename sanitization in `upload.rs` and `non_financial.rs`
 - [x] **T1.5 Whitespace Validation** — Explicit `.trim().is_empty()` checks in handlers
-- [x] **T1.6 Tests** — `cargo clippy` ✅, `npm run lint` ✅
+- [x] **T1.6 Tests** — `cargo clippy` , `npm run lint`
 
-### T2: Auth & Authorization Double-Gatekeeper ✅ Complete
+### T2: Auth & Authorization Double-Gatekeeper Complete
 - [x] **T2.1 Auth Failure Logging** — `tracing::warn!` in `middleware.rs` for all auth failures
 - [x] **T2.2 401 Integration Tests** — 7 tests in `auth_integration.rs` covering missing/malformed/invalid tokens
 - [x] **T2.3 Frontend 401 Handling** — Global error handling in `router.tsx` (pre-existing)
 - [x] **T2.4 Documentation** — `docs/features/t2-auth-double-gatekeeper.md`
 
-### T3: Session Management & Token Expiry ✅ Complete
+### T3: Session Management & Token Expiry Complete
 - [x] **T3.1 Documentation** — Created `docs/features/t3-session-management.md` with full token timing specs
 - [x] **T3.2 Current Implementation Audit** — Verified all existing implementations with exact file references
 - [x] **T3.3 Inactivity Timeout Implementation** — Added 10-min timeout with Option B debouncing in `AuthContext.tsx`
 - [x] **T3.4 Unit Tests** — Wrote 10 inactivity timeout tests in `AuthContext.inactivity.test.tsx`
-- [x] **T3.5 Verification** — `npm run lint` ✅, `npm run typecheck` ✅, tests pass ✅
+- [x] **T3.5 Verification** — `npm run lint` , `npm run typecheck` , tests pass
 
 ### Token Timing Specifications (Documented in T3)
 
 | Timer | Value | Status | Location |
 |-------|-------|--------|----------|
-| Access Token | 5 min | ✅ Keycloak config | Keycloak Admin Console |
-| Auto-Refresh | 30 sec before expiry | ✅ Implemented | `authService.ts:8,111,209` |
-| Refresh Token Idle | 30 min | ✅ Keycloak config | Keycloak Admin Console |
-| Offline Token Validity | 30 days | ✅ Implemented | `authService.ts:9-10,472-473` |
-| Inactivity Timeout | 10 min | ❌ Not implemented | `AuthContext.tsx` (pending) |
+| Access Token | 5 min | Keycloak config | Keycloak Admin Console |
+| Auto-Refresh | 30 sec before expiry | Implemented | `authService.ts:8,111,209` |
+| Refresh Token Idle | 30 min | Keycloak config | Keycloak Admin Console |
+| Offline Token Validity | 30 days | Implemented | `authService.ts:9-10,472-473` |
+| Inactivity Timeout | 10 min | Not implemented | `AuthContext.tsx` (pending) |
 
-### Phase 23: T10 Error Handling & Safe User Messages ✅ Complete
+### Phase 23: T10 Error Handling & Safe User Messages Complete
 
 > **Goal**: Prevent sensitive implementation details from being exposed to users while maintaining a good developer experience during development.
 
@@ -699,10 +700,10 @@
   - Custom fallback rendering
   - Error logging to console
 - [x] **23.7 Design Documentation** — Created `docs/features/t10-error-handling.md` with full T10 implementation details, security considerations, and verification steps.
-- [x] **Verification**: Backend integration tests pass ✅, Frontend unit tests pass ✅, `cargo clippy` ✅, ESLint on changed files ✅
+- [x] **Verification**: Backend integration tests pass , Frontend unit tests pass , `cargo clippy` , ESLint on changed files
 
 
-### Phase 24: T9 Audit Trails & Tamper-Evident Logging ✅ Complete
+### Phase 24: T9 Audit Trails & Tamper-Evident Logging Complete
 
 > **Goal**: Audit all mutations (create, update, delete, approve, reject) while skipping read-only operations (analytics, stats, benchmarking) per Option A.
 
@@ -733,8 +734,8 @@
 - [x] **24.6 Upload Handler Audit** — Added audit call to `handlers/upload.rs`:
   - `upload_financial_statement` — upload action
 - [x] **24.7 Extraction Handler** — No changes needed (read-only endpoint)
-- [x] **24.8 Verification** — All 15 audit tests pass ✅, `cargo check` ✅
-### Phase 23: Rate Limiting & Abuse Prevention (T6 / #134) ✅ Complete
+- [x] **24.8 Verification** — All 15 audit tests pass , `cargo check`
+### Phase 23: Rate Limiting & Abuse Prevention (T6 / #134) Complete
 
 > **Goal**: Protect sensitive auth endpoints against brute-force and abuse via a 3-layer defense (Keycloak brute-force detection + nginx `limit_req` + Axum Redis token bucket). Design: `docs/features/rate-limiting-design.md`.
 
@@ -756,8 +757,8 @@
   - [x] Unit tests for token-bucket logic (3 tests)
   - [x] Fixed `tests/handlers_verify_identity.rs` router to include `sensitive_auth_routes()`
   - [x] `cargo clippy` clean + `cargo test` all pass (342 tests)
-  - [x] **Live verification** via `scripts/test-rate-limit.sh`: 6 rapid requests to `/api/v1/me/verify-identity` → 6th returns `429` with `Retry-After: 60` ✅
-  - [x] **Live verification** of Keycloak brute-force (Layer 1): 5 wrong passwords then correct → blocked ✅
+  - [x] **Live verification** via `scripts/test-rate-limit.sh`: 6 rapid requests to `/api/v1/me/verify-identity` → 6th returns `429` with `Retry-After: 60`
+  - [x] **Live verification** of Keycloak brute-force (Layer 1): 5 wrong passwords then correct → blocked
 - [x] **24.7 Frontend — 429 UI handling**
   - [x] `src/openapi-client/index.ts` — global `onResponse` handler for `429`: shows a sonner toast with a live `Retry-After` countdown
   - [x] Added `errors.rateLimited` / `errors.rateLimitedTitle` i18n keys to en/fr/pt/ss
@@ -769,7 +770,7 @@
 
 ---
 
-### Phase 25: T12 Retry & Idempotency Patterns ✅ Complete
+### Phase 25: T12 Retry & Idempotency Patterns Complete
 
 > **Goal**: Document existing retry and idempotency patterns that are already implemented in the codebase.
 
@@ -780,7 +781,7 @@
   - AI extraction retry at `ai_extraction.rs:627-720` — retries on transient failures
 - [x] **25.2 Verification** — All patterns documented with exact file references and line numbers
 
-### Phase 26: T15 Comprehensive Testing ✅ Complete
+### Phase 26: T15 Comprehensive Testing Complete
 
 > **Goal**: Establish comprehensive test coverage across backend, frontend, and E2E layers.
 
@@ -802,13 +803,13 @@
 - [x] **26.4 Backend Tests** — 22 tests passing (`cargo test`)
 - [x] **26.5 Frontend Tests** — 401 tests passing (`npm run test:unit`)
 - [x] **26.6 Verification** — All test suites pass:
-  - `npm run test:e2e` — 99 passed ✅
-  - `cargo test` — 22 passed ✅
-  - `npm run test:unit` — 401 passed ✅
+  - `npm run test:e2e` — 99 passed
+  - `cargo test` — 22 passed
+  - `npm run test:unit` — 401 passed
 
 ---
 
-### Phase 27: T18 Chaos & Resilience Testing ✅ Complete
+### Phase 27: T18 Chaos & Resilience Testing Complete
 
 > **Goal**: Verify the platform recovers from infrastructure / dependency failures (Postgres, Redis, Keycloak) during active processing, without data corruption. Design: `docs/features/t18-chaos-resilience.md`.
 
@@ -834,8 +835,32 @@
   - `BEGIN; INSERT; ROLLBACK` leaves 0 rows (atomicity)
   - `BEGIN; INSERT; COMMIT` persists 1 row (write path restored)
   - Test rows cleaned up
-- [x] **27.7 Verification** — `cargo build` ✅, `cargo clippy` clean ✅, `cargo test --lib` 358 passed ✅
+- [x] **27.7 Verification** — `cargo build` , `cargo clippy` clean , `cargo test --lib` 358 passed
 - [x] **27.8 Live E2E** — `scripts/test-chaos.sh` all scenarios passed; backend `Restarts=0` throughout; DB left clean (0 test rows, submissions=20)
+
+---
+
+## Phase 28: Reporting Years, Questionnaire Analytics and Handover (October 2026)
+
+> Design notes: [`features/complete-year-periods.md`](../features/complete-year-periods.md), [`features/questionnaire-kpi-dashboard.md`](../features/questionnaire-kpi-dashboard.md), [`features/legal-consent-management.md`](../features/legal-consent-management.md).
+
+- [x] **Complete reporting years** — a submission's frequency, period and start month are fixed at creation; a year counts only when every period is approved; analytics, benchmarking, comparisons and reports use complete years only; growth is computed like for like (PRs #222 and follow-ups)
+- [x] **Questionnaire analytics** — about 70 questionnaire indicators, Basic Analytics and Basic Benchmarking dashboards, multilingual questionnaire PDF report (#220)
+- [x] **Analytics follow each cooperative's frequency and are scoped by cooperative type** — frequency-aware date dropdown, SACCO vs multipurpose screens, scope banner on every analytics tab, case-insensitive region and sector filters (#248)
+- [x] **Legal and consent management** — versioned legal documents, consent history, simplified data-privacy page with links to each document and cookie preferences (#248)
+- [x] **Cascade delete** — a delete removes everything below a federation, apex or cooperative and can finish what an earlier attempt left half done; the dialog shows how many submissions go with it (#245)
+- [x] **Authentication fixes** — production post-logout redirect URI registered (#244), Keycloak backend client secret synced during provisioning, live password-requirements checklist on the sign-in pages (#251, v1.7.0)
+- [x] **Operations and security** — least-privilege secrets and a Docker socket proxy for autoheal (#234), password-based deploy authentication (#225), autoheal pinned to a working digest, dependency advisories cleared in CI
+- [x] **Handover documentation** — role-based [user guide](../user-guide/README.md), [production runbook](../deployment/production-runbook.md), refreshed README, documentation index and environment examples
+
+**Open items**
+- [ ] Theme cache-busting: Keycloak theme files stay cached (CDN) after a change
+- [ ] `deploy.sh` rolls out only backend and frontend; Keycloak and autoheal changes need a manual step
+- [ ] Single quotes in some Keycloak theme messages render without the quote (must be doubled)
+- [ ] `keycloak/backfill-mfa-attribute.sh` needs Python, which the Keycloak image lacks
+- [ ] siSwati strings in the Keycloak theme need native review
+- [ ] Per-incident runbooks in `knowledge/runbooks.md`
+- [ ] Decide the licence and add a `LICENSE` file (the backend manifest says MIT; the app footer says all rights reserved)
 
 ---
 

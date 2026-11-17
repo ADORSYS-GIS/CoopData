@@ -6,10 +6,10 @@
 >
 > **Why Docker Compose:** for a known maximum of 5,000 users, a single-server deployment is
 > **simpler, cheaper, and easier to operate** than a Kubernetes cluster. The database and
-> backups are handled by managed services to reduce operational workload.
+> backups run on the same server and are covered by the nightly backup script.
 >
 > **Services included:** Web application (Frontend), API (Backend), PostgreSQL (database),
-> Redis (cache), MinIO/S3 (file storage), Keycloak (login/security), Gotenberg (PDF/reports),
+> Redis (cache), MinIO (file storage), Keycloak (login/security), Gotenberg (PDF/reports),
 > and the **AI module** (vision-language model).
 
 ---
@@ -20,66 +20,23 @@ The specifications are based on a **5,000-user** target, with **~750 users activ
 (15% of registered — the industry norm). This drives the compute, memory, and storage below.
 
 > **Note:** a single server is a **single point of failure** and has **no automatic scaling**.
-> This is acceptable for a known 5,000-user ceiling, and is mitigated with managed database
+> This is acceptable for a known 5,000-user ceiling, and is mitigated with nightly off-site
 > backups and a documented recovery procedure.
 
 ---
 
-## 2. Deployment Options
+## 2. Deployment Target
 
-Two options are available, depending on the client's preference.
-
-### Option A — AWS (EC2 + managed services)
-
-The platform runs on a single **EC2** server using Docker Compose. The **database (RDS)**,
-**file storage (S3)**, and **backups (AWS Backup)** are managed services, so you do not have
-to operate them yourself.
+CoopData runs on a **single server provided by the client**, using Docker Compose. The server can be a dedicated machine or a virtual machine, in the client's data centre or at a hosting provider. No cloud-specific service is required: the database (PostgreSQL), the file storage (MinIO) and the cache (Redis) all run in containers on the same server.
 
 | Resource | Spec | Why |
 | :--- | :--- | :--- |
-| **EC2 instance** | `m6i.2xlarge` (8 vCPU / 32 GB) | Runs the app, login, cache, and PDF services |
-| **RDS** (database) | `db.m6i.large` (2 vCPU / 8 GB) | Managed PostgreSQL — automatic backups & failover |
-| **S3** (file storage) | 500 GB | Managed storage for uploads/files |
-| **AWS Backup** | Daily, 30-day retention | Managed automatic backups |
+| **Server** | 16 cores / 64 GB RAM / 1 TB SSD (5,000-user target). 4 vCPU / 8 GB RAM / 40 GB disk is enough for a pilot | Runs all services |
+| **File storage** | 500 GB on the server disk (MinIO volume) | Uploaded documents |
 | **OS** | Ubuntu 24.04 LTS | Supported operating system |
+| **Network** | Fixed public IP, ports 22 (restricted), 80 and 443 open | User traffic and administration |
 
-> **Why managed services:** RDS handles database backups, patching, and failover
-> automatically; S3 provides durable file storage; AWS Backup automates snapshots. This
-> **reduces operational workload** significantly.
-
-#### Monthly cost (AWS)
-
-| Item | Est. monthly |
-| :--- | :-: |
-| **EC2** (`m6i.2xlarge`) | ~$280 |
-| **RDS** (`db.m6i.large`) | ~$180 |
-| **S3** (storage + transfer) | ~$20 |
-| **AWS Backup** | ~$25 |
-| **Data transfer** | ~$20 |
-| **Total** | **~$525** |
-
-### Option B — Hetzner (dedicated server)
-
-The platform runs on a **dedicated bare-metal server** using Docker Compose. Hetzner is
-significantly cheaper, but you **run the database yourself** (no managed RDS equivalent).
-
-| Resource | Spec | Why |
-| :--- | :--- | :--- |
-| **Dedicated server** | 16 cores / 64 GB RAM / 1 TB SSD | Runs all services at full capacity |
-| **Object Storage** | 500 GB | S3-compatible storage for uploads/files |
-| **OS** | Ubuntu 24.04 LTS | Supported operating system |
-| **Network** | 1 Gbps | Handles user traffic |
-
-> **Note:** Hetzner has **no managed database** — you run PostgreSQL yourself on the server
-> and manage backups manually. This is the main tradeoff for the lower cost.
-
-#### Monthly cost (Hetzner)
-
-| Item | Est. monthly |
-| :--- | :-: |
-| **Dedicated server** (16 cores / 64 GB / 1 TB) | ~$110–165 |
-| **Object Storage** | ~$10 |
-| **Total** | **~$120–175** |
+> **Note:** because the database runs on the same server, backups are the client's safety net. The nightly script [`backup-production.sh`](../../scripts/backup-production.sh) copies the databases and files to an off-site S3-compatible bucket, and the client should also keep server-level snapshots if the host offers them. See [`../BACKUP_AND_RECOVERY_GUIDE.md`](../BACKUP_AND_RECOVERY_GUIDE.md).
 
 ---
 
@@ -92,15 +49,15 @@ The table below shows the resources each service needs at the **5,000-user maxim
 | **Backend** (API) | 1 | 2 cores | 2 GB | — |
 | **Frontend** (Web) | 1 | 0.5 core | 512 MB | — |
 | **Keycloak** (Login/security) | 1 | 2 cores | 4 GB | — |
-| **PostgreSQL** (Database) | 1 | — (RDS) | — (RDS) | **100 GB** |
+| **PostgreSQL** (Database) | 1 | 2 cores | 4 GB | **100 GB** |
 | **Redis** (Cache) | 1 | 0.5 core | 512 MB | 10 GB |
-| **MinIO/S3** (File storage) | 1 | — (S3) | — (S3) | **500 GB** |
+| **MinIO** (File storage) | 1 | 1 core | 1 GB | **500 GB** |
 | **Gotenberg** (PDF/reports) | 1 | 1 core | 1 GB | — |
 
 **Key justifications:**
 - **Keycloak** (login/security) is the largest memory consumer (4 GB).
 - **PostgreSQL** (database) is the main data store — **100 GB** for 5,000 users.
-- **MinIO/S3** (file storage) holds uploaded files — **500 GB** for 5,000 users.
+- **MinIO** (file storage) holds uploaded files — **500 GB** for 5,000 users.
 - **Backend** (API) is efficient — 150 req/s is light for a single instance.
 
 ---
@@ -110,12 +67,11 @@ The table below shows the resources each service needs at the **5,000-user maxim
 | Item | Size | Notes |
 | :--- | :--- | :--- |
 | Database (PostgreSQL) | 100 GB | Main data store |
-| File storage (MinIO/S3) | 500 GB | Uploads and attachments |
+| File storage (MinIO) | 500 GB | Uploads and attachments |
 | Cache (Redis) | 10 GB | Temporary, no backup needed |
 | **Backups** | Daily | Retained 30 days, with an off-site copy |
 
-> **On AWS:** backups are automatic via RDS + AWS Backup.
-> **On Hetzner:** backups are manual (snapshots + your own scripts).
+> Backups are produced by `backup-production.sh` (nightly, copied off-site) and checked by the restore drill in the backup guide.
 
 ---
 
@@ -147,12 +103,12 @@ processing of documents, receipts, and images.
 > **Note on vLLM:** the inference engine pre-allocates up to 90% of GPU VRAM for the KV cache,
 > allowing many parallel prompts without memory fragmentation.
 
-### 5.3 Recommended Server (Hetzner)
+### 5.3 Recommended Server
 
-To avoid high hourly and egress fees from hyperscalers (AWS/GCP/Azure), a **dedicated
+To avoid high hourly and egress fees from hyperscale clouds, a **dedicated
 bare-metal GPU server** is recommended.
 
-| Spec | Proposed: Hetzner GEX44 |
+| Spec | Example: dedicated GPU server (GEX44 class) |
 | :--- | :--- |
 | **GPU** | NVIDIA RTX 4000 SFF Ada (20 GB VRAM) |
 | **CPU / RAM** | 10 cores (Intel i5-13500) / 64 GB DDR5 |
@@ -160,9 +116,8 @@ bare-metal GPU server** is recommended.
 | **Network** | 1 Gbit/s (unlimited transfer) |
 | **Pricing** | Fixed ~€184–234 / month (no hidden egress fees) |
 
-**Why Hetzner:**
-1. **~70% cost savings** — an equivalent AWS instance (`g6.xlarge`, 24 GB VRAM) costs
-   ~$580–730/month; Hetzner is a flat ~$200–250/month with no per-GB transfer charges.
+**Why a dedicated server:**
+1. **Lower cost** — a flat monthly price with no per-GB transfer charges.
 2. **Dedicated performance** — 100% of the GPU/CPU/RAM dedicated to your workload.
 3. **Predictable budgeting** — fixed monthly billing, no surprise charges.
 
@@ -170,19 +125,12 @@ bare-metal GPU server** is recommended.
 
 | # | Item | Status |
 | :- | :--- | :--- |
-| 1 | **Hetzner account access** — create account and provision a GEX44 server | Required |
+| 1 | **GPU server** — provision a server with a GPU comparable to the one above | Required |
 | 2 | **API key & networking** — domain/IP whitelist for the API endpoint | Required |
 | 3 | **Sample dataset** — 5–10 test prompts and images to benchmark | Optional |
 
 ---
 
-## 6. Cost Summary
+## 6. Cost
 
-| Option | Est. monthly |
-| :--- | :-: |
-| **AWS** — app (EC2 + RDS + S3 + Backup) | ~$525 |
-| **Hetzner** — app (dedicated server) | ~$120–175 |
-| **AI module** (Hetzner GPU server) | ~$200–250 |
-
-> Costs are indicative and vary by region; exact quotes are available on request. The AI
-> module is billed separately at a fixed monthly rate.
+The application itself needs no paid cloud service: the client pays for the server it provides. The AI module (section 5) is billed separately at a fixed monthly rate. Exact quotes are available on request.

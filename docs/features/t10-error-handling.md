@@ -1,6 +1,6 @@
 # T10 — Error Handling & Safe User Messages
 
-**Status:** In Progress  
+**Status:** Complete  
 **Labels:** `security`, `backend`, `frontend`, `error-handling`  
 **Priority:** High
 
@@ -134,8 +134,7 @@ cargo test --test error_handling_integration
    - Expected: Custom 404 page with "Page not found" message
 
 3. **Trigger JS Error:** Force a component to throw
-   - DEV: Shows raw error for debugging
-   - PROD: Shows generic error message
+   - Every mode: the UI shows a generic message, and the full error is logged to the browser DevTools console
 
 ## Acceptance Criteria
 

@@ -486,7 +486,7 @@ The JWT token contains all the information needed for scope enforcement, without
 ### 6.1 Realm Settings
 
 - **Realm name:** `coopdata`
-- **Features enabled:** `preview,organization` (enables Keycloak's Organization feature)
+- **Features enabled:** `organization` (Keycloak's Organization feature; the dev compose starts Keycloak with `--features=organization`)
 - **SMTP configured** for email verification and invitation emails
 
 ### 6.2 Clients
@@ -573,7 +573,7 @@ sequenceDiagram
     alt Session exists
         Keycloak-->>Frontend: Token available
         Frontend->>Frontend: Parse claims → UserProfile
-        Frontend->>Frontend: ProtectedRoute grants access
+        Frontend->>Frontend: Route guard grants access
     else No session
         Keycloak-->>Frontend: Redirect to login
         User->>Keycloak: Enter credentials
@@ -582,7 +582,7 @@ sequenceDiagram
         Keycloak-->>Frontend: JWT access token + refresh token
         Frontend->>Frontend: Store tokens in IndexedDB + memory
         Frontend->>Frontend: Parse claims → UserProfile
-        Frontend->>Frontend: ProtectedRoute grants access
+        Frontend->>Frontend: Route guard grants access
     end
 
     User->>Frontend: API call (e.g., GET /api/v1/ministry/federations)
@@ -697,28 +697,16 @@ impl Claims {
 
 ### 7.6 Frontend Route Protection
 
-**File:** `frontend/src/router/routes.ts`
+**Files:** `frontend/src/routes/app.*.tsx` (TanStack file-based routes), `frontend/src/lib/route-guards.ts`, `frontend/src/constants/roles.ts`
 
-| Route | Allowed Roles | Layout |
-|-------|---------------|--------|
-| `/onboarding` | `ministry`, `federation`, `apex`, `cooperative` | — |
-| `/ministry/*` | `ministry` | `MinistryLayout` |
-| `/federation/*` | `federation` | `FederationLayout` |
-| `/apex/*` | `apex` | `ApexLayout` |
-| `/cooperative/*` | `cooperative`, `apex` | `CooperativeLayout` |
+Every signed-in page lives under `/app/*`. There is no per-role URL prefix: all roles land on `/app/dashboard`, and the menu and the pages a role may open depend on its role.
 
-**ProtectedRoute Component** (`frontend/src/router/ProtectedRoute.tsx`):
-1. Check if user is authenticated (via Keycloak + cached tokens)
-2. Combine `user.roles` and `user.realm_access.roles` into role list
-3. If user has `ministry` role and visits `/dashboard`, redirect to `/ministry/dashboard`
-4. If `allowedRoles` is specified and user lacks the role, redirect to `/unauthorized`
-5. If route requires `federation` role but user has no organization ID, show "Organization Required" message (offline users bypass this check)
+**Guards** (`lib/route-guards.ts`, called from each route's `beforeLoad`):
+1. `requireAuth()`: the user must be authenticated through Keycloak (or hold a valid cached offline sign-in). Otherwise redirect to `/login`.
+2. `requireRole(...roles)`: the profile role must be one of the listed roles. Otherwise redirect to `/unauthorized`.
+3. `redirectIfAuthenticated()`: used on the login route.
 
-**Navbar Redirection** (`frontend/src/components/shared/Navbar.tsx`):
-- `ministry` → `/ministry/dashboard`
-- `federation` → `/federation/dashboard`
-- `apex` → `/apex/dashboard`
-- `cooperative` → `/cooperative/dashboard`
+**Navigation per role** (`ROLE_NAV_ITEMS` in `constants/roles.ts`) lists the pages shown in each menu group (Oversight, Intelligence, System). The user guide in `docs/user-guide/` describes what each role sees.
 
 ### 7.7 Invitation Pending Detection
 
@@ -878,12 +866,12 @@ sequenceDiagram
 
 ### 9.2 Invitation Handlers
 
-**File:** `src/api/handlers/invitation.rs`
+**File:** `src/api/handlers/federation.rs`
 
 | Endpoint | Handler | Auth Check |
 |----------|---------|------------|
 | `POST /api/v1/ministry/federations/{fed_id}/invitations` | `invite_user_to_federation` | `ministry` required |
-| `GET /api/v1/ministry/federations/{fed_id}/invitations` | `get_federation_invitations` | `ministry` required |
+| `GET /api/v1/ministry/federations/{fed_id}/invitations` | `list_federation_invitations` | `ministry` required |
 | `DELETE /api/v1/ministry/federations/{fed_id}/invitations/{id}` | `delete_federation_invitation` | `ministry` required |
 | `POST /api/v1/ministry/federations/{fed_id}/invitations/{id}/resend` | `resend_federation_invitation` | `ministry` required |
 
@@ -894,7 +882,7 @@ POST /api/v1/apex/cooperatives/{coop_id}/members
 {email, first_name, last_name, roles: ["apex" | "cooperative"], dimension_ids}
 ```
 
-**File:** `src/api/handlers/member.rs` → `add_member()`
+**File:** `src/api/handlers/cooperative.rs` → `add_cooperative_member()`
 
 Steps:
 1. Get admin token from Keycloak
@@ -1127,7 +1115,7 @@ All previously identified gaps have been addressed:
 | PATCH | `/api/v1/ministry/federations/:id` | `update_federation` | `ministry` |
 | DELETE | `/api/v1/ministry/federations/:id` | `delete_federation` | `ministry` |
 | POST | `/api/v1/ministry/federations/:id/invitations` | `invite_user_to_federation` | `ministry` |
-| GET | `/api/v1/ministry/federations/:id/invitations` | `get_federation_invitations` | `ministry` |
+| GET | `/api/v1/ministry/federations/:id/invitations` | `list_federation_invitations` | `ministry` |
 | DELETE | `/api/v1/ministry/federations/:id/invitations/:inv_id` | `delete_federation_invitation` | `ministry` |
 | POST | `/api/v1/ministry/federations/:id/invitations/:inv_id/resend` | `resend_federation_invitation` | `ministry` |
 | GET | `/api/v1/ministry/federations/:id/members` | `get_federation_members` | `ministry` |

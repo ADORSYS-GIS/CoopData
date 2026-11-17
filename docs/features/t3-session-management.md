@@ -1,6 +1,6 @@
 # T3: Session Management & Token Expiry
 
-> **Status:** DESIGN — Pending Implementation
+> **Status:** Implemented (inactivity timeout in `AuthContext.tsx`, covered by `AuthContext.inactivity.test.tsx`)
 > **Last Updated:** 2026-09-08
 > **Branch:** `securityReliability` (based on `develop`)
 
@@ -31,8 +31,8 @@ Minimize the vulnerability window of stolen credentials/tokens and ensure inacti
 |------------|-------|--------|
 | Access token lifespan | 5 minutes | ✅ Keycloak config |
 | Refresh token idle timeout | 30 minutes | ✅ Keycloak config |
-| Inactivity timeout | 10 minutes | ❌ Not implemented |
-| Activity tracking events | mousemove, mousedown, keydown, touchstart, scroll | ❌ Not implemented |
+| Inactivity timeout | 10 minutes | ✅ Implemented |
+| Activity tracking events | mousemove, mousedown, keydown, touchstart, scroll | ✅ Implemented |
 | Store tokens in IndexedDB | Yes | ✅ Implemented |
 | No localStorage for JWTs | Yes | ✅ Implemented |
 | Logout invalidates Keycloak session | Yes | ✅ Implemented |
@@ -68,7 +68,7 @@ Minimize the vulnerability window of stolen credentials/tokens and ensure inacti
 | **Behavior** | Resets on any user activity |
 | **Offline validity** | 30 days (with `offline_access` scope) |
 
-### 2.4 Inactivity Timeout (10 minutes) — TO BE IMPLEMENTED
+### 2.4 Inactivity Timeout (10 minutes)
 
 | Property | Value |
 |----------|-------|
@@ -216,17 +216,16 @@ export async function logout(): Promise<void> {
 
 ---
 
-### 3.2 Not Implemented ❌
+### 3.2 Inactivity Timeout (10 minutes) ✅
 
-#### Inactivity Timeout (10 minutes)
+Implemented in `frontend/src/context/AuthContext.tsx` (effect "T3: Inactivity timeout"):
 
-**Missing:** Activity tracking with 10-minute timeout
+1. Tracks `mousemove`, `mousedown`, `keydown`, `touchstart` and `scroll` with passive listeners.
+2. Any activity resets the timer, debounced through `requestAnimationFrame`.
+3. After 10 minutes without activity the user is logged out, but only when authenticated.
+4. The timer and listeners are removed on unmount.
 
-**Required behavior:**
-1. Track user activity events: `mousemove`, `mousedown`, `keydown`, `touchstart`, `scroll`
-2. Reset timer on any activity
-3. Log out user after 10 minutes of no activity
-4. Use debouncing for performance (Option B)
+There is no warning shown before the logout.
 
 ---
 
@@ -270,7 +269,7 @@ INACTIVITY TIMEOUT (10 min) ──► If no activity for 10 min, FORCE LOGOUT
 
 ---
 
-## 5. Implementation Plan: Inactivity Timeout
+## 5. Implementation: Inactivity Timeout
 
 ### 5.1 Selected Approach: Option B (Debounced Activity Tracking)
 
@@ -394,9 +393,9 @@ Result: 100+ events → 1 timer reset (per frame)
 
 | File | Change |
 |------|--------|
-| `frontend/src/context/AuthContext.tsx` | Add inactivity timeout useEffect |
+| `frontend/src/context/AuthContext.tsx` | Inactivity timeout useEffect (done) |
 
-### 6.2 New Test Files
+### 6.2 Test Files
 
 | File | Description |
 |------|-------------|
@@ -485,23 +484,23 @@ describe('Inactivity Timeout', () => {
 
 ### 8.1 Functional Requirements
 
-- [ ] User is automatically logged out after 10 minutes of inactivity
-- [ ] Activity events (mousemove, mousedown, keydown, touchstart, scroll) reset the timer
-- [ ] Timer starts on component mount
-- [ ] Timer is cleaned up on component unmount
-- [ ] Debouncing prevents excessive timer resets
+- [x] User is automatically logged out after 10 minutes of inactivity
+- [x] Activity events (mousemove, mousedown, keydown, touchstart, scroll) reset the timer
+- [x] Timer starts on component mount
+- [x] Timer is cleaned up on component unmount
+- [x] Debouncing prevents excessive timer resets
 
 ### 8.2 Security Requirements
 
-- [ ] No sensitive data exposed in console logs
-- [ ] Timer cannot be bypassed by rapid events
-- [ ] Logout properly clears all auth data
+- [x] No sensitive data exposed in console logs
+- [x] Timer cannot be bypassed by rapid events
+- [x] Logout properly clears all auth data
 
 ### 8.3 Performance Requirements
 
-- [ ] Timer resets are debounced (max 60 per second)
-- [ ] No memory leaks from event listeners
-- [ ] Passive event listeners don't block scrolling
+- [x] Timer resets are debounced (max 60 per second)
+- [x] No memory leaks from event listeners
+- [x] Passive event listeners don't block scrolling
 
 ### 8.4 Verification Commands
 
@@ -523,15 +522,14 @@ npm run lint
 
 ## Appendix: Keycloak Configuration
 
-The following Keycloak realm settings must be configured (server-side):
+The realm file `keycloak/realm-coopdata.json` sets:
 
 | Setting | Value |
 |---------|-------|
-| Access Token Lifespan | 5 minutes |
-| Access Token Lifespan For Implicit Flow | 5 minutes |
-| Client Session Idle Timeout | 30 minutes |
-| Client Session Max Timeout | 30 minutes |
-| Offline Session Idle Timeout | 30 days |
+| Access Token Lifespan | 5 minutes (`accessTokenLifespan` 300) |
+| Access Token Lifespan For Implicit Flow | 15 minutes (900) |
+| SSO Session Idle | 30 minutes (1800) |
+| SSO Session Max | 10 hours (36000) |
+| Offline Session Idle and Max | 30 days (2592000) |
 
-These settings are configured in the Keycloak Admin Console under:
-**Realm Settings → Tokens**
+They can be reviewed in the Keycloak Admin Console under **Realm Settings → Tokens** and **Sessions**.

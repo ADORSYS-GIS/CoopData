@@ -417,7 +417,7 @@ erDiagram
 
 | Enum | Values |
 |---|---|
-| `submission_status` | `draft`, `awaiting_coop_validation`, `submitted`, `apex_review`, `apex_approved`, `apex_returned`, `federation_review`, `federation_approved`, `federation_returned`, `ministry_review`, `approved`, `rejected` |
+| `submission_status` | `draft`, `submitted`, `in_review`, `approved`, `rejected`, `returned`, `escalated`, `withdrawn`, `archived`, `synced`, `sync_failed`, `needs_correction` (the application sets `draft`, `submitted` and `approved`) |
 | `review_tier` | `cooperative`, `apex`, `federation`, `ministry` |
 | `review_action` | `validated_extraction`, `submitted`, `approved`, `returned`, `rejected`, `commented` |
 | `account_category` | `assets`, `liabilities`, `equity`, `income`, `expenses`, `surplus` |
@@ -535,7 +535,7 @@ erDiagram
 
 ### 8.2 `submissions` — Annual reporting envelope (workflow core)
 
-**Purpose**: One row per **cooperative × reporting_year**. It is the container that the 4-tier review workflow (Cooperative → Apex → Federation → Ministry) moves through. All data tables (`financial_statements`, `members`, `savings_accounts`, `loans`, `fixed_deposits`) link back to a submission via `submission_id`.
+**Purpose**: One row per **cooperative × reporting_year**. It is the container that the review workflow (Cooperative → Apex, where the apex gives the final approval) moves through. All data tables (`financial_statements`, `members`, `savings_accounts`, `loans`, `fixed_deposits`) link back to a submission via `submission_id`.
 
 **Decision (revised during review)**: We **removed the `type` column** that the original architecture had. Instead of one submission per type (financial/membership/savings/loans/fixed_deposits) per year, we use **one annual envelope per cooperative per year**. Which data sections are present is implicit from which child tables have rows linking to the submission. Rationale: a cooperative reports its period once, not five separate times; this matches the user mental model and avoids five parallel workflows.
 
@@ -760,3 +760,26 @@ These store the **output** of the KPI/abnormality engines (computed, not raw inp
 | `ip_address`/`user_agent` | Forensic context |
 
 Append-only (enforced at DB level — no UPDATE/DELETE). Cross-cutting; added to all mutation handlers.
+
+---
+
+## Tables added after the original design
+
+The sections above describe the original schema. The migrations in `backend/migrations/` (currently 64 files) added the tables below. Read the migration named in the second column for the exact columns.
+
+| Table | Migration | Purpose |
+| --- | --- | --- |
+| `federations`, `apexes`, `organizations` | `01`, `02` | Organisation hierarchy records (federation, apex) and the generic organisation record |
+| `submission_sections` | `14` | Readiness of each section of a submission (the Readiness Center) |
+| `farm_coop` | `17` | Farm data of cooperatives that report it |
+| `non_financial_indicator_catalog`, `non_financial_indicator_entries` | `18` | The catalogue of periodic non-financial indicators and the values entered for each submission |
+| `custom_kpis` | `22` | KPIs defined by the Ministry from a formula |
+| `kpi_records` | `23` | One row per KPI per submission, computed when the apex approves |
+| `questionnaire_templates`, `questionnaire_responses` | `24`, `25` | The editable Financial and Non-Financial questionnaires and the answers of multipurpose cooperatives |
+| `ministry_report_narratives` | `26` | AI narratives for consolidated reports |
+| `organization_labels` | `33` | The renamable labels of the organisation levels (Configure Levels) |
+| `report_exports` | `49` | Tracks the report PDFs prepared for each language |
+| `legal_policies` | `50`, `51`, `53` | Versioned legal documents in four languages |
+| `user_consents`, `privacy_requests` | `52` | Each acceptance of a legal document with its version and time, and data privacy requests |
+
+The exchange-rate tables (`exchange_rates`, `exchange_rate_history`) and the frozen-rate columns of `submissions` were removed by migration `46`: the platform uses SZL only and never converts amounts. Migration `64` makes deleting a cooperative cascade to its data.

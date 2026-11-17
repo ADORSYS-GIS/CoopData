@@ -1,7 +1,7 @@
 # Observability & Monitoring Architecture
 
 > **Ticket**: [#70](https://github.com/ADORSYS-GIS/CoopData/issues/70) — Implement Grafana and Prometheus for Monitoring
-> **Status**: Phases 1-5 Complete, Phase 4 Alerting Complete (25 rules, contact points configured via Grafana UI)
+> **Status**: Phases 1-5 complete. 13 Prometheus rules plus 25 Grafana-managed rules, with a Discord contact point and notification policy provisioned from files (the webhook comes from `DISCORD_WEBHOOK_URL`)
 > **Scope**: Add full-stack observability (Metrics, Dashboards, Alerts) to the CoopData platform in production (EC2/Docker).
 
 ---
@@ -27,9 +27,9 @@ By moving from a reactive to a proactive observability model, the team can ident
 | Redis cache (`CacheService`) | ✅ exists |
 | `/metrics` Prometheus endpoint | ✅ implemented |
 | Prometheus + Exporters | ✅ implemented |
-| Grafana with 4 dashboards | ✅ implemented |
-| Alert rules (25 rules) | ✅ loaded |
-| Alert notifications (Slack/Discord) | ✅ configured via Grafana UI (manual setup) |
+| Grafana with 3 dashboards | ✅ implemented |
+| Alert rules (13 Prometheus, 25 Grafana-managed) | ✅ loaded |
+| Alert notifications (Discord) | ✅ provisioned; sends only when `DISCORD_WEBHOOK_URL` is set |
 | Database query metrics | ✅ implemented |
 
 ---
@@ -370,9 +370,9 @@ Row 5: [Cache Performance] [Top Endpoints by Latency]
 2. **Prometheus evaluates rules** — Every 15s, checks all rules in `monitoring/alerts.yml`.
 3. **Grafana evaluates rules** — Unified Alerting queries Prometheus and evaluates Grafana-managed rules.
 4. **Alert fires** — Rule has `for: 1m` (or 2m/5m/10m), preventing flapping from brief blips.
-5. **Notification sent** — ⚠️ Not configured yet (needs Slack webhook).
+5. **Notification sent** — The provisioned Discord contact point and notification policy (`monitoring/grafana/provisioning/alerting/`) route `severity=critical` alerts to the Discord webhook. With `DISCORD_WEBHOOK_URL` empty, alerts are only visible in the Grafana UI.
 
-### 6.2 Alert Rules (25 Total)
+### 6.2 Alert Rules (25 Grafana-managed, plus 13 Prometheus-native)
 
 #### Critical Alerts (10 rules)
 
@@ -507,7 +507,7 @@ INFRASTRUCTURE
 
 ### 6.5 Adding Notifications (Slack/Discord)
 
-Contact points and notification policies are configured **manually via the Grafana UI**. This approach avoids provisioning complications and gives you full control over the configuration.
+The Discord contact point (`contact-points.yml`) and the notification policy (`notification-policies.yml`) are provisioned from `monitoring/grafana/provisioning/alerting/`. Set `DISCORD_WEBHOOK_URL` in the environment to activate them. Other channels (Slack, email) can be added in the Grafana UI, but provisioned items may show as read-only there.
 
 #### Setting Up a Webhook
 
@@ -549,15 +549,6 @@ Contact points and notification policies are configured **manually via the Grafa
 | Multiple webhooks | Add routes in notification policy |
 | Change webhook URL | Edit contact point in UI and save |
 
-#### Why Manual Setup Instead of Auto-Provisioning?
-
-We initially implemented auto-provisioning (both file-based and API-based), but reverted to manual UI setup because:
-
-1. **Grafana UI quirk**: Contact points created via provisioning APIs sometimes show as "cannot be edited through the UI" even with `provenance=api`
-2. **Simplicity**: Manual setup avoids complexity of entrypoint scripts and API calls
-3. **Flexibility**: Easy to change webhook URLs without restarting containers
-4. **Transparency**: Configuration is visible and editable in the UI
-
 ---
 
 ## 7. Implementation Status
@@ -585,14 +576,14 @@ We initially implemented auto-provisioning (both file-based and API-based), but 
 - [x] Create `business-metrics.json` dashboard (12 panels)
 
 ### Phase 4: Alerting Rules ✅ Complete
-- [x] Create `monitoring/alerts.yml` with 7 rules (Prometheus-native)
+- [x] Create `monitoring/alerts.yml` with 13 rules (Prometheus-native)
 - [x] Wire Prometheus to load rules file
 - [x] Create 10 Grafana-managed alert rules (service availability + HTTP errors)
 - [x] Create 15 additional Grafana-managed alert rules (DB, Redis, traffic, infrastructure)
 - [x] Total: 25 alert rules across 2 groups (critical + warning)
 - [x] All rules evaluated and health-checked (0 errors)
-- [ ] Configure contact points (webhooks) via Grafana UI — manual setup required
-- [ ] Configure notification policies via Grafana UI — manual setup required
+- [x] Provision the Discord contact point from `contact-points.yml` (webhook from `DISCORD_WEBHOOK_URL`)
+- [x] Provision the notification policy from `notification-policies.yml`
 
 ### Phase 5: Database Query Metrics ✅ Complete
 - [x] Add `db_query()` helper to `repositories/mod.rs`

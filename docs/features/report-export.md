@@ -3,7 +3,7 @@
 
 Here is a visual representation of how the PDF export works. It happens in two completely separate phases. 
 
-The first phase is the "Heavy Lifting" which happens automatically in the background when the Ministry approves a report. The second phase is the "Fast Download" which happens instantly when a user clicks the export button.
+The first phase is the "Heavy Lifting" which happens automatically in the background when the apex approves a submission. The second phase is the "Fast Download" which happens instantly when a user clicks the export button.
 
 ```mermaid
 sequenceDiagram
