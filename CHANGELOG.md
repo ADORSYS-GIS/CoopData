@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.10.1](https://github.com/ADORSYS-GIS/CoopData/compare/v1.10.0...v1.10.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **nginx:** raise upload body limit to 50M on the proxy and frontend ([a2d008d](https://github.com/ADORSYS-GIS/CoopData/commit/a2d008db7a739247476d7dda5116913966aaf89d))
+* **upload:** allow 10 statements per request (220M body limit) ([6798a9f](https://github.com/ADORSYS-GIS/CoopData/commit/6798a9fada648505f9d61aff5590007096e340e8))
+
 ## [1.10.0](https://github.com/ADORSYS-GIS/CoopData/compare/v1.9.0...v1.10.0) (2026-11-12)
 
 
