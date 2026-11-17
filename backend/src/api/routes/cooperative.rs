@@ -194,7 +194,7 @@ pub fn cooperative_routes() -> Router<AppState> {
         // Upload + extraction (20 MB body limit for multipart file uploads)
         .route(
             "/financial-statement/upload",
-            post(upload_financial_statement).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),
+            post(upload_financial_statement).layer(DefaultBodyLimit::max(220 * 1024 * 1024)),
         )
         .route(
             "/submissions/{id}/financial-statement",
